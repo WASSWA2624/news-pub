@@ -85,7 +85,7 @@ export default async function TemplatesPage() {
                   <FieldLabel>Name</FieldLabel>
                   <Input defaultValue={template.name} name="name" required />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Platform</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Template platform"
@@ -99,7 +99,7 @@ export default async function TemplatesPage() {
                   <FieldLabel>Locale override</FieldLabel>
                   <Input defaultValue={template.locale || ""} name="locale" />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Category override</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Category override"
@@ -150,7 +150,7 @@ export default async function TemplatesPage() {
                 <FieldLabel>Name</FieldLabel>
                 <Input name="name" required />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Platform</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Template platform"

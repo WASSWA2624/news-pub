@@ -682,7 +682,7 @@ export default function AdminShell({ children, messages, user }) {
   const primaryNavViewportRef = useRef(null);
   const measurementRefs = useRef({});
   const [openMenuContext, setOpenMenuContext] = useState(null);
-  const [viewportWidth, setViewportWidth] = useState(DESKTOP_BREAKPOINT);
+  const [viewportWidth, setViewportWidth] = useState(null);
   const [navViewportWidth, setNavViewportWidth] = useState(0);
   const [navItemWidths, setNavItemWidths] = useState({});
   const publicSiteHref = buildLocaleRootPath(defaultLocale);
@@ -762,7 +762,10 @@ export default function AdminShell({ children, messages, user }) {
     };
   }, [navigationItems, viewportWidth]);
 
-  const primaryKeys = getPrimaryKeysForViewport(viewportWidth);
+  const effectiveViewportWidth = viewportWidth ?? MOBILE_BREAKPOINT;
+  const isDesktopViewport =
+    viewportWidth !== null && viewportWidth >= DESKTOP_BREAKPOINT;
+  const primaryKeys = getPrimaryKeysForViewport(effectiveViewportWidth);
   const widthDrivenDistribution = useMemo(() => {
     return distributeNavigationItemsByWidth(navigationItems, pathname, navItemWidths, navViewportWidth);
   }, [navigationItems, pathname, navItemWidths, navViewportWidth]);
@@ -839,7 +842,7 @@ export default function AdminShell({ children, messages, user }) {
       <Header>
         <HeaderSurface>
           <HeaderInner>
-            {viewportWidth >= DESKTOP_BREAKPOINT ? (
+            {isDesktopViewport ? (
               <DesktopBar>
                 <BrandLink href="/admin">
                   <NewsPubLogo size={34} />

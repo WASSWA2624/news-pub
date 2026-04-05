@@ -127,7 +127,7 @@ export default async function StreamsPage() {
                   <FieldLabel>Slug</FieldLabel>
                   <Input defaultValue={stream.slug} name="slug" required />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Destination</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Destination"
@@ -137,7 +137,7 @@ export default async function StreamsPage() {
                     placeholder="Select a destination"
                   />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Provider</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Provider"
@@ -147,7 +147,7 @@ export default async function StreamsPage() {
                     placeholder="Select a provider"
                   />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Mode</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Stream mode"
@@ -157,7 +157,7 @@ export default async function StreamsPage() {
                     placeholder="Select a mode"
                   />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Status</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Stream status"
@@ -199,7 +199,7 @@ export default async function StreamsPage() {
                   <FieldLabel>Retry backoff minutes</FieldLabel>
                   <Input defaultValue={stream.retryBackoffMinutes} name="retryBackoffMinutes" type="number" />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Default template</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Default template"
@@ -234,7 +234,7 @@ export default async function StreamsPage() {
                   name="excludeKeywordsJson"
                 />
               </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
+              <Field as="div" style={{ marginTop: "0.85rem" }}>
                 <FieldLabel>Categories</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Stream categories"
@@ -249,10 +249,9 @@ export default async function StreamsPage() {
                 <PrimaryButton type="submit">Save stream</PrimaryButton>
               </ButtonRow>
               <ButtonRow style={{ marginTop: "0.65rem" }}>
-                <form action={runStreamNowAction}>
-                  <input name="streamId" type="hidden" value={stream.id} />
-                  <SecondaryButton type="submit">Run now</SecondaryButton>
-                </form>
+                <SecondaryButton formAction={runStreamNowAction} formNoValidate name="streamId" type="submit" value={stream.id}>
+                  Run now
+                </SecondaryButton>
                 <SmallText>
                   Destination: {stream.destination?.name || "Unknown"} | Provider: {stream.activeProvider?.label || "Unknown"}
                 </SmallText>
@@ -276,7 +275,7 @@ export default async function StreamsPage() {
                 <FieldLabel>Slug</FieldLabel>
                 <Input name="slug" />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Destination</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Destination"
@@ -286,7 +285,7 @@ export default async function StreamsPage() {
                   placeholder="Select a destination"
                 />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Provider</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Provider"
@@ -296,7 +295,7 @@ export default async function StreamsPage() {
                   placeholder="Select a provider"
                 />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Mode</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Stream mode"

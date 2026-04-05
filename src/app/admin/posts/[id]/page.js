@@ -103,7 +103,7 @@ export default async function PostEditorPage({ params }) {
                 <FieldLabel>Slug</FieldLabel>
                 <Input defaultValue={snapshot.post.slug} name="slug" required />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Status</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Story status"
@@ -113,7 +113,7 @@ export default async function PostEditorPage({ params }) {
                   placeholder="Select a status"
                 />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Editorial stage</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Editorial stage"
@@ -123,7 +123,7 @@ export default async function PostEditorPage({ params }) {
                   placeholder="Select an editorial stage"
                 />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Publish target match</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Publish target match"
@@ -146,7 +146,7 @@ export default async function PostEditorPage({ params }) {
               <FieldLabel>Body markdown</FieldLabel>
               <Textarea defaultValue={translation?.contentMd || ""} name="contentMd" style={{ minHeight: "280px" }} />
             </Field>
-            <Field style={{ marginTop: "0.85rem" }}>
+            <Field as="div" style={{ marginTop: "0.85rem" }}>
               <FieldLabel>Categories</FieldLabel>
               <SearchableSelect
                 ariaLabel="Story categories"

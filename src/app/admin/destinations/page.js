@@ -124,7 +124,7 @@ export default async function DestinationsPage() {
                   <FieldLabel>Slug</FieldLabel>
                   <Input defaultValue={destination.slug} name="slug" required />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Platform</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Platform"
@@ -134,7 +134,7 @@ export default async function DestinationsPage() {
                     placeholder="Select a platform"
                   />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Kind</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Destination kind"
@@ -144,7 +144,7 @@ export default async function DestinationsPage() {
                     placeholder="Select a destination kind"
                   />
                 </Field>
-                <Field>
+                <Field as="div">
                   <FieldLabel>Connection status</FieldLabel>
                   <SearchableSelect
                     ariaLabel="Connection status"
@@ -211,7 +211,7 @@ export default async function DestinationsPage() {
                 <FieldLabel>Slug</FieldLabel>
                 <Input name="slug" required />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Platform</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Platform"
@@ -221,7 +221,7 @@ export default async function DestinationsPage() {
                   placeholder="Select a platform"
                 />
               </Field>
-              <Field>
+              <Field as="div">
                 <FieldLabel>Kind</FieldLabel>
                 <SearchableSelect
                   ariaLabel="Destination kind"
