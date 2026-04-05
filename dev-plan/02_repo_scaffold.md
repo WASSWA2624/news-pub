@@ -1,37 +1,49 @@
 # 02 Repo Scaffold
 
-Source sections: 5, 14, 15, 16, 26, 34, 42.
-Atomic aspect: repo bootstrap only.
+Source sections: 1, 3, 4, 5, 6, 23, 24.
+Atomic aspect: repo shape and baseline app skeleton only.
 Prerequisite: step 01.
 
 ## Goal
 
-Create the runnable project skeleton that matches the target folder structure and route inventory.
+Reshape the existing repo from the retired equipment product into the NewsPub skeleton without introducing the feature logic yet.
+
+## Reuse First
+
+- Keep the App Router layout structure, admin and public shells, theme, store provider, auth helpers, env parser, storage adapter, SEO helpers, analytics helpers, and shared UI primitives.
+- Rebrand and repurpose existing routes and screens before creating new parallel folders.
 
 ## Implement
 
-1. Initialize the Next.js App Router project in JavaScript and commit the package lockfile.
-2. Add the top-level folder structure from section 14.
-3. Create placeholder route files for every mandatory public and admin page listed in section 5.
-4. Add the styled-components registry scaffold and theme entry point.
-5. Add the Redux provider, empty slice folders, and store bootstrap.
-6. Add baseline scripts for linting, testing, Prisma, and development.
-7. Add placeholder API route files for the required handlers in section 26.
-8. Add the `en` locale message file and wire the scaffold so future locales can be added by adding a new locale file and registering it in configuration.
+1. Rename the package and visible product branding from `equip-blog` and `Equip Blog` to `news-pub` and `NewsPub`.
+2. Replace active route metadata, shell titles, logos, message copy, and layout headings so they describe a news-ingestion publishing app.
+3. Repoint the public route tree to the NewsPub route map:
+   - keep `/` redirecting to the default locale
+   - keep `/[locale]`
+   - replace equipment and manufacturer pages with `news`, `category`, `search`, and legal pages
+4. Repoint the admin route tree to the NewsPub control-plane map:
+   - keep `/admin/login` and `/admin`
+   - add `providers`, `destinations`, `streams`, `templates`, and `settings`
+   - replace or retire prompt, localization, manufacturer, generation, and comment routes
+5. Delete or quarantine the AI, equipment, manufacturer, prompt, and comment module families marked for removal in section `23`.
+6. Keep route placeholders compiling even before later feature steps land, so the repo stays runnable throughout the rewrite.
+7. Update the root docs that must immediately match the new product identity, especially `README.md` if it still presents the old product as current.
 
 ## Required Outputs
 
-- a bootable app
-- route placeholders for all required pages
-- API route placeholders for all required endpoints
-- a folder tree that matches section 14
+- `package.json`
+- `README.md`
+- `src/app/*` route folders and placeholder pages
+- rebranded layout and message files
+- removed or renamed legacy module directories
 
 ## Verify
 
-- the app starts locally
-- lint and test commands run without scaffold errors
-- every route named in sections 5 and 26 exists as a file placeholder
+- the app boots into NewsPub-branded public and admin shells
+- the active route tree matches sections `5` and `6`
+- no active shell, page title, or route placeholder still presents the old equipment-generation product
+- deleted legacy modules are not still imported by the new scaffold
 
 ## Exit Criteria
 
-- later steps can add behavior without restructuring the app
+- the repo shape and product identity are ready for NewsPub feature work

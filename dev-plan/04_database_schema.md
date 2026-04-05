@@ -1,35 +1,44 @@
 # 04 Database Schema
 
-Source sections: 13, 13.1, 13.2, 28, 35.
+Source sections: 8, 11, 12, 13, 14, 15, 18, 21.
 Atomic aspect: schema and migrations only.
 Prerequisite: step 03.
 
 ## Goal
 
-Implement the complete Prisma schema that matches the Release 1 source-of-truth model contract.
+Implement the full Prisma schema for NewsPub Release 1.
+
+## Reuse First
+
+- Keep compatible core models such as `Locale`, `User`, `AdminSession`, `Category`, `Post`, `PostTranslation`, `MediaAsset`, `MediaVariant`, `SEORecord`, `ViewEvent`, and `AuditEvent`.
+- Replace incompatible equipment, manufacturer, AI, prompt, generation, and comment models instead of layering new models on top of them.
 
 ## Implement
 
-1. Create the Prisma schema for every required model in section 13.2.
-2. Include the required enums, uniqueness constraints, and join tables.
-3. Model both `status` and `editorialStage` exactly as defined in section 35.
-4. Ensure locale-aware content is stored through `PostTranslation` with one active record per post and locale, while Release 1 only uses `en`.
-5. Ensure media, source attribution, audit events, prompts, providers, and source configuration all have persistence models.
-6. Ensure `ModelProviderConfig` stores selected provider ids, selected model ids, purpose, encrypted API key material, and env fallback metadata, while trusted provider model catalogs remain source-driven rather than hard-coded schema tables.
-7. Include the content storage fields required by section 28: Markdown, HTML, and structured JSON.
-8. Create an initial migration from an empty database.
+1. Add or repurpose the core NewsPub models: `NewsProviderConfig`, `Destination`, `PublishingStream`, `StreamCategory`, `ProviderFetchCheckpoint`, `FetchedArticle`, `ArticleMatch`, `DestinationTemplate`, and `PublishAttempt`.
+2. Define the exact enum families listed in section `8`.
+3. Add the required joins and uniqueness rules:
+   - one checkpoint per stream
+   - one `ArticleMatch` per `FetchedArticle` and stream
+   - unique provider config per provider key
+   - unique destination identity per platform and external account id
+4. Reuse `Post` and `PostTranslation` as the canonical rendered-content store and link them back to the normalized article flow.
+5. Keep Markdown, HTML, and structured JSON fields on `PostTranslation`.
+6. Remove obsolete schema objects for equipment families, manufacturers, source-research generation, prompt templates, AI provider configs, and public comments.
+7. Add the first NewsPub migration from an empty database state.
 
 ## Required Outputs
 
 - `prisma/schema.prisma`
-- initial migration files
+- NewsPub migration files
 
 ## Verify
 
 - `prisma validate` passes
 - migration from an empty database succeeds
-- every required model, enum, and uniqueness rule from section 13.2 exists
+- every model, enum, and join described in section `8` exists
+- no retired AI, equipment, manufacturer, or comment schema objects remain active
 
 ## Exit Criteria
 
-- the database schema is complete enough for the rest of the build
+- the database schema is complete enough for seeds, auth, and feature implementation

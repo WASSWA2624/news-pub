@@ -1,34 +1,40 @@
 # 06 Authentication
 
-Source sections: 12, 12.1, 39.
+Source sections: 6, 7, 9, 22.
 Atomic aspect: authentication only.
 Prerequisite: step 05.
 
 ## Goal
 
-Implement Release 1 admin authentication with email/password and protected sessions.
+Keep the existing admin authentication model, but align it to the NewsPub route map and security rules.
+
+## Reuse First
+
+- Reuse the current email and password login flow, session cookie pattern, auth helpers, and admin login screen composition.
+- Rebrand and reroute the current auth system instead of replacing it.
 
 ## Implement
 
-1. Build the admin login page and login API route.
-2. Implement password hashing and credential verification.
-3. Implement session creation, session expiry, logout, and session invalidation.
-4. Protect admin routes and admin APIs with middleware or server-side guards.
-5. Record authentication-related audit events.
+1. Keep admin-only email and password authentication with server-side sessions.
+2. Update auth copy, metadata, and redirects so login lands users in the NewsPub admin workspace.
+3. Update protected admin page and API path lists to match the new route topology.
+4. Remove or disable public comment and guest-auth assumptions from the active auth layer.
+5. Keep logout, session invalidation, and admin seed-user bootstrap behavior.
+6. Ensure protected routes stay inaccessible without a valid session.
 
 ## Required Outputs
 
-- login UI
-- login and logout endpoints
-- session utilities
-- route protection layer
+- `src/lib/auth/*`
+- `src/app/admin/login/page.js`
+- protected page and API middleware or proxy configuration
 
 ## Verify
 
-- anonymous users cannot access admin pages or admin APIs
-- valid admins can log in and log out
-- expired or tampered sessions are rejected
+- protected admin pages redirect to login without a valid session
+- protected admin APIs reject unauthorized requests
+- login and logout still work after the route map changes
+- no public authentication or comment-related auth surfaces remain active
 
 ## Exit Criteria
 
-- the admin area is protected and ready for RBAC
+- NewsPub admin authentication is working end to end

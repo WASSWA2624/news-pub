@@ -1,50 +1,48 @@
-# Equip Blog
+# NewsPub
 
-`equip-blog` is a specification-first project for building an AI-assisted medical equipment publishing platform.
+`news-pub` is a specification-first project for building a reuse-first news ingestion, review, scheduling, and publishing platform.
 
-The app is designed to let an authenticated admin enter an equipment name, generate a source-grounded draft, review it, then manually schedule or publish it to a public English website that uses a locale-ready architecture for future expansion.
+The app is designed to let an authenticated admin configure providers, destinations, streams, templates, and schedules, fetch news from supported external APIs, filter it locally, and publish qualifying stories to the website, Facebook, and Instagram.
 
 ## Current Repo State
 
-This repository contains the Release 1 application implementation, the source-of-truth write-up, and the execution evidence gathered while building against the numbered dev plan.
+The source-of-truth planning documents now target the NewsPub product.
 
-The two most important files are:
+The most important files are:
 
-- [`app-write-up.md`](./app-write-up.md): the single source of truth for the application
-- [`dev-plan/00_plan_index.md`](./dev-plan/00_plan_index.md): the ordered execution plan used to build the app step by step
-- [`docs/architecture-summary.md`](./docs/architecture-summary.md): the frozen Release 1 architecture summary and ADR entry point
+- [`app-write-up.md`](./app-write-up.md): the single source of truth for the NewsPub product and architecture
+- [`dev-plan/00_plan_index.md`](./dev-plan/00_plan_index.md): the ordered implementation plan
+
+Important note:
+
+- the current application codebase and some legacy docs still reflect the pre-NewsPub product and should be treated as historical until the implementation is rebuilt against the new plan
+- [`docs/architecture-summary.md`](./docs/architecture-summary.md) and the existing evidence pack are not yet regenerated for NewsPub
 
 ## Release 1 Scope
 
 Release 1 defines a production-ready app with:
 
-# news-pub
-
 - Next.js App Router using JavaScript
-- Vercel AI SDK for draft generation
-- Prisma and MySQL for persistence
+- Prisma with MySQL or MariaDB persistence
 - styled-components for styling
 - Redux Toolkit for admin-side client state
 - Zod for validation
-- locale-prefixed public routes with `en` as the only active locale in Release 1
+- locale-prefixed public routes with `en` as the default active locale
 - admin authentication with RBAC
-- guest comments with moderation
-- manual publishing and scheduled publishing
-- SEO metadata, sitemap, robots, and structured data
-- search, related posts, analytics, and auditability
+- env-based credential resolution for `mediastack`, `newsdata`, and `newsapi`
+- website, Facebook, and Instagram publishing
+- stream-based scheduling, filtering, deduplication, retries, and auditability
+- SEO metadata, sitemap, robots, search, analytics, and operational reporting
 
-Future locale integration should be a small extension: add a new locale file, register it in the existing locale configuration, and reuse the existing locale-aware routing and persistence flow.
-
-The concrete activation path is documented in [`docs/localization-workflow.md`](./docs/localization-workflow.md).
+Release 1 is not an AI content-generation product.
 
 ## Source Of Truth Rules
 
 All implementation decisions must follow [`app-write-up.md`](./app-write-up.md).
 
-- If any implementation artifact conflicts with the write-up, the write-up wins.
-- Sections `1-39` and `42-46` are mandatory for Release 1 unless a specific item is explicitly marked optional.
-- Sections `40-41` are future-phase only.
-- Section `45` is informational only.
+- If an implementation artifact conflicts with the write-up, the write-up wins.
+- The dev plan must stay synchronized with the write-up.
+- Legacy code or documents from the retired product do not override the new write-up.
 
 ## How To Use The Dev Plan
 
@@ -56,7 +54,7 @@ Follow the files in [`dev-plan`](./dev-plan) in exact numeric order.
 4. Stop and fix any failed step before moving to the next one.
 5. Capture evidence for files changed, commands run, automated checks, and manual verification notes.
 
-Implementation is only complete when step 24 proves full traceability to all mandatory Release 1 requirements.
+Implementation is complete only when step 24 proves full traceability to the current `app-write-up.md`.
 
 ## Repository Layout
 
@@ -68,17 +66,9 @@ Implementation is only complete when step 24 proves full traceability to all man
     |-- 00_plan_index.md
     |-- 01_architecture_decisions.md
     |-- ...
-    `-- 24_security_copyright_and_release_traceability.md
+    `-- 24_release_traceability_and_cutover.md
 ```
-
-## Important Product Constraints
-
-- The AI layer is not the factual source of truth; structured research is.
-- Publishing must remain a manual editor action.
-- Duplicate generation must be blocked until the admin explicitly chooses replace or cancel.
-- Release 1 ships English-only content, but the locale architecture must stay ready for future locale files and configuration-driven expansion.
-- Media usage, attribution, and copyright rules must be enforced.
 
 ## Release Evidence
 
-Release evidence is stored under [`docs/evidence`](./docs/evidence), with the final Release 1 sign-off pack captured in the step 24 evidence set.
+Historical evidence is stored under [`docs/evidence`](./docs/evidence), but it belongs to the older product shape and must be regenerated once NewsPub implementation work is complete.

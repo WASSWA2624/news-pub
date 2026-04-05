@@ -1,35 +1,48 @@
-# 05 Database Indexes and Seeds
+# 05 Database Indexes And Seeds
 
-Source sections: 13.3, 31, 33, 34.
-Atomic aspect: indexes, seeds, and baseline data only.
+Source sections: 7, 8, 10, 11, 12, 13, 19, 24.
+Atomic aspect: indexes, seed data, and bootstrap records only.
 Prerequisite: step 04.
 
 ## Goal
 
-Add the query-performance indexes and seed data that the app needs before feature work starts.
+Add the indexes and deterministic seed data needed for NewsPub to boot into a usable Release 1 state.
+
+## Reuse First
+
+- Reuse the existing Prisma seed entrypoint and idempotent seed style.
+- Reuse existing query-driven index patterns for auth, publishing, analytics, and revalidation.
 
 ## Implement
 
-1. Add indexes for slug lookups, localized post lookups, status, publish dates, and analytics time-series queries.
-2. Seed the first Super Admin account from environment variables.
-3. Seed the active locale registry with `en` only and seed provider configuration defaults.
-4. Seed provider defaults in a way that works for any supported provider key and model id, not only OpenAI.
-5. Seed baseline prompt templates and source configuration records.
-6. Seed any required taxonomy defaults that later steps assume.
-7. Make the seed flow idempotent.
+1. Seed the default locale set with `en` marked as the default active locale.
+2. Seed the admin user from env.
+3. Seed a baseline internal news taxonomy that admins can edit later.
+4. Seed provider rows for `mediastack`, `newsdata`, and `newsapi`, with `mediastack` enabled as the default provider.
+5. Seed the default website destination and at least one inactive placeholder template per supported platform.
+6. Add indexes for:
+   - stream scheduling and status lookups
+   - checkpoint reads and writes
+   - provider article dedupe fields
+   - article-match status queues
+   - publish-attempt retry queries
+   - published-post listing, slug lookup, and category discovery
+   - view-event aggregation and audit-event timelines
+7. Make seeds safe to rerun without creating duplicates.
 
 ## Required Outputs
 
-- index migration
-- seed script
-- repeatable baseline data
+- migration files for indexes
+- `prisma/seed.js`
+- seed tests where practical
 
 ## Verify
 
-- repeated seed runs do not duplicate baseline rows
-- key read paths use indexes
-- seeded provider, prompt, and source records match the write-up contracts
+- `prisma db seed` is idempotent
+- the default provider is `mediastack`
+- the website destination exists after seeding
+- key list, queue, and analytics queries are covered by explicit indexes
 
 ## Exit Criteria
 
-- the database is ready for auth, generation, and admin settings work
+- a fresh database can bootstrap into a valid NewsPub baseline with performant query paths
