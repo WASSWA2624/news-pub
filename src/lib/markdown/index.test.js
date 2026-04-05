@@ -6,122 +6,107 @@ import {
 } from "./index";
 
 describe("markdown rendering", () => {
-  it("strips unsafe manual and reference URLs from rendered artifacts", () => {
+  it("strips unsafe reference URLs from rendered artifacts", () => {
     const article = {
-      excerpt: "Microscope excerpt",
+      excerpt: "Story excerpt",
       sections: [
         {
-          id: "manuals_and_technical_documents",
+          id: "source_attribution",
           items: [
             {
-              title: "Unsafe manual",
+              title: "Unsafe source",
               url: "javascript:alert(1)",
             },
             {
-              title: "Safe manual",
-              url: "https://example.com/manual.pdf",
-            },
-          ],
-          kind: "manuals",
-          title: "Manuals",
-        },
-        {
-          id: "references",
-          items: [
-            {
-              title: "Unsafe reference",
-              url: "javascript:alert(1)",
-            },
-            {
-              title: "Safe reference",
-              url: "https://example.com/reference",
+              title: "Safe source",
+              url: "https://example.com/story",
             },
           ],
           kind: "references",
-          title: "References",
+          title: "Source Attribution",
         },
       ],
-      title: "Microscope",
+      title: "Breaking story",
     };
 
     const markdown = buildMarkdownFromStructuredArticle(article);
     const html = buildHtmlFromStructuredArticle(article);
 
     expect(markdown).not.toContain("javascript:");
-    expect(markdown).toContain("[Safe manual](https://example.com/manual.pdf)");
-    expect(markdown).toContain("Unsafe reference");
+    expect(markdown).toContain("[Safe source](https://example.com/story)");
+    expect(markdown).toContain("Unsafe source");
     expect(html).not.toContain("javascript:");
-    expect(html).toContain('href="https://example.com/manual.pdf"');
-    expect(html).toContain(">Unsafe reference<");
+    expect(html).toContain('href="https://example.com/story"');
+    expect(html).toContain(">Unsafe source<");
   });
 
-  it("renders image-gallery and manual intros in markdown and html output", () => {
+  it("renders image-gallery and reference intros in markdown and html output", () => {
     const article = {
-      excerpt: "Endoscopy excerpt",
+      excerpt: "Story excerpt",
       sections: [
         {
-          id: "operation_visual_guide",
+          id: "featured_visual",
           images: [
             {
-              alt: "Endoscopy tower",
-              caption: "Tower overview",
-              url: "https://example.com/endoscopy-tower.jpg",
+              alt: "Breaking story image",
+              caption: "Lead image",
+              url: "https://example.com/story.jpg",
             },
           ],
-          intro: "These visuals support the operating workflow.",
+          intro: "These visuals support the published report.",
           kind: "image_gallery",
-          title: "Operation visual guide",
+          title: "Featured Visual",
         },
         {
-          id: "manuals_and_technical_documents",
-          intro: "Consult these documents for model-specific detail.",
+          id: "source_attribution",
+          intro: "Original sourcing is retained for publication compliance.",
           items: [
             {
-              title: "Processor manual",
-              url: "https://example.com/processor-manual.pdf",
+              title: "Example Source",
+              url: "https://example.com/story",
             },
           ],
-          kind: "manuals",
-          title: "Manuals",
+          kind: "references",
+          title: "Source Attribution",
         },
       ],
-      title: "Endoscopy machine",
+      title: "Breaking story",
     };
 
     const markdown = buildMarkdownFromStructuredArticle(article);
     const html = buildHtmlFromStructuredArticle(article);
 
-    expect(markdown).toContain("These visuals support the operating workflow.");
-    expect(markdown).toContain("Consult these documents for model-specific detail.");
-    expect(html).toContain("<p>These visuals support the operating workflow.</p>");
-    expect(html).toContain("<p>Consult these documents for model-specific detail.</p>");
+    expect(markdown).toContain("These visuals support the published report.");
+    expect(markdown).toContain("Original sourcing is retained for publication compliance.");
+    expect(html).toContain("<p>These visuals support the published report.</p>");
+    expect(html).toContain("<p>Original sourcing is retained for publication compliance.</p>");
   });
 
   it("renders image galleries from sourceUrl fallback fields", () => {
     const article = {
-      excerpt: "Microscope excerpt",
+      excerpt: "Story excerpt",
       sections: [
         {
           id: "featured_image",
           images: [
             {
-              alt: "Bench microscope",
-              caption: "Prepared for inspection",
-              sourceUrl: "https://fixtures.example/images/microscope-bench.jpg",
+              alt: "Story image",
+              caption: "Prepared for publication",
+              sourceUrl: "https://fixtures.example/images/story-image.jpg",
             },
           ],
           kind: "image_gallery",
-          title: "Featured image",
+          title: "Featured Image",
         },
       ],
-      title: "Microscope",
+      title: "Breaking story",
     };
 
     const markdown = buildMarkdownFromStructuredArticle(article);
     const html = buildHtmlFromStructuredArticle(article);
 
     expect(markdown).not.toContain("(undefined)");
-    expect(markdown).toContain("![Bench microscope](data:image/svg+xml;charset=UTF-8,");
+    expect(markdown).toContain("![Story image](data:image/svg+xml;charset=UTF-8,");
     expect(html).not.toContain('src="undefined"');
     expect(html).toContain('src="data:image/svg+xml;charset=UTF-8,');
   });

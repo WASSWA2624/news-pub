@@ -6,6 +6,9 @@ import { defaultLocale, isSupportedLocale } from "@/features/i18n/config";
 import { env } from "@/lib/env/server";
 import { normalizeDisplayText } from "@/lib/normalization";
 
+/**
+ * Analytics, audit, and observability helpers for NewsPub admin and public traffic flows.
+ */
 export const viewEventTypeValues = Object.freeze([
   "WEBSITE_VIEW",
   "PAGE_VIEW",
@@ -173,6 +176,7 @@ export function hashAnalyticsValue(value, secret = env.auth.session.secret, scop
     .digest("hex");
 }
 
+/** Writes a structured log entry to the configured console sink. */
 export function writeStructuredLog(input) {
   const level = ["error", "info", "warn"].includes(input?.level) ? input.level : "info";
   const entry = buildConsoleLogEntry({
@@ -191,6 +195,7 @@ export function writeStructuredLog(input) {
   return entry;
 }
 
+/** Persists an append-only audit event when the active Prisma delegate is available. */
 export async function createAuditEventRecord(input, prisma) {
   const db = await resolvePrismaClient(prisma);
 
@@ -209,6 +214,7 @@ export async function createAuditEventRecord(input, prisma) {
   });
 }
 
+/** Records an operational failure or warning in both audit storage and structured logs. */
 export async function recordObservabilityEvent(input, prisma) {
   const payloadJson = {
     ...((input?.payload && typeof input.payload === "object" && !Array.isArray(input.payload))
@@ -249,6 +255,7 @@ export async function recordObservabilityEvent(input, prisma) {
   };
 }
 
+/** Records a privacy-safe public analytics event using hashed request metadata. */
 export async function recordViewEvent(input, options = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const clientIp = options.ipAddress || extractRequestIp(options.request);

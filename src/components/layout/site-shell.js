@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import styled from "styled-components";
 
 import NewsPubLogo from "@/components/common/news-pub-logo";
-import PublicEquipmentSearch from "@/components/layout/public-equipment-search";
+import PublicStorySearch from "@/components/layout/public-equipment-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
 function normalizePathname(pathname) {
@@ -170,6 +170,9 @@ const FooterBottom = styled.div`
   padding: 0 1rem 1rem;
 `;
 
+/**
+ * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
+ */
 export default function SiteShell({ children, locale, messages }) {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
@@ -214,7 +217,7 @@ export default function SiteShell({ children, locale, messages }) {
           </Navigation>
 
           <SearchWrap>
-            <PublicEquipmentSearch
+            <PublicStorySearch
               locale={locale}
               searchCopy={searchBarCopy}
               searchHref={searchHref}

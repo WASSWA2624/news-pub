@@ -4,6 +4,9 @@ import { env } from "@/lib/env/server";
 import { resolvePrismaClient } from "@/lib/news/shared";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
+/**
+ * NewsPub SEO helpers for robots, sitemap, and admin-facing SEO reporting.
+ */
 export const seoRobotsDisallowPaths = Object.freeze(["/admin", "/api"]);
 
 function serializeDate(value) {
@@ -33,6 +36,7 @@ export function getRobotsConfiguration() {
   };
 }
 
+/** Builds sitemap entries for static routes, published stories, and active category landings. */
 export async function getSitemapEntries(prisma) {
   const db = await resolvePrismaClient(prisma);
   const [posts, categories] = await Promise.all([
@@ -114,6 +118,7 @@ export async function getSitemapEntries(prisma) {
   return [...staticEntries, ...postEntries, ...categoryEntries];
 }
 
+/** Summarizes SEO coverage for the admin SEO workspace. */
 export async function getSeoManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const [posts, categories] = await Promise.all([

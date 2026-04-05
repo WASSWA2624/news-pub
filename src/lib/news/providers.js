@@ -1,6 +1,9 @@
 import { env } from "@/lib/env/server";
 import { NewsPubError, createContentHash, dedupeStrings, normalizeDisplayText } from "@/lib/news/shared";
 
+/**
+ * Provider registry and normalization adapters for NewsPub Release 1 fetch sources.
+ */
 const providerCatalog = Object.freeze([
   {
     credentialEnv: "MEDIASTACK_API_KEY",
@@ -167,10 +170,12 @@ export function listNewsProviders() {
   return providerCatalog;
 }
 
+/** Looks up provider metadata from the fixed Release 1 provider catalog. */
 export function getNewsProviderDefinition(providerKey) {
   return providerCatalog.find((provider) => provider.key === normalizeProviderKey(providerKey)) || null;
 }
 
+/** Resolves env-backed credentials without exposing them to the browser or database. */
 export function resolveNewsProviderCredential(providerKey) {
   const normalizedKey = normalizeProviderKey(providerKey);
 
@@ -193,6 +198,7 @@ export function getProviderCredentialState(providerKey) {
   return resolveNewsProviderCredential(providerKey) ? "configured" : "missing";
 }
 
+/** Fetches and normalizes provider articles into the shared NewsPub ingestion shape. */
 export async function fetchProviderArticles({ checkpoint, now = new Date(), providerKey, stream }) {
   const normalizedKey = normalizeProviderKey(providerKey);
   const credential = resolveNewsProviderCredential(normalizedKey);

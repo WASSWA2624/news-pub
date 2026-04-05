@@ -39,7 +39,13 @@ const Button = styled.button`
   padding: 0 1rem;
 `;
 
-export default function PublicEquipmentSearch({ searchCopy = {}, searchHref }) {
+/**
+ * Repurposed search bar component for public NewsPub story discovery.
+ *
+ * The file path is intentionally retained from the reused scaffold described in
+ * `app-write-up.md`, but the behavior is now fully story-search specific.
+ */
+export default function PublicStorySearch({ searchCopy = {}, searchHref }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 

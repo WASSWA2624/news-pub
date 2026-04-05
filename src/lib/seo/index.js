@@ -2,6 +2,9 @@ import { defaultLocale } from "@/features/i18n/config";
 import { buildAlternateLanguageLinks, buildCanonicalPath, buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { env } from "@/lib/env/server";
 
+/**
+ * Shared NewsPub metadata and structured-data builders for public routes.
+ */
 const siteName = "NewsPub";
 const defaultOpenGraphImagePath = "/opengraph-image";
 const defaultTwitterImagePath = "/twitter-image";
@@ -143,6 +146,7 @@ export function buildAbsoluteUrl(pathOrUrl = "/") {
   return new URL(pathname, env.app.url).toString();
 }
 
+/** Builds Next.js metadata for locale-aware NewsPub pages. */
 export function buildPageMetadata({
   authors,
   canonicalUrl,
@@ -221,6 +225,7 @@ export function buildPageMetadata({
   };
 }
 
+/** Extracts FAQ entries from stored structured content for structured-data reuse. */
 export function extractFaqItemsFromSections(sections = []) {
   return (sections || [])
     .filter((section) => section?.kind === "faq")
@@ -232,6 +237,7 @@ export function extractFaqItemsFromSections(sections = []) {
     }));
 }
 
+/** Builds organization structured data for the NewsPub public site. */
 export function buildOrganizationJsonLd({ description, locale = defaultLocale, name = siteName } = {}) {
   return {
     "@context": "https://schema.org",
@@ -242,6 +248,7 @@ export function buildOrganizationJsonLd({ description, locale = defaultLocale, n
   };
 }
 
+/** Builds breadcrumb structured data when the page hierarchy is deep enough to merit it. */
 export function buildBreadcrumbJsonLd(items = []) {
   const breadcrumbItems = (items || []).filter((item) => item?.label && item?.href);
 
@@ -261,6 +268,7 @@ export function buildBreadcrumbJsonLd(items = []) {
   };
 }
 
+/** Builds article structured data for published story pages. */
 export function buildArticleJsonLd({ article } = {}) {
   if (!article?.title || !article?.canonicalUrl) {
     return null;

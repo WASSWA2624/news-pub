@@ -11,6 +11,9 @@ import { defaultLocale } from "@/features/i18n/config";
 import { buildLocaleRootPath } from "@/features/i18n/routing";
 import { getAdminNavigation } from "@/lib/auth/rbac";
 
+/**
+ * Responsive NewsPub admin shell that adapts navigation density by viewport.
+ */
 const MOBILE_BREAKPOINT = 720;
 const DESKTOP_BREAKPOINT = 1220;
 

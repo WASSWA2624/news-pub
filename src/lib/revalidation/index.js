@@ -3,6 +3,9 @@ import { revalidatePath } from "next/cache";
 import { supportedLocales } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
+/**
+ * Revalidation helpers for the NewsPub public publishing surface.
+ */
 function normalizeRevalidationLocale(locale) {
   return typeof locale === "string" ? locale.trim().toLowerCase() : "";
 }
@@ -89,6 +92,7 @@ export async function revalidatePaths(paths, implementation = revalidatePath) {
   return normalizedPaths;
 }
 
+/** Revalidates all story, listing, and category routes affected by a website publication. */
 export async function revalidatePublishedPostPaths(post, implementation = revalidatePath) {
   return revalidatePaths(buildPublishedPostRevalidationPaths(post), implementation);
 }

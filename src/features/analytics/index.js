@@ -2,6 +2,9 @@ import { hasAdminPermission, ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 import { serializeAuditEvent } from "@/lib/analytics";
 import { resolvePrismaClient } from "@/lib/news/shared";
 
+/**
+ * Admin analytics snapshots for NewsPub operations, traffic, and recent job history.
+ */
 function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
 }
@@ -281,6 +284,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
   };
 }
 
+/** Returns the filtered fetch, publish, and audit timeline used by the jobs screen. */
 export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const normalizedSearch = normalizeSearch(search);

@@ -3,6 +3,9 @@ import crypto from "node:crypto";
 import { defaultLocale } from "@/features/i18n/config";
 import { buildHtmlFromStructuredArticle, buildMarkdownFromStructuredArticle } from "@/lib/markdown";
 
+/**
+ * Shared NewsPub primitives used across ingest, review, publishing, and admin flows.
+ */
 export class NewsPubError extends Error {
   constructor(message, { status = "news_pub_error", statusCode = 500 } = {}) {
     super(message);
@@ -144,6 +147,7 @@ export function buildStoryStructuredArticle({
   };
 }
 
+/** Picks the most appropriate translation for a requested locale. */
 export function pickTranslation(translations = [], locale = defaultLocale) {
   return (
     translations.find((entry) => entry.locale === locale)
@@ -153,6 +157,7 @@ export function pickTranslation(translations = [], locale = defaultLocale) {
   );
 }
 
+/** Expands `{{key}}` placeholders using a minimal string-template contract. */
 export function renderTemplateString(template, values = {}) {
   return `${template || ""}`.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) =>
     trimText(values[key]) || "",

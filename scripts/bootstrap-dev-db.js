@@ -2,7 +2,6 @@ const { spawnSync } = require("node:child_process");
 
 const { config: loadEnv } = require("dotenv");
 
-const EMPTY_DATABASE_PATTERN = /P4001|The introspected database was empty/i;
 const { PrismaMariaDb } = require("@prisma/adapter-mariadb");
 
 loadEnv({ path: ".env.local", override: true });
@@ -86,26 +85,13 @@ async function shouldSeedBaselineData() {
 }
 
 async function main() {
-  console.log("Checking local Prisma database state...");
-
-  const introspection = runPrismaCommand(["db", "pull", "--print"], {
-    allowFailure: true,
-    printOutput: false,
-  });
-  const databaseWasEmpty =
-    introspection.status !== 0 && EMPTY_DATABASE_PATTERN.test(introspection.output);
-
-  if (introspection.status !== 0 && !databaseWasEmpty) {
-    process.exit(introspection.status || 1);
-  }
-
   console.log("Generating Prisma client...");
   runPrismaCommand(["generate"]);
 
-  console.log("Syncing database schema...");
-  runPrismaCommand(["db", "push"]);
+  console.log("Applying Prisma migrations...");
+  runPrismaCommand(["migrate", "deploy"]);
 
-  if (databaseWasEmpty || (await shouldSeedBaselineData())) {
+  if (await shouldSeedBaselineData()) {
     console.log("Seeding NewsPub baseline data...");
     runPrismaCommand(["db", "seed"]);
   } else {

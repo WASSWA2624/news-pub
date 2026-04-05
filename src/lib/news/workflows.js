@@ -19,7 +19,11 @@ import {
 import { revalidatePublishedPostPaths } from "@/lib/revalidation";
 import { env } from "@/lib/env/server";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { DestinationPublishError, publishExternalDestination } from "@/lib/news/publishers";
 
+/**
+ * Core NewsPub ingest, filtering, review, scheduling, and publication workflows.
+ */
 function toAbsoluteUrl(path) {
   return new URL(path, env.app.url).toString();
 }
@@ -432,11 +436,18 @@ function buildTemplateContext({ articleMatch, post, stream, template, translatio
     .slice(0, 6)
     .map((keyword) => `#${createSlug(keyword, "news")}`)
     .join(" ");
+  const imageUrl =
+    translation?.seoRecord?.ogImage?.publicUrl
+    || translation?.seoRecord?.ogImage?.sourceUrl
+    || post.featuredImage?.publicUrl
+    || post.featuredImage?.sourceUrl
+    || null;
 
   return {
     canonicalPath,
     canonicalUrl,
     hashtags,
+    imageUrl,
     locale: stream.locale,
     sourceName: post.sourceName,
     sourceUrl: post.sourceUrl,
@@ -461,9 +472,14 @@ async function executePublishAttempt(db, attemptId) {
       destination: true,
       post: {
         include: {
+          featuredImage: true,
           translations: {
             include: {
-              seoRecord: true,
+              seoRecord: {
+                include: {
+                  ogImage: true,
+                },
+              },
             },
           },
         },
@@ -498,8 +514,11 @@ async function executePublishAttempt(db, attemptId) {
   const payload = {
     body: renderTemplateString(template?.bodyTemplate, context),
     canonicalUrl: context.canonicalUrl,
+    destinationKind: destination.kind,
     hashtags: renderTemplateString(template?.hashtagsTemplate, context),
+    mediaUrl: context.imageUrl,
     platform: attempt.platform,
+    sourceReference: `Source: ${context.sourceName}${context.sourceUrl ? ` - ${context.sourceUrl}` : ""}`,
     summary: renderTemplateString(template?.summaryTemplate, context) || context.summary,
     title: renderTemplateString(template?.titleTemplate, context) || context.title,
   };
@@ -556,12 +575,84 @@ async function executePublishAttempt(db, attemptId) {
     return failedAttempt;
   }
 
-  const remoteId = `${destination.platform.toLowerCase()}_${createContentHash(
-    attempt.id,
-    context.title,
-    Date.now(),
-  ).slice(0, 14)}`;
-  const publishedAt = new Date();
+  let publishResult;
+
+  try {
+    if (attempt.platform === "WEBSITE") {
+      const remoteId = `${destination.platform.toLowerCase()}_${createContentHash(
+        attempt.id,
+        context.title,
+        Date.now(),
+      ).slice(0, 14)}`;
+
+      publishResult = {
+        publishedAt: new Date(),
+        remoteId,
+        responseJson: {
+          canonicalUrl: context.canonicalUrl,
+          remoteId,
+          status: "ok",
+        },
+      };
+    } else {
+      publishResult = await publishExternalDestination({
+        destination,
+        payload,
+      });
+    }
+  } catch (error) {
+    const failedAt = new Date();
+    const failedAttempt = await db.publishAttempt.update({
+      where: {
+        id: attempt.id,
+      },
+      data: {
+        completedAt: failedAt,
+        errorMessage: error instanceof Error ? error.message : "Destination publication failed.",
+        responseJson:
+          error instanceof DestinationPublishError
+            ? {
+                ...(error.responseJson || {}),
+                retryable: error.retryable,
+                status: error.status,
+              }
+            : {
+                retryable: false,
+                status: "destination_publish_failed",
+              },
+        status: "FAILED",
+      },
+    });
+
+    await db.articleMatch.update({
+      where: {
+        id: attempt.articleMatchId,
+      },
+      data: {
+        failedAt,
+        status: "FAILED",
+      },
+    });
+
+    await recordObservabilityEvent(
+      {
+        action: "PUBLISH_ATTEMPT_FAILED",
+        entityId: failedAttempt.id,
+        entityType: "publish_attempt",
+        error,
+        message: error instanceof Error ? error.message : "Destination publication failed.",
+        payload: {
+          platform: attempt.platform,
+          retryable: error instanceof DestinationPublishError ? error.retryable : false,
+        },
+      },
+      db,
+    );
+
+    return failedAttempt;
+  }
+
+  const publishedAt = publishResult.publishedAt || new Date();
   const succeededAttempt = await db.publishAttempt.update({
     where: {
       id: attempt.id,
@@ -569,10 +660,10 @@ async function executePublishAttempt(db, attemptId) {
     data: {
       completedAt: publishedAt,
       publishedAt,
-      remoteId,
-      responseJson: {
+      remoteId: publishResult.remoteId,
+      responseJson: publishResult.responseJson || {
         canonicalUrl: context.canonicalUrl,
-        remoteId,
+        remoteId: publishResult.remoteId || null,
         status: "ok",
       },
       status: "SUCCEEDED",
@@ -651,11 +742,13 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
   return db.publishAttempt.create({
     data: {
       articleMatchId,
+      attemptNumber: attemptCount + 1,
       destinationId: stream.destinationId,
       idempotencyKey: createContentHash(articleMatchId, platform, attemptCount + 1).slice(0, 36),
       platform,
       postId,
       queuedAt: new Date(),
+      retryCount: Math.max(0, attemptCount),
       streamId: stream.id,
       ...(publishAt
         ? {
@@ -723,6 +816,119 @@ export async function publishArticleMatch(articleMatchId, { publishAt } = {}, pr
   return executePublishAttempt(db, attempt.id);
 }
 
+function isRetryablePublishAttempt(attempt, now = new Date()) {
+  if (attempt.status !== "FAILED") {
+    return false;
+  }
+
+  if ((attempt.retryCount || 0) >= (attempt.stream?.retryLimit || 0)) {
+    return false;
+  }
+
+  if (!attempt.responseJson?.retryable) {
+    return false;
+  }
+
+  if (
+    (attempt.articleMatch?.publishAttempts || []).some(
+      (candidate) => candidate.id !== attempt.id && candidate.status === "SUCCEEDED",
+    )
+  ) {
+    return false;
+  }
+
+  const completedAt = attempt.completedAt instanceof Date ? attempt.completedAt : null;
+
+  if (!completedAt) {
+    return false;
+  }
+
+  const nextRetryAt = new Date(
+    completedAt.getTime() + (attempt.stream?.retryBackoffMinutes || 0) * 60 * 1000,
+  );
+
+  return nextRetryAt <= now;
+}
+
+/** Creates and executes a new retry attempt for a previously failed publication. */
+export async function retryPublishAttempt(attemptId, { actorId = null, automated = false } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const attempt = await db.publishAttempt.findUnique({
+    include: {
+      articleMatch: {
+        include: {
+          publishAttempts: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+      },
+      stream: true,
+    },
+    where: {
+      id: attemptId,
+    },
+  });
+
+  if (!attempt) {
+    throw new NewsPubError("Publish attempt was not found.", {
+      status: "publish_attempt_not_found",
+      statusCode: 404,
+    });
+  }
+
+  if (attempt.status !== "FAILED") {
+    throw new NewsPubError("Only failed publish attempts can be retried.", {
+      status: "publish_attempt_retry_invalid",
+      statusCode: 400,
+    });
+  }
+
+  if (
+    (attempt.articleMatch?.publishAttempts || []).some(
+      (candidate) => candidate.id !== attempt.id && candidate.status === "SUCCEEDED",
+    )
+  ) {
+    throw new NewsPubError("This article match already has a successful publish attempt.", {
+      status: "publish_attempt_already_succeeded",
+      statusCode: 400,
+    });
+  }
+
+  if ((attempt.retryCount || 0) >= (attempt.stream?.retryLimit || 0)) {
+    throw new NewsPubError("The stream retry limit has already been reached for this publication.", {
+      status: "publish_attempt_retry_limit_reached",
+      statusCode: 400,
+    });
+  }
+
+  const nextAttempt = await createPublishAttempt(db, {
+    articleMatchId: attempt.articleMatchId,
+    platform: attempt.platform,
+    postId: attempt.postId,
+    stream: attempt.stream,
+  });
+
+  await createAuditEventRecord(
+    {
+      action: automated ? "PUBLISH_ATTEMPT_RETRY_SCHEDULED" : "PUBLISH_ATTEMPT_RETRY_REQUESTED",
+      actorId,
+      entityId: nextAttempt.id,
+      entityType: "publish_attempt",
+      payloadJson: {
+        previousAttemptId: attempt.id,
+        retryCount: nextAttempt.retryCount,
+      },
+    },
+    db,
+  );
+
+  return executePublishAttempt(db, nextAttempt.id);
+}
+
+/** Runs one publishing stream end to end, including fetch, filtering, dedupe, and publication. */
 export async function runStreamFetch(streamId, { actorId = null, now = new Date(), triggerType = "manual" } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const stream = await db.publishingStream.findUnique({
@@ -990,6 +1196,7 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
   }
 }
 
+/** Executes all due scheduled stream runs and any pending scheduled publish attempts. */
 export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const streams = await db.publishingStream.findMany({
@@ -1040,9 +1247,55 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
     }
   }
 
+  const failedAttempts = await db.publishAttempt.findMany({
+    include: {
+      articleMatch: {
+        include: {
+          publishAttempts: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+      },
+      stream: true,
+    },
+    orderBy: [{ completedAt: "desc" }, { createdAt: "desc" }],
+    where: {
+      status: "FAILED",
+    },
+  });
+  const latestAttemptByMatch = new Map();
+
+  for (const attempt of failedAttempts) {
+    if (!latestAttemptByMatch.has(attempt.articleMatchId)) {
+      latestAttemptByMatch.set(attempt.articleMatchId, attempt);
+    }
+  }
+
+  const dueRetryAttempts = [...latestAttemptByMatch.values()].filter((attempt) =>
+    isRetryablePublishAttempt(attempt, now),
+  );
+
+  for (const attempt of dueRetryAttempts) {
+    try {
+      await retryPublishAttempt(
+        attempt.id,
+        {
+          automated: true,
+        },
+        db,
+      );
+    } catch {
+      // Retry failures are already recorded through the destination publish flow.
+    }
+  }
+
   return {
     dueStreamCount: dueStreams.length,
     processedScheduledAttempts: dueScheduledAttempts.length,
+    retriedPublishAttempts: dueRetryAttempts.length,
     results,
   };
 }
@@ -1051,6 +1304,7 @@ export async function getDestinationConnectionSnapshot(prisma) {
   return getDestinationManagementSnapshot(prisma);
 }
 
+/** Returns held-for-review matches for the admin review queue. */
 export async function listReviewableArticleMatches(
   { page = 1, pageSize = 20, search = "" } = {},
   prisma,
@@ -1109,6 +1363,7 @@ export async function listReviewableArticleMatches(
   };
 }
 
+/** Returns the published-post inventory used by admin listing surfaces. */
 export async function listPublishedPostsForInventory(
   { locale, page = 1, pageSize = 20, search = "" } = {},
   prisma,

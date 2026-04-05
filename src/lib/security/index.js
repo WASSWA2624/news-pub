@@ -93,7 +93,7 @@ function sanitizeStructuredSection(section) {
       .filter(Boolean);
   }
 
-  if (section.kind === "manuals" || section.kind === "references") {
+  if (section.kind === "references") {
     nextSection.items = Array.isArray(section.items)
       ? section.items.map((item) => ({
           ...item,

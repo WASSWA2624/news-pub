@@ -3,6 +3,9 @@ import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
+/**
+ * Public-site data mappers for locale-aware NewsPub story discovery pages.
+ */
 export const publicDataRevalidateSeconds = 300;
 export const publicListingPageSize = 12;
 
@@ -183,6 +186,7 @@ export async function getPublishedHomePageData({ locale = defaultLocale } = {}, 
   };
 }
 
+/** Returns the paginated published-story index for a locale. */
 export async function getPublishedNewsIndexData({ locale = defaultLocale, page = 1 } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const requestedPage = normalizePage(page);
@@ -216,6 +220,7 @@ export async function getPublishedNewsIndexData({ locale = defaultLocale, page =
   };
 }
 
+/** Returns a category landing page backed by published website stories. */
 export async function getPublishedCategoryPageData({ locale = defaultLocale, page = 1, slug } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const category = await db.category.findUnique({
@@ -364,6 +369,7 @@ export async function searchPublishedStories({ locale = defaultLocale, page = 1,
   };
 }
 
+/** Returns the published story page model plus lightweight related-story cards. */
 export async function getPublishedStoryPageData({ locale = defaultLocale, slug } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const post = await db.post.findFirst({

@@ -5,6 +5,9 @@ import styled, { css } from "styled-components";
 
 import { sharedEnv } from "@/lib/env/shared";
 
+/**
+ * Story-sharing actions for public NewsPub pages.
+ */
 const Panel = styled.section`
   background:
     linear-gradient(180deg, rgba(var(--theme-bg-rgb), 0.98), rgba(var(--theme-surface-rgb), 0.95)),

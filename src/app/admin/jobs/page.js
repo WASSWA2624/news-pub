@@ -10,6 +10,7 @@ import {
   DataTableWrap,
   EmptyState,
   SectionGrid,
+  SecondaryButton,
   SmallText,
   StatusBadge,
   SummaryCard,
@@ -21,6 +22,7 @@ import {
 import { getAdminJobLogsSnapshot } from "@/features/analytics";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import { retryPublishAttemptAction } from "../actions";
 
 function getTone(status) {
   if (["SUCCEEDED", "CONNECTED"].includes(status)) {
@@ -117,6 +119,7 @@ export default async function JobsPage({ searchParams }) {
                     <th>Status</th>
                     <th>Remote id</th>
                     <th>Queued</th>
+                    <th>Retry</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,6 +134,17 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td>{attempt.remoteId || "Pending"}</td>
                       <td>{formatDateTime(attempt.queuedAt)}</td>
+                      <td>
+                        {attempt.status === "FAILED" ? (
+                          <form action={retryPublishAttemptAction}>
+                            <input name="attemptId" type="hidden" value={attempt.id} />
+                            <input name="returnTo" type="hidden" value="/admin/jobs" />
+                            <SecondaryButton type="submit">Retry</SecondaryButton>
+                          </form>
+                        ) : (
+                          <SmallText>Not needed</SmallText>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

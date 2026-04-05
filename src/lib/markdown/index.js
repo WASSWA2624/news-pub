@@ -1,6 +1,10 @@
 import { getRenderableImageUrl } from "@/lib/media";
 import { sanitizeExternalUrl } from "@/lib/security";
 
+/**
+ * Converts stored NewsPub structured article content into markdown and HTML
+ * artifacts for publishing and editor previews.
+ */
 function escapeHtml(value) {
   return `${value}`
     .replace(/&/g, "&amp;")
@@ -74,41 +78,6 @@ function renderMarkdownSection(section) {
         item.description ? `**${item.title}**: ${item.description}` : item.title,
       ),
     );
-  } else if (section.kind === "models_by_manufacturer") {
-    if (section.intro) {
-      lines.push(section.intro);
-    }
-
-    for (const group of section.groups || []) {
-      lines.push(`### ${group.manufacturer}`);
-      lines.push(
-        renderMarkdownList(group.models || [], (model) => {
-          const parts = [model.name];
-
-          if (model.latestKnownYear) {
-            parts.push(`latest verified year: ${model.latestKnownYear}`);
-          }
-
-          if (model.summary) {
-            parts.push(model.summary);
-          }
-
-          return parts.join(" | ");
-        }),
-      );
-    }
-  } else if (section.kind === "faults") {
-    if (section.intro) {
-      lines.push(section.intro);
-    }
-
-    for (const fault of section.items || []) {
-      lines.push(`### ${fault.title}`);
-      lines.push(`- Cause: ${fault.cause || "Not verified."}`);
-      lines.push(`- Symptoms: ${fault.symptoms || "Not verified."}`);
-      lines.push(`- Remedy: ${fault.remedy || "Not verified."}`);
-      lines.push(`- Severity: ${fault.severity}`);
-    }
   } else if (section.kind === "steps") {
     if (section.intro) {
       lines.push(section.intro);
@@ -118,26 +87,6 @@ function renderMarkdownSection(section) {
       (section.steps || [])
         .map((step, index) => `${index + 1}. ${step.title}${step.description ? `: ${step.description}` : ""}`)
         .join("\n"),
-    );
-  } else if (section.kind === "manuals") {
-    if (section.intro) {
-      lines.push(section.intro);
-    }
-
-    lines.push(
-      renderMarkdownList(section.items || [], (item) => {
-        const details = [item.title];
-
-        if (item.fileType) {
-          details.push(item.fileType);
-        }
-
-        if (item.language) {
-          details.push(item.language);
-        }
-
-        return renderMarkdownLink(details.join(" | "), item.url);
-      }),
     );
   } else if (section.kind === "faq") {
     for (const faq of section.items || []) {
@@ -198,46 +147,6 @@ function renderHtmlSection(section) {
     )}</section>`;
   }
 
-  if (section.kind === "models_by_manufacturer") {
-    const groups = (section.groups || [])
-      .map(
-        (group) =>
-          `<h3>${escapeHtml(group.manufacturer)}</h3>${renderHtmlList(group.models || [], (model) => {
-            const parts = [escapeHtml(model.name)];
-
-            if (model.latestKnownYear) {
-              parts.push(`latest verified year: ${escapeHtml(model.latestKnownYear)}`);
-            }
-
-            if (model.summary) {
-              parts.push(escapeHtml(model.summary));
-            }
-
-            return parts.join(" | ");
-          })}`,
-      )
-      .join("");
-
-    return `<section>${title}${section.intro ? `<p>${escapeHtml(section.intro)}</p>` : ""}${groups}</section>`;
-  }
-
-  if (section.kind === "faults") {
-    const items = (section.items || [])
-      .map(
-        (fault) =>
-          `<article><h3>${escapeHtml(fault.title)}</h3><p><strong>Cause:</strong> ${escapeHtml(
-            fault.cause || "Not verified.",
-          )}</p><p><strong>Symptoms:</strong> ${escapeHtml(
-            fault.symptoms || "Not verified.",
-          )}</p><p><strong>Remedy:</strong> ${escapeHtml(
-            fault.remedy || "Not verified.",
-          )}</p><p><strong>Severity:</strong> ${escapeHtml(fault.severity)}</p></article>`,
-      )
-      .join("");
-
-    return `<section>${title}${section.intro ? `<p>${escapeHtml(section.intro)}</p>` : ""}${items}</section>`;
-  }
-
   if (section.kind === "steps") {
     const steps = (section.steps || [])
       .map(
@@ -249,18 +158,6 @@ function renderHtmlSection(section) {
       .join("");
 
     return `<section>${title}${section.intro ? `<p>${escapeHtml(section.intro)}</p>` : ""}<ol>${steps}</ol></section>`;
-  }
-
-  if (section.kind === "manuals") {
-    return `<section>${title}${section.intro ? `<p>${escapeHtml(section.intro)}</p>` : ""}${renderHtmlList(
-      section.items || [],
-      (item) =>
-        `${renderHtmlExternalLink(item.title, item.url)}${
-          item.fileType || item.language
-            ? ` (${escapeHtml([item.fileType, item.language].filter(Boolean).join(" | "))})`
-            : ""
-        }`,
-    )}</section>`;
   }
 
   if (section.kind === "faq") {
@@ -284,6 +181,7 @@ function renderHtmlSection(section) {
   return `<section>${title}</section>`;
 }
 
+/** Builds the markdown version of a stored structured article. */
 export function buildMarkdownFromStructuredArticle(article) {
   const parts = [`# ${article.title}`, article.excerpt];
 
@@ -294,6 +192,7 @@ export function buildMarkdownFromStructuredArticle(article) {
   return parts.filter(Boolean).join("\n\n");
 }
 
+/** Builds the HTML version of a stored structured article. */
 export function buildHtmlFromStructuredArticle(article) {
   const sections = (article.sections || []).map(renderHtmlSection).join("");
 

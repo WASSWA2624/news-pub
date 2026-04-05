@@ -12,7 +12,7 @@ import { saveProviderRecord } from "@/features/providers";
 import { updatePostEditorialRecord } from "@/features/posts";
 import { saveStreamRecord } from "@/features/streams";
 import { requireAdminPageSession } from "@/lib/auth";
-import { runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
+import { retryPublishAttempt, runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
 
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -146,6 +146,20 @@ export async function runSchedulerAction() {
   await requireAdminPageSession("/admin");
   await runScheduledStreams();
   redirectToPath("/admin");
+}
+
+export async function retryPublishAttemptAction(formData) {
+  const auth = await requireAdminPageSession("/admin/jobs");
+  const attemptId = trimText(formData.get("attemptId"));
+  const returnTo = trimText(formData.get("returnTo")) || "/admin/jobs";
+
+  if (attemptId) {
+    await retryPublishAttempt(attemptId, {
+      actorId: getActorId(auth),
+    });
+  }
+
+  redirectToPath(returnTo);
 }
 
 export async function saveCategoryAction(formData) {

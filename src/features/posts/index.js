@@ -5,6 +5,9 @@ import { buildStoryStructuredArticle, NewsPubError, pickTranslation, resolvePris
 import { createSlug } from "@/lib/normalization";
 import { publishArticleMatch } from "@/lib/news/workflows";
 
+/**
+ * Admin post inventory, editor, and publication-control helpers for canonical NewsPub stories.
+ */
 export const editorialStageOrder = Object.freeze([
   "INGESTED",
   "REVIEWED",
@@ -605,6 +608,7 @@ export async function getPostInventorySnapshot(options = {}, prisma) {
   };
 }
 
+/** Returns the editor payload for one canonical post and one active locale. */
 export async function getPostEditorSnapshot({ locale = defaultLocale, postId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const post = await db.post.findUnique({
@@ -707,6 +711,7 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
   };
 }
 
+/** Applies editorial updates and optionally publishes or schedules the linked article match. */
 export async function updatePostEditorialRecord(input = {}, { actorId = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const locale = trimText(input.locale).toLowerCase() || defaultLocale;
@@ -855,6 +860,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
   );
 }
 
+/** Resolves a published translation by slug for public route consumption. */
 export async function getPublishedPostTranslationBySlug({ locale = defaultLocale, slug } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const post = await db.post.findFirst({

@@ -6,17 +6,18 @@ Release 1 is designed to let an authenticated admin configure providers, destina
 
 ## Current Status
 
-The planning layer now targets the NewsPub product.
+The active application, migration baseline, tests, and release documentation target the NewsPub product.
 
 The two authoritative planning documents are:
 
 - [`app-write-up.md`](./app-write-up.md): the single source of truth for product scope, architecture, routes, persistence, workflows, and constraints
 - [`dev-plan/00_plan_index.md`](./dev-plan/00_plan_index.md): the ordered implementation plan that breaks the build into 24 chronological steps
 
-Important note:
+Current implementation evidence lives under:
 
-- much of the current application code still reflects the retired equipment and AI product and should be treated as legacy until the implementation is rebuilt against the new NewsPub plan
-- older files under [`docs/`](./docs/) and [`docs/evidence/`](./docs/evidence/) are historical unless they are explicitly regenerated for NewsPub
+- [`docs/architecture-summary.md`](./docs/architecture-summary.md)
+- [`docs/adr/`](./docs/adr/)
+- [`docs/evidence/`](./docs/evidence/)
 
 ## Release 1 Scope
 
@@ -126,16 +127,7 @@ Implementation is complete only when step 24 proves full traceability to the cur
 |   |-- ...
 |   `-- 24_release_traceability_and_cutover.md
 `-- docs/
+    |-- adr/
     |-- architecture-summary.md
     `-- evidence/
 ```
-
-## Historical Documentation
-
-These docs currently belong to the retired product shape unless they are explicitly regenerated:
-
-- [`docs/architecture-summary.md`](./docs/architecture-summary.md)
-- [`docs/adr/`](./docs/adr/)
-- [`docs/evidence/`](./docs/evidence/)
-
-They are useful as repository history, but they are not the active source of truth for NewsPub.

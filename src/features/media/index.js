@@ -8,6 +8,9 @@ import { createStorageAdapter } from "@/lib/storage";
 import { sanitizeExternalUrl } from "@/lib/security";
 import { NewsPubError, createContentHash, resolvePrismaClient, trimText } from "@/lib/news/shared";
 
+/**
+ * NewsPub media ingestion pipeline for uploaded and remote story assets.
+ */
 const responsiveVariantDefinitions = Object.freeze([
   { key: "xl", width: 1600 },
   { key: "lg", width: 1200 },
@@ -235,6 +238,7 @@ export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
   );
 }
 
+/** Stores a locally uploaded media asset and derives responsive variants. */
 export async function uploadMediaAsset(input, options = {}, prisma) {
   const mimeType = trimText(input.mimeType);
   const buffer = input.buffer instanceof Buffer ? input.buffer : Buffer.from(input.buffer || []);
@@ -258,6 +262,7 @@ export async function uploadMediaAsset(input, options = {}, prisma) {
   );
 }
 
+/** Returns the current media-library inventory with variants included. */
 export async function getMediaLibrarySnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const assets = await db.mediaAsset.findMany({
@@ -280,6 +285,7 @@ export async function getMediaLibrarySnapshot(prisma) {
   };
 }
 
+/** Wraps remote media ingestion so workflow callers can continue after recoverable failures. */
 export async function safeIngestRemoteMediaAsset(input, options = {}, prisma) {
   try {
     return await ingestRemoteMediaAsset(input, options, prisma);

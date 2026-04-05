@@ -1,3 +1,6 @@
+/**
+ * Shared normalization helpers used by NewsPub search, slugs, and analytics.
+ */
 function trimToUndefined(value) {
   if (typeof value !== "string") {
     return undefined;
@@ -53,6 +56,3 @@ export function createCanonicalIdentity(input, fallback = "item") {
     slug: createSlug(label, fallback),
   };
 }
-
-export const normalizeEquipmentName = normalizeSearchText;
-export const createCanonicalEquipmentIdentity = createCanonicalIdentity;
