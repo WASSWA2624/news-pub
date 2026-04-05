@@ -37,15 +37,15 @@ export default function TwitterImage() {
           }}
         >
           <div style={{ fontSize: 22, letterSpacing: 4, textTransform: "uppercase" }}>
-            Equip Blog
+            NewsPub
           </div>
           <div style={{ fontSize: 48, fontWeight: 700, lineHeight: 1.1 }}>
-            Repo scaffold ready
+            Release 1 ready
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 520 }}>
           <div style={{ fontSize: 42, fontWeight: 700, lineHeight: 1.05 }}>
-            Public, admin, and API surfaces are wired for Release 1.
+            Public, admin, and publishing flows stay aligned around canonical stories.
           </div>
         </div>
       </div>

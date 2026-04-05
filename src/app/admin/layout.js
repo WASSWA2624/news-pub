@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }) {
       : await getOptionalAdminSession();
 
   if (routeKind === "login" && authState) {
-    const redirectUrl = new URL(requestPath, "https://equip-blog.local");
+    const redirectUrl = new URL(requestPath, "https://news-pub.local");
 
     redirect(normalizeAdminRedirectTarget(redirectUrl.searchParams.get(ADMIN_REDIRECT_PARAM)));
   }

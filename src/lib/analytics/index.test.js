@@ -1,31 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function createBaseEnv() {
-  return {
-    ADMIN_SEED_EMAIL: "admin@example.com",
-    ADMIN_SEED_PASSWORD: "password123",
-    AI_MODEL_DEFAULT: "gpt-5.4",
-    AI_MODEL_FALLBACK: "gpt-5.4-mini",
-    AI_PROVIDER_DEFAULT: "openai",
-    AI_PROVIDER_FALLBACK: "openai",
-    COMMENT_CAPTCHA_ENABLED: "false",
-    COMMENT_RATE_LIMIT_MAX: "5",
-    COMMENT_RATE_LIMIT_WINDOW_MS: "60000",
-    CRON_SECRET: "cron-secret",
-    DATABASE_URL: "mysql://user:pass@localhost:3306/equip_blog",
-    DEFAULT_LOCALE: "en",
-    LOCAL_MEDIA_BASE_PATH: "d:/coding/apps/equip-blog/public/uploads",
-    LOCAL_MEDIA_BASE_URL: "/uploads",
-    MEDIA_DRIVER: "local",
-    NEXT_PUBLIC_APP_URL: "https://example.com",
-    OPENAI_API_KEY: "test-openai-key",
-    REVALIDATE_SECRET: "revalidate-secret",
-    SESSION_MAX_AGE_SECONDS: "3600",
-    SESSION_SECRET: "session-secret",
-    SUPPORTED_LOCALES: "en",
-    UPLOAD_ALLOWED_MIME_TYPES: "image/png,image/jpeg",
-  };
-}
+import { createNewsPubTestEnv } from "@/test/test-env";
 
 function createRequest(headers = {}) {
   const normalizedHeaders = new Map(
@@ -48,7 +23,7 @@ describe("analytics library", () => {
     vi.resetModules();
     process.env = {
       ...originalEnv,
-      ...createBaseEnv(),
+      ...createNewsPubTestEnv(),
     };
   });
 
@@ -63,7 +38,7 @@ describe("analytics library", () => {
       eventType: "POST_VIEW",
       id: "view_1",
       locale: "en",
-      path: "/en/blog/microscope-basics",
+      path: "/en/news/microscope-basics",
       postId: "post_1",
     });
     const prisma = {
@@ -81,7 +56,7 @@ describe("analytics library", () => {
       {
         eventType: "post_view",
         locale: "EN",
-        path: "en/blog/microscope-basics",
+        path: "en/news/microscope-basics",
         postId: "post_1",
         referrer: "https://example.com/en",
       },
@@ -97,7 +72,7 @@ describe("analytics library", () => {
           eventType: "POST_VIEW",
           ipHash: hashAnalyticsValue("203.0.113.12", "session-secret", "view-ip"),
           locale: "en",
-          path: "/en/blog/microscope-basics",
+          path: "/en/news/microscope-basics",
           postId: "post_1",
           referrer: "https://example.com/en",
           userAgent: "Vitest Browser",
@@ -149,6 +124,8 @@ describe("analytics library", () => {
         }),
       }),
     );
-    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("\"action\":\"MEDIA_LIBRARY_FAILURE\""));
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("\"action\":\"MEDIA_LIBRARY_FAILURE\""),
+    );
   });
 });

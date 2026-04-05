@@ -26,14 +26,14 @@ export default function OpenGraphImage() {
         }}
       >
         <div style={{ fontSize: 24, letterSpacing: 6, textTransform: "uppercase" }}>
-          Equip Blog
+          NewsPub
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ fontSize: 72, fontWeight: 700, lineHeight: 1.05 }}>
-            Source-grounded medical equipment publishing
+            Source-attributed news publishing
           </div>
           <div style={{ fontSize: 28, maxWidth: 900, opacity: 0.9 }}>
-            Locale-ready public routes, editorial workflows, and reliable equipment reference pages.
+            Provider ingestion, review queues, destination templates, and reusable website publishing.
           </div>
         </div>
       </div>

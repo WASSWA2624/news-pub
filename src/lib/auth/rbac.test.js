@@ -18,40 +18,35 @@ describe("RBAC policy", () => {
     expect(hasAdminPermission({ role: "SUPER_ADMIN" }, ADMIN_PERMISSIONS.PUBLISH_POSTS)).toBe(
       true,
     );
-    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.GENERATE_POSTS)).toBe(true);
     expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.EDIT_POSTS)).toBe(true);
     expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.SCHEDULE_POSTS)).toBe(true);
-    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.PUBLISH_POSTS)).toBe(false);
-    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.MODERATE_COMMENTS)).toBe(
+    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.PUBLISH_POSTS)).toBe(true);
+    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.MANAGE_PROVIDERS)).toBe(
       false,
     );
-    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.MANAGE_PROMPTS)).toBe(false);
+    expect(hasAdminPermission({ role: "EDITOR" }, ADMIN_PERMISSIONS.MANAGE_STREAMS)).toBe(false);
   });
 
   it("maps admin pages to the correct required permissions", () => {
-    expect(getAdminPageAccess("/admin/prompts")).toMatchObject({
-      permission: ADMIN_PERMISSIONS.MANAGE_PROMPTS,
-    });
     expect(getAdminPageAccess("/admin/providers")).toMatchObject({
-      permission: ADMIN_PERMISSIONS.MANAGE_PROVIDER_CONFIG,
+      permission: ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
     });
     expect(getAdminPageAccess("/admin/posts/example-post")).toMatchObject({
       permission: ADMIN_PERMISSIONS.EDIT_POSTS,
     });
-    expect(getAdminPageAccess("/admin/comments")).toMatchObject({
-      permission: ADMIN_PERMISSIONS.MODERATE_COMMENTS,
+    expect(getAdminPageAccess("/admin/jobs")).toMatchObject({
+      permission: ADMIN_PERMISSIONS.VIEW_JOBS,
     });
     expect(getAdminPageAccess("/admin/future-settings")).toMatchObject({
       permission: ADMIN_PERMISSIONS.MANAGE_SETTINGS,
     });
-    expect(getAdminPageAccess("/en/blog")).toBeNull();
+    expect(getAdminPageAccess("/en/news")).toBeNull();
   });
 
   it("filters admin navigation to the actions each role can see", () => {
     expect(getAdminNavigation({ role: "EDITOR" }).map((item) => item.key)).toEqual([
       "dashboard",
-      "generate",
-      "drafts",
+      "review",
       "published",
       "media",
       "jobs",
@@ -59,19 +54,17 @@ describe("RBAC policy", () => {
 
     expect(getAdminNavigation({ role: "SUPER_ADMIN" }).map((item) => item.key)).toEqual([
       "dashboard",
-      "generate",
-      "drafts",
-      "published",
-      "comments",
-      "media",
-      "jobs",
-      "categories",
-      "manufacturers",
-      "prompts",
       "providers",
-      "sources",
-      "localization",
+      "destinations",
+      "streams",
+      "categories",
+      "review",
+      "published",
+      "media",
+      "templates",
+      "jobs",
       "seo",
+      "settings",
     ]);
   });
 
@@ -94,19 +87,17 @@ describe("RBAC policy", () => {
       }),
     ).toEqual([ADMIN_PERMISSIONS.EDIT_POSTS, ADMIN_PERMISSIONS.PUBLISH_POSTS]);
     expect(getRequiredPermissionsForPostUpdate({ status: "ARCHIVED" })).toEqual([
-      ADMIN_PERMISSIONS.ARCHIVE_POSTS,
+      ADMIN_PERMISSIONS.EDIT_POSTS,
     ]);
   });
 
   it("produces a consistent forbidden payload for blocked actions", () => {
-    expect(getAdminAuthorizationFailure(ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG, "EDITOR")).toEqual(
-      {
-        message: "You do not have permission to manage source configuration.",
-        permission: ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG,
-        role: "EDITOR",
-        status: "forbidden",
-        success: false,
-      },
-    );
+    expect(getAdminAuthorizationFailure(ADMIN_PERMISSIONS.MANAGE_STREAMS, "EDITOR")).toEqual({
+      message: "You do not have permission to manage publishing streams.",
+      permission: ADMIN_PERMISSIONS.MANAGE_STREAMS,
+      role: "EDITOR",
+      status: "forbidden",
+      success: false,
+    });
   });
 });

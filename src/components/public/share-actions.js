@@ -3,6 +3,8 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
 
+import { sharedEnv } from "@/lib/env/shared";
+
 const Panel = styled.section`
   background:
     linear-gradient(180deg, rgba(var(--theme-bg-rgb), 0.98), rgba(var(--theme-surface-rgb), 0.95)),
@@ -352,16 +354,43 @@ function ShareIcon({ network }) {
   );
 }
 
-export default function ShareActions({ article, copy, variant = "default" }) {
-  const isCompact = variant === "compact";
+function resolveShareUrl(url) {
+  const normalizedUrl = typeof url === "string" ? url.trim() : "";
+
+  if (!normalizedUrl) {
+    return sharedEnv.app.url;
+  }
+
+  try {
+    return new URL(normalizedUrl, sharedEnv.app.url).toString();
+  } catch {
+    return sharedEnv.app.url;
+  }
+}
+
+/**
+ * Renders the public sharing panel used on story and listing surfaces.
+ */
+export default function ShareActions({
+  compact = false,
+  description,
+  heading,
+  shareTitle,
+  url,
+}) {
+  const isCompact = compact;
   const [copied, setCopied] = useState(false);
-  const title = encodeURIComponent(article.title);
-  const url = encodeURIComponent(article.url);
+  const resolvedShareTitle =
+    typeof shareTitle === "string" && shareTitle.trim() ? shareTitle.trim() : "NewsPub story";
+  const panelHeading = typeof heading === "string" && heading.trim() ? heading.trim() : "Share this story";
+  const shareUrl = resolveShareUrl(url);
+  const encodedTitle = encodeURIComponent(resolvedShareTitle);
+  const encodedUrl = encodeURIComponent(shareUrl);
   const shareLinks = [
     {
       accent: "#111827",
       border: "rgba(17, 24, 39, 0.12)",
-      href: `https://twitter.com/intent/tweet?text=${title}&url=${url}`,
+      href: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
       hoverBorder: "rgba(17, 24, 39, 0.24)",
       label: "X",
       meta: "Post headline",
@@ -372,7 +401,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
     {
       accent: "#1877F2",
       border: "rgba(24, 119, 242, 0.14)",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
       hoverBorder: "rgba(24, 119, 242, 0.24)",
       label: "Facebook",
       meta: "Share publicly",
@@ -383,7 +412,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
     {
       accent: "#0A66C2",
       border: "rgba(10, 102, 194, 0.14)",
-      href: `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`,
+      href: `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`,
       hoverBorder: "rgba(10, 102, 194, 0.24)",
       label: "LinkedIn",
       meta: "Send to peers",
@@ -394,7 +423,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
     {
       accent: "#25D366",
       border: "rgba(37, 211, 102, 0.16)",
-      href: `https://wa.me/?text=${title}%20${url}`,
+      href: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
       hoverBorder: "rgba(37, 211, 102, 0.26)",
       label: "WhatsApp",
       meta: "Send to chat",
@@ -405,7 +434,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
     {
       accent: "#D97706",
       border: "rgba(217, 119, 6, 0.16)",
-      href: `mailto:?subject=${title}&body=${encodeURIComponent(`${article.title}\n\n${article.url}`)}`,
+      href: `mailto:?subject=${encodedTitle}&body=${encodeURIComponent(`${resolvedShareTitle}\n\n${shareUrl}`)}`,
       hoverBorder: "rgba(217, 119, 6, 0.24)",
       label: "Email",
       meta: "Draft message",
@@ -430,7 +459,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
 
   async function handleCopyLink() {
     try {
-      await navigator.clipboard.writeText(article.url);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -442,9 +471,9 @@ export default function ShareActions({ article, copy, variant = "default" }) {
     <Panel $compact={isCompact}>
       <SectionHeader $compact={isCompact}>
         <SectionEyebrow>Share</SectionEyebrow>
-        <SectionTitle $compact={isCompact}>{copy.shareTitle}</SectionTitle>
+        <SectionTitle $compact={isCompact}>{panelHeading}</SectionTitle>
         <SectionDescription $compact={isCompact}>
-          {isCompact ? "Share or save this guide." : copy.shareDescription}
+          {isCompact ? "Share or save this story." : description || "Share this story with your audience."}
         </SectionDescription>
       </SectionHeader>
       <ShareButtonRow $compact={isCompact}>
@@ -499,7 +528,7 @@ export default function ShareActions({ article, copy, variant = "default" }) {
             </ShareIconBadge>
             <ShareTextGroup>
               <ShareLabel $compact={isCompact}>
-                {copied ? copy.copiedLink : copy.copyLink}
+                {copied ? "Link copied" : "Copy link"}
               </ShareLabel>
               <ShareMeta $compact={isCompact}>
                 {copied ? "Ready to paste" : "Keep URL handy"}

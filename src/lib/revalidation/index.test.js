@@ -17,25 +17,21 @@ describe("revalidation helpers", () => {
     process.env = originalEnv;
   });
 
-  it("builds the expected public paths for a newly published post", async () => {
+  it("builds the expected public paths for a newly published story", async () => {
     const { buildPublishedPostRevalidationPaths } = await import("./index");
 
     expect(
       buildPublishedPostRevalidationPaths({
-        categorySlugs: ["maintenance", "maintenance", "safety"],
-        equipmentSlug: "microscope",
-        manufacturerSlugs: ["acme-medical", "acme-medical", "biocare"],
-        slug: "microscope-repair",
+        categorySlugs: ["technology", "technology", "world"],
+        slug: "breaking-story",
       }),
     ).toEqual([
       "/sitemap.xml",
-      "/en/blog",
-      "/en/blog/microscope-repair",
-      "/en/equipment/microscope",
-      "/en/category/maintenance",
-      "/en/category/safety",
-      "/en/manufacturer/acme-medical",
-      "/en/manufacturer/biocare",
+      "/en",
+      "/en/news",
+      "/en/news/breaking-story",
+      "/en/category/technology",
+      "/en/category/world",
     ]);
   });
 
@@ -43,16 +39,16 @@ describe("revalidation helpers", () => {
     const revalidate = vi.fn(async () => {});
     const { revalidatePaths } = await import("./index");
 
-    const paths = await revalidatePaths(["en/blog", "/en/blog", " /sitemap.xml "], revalidate);
+    const paths = await revalidatePaths(["en/news", "/en/news", " /sitemap.xml "], revalidate);
 
-    expect(paths).toEqual(["/en/blog", "/sitemap.xml"]);
-    expect(revalidate.mock.calls.map(([path]) => path)).toEqual(["/en/blog", "/sitemap.xml"]);
+    expect(paths).toEqual(["/en/news", "/sitemap.xml"]);
+    expect(revalidate.mock.calls.map(([path]) => path)).toEqual(["/en/news", "/sitemap.xml"]);
   });
 
   it("rejects absolute URLs so only app-relative paths are revalidated", async () => {
     const { revalidatePaths } = await import("./index");
 
-    await expect(revalidatePaths(["https://example.com/en/blog"])).rejects.toThrow(
+    await expect(revalidatePaths(["https://example.com/en/news"])).rejects.toThrow(
       /relative application paths/i,
     );
   });

@@ -2,7 +2,10 @@
 
 import { useId } from "react";
 
-export default function EquipLogo({ className, size = 40, title = "Equip Blog" }) {
+/**
+ * Renders the shared NewsPub brand mark used across public and admin shells.
+ */
+export default function NewsPubLogo({ className, size = 40, title = "NewsPub" }) {
   const gradientId = useId().replace(/:/g, "");
   const shadowId = useId().replace(/:/g, "");
   const label = typeof title === "string" && title.trim() ? title.trim() : null;

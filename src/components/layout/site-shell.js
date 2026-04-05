@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
 
-import EquipLogo from "@/components/common/equip-logo";
+import NewsPubLogo from "@/components/common/news-pub-logo";
 import PublicEquipmentSearch from "@/components/layout/public-equipment-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
@@ -194,7 +194,7 @@ export default function SiteShell({ children, locale, messages }) {
         <HeaderInner>
           <HeaderMeta>
             <BrandLink href={homeHref}>
-              <EquipLogo size={40} />
+              <NewsPubLogo size={40} />
               <BrandTitle>{messages.site.title}</BrandTitle>
             </BrandLink>
             <HeaderTagline>{messages.site.tagline}</HeaderTagline>
@@ -229,7 +229,7 @@ export default function SiteShell({ children, locale, messages }) {
         <FooterInner>
           <div>
             <BrandLink href={homeHref}>
-              <EquipLogo size={42} />
+              <NewsPubLogo size={42} />
               <BrandTitle>{messages.site.title}</BrandTitle>
             </BrandLink>
             <FooterCopy>{messages.site.footer}</FooterCopy>

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import AdminLogoutButton from "@/components/auth/admin-logout-button";
-import EquipLogo from "@/components/common/equip-logo";
+import NewsPubLogo from "@/components/common/news-pub-logo";
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocaleRootPath } from "@/features/i18n/routing";
 import { getAdminNavigation } from "@/lib/auth/rbac";
@@ -14,13 +14,7 @@ import { getAdminNavigation } from "@/lib/auth/rbac";
 const MOBILE_BREAKPOINT = 720;
 const DESKTOP_BREAKPOINT = 1220;
 
-const MOBILE_PRIMARY_KEYS = Object.freeze([
-  "dashboard",
-  "generate",
-  "drafts",
-  "published",
-  "comments",
-]);
+const MOBILE_PRIMARY_KEYS = Object.freeze(["dashboard", "review", "published"]);
 
 const TABLET_PRIMARY_KEYS = Object.freeze([...MOBILE_PRIMARY_KEYS, "media"]);
 
@@ -839,7 +833,7 @@ export default function AdminShell({ children, messages, user }) {
             {viewportWidth >= DESKTOP_BREAKPOINT ? (
               <DesktopBar>
                 <BrandLink href="/admin">
-                  <EquipLogo size={34} />
+                  <NewsPubLogo size={34} />
                   <BrandCopy>
                     <BrandTitle>{messages.admin.title}</BrandTitle>
                   </BrandCopy>
@@ -900,7 +894,7 @@ export default function AdminShell({ children, messages, user }) {
               <MobileHeaderLayout>
                 <TopRow>
                   <BrandLink href="/admin">
-                    <EquipLogo size={32} />
+                    <NewsPubLogo size={32} />
                     <BrandCopy>
                       <BrandTitle>{messages.admin.title}</BrandTitle>
                     </BrandCopy>

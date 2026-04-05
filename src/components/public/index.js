@@ -463,7 +463,8 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
             <ShareActions
               compact
               description={common.shareDescription || "Share this story with your audience."}
-              title={common.shareTitle || "Share"}
+              heading={common.shareTitle || "Share"}
+              shareTitle={pageData.featuredStory.title}
               url={pageData.featuredStory.path}
             />
           ) : null}
@@ -609,7 +610,8 @@ export function PublicStoryPage({ locale, messages, pageData }) {
           <ShareActions
             compact
             description={common.shareDescription || "Share this story with your audience."}
-            title={common.shareTitle || "Share this story"}
+            heading={common.shareTitle || "Share this story"}
+            shareTitle={article.title}
             url={article.canonicalUrl}
           />
 

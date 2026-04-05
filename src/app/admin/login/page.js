@@ -3,7 +3,7 @@ import { normalizeAdminRedirectTarget } from "@/lib/auth";
 
 export const metadata = {
   title: "Admin Login",
-  description: "Sign in to the Equip Blog admin workspace.",
+  description: "Sign in to the NewsPub admin workspace.",
 };
 
 export default async function AdminLoginPage({ searchParams }) {

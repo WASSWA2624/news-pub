@@ -27,12 +27,12 @@ describe("proxy locale routing", () => {
   it("redirects locale-prefixed admin pages back to /admin", async () => {
     const { proxy } = await import("./proxy");
     const response = proxy(
-      new NextRequest("https://example.com/en/admin/posts/drafts?tab=review"),
+      new NextRequest("https://example.com/en/admin/posts/review?tab=queue"),
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "https://example.com/admin/posts/drafts?tab=review",
+      "https://example.com/admin/posts/review?tab=queue",
     );
   });
 
@@ -46,11 +46,11 @@ describe("proxy locale routing", () => {
 
   it("redirects anonymous admin page requests to the login screen", async () => {
     const { proxy } = await import("./proxy");
-    const response = proxy(new NextRequest("https://example.com/admin/posts/drafts"));
+    const response = proxy(new NextRequest("https://example.com/admin/posts/review"));
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "https://example.com/admin/login?next=%2Fadmin%2Fposts%2Fdrafts",
+      "https://example.com/admin/login?next=%2Fadmin%2Fposts%2Freview",
     );
   });
 

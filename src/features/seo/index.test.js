@@ -1,96 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function createBaseEnv() {
-  return {
-    ADMIN_SEED_EMAIL: "admin@example.com",
-    ADMIN_SEED_PASSWORD: "password123",
-    AI_MODEL_DEFAULT: "gpt-5.4",
-    AI_MODEL_FALLBACK: "gpt-5.4-mini",
-    AI_PROVIDER_DEFAULT: "openai",
-    AI_PROVIDER_FALLBACK: "openai",
-    COMMENT_CAPTCHA_ENABLED: "false",
-    COMMENT_RATE_LIMIT_MAX: "5",
-    COMMENT_RATE_LIMIT_WINDOW_MS: "60000",
-    CRON_SECRET: "cron-secret",
-    DATABASE_URL: "mysql://user:pass@localhost:3306/equip_blog",
-    DEFAULT_LOCALE: "en",
-    LOCAL_MEDIA_BASE_PATH: "d:/coding/apps/equip-blog/public/uploads",
-    LOCAL_MEDIA_BASE_URL: "/uploads",
-    MEDIA_DRIVER: "local",
-    NEXT_PUBLIC_APP_URL: "https://example.com",
-    OPENAI_API_KEY: "test-openai-key",
-    REVALIDATE_SECRET: "revalidate-secret",
-    SESSION_MAX_AGE_SECONDS: "3600",
-    SESSION_SECRET: "session-secret",
-    SUPPORTED_LOCALES: "en",
-    UPLOAD_ALLOWED_MIME_TYPES: "image/png,image/jpeg",
-  };
-}
+import { createNewsPubTestEnv } from "@/test/test-env";
 
 function createPublishedPost() {
   return {
-    categories: [
+    excerpt: "Story excerpt",
+    publishAttempts: [
       {
-        category: {
-          name: "Maintenance",
-          slug: "maintenance",
-        },
-      },
-    ],
-    equipment: {
-      name: "Microscope",
-      slug: "microscope",
-      updatedAt: new Date("2026-04-03T09:30:00.000Z"),
-    },
-    featuredImage: {
-      alt: "Microscope",
-      caption: "Bench microscope",
-      publicUrl: "https://cdn.example.com/microscope.jpg",
-      sourceUrl: null,
-    },
-    id: "post_1",
-    manufacturers: [
-      {
-        manufacturer: {
-          name: "Olympus",
-          slug: "olympus",
-          updatedAt: new Date("2026-04-02T12:00:00.000Z"),
-        },
+        platform: "WEBSITE",
+        status: "SUCCEEDED",
       },
     ],
     publishedAt: new Date("2026-04-03T08:00:00.000Z"),
-    slug: "microscope-basics",
+    slug: "breaking-story",
     translations: [
       {
-        excerpt: "Microscope excerpt",
-        faqJson: [
-          {
-            answer: "It magnifies small specimens.",
-            question: "What is a microscope used for?",
-          },
-        ],
         locale: "en",
         seoRecord: {
-          authorsJson: ["Equip Blog Editorial"],
-          canonicalUrl: "https://example.com/en/blog/microscope-basics",
-          keywordsJson: ["Microscope", "Maintenance"],
-          metaDescription: "Microscope meta description",
-          metaTitle: "Microscope meta title",
-          noindex: false,
-          ogDescription: "Microscope meta description",
-          ogImage: null,
-          ogTitle: "Microscope meta title",
-          twitterDescription: "Microscope meta description",
-          twitterTitle: "Microscope meta title",
+          canonicalUrl: "https://example.com/en/news/breaking-story",
+          metaDescription: "Breaking story meta description",
+          metaTitle: "Breaking story meta title",
         },
-        structuredContentJson: {
-          sections: [],
-        },
-        title: "Microscope basics",
-        updatedAt: new Date("2026-04-03T09:45:00.000Z"),
+        title: "Breaking story",
       },
     ],
-    updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+    updatedAt: new Date("2026-04-03T09:00:00.000Z"),
   };
 }
 
@@ -101,7 +35,7 @@ describe("seo feature inventory", () => {
     vi.resetModules();
     process.env = {
       ...originalEnv,
-      ...createBaseEnv(),
+      ...createNewsPubTestEnv(),
     };
   });
 
@@ -125,8 +59,30 @@ describe("seo feature inventory", () => {
     });
   });
 
-  it("builds sitemap entries for static, post, and discovery pages", async () => {
+  it("builds sitemap entries for static, story, and category pages", async () => {
     const prisma = {
+      category: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            name: "Technology",
+            posts: [
+              {
+                post: {
+                  publishAttempts: [
+                    {
+                      platform: "WEBSITE",
+                      status: "SUCCEEDED",
+                    },
+                  ],
+                  status: "PUBLISHED",
+                },
+              },
+            ],
+            slug: "technology",
+            updatedAt: new Date("2026-04-03T09:30:00.000Z"),
+          },
+        ]),
+      },
       post: {
         findMany: vi.fn().mockResolvedValue([createPublishedPost()]),
       },
@@ -137,16 +93,35 @@ describe("seo feature inventory", () => {
     const urls = entries.map((entry) => entry.url);
 
     expect(urls).toContain("https://example.com/en");
-    expect(urls).toContain("https://example.com/en/blog");
-    expect(urls).toContain("https://example.com/en/blog/microscope-basics");
-    expect(urls).toContain("https://example.com/en/category/maintenance");
-    expect(urls).toContain("https://example.com/en/manufacturer/olympus");
-    expect(urls).toContain("https://example.com/en/equipment/microscope");
+    expect(urls).toContain("https://example.com/en/news");
+    expect(urls).toContain("https://example.com/en/about");
+    expect(urls).toContain("https://example.com/en/news/breaking-story");
+    expect(urls).toContain("https://example.com/en/category/technology");
     expect(urls).not.toContain("https://example.com/en/search");
   });
 
-  it("builds an admin seo snapshot from published metadata", async () => {
+  it("builds an admin seo snapshot from published website metadata", async () => {
     const prisma = {
+      category: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            name: "Technology",
+            posts: [
+              {
+                post: {
+                  publishAttempts: [
+                    {
+                      platform: "WEBSITE",
+                      status: "SUCCEEDED",
+                    },
+                  ],
+                  status: "PUBLISHED",
+                },
+              },
+            ],
+          },
+        ]),
+      },
       post: {
         findMany: vi.fn().mockResolvedValue([createPublishedPost()]),
       },
@@ -157,23 +132,14 @@ describe("seo feature inventory", () => {
 
     expect(snapshot.summary).toMatchObject({
       categoryPageCount: 1,
-      equipmentPageCount: 1,
-      faqPageCount: 1,
-      manufacturerPageCount: 1,
-      postPageCount: 1,
-      publishedPostCount: 1,
-      searchableStaticPageCount: 6,
-      seoRecordCount: 1,
+      publishedStoryCount: 1,
+      searchRouteIndexed: false,
+      storyLocalesCount: 1,
     });
-    expect(snapshot.posts[0]).toMatchObject({
-      canonicalUrl: "https://example.com/en/blog/microscope-basics",
-      metaTitle: "Microscope meta title",
-      path: "/en/blog/microscope-basics",
-      schemaTypes: ["Organization", "BreadcrumbList", "Article", "FAQPage"],
-      slug: "microscope-basics",
-      title: "Microscope basics",
-      twitterCard: "summary_large_image",
+    expect(snapshot.stories[0]).toMatchObject({
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      metaTitle: "Breaking story meta title",
+      slug: "breaking-story",
     });
-    expect(snapshot.routes.indexableStaticRoutes.map((route) => route.key)).not.toContain("search");
   });
 });
