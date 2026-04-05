@@ -22,17 +22,25 @@ import { getPostInventorySnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 
-export default async function PublishedPostsPage({ searchParams }) {
+function getTone(status) {
+  if (status === "SCHEDULED") {
+    return "warning";
+  }
+
+  return "success";
+}
+
+export default async function ReviewQueuePage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
     getPostInventorySnapshot({
       page: resolvedSearchParams?.page,
-      scope: "published",
+      scope: "review",
       search: resolvedSearchParams?.search,
     }),
   ]);
-  const copy = messages.admin.published;
+  const copy = messages.admin.review;
 
   return (
     <AdminPage>
@@ -44,12 +52,12 @@ export default async function PublishedPostsPage({ searchParams }) {
 
       <SummaryGrid>
         <SummaryCard>
-          <SummaryValue>{snapshot.summary.publishedCount}</SummaryValue>
-          <SummaryLabel>Total published stories</SummaryLabel>
+          <SummaryValue>{snapshot.summary.reviewCount}</SummaryValue>
+          <SummaryLabel>Stories awaiting action</SummaryLabel>
         </SummaryCard>
         <SummaryCard>
-          <SummaryValue>{snapshot.items.filter((item) => item.websitePublished).length}</SummaryValue>
-          <SummaryLabel>Website published on this page</SummaryLabel>
+          <SummaryValue>{snapshot.summary.scheduledCount}</SummaryValue>
+          <SummaryLabel>Scheduled stories</SummaryLabel>
         </SummaryCard>
         <SummaryCard>
           <SummaryValue>{snapshot.items.length}</SummaryValue>
@@ -58,7 +66,7 @@ export default async function PublishedPostsPage({ searchParams }) {
       </SummaryGrid>
 
       <Card>
-        <CardTitle>Published stories</CardTitle>
+        <CardTitle>Review queue</CardTitle>
         {snapshot.items.length ? (
           <DataTableWrap>
             <DataTable>
@@ -66,9 +74,9 @@ export default async function PublishedPostsPage({ searchParams }) {
                 <tr>
                   <th>Story</th>
                   <th>Status</th>
-                  <th>Published</th>
+                  <th>Editorial stage</th>
                   <th>Source</th>
-                  <th>Website</th>
+                  <th>Scheduled</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -80,13 +88,11 @@ export default async function PublishedPostsPage({ searchParams }) {
                       <SmallText>{item.slug}</SmallText>
                     </td>
                     <td>
-                      <StatusBadge $tone={item.status === "PUBLISHED" ? "success" : "warning"}>
-                        {item.status}
-                      </StatusBadge>
+                      <StatusBadge $tone={getTone(item.status)}>{item.status}</StatusBadge>
                     </td>
-                    <td>{formatDateTime(item.publishedAt)}</td>
+                    <td>{item.editorialStage}</td>
                     <td>{item.sourceName}</td>
-                    <td>{item.websitePublished ? "Yes" : "No"}</td>
+                    <td>{formatDateTime(item.scheduledPublishAt)}</td>
                     <td>
                       <LinkButton href={`/admin/posts/${item.id}`}>Open editor</LinkButton>
                     </td>
@@ -96,7 +102,7 @@ export default async function PublishedPostsPage({ searchParams }) {
             </DataTable>
           </DataTableWrap>
         ) : (
-          <EmptyState>No published stories have been recorded yet.</EmptyState>
+          <EmptyState>No held or scheduled stories are waiting for review.</EmptyState>
         )}
       </Card>
     </AdminPage>

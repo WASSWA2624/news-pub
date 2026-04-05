@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
-import {
-  createCategoryManagementErrorPayload,
-  deleteCategoryRecord,
-  deleteCategoryRecordSchema,
-  getCategoryManagementSnapshot,
-  saveCategoryRecord,
-  saveCategoryRecordSchema,
-} from "@/features/posts";
+import { deleteCategoryRecord, getCategoryManagementSnapshot, saveCategoryRecord } from "@/features/categories";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+
+const saveCategorySchema = z.object({
+  description: z.string().trim().optional().or(z.literal("")),
+  id: z.string().trim().optional(),
+  name: z.string().trim().min(1),
+  slug: z.string().trim().optional().or(z.literal("")),
+});
+
+const deleteCategorySchema = z.object({
+  id: z.string().trim().min(1),
+});
 
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_CATEGORIES);
@@ -19,20 +24,12 @@ export async function GET(request) {
     return auth.response;
   }
 
-  try {
-    const snapshot = await getCategoryManagementSnapshot({
-      categoryId: request.nextUrl.searchParams.get("categoryId") || undefined,
-    });
+  const snapshot = await getCategoryManagementSnapshot();
 
-    return NextResponse.json({
-      data: snapshot,
-      success: true,
-    });
-  } catch (error) {
-    const payload = createCategoryManagementErrorPayload(error);
-
-    return NextResponse.json(payload.body, { status: payload.statusCode });
-  }
+  return NextResponse.json({
+    data: snapshot,
+    success: true,
+  });
 }
 
 export async function PUT(request) {
@@ -42,26 +39,20 @@ export async function PUT(request) {
     return auth.response;
   }
 
-  const result = await validateJsonRequest(request, saveCategoryRecordSchema);
+  const result = await validateJsonRequest(request, saveCategorySchema);
 
   if (result.response) {
     return result.response;
   }
 
-  try {
-    const savedCategory = await saveCategoryRecord(result.data, {
-      actorId: auth.user.id,
-    });
+  const record = await saveCategoryRecord(result.data, {
+    actorId: auth.user.id,
+  });
 
-    return NextResponse.json({
-      data: savedCategory,
-      success: true,
-    });
-  } catch (error) {
-    const payload = createCategoryManagementErrorPayload(error);
-
-    return NextResponse.json(payload.body, { status: payload.statusCode });
-  }
+  return NextResponse.json({
+    data: record,
+    success: true,
+  });
 }
 
 export async function DELETE(request) {
@@ -71,24 +62,18 @@ export async function DELETE(request) {
     return auth.response;
   }
 
-  const result = await validateJsonRequest(request, deleteCategoryRecordSchema);
+  const result = await validateJsonRequest(request, deleteCategorySchema);
 
   if (result.response) {
     return result.response;
   }
 
-  try {
-    const deletedCategory = await deleteCategoryRecord(result.data, {
-      actorId: auth.user.id,
-    });
+  const record = await deleteCategoryRecord(result.data.id, {
+    actorId: auth.user.id,
+  });
 
-    return NextResponse.json({
-      data: deletedCategory,
-      success: true,
-    });
-  } catch (error) {
-    const payload = createCategoryManagementErrorPayload(error);
-
-    return NextResponse.json(payload.body, { status: payload.statusCode });
-  }
+  return NextResponse.json({
+    data: record,
+    success: true,
+  });
 }
