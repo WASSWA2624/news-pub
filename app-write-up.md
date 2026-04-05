@@ -113,17 +113,20 @@ The normalized article record is the source of truth for downstream filtering, d
 
 The app must format saved articles into the required structure for each destination before publishing.
 
+Every generated post must be optimized for the destination on which it will be published, including SEO for the website and platform-specific discoverability optimization for Facebook and Instagram.
+
 Minimum formatting requirements:
 
-- website posts must support title, summary, body, featured image, source attribution, category, language, publish time, and external source link
-- Facebook posts must support title or intro text, body copy, source link, and media when supported
-- Instagram posts must support caption text, source reference where appropriate, and media when supported
+- website posts must support title, summary, body, featured image, source attribution, category, language, publish time, external source link, SEO title, meta description, keywords or tags, and SEO-friendly slug
+- Facebook posts must support title or intro text, body copy, source link, media when supported, and Facebook-optimized caption or preview text based on the configured template
+- Instagram posts must support caption text, source reference where appropriate, media when supported, and Instagram-optimized caption structure, hashtags, or discovery text when configured
 
 Formatting rules:
 
 - keep provider facts intact and do not invent missing news content
 - preserve source attribution
 - support destination-specific length limits and formatting differences
+- optimize text structure, keywords, hashtags, metadata, and post templates for the respective platform
 - allow configurable templates per destination
 - support category-based templates when needed
 
@@ -144,6 +147,9 @@ At minimum, the dashboard must allow the admin to configure:
 - publish status per destination
 - whether publishing is automatic or held for review
 - post templates or formatting rules
+- SEO or platform-optimization templates per destination
+- website SEO defaults such as slug pattern, meta title pattern, meta description pattern, and keyword rules
+- Facebook and Instagram caption, hashtag, and discoverability settings
 - inclusion keywords
 - exclusion keywords
 - maximum posts per run
@@ -256,9 +262,8 @@ When the website platform is selected, the app must:
 - assign the configured category
 - assign language and region metadata
 - store source attribution
+- generate or apply SEO-friendly slug, title, meta description, and keyword metadata
 - support scheduled or immediate publishing according to the stream settings
-
-The website content should be sourced from the normalized news record and destination template, not from an AI-generated rewrite.
 
 ## 15. Logging, Monitoring, and Admin Visibility
 
@@ -288,19 +293,10 @@ Release 1 must include:
 - support for website, Facebook, and Instagram publishing
 - support for the user's personal account and connected pages or profiles for Facebook and Instagram
 - local filtering after broad fetches to reduce API request usage
+- SEO-optimized or platform-optimized generated posts for each destination
 - destination-aware formatting and publish logging
 
-## 17. Explicit Non-Goals for This Update
-
-This write-up change does not require code changes yet.
-
-This write-up also removes the previous AI-oriented product direction:
-
-- no AI SDK requirement
-- no AI-generated medical-equipment content workflow
-- no AI-first architecture assumptions in this specification
-
-## 18. Source of Truth
+## 17. Source of Truth
 
 This file, `app-write-up.md`, is the current product specification for `NewsPub`.
 
