@@ -21,9 +21,9 @@ function runPrismaCommand(args, { allowFailure = false, printOutput = true } = {
       ? ["/d", "/s", "/c", `npx prisma ${args.join(" ")}`]
       : ["prisma", ...args],
     {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: "pipe",
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: "pipe",
     },
   );
 

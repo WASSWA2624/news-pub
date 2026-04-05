@@ -1,0 +1,48 @@
+import { PublicCollectionPage } from "@/components/public";
+import { getMessages } from "@/features/i18n/get-messages";
+import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { getPublishedNewsIndexData, publicListingPageSize } from "@/features/public-site";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const revalidate = 300;
+
+export async function generateMetadata({ params, searchParams }) {
+  const { locale } = await params;
+  const resolvedSearchParams = await searchParams;
+  const messages = await getMessages(locale);
+  const pageContent = messages.public?.news || {};
+  const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
+
+  return buildPageMetadata({
+    description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
+    locale,
+    query: Number.isFinite(page) && page > 1 ? { page } : undefined,
+    segments: publicRouteSegments.news,
+    title: pageContent.metaTitle || pageContent.title || messages.site.title,
+  });
+}
+
+export default async function NewsIndexPage({ params, searchParams }) {
+  const { locale } = await params;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams?.page;
+  const [messages, pageData] = await Promise.all([
+    getMessages(locale),
+    getPublishedNewsIndexData({
+      locale,
+      page,
+      pageSize: publicListingPageSize,
+    }),
+  ]);
+
+  return (
+    <PublicCollectionPage
+      locale={locale}
+      messages={messages.public}
+      pageContent={messages.public?.news || {}}
+      pageData={pageData}
+      pathname={buildLocalizedPath(locale, publicRouteSegments.news)}
+      query={{}}
+    />
+  );
+}
