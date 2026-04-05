@@ -32,22 +32,25 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
    - social publication
    - retry behavior
    - public discovery and analytics
-5. Record any remaining risks or known limits explicitly.
+5. Audit the implemented codebase for compliance with the JSDoc and inline-comment standard, especially in provider integrations, normalization, filtering, publishing, retries, and security-sensitive modules.
+6. Record any remaining risks or known limits explicitly.
 
 ## Required Outputs
 
 - final traceability matrix
 - release-readiness notes
 - cutover checklist
+- documentation compliance audit
 - final verification log
 
 ## Verify
 
 - every required route, model, env key, and workflow from `app-write-up.md` is mapped to implementation evidence
 - no contradiction remains between `dev-plan` and `app-write-up.md`
+- required JSDoc and targeted inline comments exist for implemented runtime modules with non-obvious behavior
 - no active AI or retired equipment-product module remains in the Release 1 app
 - final smoke verification covers the complete NewsPub workflow
 
 ## Exit Criteria
 
-- Release 1 can be signed off as a NewsPub implementation rather than a partial rewrite of the old product
+- Release 1 can be signed off as a NewsPub implementation rather than a partial rewrite of the old product, with implementation documentation kept current

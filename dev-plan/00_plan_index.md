@@ -10,7 +10,14 @@ Single source of truth: `app-write-up.md`.
 - If a step fails verification, stop and fix it before moving on.
 - Reuse the existing repo foundation before introducing new architecture.
 - When a step creates route names, schema names, env keys, enum values, or UI contracts, later steps must reuse those exact contracts.
+- When a step changes runtime code, update the touched files with current JSDoc and any necessary inline comments before that step is considered complete.
 - Later steps may delete or rename legacy files when the write-up or plan explicitly requires it.
+
+## Documentation Rules
+
+- Apply module-level JSDoc to non-trivial files so the file purpose, major exports, and workflow role stay clear as the repo is repurposed.
+- Apply JSDoc to exported functions, React components, route handlers, server actions, jobs, provider adapters, formatters, validators, and data mappers whenever their behavior, inputs, outputs, side effects, or invariants are not obvious at a glance.
+- Add inline comments only for non-obvious business rules, provider quirks, security-sensitive branches, retry behavior, dedupe logic, or fallback paths. Do not add noise comments that merely restate the code.
 
 ## Evidence Rules
 
@@ -20,6 +27,7 @@ For every step, capture:
 - commands run
 - automated checks run
 - manual verification notes
+- documentation added or updated, if code changed
 - unresolved risks, if any
 
 Step 24 is not complete unless every required route, model, workflow, and integration in `app-write-up.md` is either implemented and verified or explicitly called out as deferred by an approved revision to the write-up.
@@ -69,4 +77,5 @@ Implementation is complete only if step 24 proves:
 
 - full traceability to the current `app-write-up.md`
 - no contradiction between `dev-plan` and `app-write-up.md`
+- the JSDoc and inline-comment standard from `app-write-up.md` was applied to implemented runtime code
 - no remaining active architecture from the retired equipment and AI product

@@ -44,6 +44,16 @@ Release 1 keeps these baseline runtime choices:
 
 The implementation must remove the Vercel AI SDK and any AI provider dependencies from the runtime contract. No model catalogs, prompt templates, or AI generation services belong in NewsPub Release 1.
 
+### Documentation Standards
+
+Release 1 code must remain professionally documented as the old product is reshaped into NewsPub.
+
+- add module-level JSDoc to non-trivial runtime files so each file clearly explains its NewsPub responsibility, major exports, and where it fits in the ingest, review, publish, or admin workflow
+- add JSDoc to exported functions, React components, route handlers, server actions, jobs, provider adapters, formatter utilities, validation helpers, and data mappers whenever their role, inputs, outputs, side effects, or invariants are not obvious from the implementation alone
+- document provider-specific quirks, retry behavior, deduplication rules, security-sensitive branches, and fallback paths close to the code that enforces them
+- add inline comments only where the logic would otherwise be hard to understand quickly; avoid placeholder comments or commentary that only repeats the code
+- whenever a file changes behavior, update the related JSDoc and any required inline comments in the same change
+
 ## 5. Public Route Topology
 
 Public website routes stay locale-prefixed so the repo can reuse the existing locale-aware routing and shell structure.
@@ -493,6 +503,7 @@ Release 1 is complete only when:
 - provider credential resolution is env-based
 - destination publish history is stored and queryable
 - website, Facebook, and Instagram publication paths are all supported
+- implementation modules are documented with current JSDoc and targeted inline comments that explain file purpose, exported behavior, and non-obvious workflow logic
 - automated checks and manual verification cover the end-to-end workflow
 
 ## 25. Source Of Truth Rule

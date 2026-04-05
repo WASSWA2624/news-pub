@@ -22,6 +22,7 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 5. Validate normalized payloads before downstream filtering.
 6. Record fetch-run summaries, warnings, and failures in audit logs and job views.
 7. Expose a manual run-now trigger for stream execution without bypassing validation.
+8. Document the shared provider contract, adapters, checkpoint flow, and normalization utilities with JSDoc, and add inline comments where provider quirks, dedupe inputs, or incremental-window rules are not obvious from the code alone.
 
 ## Required Outputs
 
@@ -35,6 +36,7 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 - provider adapters all emit the same normalized contract
 - stream checkpoints are read before fetch execution
 - malformed provider payloads fail validation instead of silently entering later stages
+- normalization and checkpoint code explains provider-specific edge cases and workflow invariants without relying on tribal knowledge
 - fetch summaries and failures are visible in the admin job timeline
 
 ## Exit Criteria

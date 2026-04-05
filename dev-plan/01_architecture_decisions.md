@@ -23,7 +23,8 @@ Freeze the high-level NewsPub architecture before any large-scale repo reshaping
 5. Freeze the review model: `AUTO_PUBLISH` and `REVIEW_REQUIRED`.
 6. Freeze the lifecycle rule that `PostStatus` and `EditorialStage` remain separate.
 7. Freeze the security rule that news-provider secrets are env-only and destination tokens are encrypted at rest.
-8. Freeze the module reuse and removal map from section `23` so later steps extend the chosen architecture instead of branching away from it.
+8. Freeze the code-documentation rule from section `4` so non-trivial modules, exported functions, route handlers, jobs, and integration adapters carry JSDoc while inline comments stay reserved for non-obvious workflow logic.
+9. Freeze the module reuse and removal map from section `23` so later steps extend the chosen architecture instead of branching away from it.
 
 ## Required Outputs
 
@@ -34,6 +35,7 @@ Freeze the high-level NewsPub architecture before any large-scale repo reshaping
 
 - no ADR or summary document references AI generation, prompt catalogs, equipment research, or public comments as active Release 1 architecture
 - every required public and admin route family is documented
+- the architecture documents capture where JSDoc is mandatory and when inline comments are expected
 - the retained, repurposed, and removed module boundaries match section `23`
 - the ADRs do not contradict `app-write-up.md`
 
