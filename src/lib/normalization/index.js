@@ -18,7 +18,7 @@ function stripAccents(value) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export function normalizeEquipmentName(value) {
+export function normalizeSearchText(value) {
   const collapsed = collapseWhitespace(value);
 
   if (!collapsed) {
@@ -34,7 +34,7 @@ export function normalizeEquipmentName(value) {
 }
 
 export function createSlug(value, fallback = "item") {
-  const normalized = normalizeEquipmentName(value);
+  const normalized = normalizeSearchText(value);
 
   return normalized ? normalized.replace(/\s+/g, "-") : fallback;
 }
@@ -43,13 +43,16 @@ export function normalizeDisplayText(value) {
   return collapseWhitespace(value);
 }
 
-export function createCanonicalEquipmentIdentity(input) {
+export function createCanonicalIdentity(input, fallback = "item") {
   const label = normalizeDisplayText(input);
-  const normalizedName = normalizeEquipmentName(label);
+  const normalizedText = normalizeSearchText(label);
 
   return {
     label,
-    normalizedName,
-    slug: createSlug(label, "equipment"),
+    normalizedText,
+    slug: createSlug(label, fallback),
   };
 }
+
+export const normalizeEquipmentName = normalizeSearchText;
+export const createCanonicalEquipmentIdentity = createCanonicalIdentity;

@@ -3,22 +3,30 @@ import crypto from "node:crypto";
 import { z } from "zod";
 
 import { defaultLocale, isSupportedLocale } from "@/features/i18n/config";
-import { extractRequestIp, extractRequestUserAgent } from "@/lib/comments";
 import { env } from "@/lib/env/server";
 import { normalizeDisplayText } from "@/lib/normalization";
 
-export const viewEventTypeValues = Object.freeze(["WEBSITE_VIEW", "PAGE_VIEW", "POST_VIEW"]);
-
-export const observabilityFailureActionValues = Object.freeze([
-  "GENERATION_JOB_FAILED",
-  "MEDIA_LIBRARY_FAILURE",
-  "POST_PUBLISH_REVALIDATION_FAILED",
-  "POST_SCHEDULED_PUBLISH_FAILED",
-  "SEO_FAILURE",
-  "SOURCE_FETCH_ERROR",
+export const viewEventTypeValues = Object.freeze([
+  "WEBSITE_VIEW",
+  "PAGE_VIEW",
+  "POST_VIEW",
+  "SEARCH_VIEW",
 ]);
 
-export const observabilityWarningActionValues = Object.freeze(["GENERATION_JOB_WARNING"]);
+export const observabilityFailureActionValues = Object.freeze([
+  "DESTINATION_CONNECTION_ERROR",
+  "FETCH_RUN_FAILED",
+  "MEDIA_LIBRARY_FAILURE",
+  "POST_PUBLISH_REVALIDATION_FAILED",
+  "PROVIDER_RESPONSE_INVALID",
+  "PUBLISH_ATTEMPT_FAILED",
+  "STREAM_EXECUTION_PAUSED",
+]);
+
+export const observabilityWarningActionValues = Object.freeze([
+  "FETCH_RUN_WARNING",
+  "PUBLISH_ATTEMPT_WARNING",
+]);
 
 export const captureViewEventSchema = z.object({
   eventType: z.enum(viewEventTypeValues),
@@ -82,6 +90,18 @@ function buildErrorPayload(error) {
   };
 }
 
+function extractRequestIp(request) {
+  return (
+    request?.headers?.get?.("x-forwarded-for")?.split(",")[0]?.trim()
+    || request?.headers?.get?.("x-real-ip")
+    || "unknown"
+  );
+}
+
+function extractRequestUserAgent(request) {
+  return request?.headers?.get?.("user-agent") || null;
+}
+
 function buildConsoleLogEntry({
   action,
   entityId,
@@ -118,7 +138,7 @@ function safeJsonStringify(value) {
   const seenValues = new WeakSet();
 
   try {
-    return JSON.stringify(value, (key, nestedValue) => {
+    return JSON.stringify(value, (_key, nestedValue) => {
       if (nestedValue && typeof nestedValue === "object") {
         if (seenValues.has(nestedValue)) {
           return "[Circular]";
