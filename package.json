@@ -6,7 +6,8 @@
     "seed": "node prisma/seed.js"
   },
   "scripts": {
-    "dev": "nodemon --config nodemon.json",
+    "db:bootstrap": "node scripts/bootstrap-dev-db.js",
+    "dev": "npm run db:bootstrap && nodemon --config nodemon.json",
     "dev:next": "next dev",
     "prestart": "next build",
     "build": "next build",
@@ -16,7 +17,7 @@
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma generate && prisma db seed"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1023.0",

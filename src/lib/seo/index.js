@@ -1,22 +1,17 @@
 import { defaultLocale } from "@/features/i18n/config";
-import {
-  buildAlternateLanguageLinks,
-  buildCanonicalPath,
-  buildLocalizedPath,
-  publicRouteSegments,
-} from "@/features/i18n/routing";
+import { buildAlternateLanguageLinks, buildCanonicalPath, buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { env } from "@/lib/env/server";
 
-const siteName = "Equip Blog";
+const siteName = "NewsPub";
 const defaultOpenGraphImagePath = "/opengraph-image";
 const defaultTwitterImagePath = "/twitter-image";
 
-function dedupeStrings(values) {
-  return [...new Set((values || []).map((value) => `${value}`.trim()).filter(Boolean))];
-}
-
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function dedupeStrings(values = []) {
+  return [...new Set((values || []).map((value) => trimText(value)).filter(Boolean))];
 }
 
 function isAbsoluteUrl(value) {
@@ -29,17 +24,17 @@ function isAbsoluteUrl(value) {
 }
 
 function createQueryString(query = {}) {
-  const searchParams = new URLSearchParams();
+  const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(query || {})) {
     if (value === undefined || value === null || value === "" || value === false) {
       continue;
     }
 
-    searchParams.set(key, `${value}`);
+    params.set(key, `${value}`);
   }
 
-  return searchParams.toString();
+  return params.toString();
 }
 
 function appendQueryToPath(pathOrUrl, query = {}) {
@@ -62,31 +57,22 @@ function appendQueryToPath(pathOrUrl, query = {}) {
   return `${pathOrUrl}${pathOrUrl.includes("?") ? "&" : "?"}${queryString}`;
 }
 
-function normalizeMetadataAuthors(authors) {
+function normalizeMetadataAuthors(authors = []) {
   const names = dedupeStrings(authors);
 
   return names.length ? names.map((name) => ({ name })) : undefined;
-}
-
-function createMetaDescription(article) {
-  const source = [article.excerpt, ...(article.sections || []).flatMap((section) => section.paragraphs || [])]
-    .find(Boolean) || "";
-
-  return source.length > 160 ? `${source.slice(0, 157).trim()}...` : source;
 }
 
 function createSocialImageEntry(image, fallbackAlt) {
   if (typeof image === "string") {
     const url = trimText(image);
 
-    if (!url) {
-      return null;
-    }
-
-    return {
-      alt: fallbackAlt,
-      url: buildAbsoluteUrl(url),
-    };
+    return url
+      ? {
+          alt: fallbackAlt,
+          url: buildAbsoluteUrl(url),
+        }
+      : null;
   }
 
   if (!image || typeof image !== "object") {
@@ -108,20 +94,18 @@ function createSocialImageEntry(image, fallbackAlt) {
 }
 
 function normalizeSocialImages(image, fallbackPath, fallbackAlt) {
-  const normalizedImages = (Array.isArray(image) ? image : image ? [image] : [])
+  const entries = (Array.isArray(image) ? image : image ? [image] : [])
     .map((entry) => createSocialImageEntry(entry, fallbackAlt))
     .filter(Boolean);
 
-  if (normalizedImages.length) {
-    return normalizedImages;
-  }
-
-  return [
-    {
-      alt: fallbackAlt,
-      url: buildAbsoluteUrl(fallbackPath),
-    },
-  ];
+  return entries.length
+    ? entries
+    : [
+        {
+          alt: fallbackAlt,
+          url: buildAbsoluteUrl(fallbackPath),
+        },
+      ];
 }
 
 function buildAlternateMetadata({ locales, query, segments }) {
@@ -133,26 +117,18 @@ function buildAlternateMetadata({ locales, query, segments }) {
     return undefined;
   }
 
-  const absoluteAlternates = Object.fromEntries(
+  const languages = Object.fromEntries(
     Object.entries(alternateLanguageLinks).map(([locale, path]) => [
       locale,
       buildAbsoluteUrl(appendQueryToPath(path, query)),
     ]),
   );
 
-  if (absoluteAlternates[defaultLocale]) {
-    absoluteAlternates["x-default"] = absoluteAlternates[defaultLocale];
+  if (languages[defaultLocale]) {
+    languages["x-default"] = languages[defaultLocale];
   }
 
-  return absoluteAlternates;
-}
-
-function buildPublisherJsonLd(locale) {
-  return {
-    "@type": "Organization",
-    name: siteName,
-    url: buildAbsoluteUrl(buildLocalizedPath(locale, publicRouteSegments.home)),
-  };
+  return languages;
 }
 
 export function buildAbsoluteUrl(pathOrUrl = "/") {
@@ -165,34 +141,6 @@ export function buildAbsoluteUrl(pathOrUrl = "/") {
   const pathname = normalizedValue.startsWith("/") ? normalizedValue : `/${normalizedValue}`;
 
   return new URL(pathname, env.app.url).toString();
-}
-
-export function buildSeoPayload(article, { locale = "en", ogImageId = null } = {}) {
-  const canonicalPath = buildLocalizedPath(locale, publicRouteSegments.blogPost(article.slug));
-  const canonicalUrl = buildAbsoluteUrl(canonicalPath);
-  const keywords = dedupeStrings([
-    article.equipmentName,
-    ...(article.equipmentAliases || []),
-    ...(article.relatedKeywords || []),
-    ...(article.sections
-      .filter((section) => section.kind === "models_by_manufacturer")
-      .flatMap((section) => section.groups.map((group) => group.manufacturer))),
-  ]);
-  const metaDescription = createMetaDescription(article);
-
-  return {
-    authors: ["Equip Blog Editorial"],
-    canonicalUrl,
-    keywords,
-    metaDescription,
-    metaTitle: article.title,
-    noindex: false,
-    ogDescription: metaDescription,
-    ogImageId,
-    ogTitle: article.title,
-    twitterDescription: metaDescription,
-    twitterTitle: article.title,
-  };
 }
 
 export function buildPageMetadata({
@@ -219,6 +167,7 @@ export function buildPageMetadata({
     appendQueryToPath(canonicalUrl || buildCanonicalPath(locale, segments), query),
   );
   const metadataAuthors = normalizeMetadataAuthors(authors);
+  const normalizedKeywords = dedupeStrings(keywords);
   const openGraphImages = normalizeSocialImages(image, defaultOpenGraphImagePath, title || siteName);
   const twitterImages = normalizeSocialImages(
     image,
@@ -230,7 +179,6 @@ export function buildPageMetadata({
     query,
     segments,
   });
-  const normalizedKeywords = dedupeStrings(keywords);
 
   return {
     alternates: {
@@ -313,79 +261,32 @@ export function buildBreadcrumbJsonLd(items = []) {
   };
 }
 
-export function buildArticleJsonLd({ article, locale = defaultLocale } = {}) {
-  if (!article?.title || !article?.url) {
-    return null;
-  }
-
-  const imageUrls = normalizeSocialImages(
-    article.metadata?.ogImage || article.heroImages || [],
-    defaultOpenGraphImagePath,
-    article.title,
-  ).map((entry) => entry.url);
-  const keywordList = dedupeStrings([
-    ...(article.metadata?.keywords || []),
-    article.equipment?.name,
-    ...(article.categories || []).map((category) => category.name),
-    ...(article.manufacturers || []).map((manufacturer) => manufacturer.name),
-  ]);
-  const aboutItems = dedupeStrings([
-    article.equipment?.name,
-    ...(article.categories || []).map((category) => category.name),
-    ...(article.manufacturers || []).map((manufacturer) => manufacturer.name),
-  ]);
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    ...(aboutItems.length
-      ? {
-          about: aboutItems.map((name) => ({
-            "@type": "Thing",
-            name,
-          })),
-        }
-      : {}),
-    ...(article.authorName
-      ? {
-          author: {
-            "@type": "Organization",
-            name: article.authorName,
-          },
-        }
-      : {}),
-    ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
-    ...(article.updatedAt ? { dateModified: article.updatedAt } : {}),
-    articleSection: (article.bodySections || []).map((section) => section.title).filter(Boolean),
-    description: article.metadata?.description || article.excerpt || "",
-    headline: article.metadata?.title || article.title,
-    image: imageUrls,
-    inLanguage: locale,
-    isAccessibleForFree: true,
-    keywords: keywordList.join(", "),
-    mainEntityOfPage: article.url,
-    publisher: buildPublisherJsonLd(locale),
-    url: article.url,
-  };
-}
-
-export function buildFaqJsonLd(items = []) {
-  const faqItems = (items || []).filter((item) => item?.question && item?.answer);
-
-  if (!faqItems.length) {
+export function buildArticleJsonLd({ article } = {}) {
+  if (!article?.title || !article?.canonicalUrl) {
     return null;
   }
 
   return {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqItems.map((item) => ({
-      "@type": "Question",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.answer,
+    "@type": "NewsArticle",
+    author: [
+      {
+        "@type": "Organization",
+        name: siteName,
       },
-      name: item.question,
-    })),
+    ],
+    dateModified: article.updatedAt || article.publishedAt || undefined,
+    datePublished: article.publishedAt || undefined,
+    description: article.summary || article.metaDescription || undefined,
+    headline: article.title,
+    image: article.image?.url ? [buildAbsoluteUrl(article.image.url)] : undefined,
+    inLanguage: article.locale || defaultLocale,
+    mainEntityOfPage: buildAbsoluteUrl(article.canonicalUrl),
+    publisher: {
+      "@type": "Organization",
+      name: siteName,
+      url: buildAbsoluteUrl(buildLocalizedPath(defaultLocale, publicRouteSegments.home)),
+    },
+    url: buildAbsoluteUrl(article.canonicalUrl),
   };
 }

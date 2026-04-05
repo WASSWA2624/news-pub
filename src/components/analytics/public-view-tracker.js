@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const recentViewTtlMs = 3000;
 
 function buildTrackingKey({ eventType, path, postId }) {
-  return `equip-blog:view:${eventType}:${postId || "none"}:${path}`;
+  return `news-pub:view:${eventType}:${postId || "none"}:${path}`;
 }
 
 function shouldSkipRecentDuplicate(key, now) {

@@ -1,8 +1,11 @@
 const crypto = require("node:crypto");
 
+const { PrismaMariaDb } = require("@prisma/adapter-mariadb");
 const { PrismaClient } = require("@prisma/client");
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: createAdapterFromDatabaseUrl(requiredEnv("DATABASE_URL")),
+});
 
 const PASSWORD_HASH_KEY_LENGTH = 64;
 const PASSWORD_HASH_COST = 32768;
@@ -212,6 +215,24 @@ const DEFAULT_STREAMS = Object.freeze([
     timezone: process.env.DEFAULT_SCHEDULE_TIMEZONE || "UTC",
   },
 ]);
+
+function createAdapterFromDatabaseUrl(databaseUrl) {
+  const parsedUrl = new URL(databaseUrl);
+  const database = parsedUrl.pathname.replace(/^\//, "");
+
+  if (!database) {
+    throw new Error("DATABASE_URL must include a database name.");
+  }
+
+  return new PrismaMariaDb({
+    connectionLimit: Number.parseInt(parsedUrl.searchParams.get("connection_limit") || "5", 10),
+    database,
+    host: parsedUrl.hostname,
+    password: decodeURIComponent(parsedUrl.password),
+    port: parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306,
+    user: decodeURIComponent(parsedUrl.username),
+  });
+}
 
 function requiredEnv(name) {
   const value = `${process.env[name] || ""}`.trim();

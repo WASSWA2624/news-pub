@@ -1,63 +1,6 @@
-import { ADMIN_PERMISSIONS, hasAdminPermission } from "@/lib/auth/rbac";
-import {
-  isFailureAuditAction,
-  observabilityFailureActionValues,
-  serializeAuditEvent,
-} from "@/lib/analytics";
-import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { defaultLocale } from "@/features/i18n/config";
-
-const jobStatusFilterValues = Object.freeze([
-  "ALL",
-  "PENDING",
-  "RUNNING",
-  "COMPLETED",
-  "FAILED",
-  "CANCELLED",
-]);
-
-const generationJobSelect = Object.freeze({
-  createdAt: true,
-  currentStage: true,
-  equipmentName: true,
-  errorMessage: true,
-  finishedAt: true,
-  id: true,
-  locale: true,
-  post: {
-    select: {
-      id: true,
-      publishedAt: true,
-      slug: true,
-      translations: {
-        orderBy: {
-          locale: "asc",
-        },
-        select: {
-          locale: true,
-          title: true,
-        },
-        take: 2,
-      },
-    },
-  },
-  providerConfig: {
-    select: {
-      id: true,
-      model: true,
-      provider: true,
-      purpose: true,
-    },
-  },
-  replaceExistingPost: true,
-  requestJson: true,
-  responseJson: true,
-  schedulePublishAt: true,
-  startedAt: true,
-  status: true,
-  updatedAt: true,
-  warningJson: true,
-});
+import { hasAdminPermission, ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import { serializeAuditEvent } from "@/lib/analytics";
+import { resolvePrismaClient } from "@/lib/news/shared";
 
 function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
@@ -67,710 +10,421 @@ function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeSearchValue(value) {
+function normalizeSearch(value) {
   return trimText(value).slice(0, 191);
 }
 
-function normalizeStatusFilter(value) {
-  const normalizedValue = `${value || "ALL"}`.trim().toUpperCase();
+function createDateBuckets(dayCount, now = new Date()) {
+  const buckets = [];
 
-  return jobStatusFilterValues.includes(normalizedValue) ? normalizedValue : "ALL";
-}
+  for (let index = dayCount - 1; index >= 0; index -= 1) {
+    const nextDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - index));
 
-function subtractDays(date, days) {
-  return new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
-}
-
-function createUtcDateKey(value) {
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
+    buckets.push({
+      date: nextDate.toISOString().slice(0, 10),
+      total: 0,
+    });
   }
 
-  return date.toISOString().slice(0, 10);
+  return buckets;
 }
 
-function createDateWindow(dayCount, now = new Date()) {
-  const startDate = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (dayCount - 1), 0, 0, 0, 0),
-  );
-  const labels = [];
+function countIntoBuckets(items, dayCount, now = new Date()) {
+  const buckets = createDateBuckets(dayCount, now);
+  const bucketIndex = new Map(buckets.map((bucket) => [bucket.date, bucket]));
 
-  for (let dayIndex = 0; dayIndex < dayCount; dayIndex += 1) {
-    const nextDate = new Date(startDate);
-    nextDate.setUTCDate(startDate.getUTCDate() + dayIndex);
-    labels.push(nextDate.toISOString().slice(0, 10));
+  for (const item of items) {
+    const date = item.createdAt instanceof Date ? item.createdAt.toISOString().slice(0, 10) : null;
+    const bucket = date ? bucketIndex.get(date) : null;
+
+    if (bucket) {
+      bucket.total += 1;
+    }
   }
 
+  return buckets;
+}
+
+function sumCounts(items, key) {
+  return items.reduce((total, item) => total + (item?.[key] || 0), 0);
+}
+
+function mapFetchRun(run) {
   return {
-    labels,
-    startDate,
-  };
-}
-
-function getWarningList(warningJson) {
-  return Array.isArray(warningJson)
-    ? warningJson.map((warning) => `${warning}`.trim()).filter(Boolean)
-    : [];
-}
-
-function getJobDurationSeconds(job) {
-  const startedAt = job?.startedAt instanceof Date ? job.startedAt : null;
-  const finishedAt = job?.finishedAt instanceof Date ? job.finishedAt : null;
-
-  if (!startedAt || !finishedAt) {
-    return null;
-  }
-
-  return Math.max(0, Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000));
-}
-
-function resolvePostTitle(post) {
-  return post?.translations?.find((translation) => translation.locale === defaultLocale)?.title
-    || post?.translations?.[0]?.title
-    || post?.slug
-    || "Untitled post";
-}
-
-function serializeGenerationJob(job) {
-  const warnings = getWarningList(job.warningJson);
-
-  return {
-    createdAt: serializeDate(job.createdAt),
-    currentStage: job.currentStage || null,
-    durationSeconds: getJobDurationSeconds(job),
-    equipmentName: job.equipmentName,
-    errorMessage: job.errorMessage || null,
-    finishedAt: serializeDate(job.finishedAt),
-    id: job.id,
-    locale: job.locale,
-    post: job.post
+    createdAt: serializeDate(run.createdAt),
+    duplicateCount: run.duplicateCount,
+    failedCount: run.failedCount,
+    fetchedCount: run.fetchedCount,
+    finishedAt: serializeDate(run.finishedAt),
+    heldCount: run.heldCount,
+    id: run.id,
+    provider: run.providerConfig
       ? {
-          id: job.post.id,
-          path: buildLocalizedPath(
-            job.locale || defaultLocale,
-            publicRouteSegments.blogPost(job.post.slug),
-          ),
-          publishedAt: serializeDate(job.post.publishedAt),
-          slug: job.post.slug,
-          title: resolvePostTitle(job.post),
+          id: run.providerConfig.id,
+          label: run.providerConfig.label,
+          providerKey: run.providerConfig.providerKey,
         }
       : null,
-    providerConfig: job.providerConfig
+    publishableCount: run.publishableCount,
+    publishedCount: run.publishedCount,
+    skippedCount: run.skippedCount,
+    startedAt: serializeDate(run.startedAt),
+    status: run.status,
+    stream: run.stream
       ? {
-          id: job.providerConfig.id,
-          label: `${job.providerConfig.provider} / ${job.providerConfig.model}`,
-          model: job.providerConfig.model,
-          provider: job.providerConfig.provider,
-          purpose: job.providerConfig.purpose,
+          id: run.stream.id,
+          mode: run.stream.mode,
+          name: run.stream.name,
         }
       : null,
-    replaceExistingPost: Boolean(job.replaceExistingPost),
-    requestJson: job.requestJson || null,
-    responseJson: job.responseJson || null,
-    schedulePublishAt: serializeDate(job.schedulePublishAt),
-    startedAt: serializeDate(job.startedAt),
-    status: job.status,
-    updatedAt: serializeDate(job.updatedAt),
-    warningCount: warnings.length,
-    warnings,
+    triggerType: run.triggerType,
   };
 }
 
-function serializeFailureEntry(event) {
-  const payload = event.payload || {};
-
+function mapPublishAttempt(attempt) {
   return {
-    action: event.action,
-    createdAt: event.createdAt,
-    entityId: event.entityId,
-    entityType: event.entityType,
-    errorMessage: payload.errorMessage || payload.message || null,
-    id: event.id,
-    level: payload.level || (isFailureAuditAction(event.action) ? "error" : "warn"),
-    summary:
-      payload.message ||
-      payload.errorMessage ||
-      payload.currentStage ||
-      payload.revalidationStatus ||
-      payload.status ||
-      event.action,
-  };
-}
-
-function buildGenerationJobWhere(filters = {}) {
-  const status = normalizeStatusFilter(filters.status);
-  const search = normalizeSearchValue(filters.search);
-
-  return {
-    ...(status !== "ALL" ? { status } : {}),
-    ...(search
+    articleMatchId: attempt.articleMatchId,
+    createdAt: serializeDate(attempt.createdAt),
+    destination: attempt.destination
       ? {
-          equipmentName: {
-            contains: search,
-          },
+          id: attempt.destination.id,
+          name: attempt.destination.name,
+          platform: attempt.destination.platform,
         }
-      : {}),
-  };
-}
-
-function createViewTrend(viewEvents, dayCount, now = new Date()) {
-  const { labels } = createDateWindow(dayCount, now);
-  const trendIndex = new Map(
-    labels.map((label) => [
-      label,
-      {
-        date: label,
-        pageViews: 0,
-        postViews: 0,
-        totalViews: 0,
-        websiteViews: 0,
-      },
-    ]),
-  );
-
-  for (const event of viewEvents) {
-    const dateKey = createUtcDateKey(event.createdAt);
-    const bucket = dateKey ? trendIndex.get(dateKey) : null;
-
-    if (!bucket) {
-      continue;
-    }
-
-    bucket.totalViews += 1;
-
-    if (event.eventType === "WEBSITE_VIEW") {
-      bucket.websiteViews += 1;
-    } else if (event.eventType === "POST_VIEW") {
-      bucket.postViews += 1;
-    } else {
-      bucket.pageViews += 1;
-    }
-  }
-
-  return labels.map((label) => trendIndex.get(label));
-}
-
-function createTopPostMap(groupedRows = []) {
-  const topPostMap = new Map();
-
-  for (const row of groupedRows) {
-    if (!row?.postId) {
-      continue;
-    }
-
-    const existingCount = topPostMap.get(row.postId) || 0;
-    const nextCount =
-      row._count?.postId
-      || row._count?.id
-      || row._count?._all
-      || row.count
-      || 0;
-
-    topPostMap.set(row.postId, Math.max(existingCount, nextCount));
-  }
-
-  return topPostMap;
-}
-
-function createScheduledRunSummary(events = []) {
-  const runsById = new Map();
-
-  for (const event of events) {
-    const payload = event.payload || {};
-    const runId = event.entityId;
-    const existingRun = runsById.get(runId) || {
-      batchSize: payload.batchSize || null,
-      completedAt: null,
-      dueCount: null,
-      failedCount: null,
-      publishedCount: null,
-      revalidationFailureCount: null,
-      runId,
-      skippedCount: null,
-      startedAt: null,
-      status: "running",
-    };
-
-    if (event.action === "SCHEDULED_PUBLISH_RUN_STARTED") {
-      existingRun.batchSize = payload.batchSize || existingRun.batchSize;
-      existingRun.startedAt = existingRun.startedAt || payload.startedAt || event.createdAt;
-
-      if (!existingRun.completedAt) {
-        existingRun.status = "running";
-      }
-    }
-
-    if (event.action === "SCHEDULED_PUBLISH_RUN_COMPLETED") {
-      existingRun.batchSize = payload.batchSize || existingRun.batchSize;
-      existingRun.completedAt = payload.completedAt || event.createdAt;
-      existingRun.dueCount = payload.dueCount ?? existingRun.dueCount;
-      existingRun.failedCount = payload.failedCount ?? existingRun.failedCount;
-      existingRun.publishedCount = payload.publishedCount ?? existingRun.publishedCount;
-      existingRun.revalidationFailureCount =
-        payload.revalidationFailureCount ?? existingRun.revalidationFailureCount;
-      existingRun.skippedCount = payload.skippedCount ?? existingRun.skippedCount;
-      existingRun.startedAt = existingRun.startedAt || payload.now || event.createdAt;
-      existingRun.status = "completed";
-    }
-
-    runsById.set(runId, existingRun);
-  }
-
-  return [...runsById.values()].sort((left, right) => {
-    const leftDate = left.completedAt || left.startedAt || "";
-    const rightDate = right.completedAt || right.startedAt || "";
-
-    return rightDate.localeCompare(leftDate);
-  });
-}
-
-async function resolvePrismaClient(prisma) {
-  if (prisma) {
-    return prisma;
-  }
-
-  const { getPrismaClient } = await import("@/lib/prisma");
-
-  return getPrismaClient();
-}
-
-async function countGenerationJobs(db, where = {}) {
-  if (typeof db.generationJob?.count !== "function") {
-    return 0;
-  }
-
-  return db.generationJob.count({
-    where,
-  });
-}
-
-async function countJobsWithWarnings(db, startDate) {
-  if (typeof db.generationJob?.findMany !== "function") {
-    return 0;
-  }
-
-  const jobs = await db.generationJob.findMany({
-    select: {
-      warningJson: true,
-    },
-    ...(startDate
+      : null,
+    errorMessage: attempt.errorMessage || null,
+    id: attempt.id,
+    platform: attempt.platform,
+    post: attempt.post
       ? {
-          where: {
-            createdAt: {
-              gte: startDate,
-            },
-          },
+          id: attempt.post.id,
+          slug: attempt.post.slug,
         }
-      : {}),
-  });
-
-  return jobs.reduce((count, job) => count + (getWarningList(job.warningJson).length ? 1 : 0), 0);
-}
-
-async function getRecentGenerationJobs(db, filters = {}, take = 8) {
-  if (typeof db.generationJob?.findMany !== "function") {
-    return [];
-  }
-
-  const jobs = await db.generationJob.findMany({
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: generationJobSelect,
-    take,
-    where: buildGenerationJobWhere(filters),
-  });
-
-  return jobs.map(serializeGenerationJob);
-}
-
-async function getGenerationJobDetails(db, jobId) {
-  if (!jobId || typeof db.generationJob?.findUnique !== "function") {
-    return null;
-  }
-
-  const job = await db.generationJob.findUnique({
-    select: generationJobSelect,
-    where: {
-      id: jobId,
-    },
-  });
-
-  return job ? serializeGenerationJob(job) : null;
-}
-
-async function getGenerationJobLogs(db, jobId) {
-  if (!jobId || typeof db.auditEvent?.findMany !== "function") {
-    return [];
-  }
-
-  const logs = await db.auditEvent.findMany({
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: {
-      action: true,
-      actorId: true,
-      createdAt: true,
-      entityId: true,
-      entityType: true,
-      id: true,
-      payloadJson: true,
-    },
-    where: {
-      entityId: jobId,
-      entityType: "generation_job",
-    },
-  });
-
-  return logs.map(serializeAuditEvent);
-}
-
-async function getRecentFailureEvents(db, startDate, take = 12) {
-  if (typeof db.auditEvent?.findMany !== "function") {
-    return [];
-  }
-
-  const events = await db.auditEvent.findMany({
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: {
-      action: true,
-      actorId: true,
-      createdAt: true,
-      entityId: true,
-      entityType: true,
-      id: true,
-      payloadJson: true,
-    },
-    take,
-    where: {
-      action: {
-        in: [...observabilityFailureActionValues, ...["GENERATION_JOB_WARNING"]],
-      },
-      createdAt: {
-        gte: startDate,
-      },
-    },
-  });
-
-  return events.map(serializeAuditEvent).map(serializeFailureEntry);
-}
-
-async function getScheduledPublishingRuns(db, take = 12) {
-  if (typeof db.auditEvent?.findMany !== "function") {
-    return [];
-  }
-
-  const events = await db.auditEvent.findMany({
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: {
-      action: true,
-      actorId: true,
-      createdAt: true,
-      entityId: true,
-      entityType: true,
-      id: true,
-      payloadJson: true,
-    },
-    take,
-    where: {
-      entityType: "scheduled_publish_worker",
-    },
-  });
-
-  return createScheduledRunSummary(events.map(serializeAuditEvent));
-}
-
-async function getViewCounts(db, startDate) {
-  if (typeof db.viewEvent?.count !== "function") {
-    return {
-      pageViewCount30d: 0,
-      postViewCount30d: 0,
-      totalViewCount30d: 0,
-      websiteViewCount30d: 0,
-    };
-  }
-
-  const [totalViewCount30d, websiteViewCount30d, pageViewCount30d, postViewCount30d] =
-    await Promise.all([
-      db.viewEvent.count({
-        where: {
-          createdAt: {
-            gte: startDate,
-          },
-        },
-      }),
-      db.viewEvent.count({
-        where: {
-          createdAt: {
-            gte: startDate,
-          },
-          eventType: "WEBSITE_VIEW",
-        },
-      }),
-      db.viewEvent.count({
-        where: {
-          createdAt: {
-            gte: startDate,
-          },
-          eventType: "PAGE_VIEW",
-        },
-      }),
-      db.viewEvent.count({
-        where: {
-          createdAt: {
-            gte: startDate,
-          },
-          eventType: "POST_VIEW",
-        },
-      }),
-    ]);
-
-  return {
-    pageViewCount30d,
-    postViewCount30d,
-    totalViewCount30d,
-    websiteViewCount30d,
+      : null,
+    publishedAt: serializeDate(attempt.publishedAt),
+    queuedAt: serializeDate(attempt.queuedAt),
+    remoteId: attempt.remoteId || null,
+    retryCount: attempt.retryCount,
+    status: attempt.status,
+    stream: attempt.stream
+      ? {
+          id: attempt.stream.id,
+          name: attempt.stream.name,
+        }
+      : null,
   };
-}
-
-async function getViewTrendData(db, startDate) {
-  if (typeof db.viewEvent?.findMany !== "function") {
-    return [];
-  }
-
-  return db.viewEvent.findMany({
-    orderBy: [{ createdAt: "asc" }],
-    select: {
-      createdAt: true,
-      eventType: true,
-    },
-    where: {
-      createdAt: {
-        gte: startDate,
-      },
-    },
-  });
-}
-
-async function getTopPostViews(db, startDate) {
-  if (!db.viewEvent) {
-    return [];
-  }
-
-  let groupedRows = [];
-
-  if (typeof db.viewEvent.groupBy === "function") {
-    groupedRows = await db.viewEvent.groupBy({
-      _count: {
-        postId: true,
-      },
-      by: ["postId"],
-      orderBy: {
-        _count: {
-          postId: "desc",
-        },
-      },
-      take: 5,
-      where: {
-        createdAt: {
-          gte: startDate,
-        },
-        eventType: "POST_VIEW",
-        postId: {
-          not: null,
-        },
-      },
-    });
-  } else if (typeof db.viewEvent.findMany === "function") {
-    const rows = await db.viewEvent.findMany({
-      select: {
-        postId: true,
-      },
-      where: {
-        createdAt: {
-          gte: startDate,
-        },
-        eventType: "POST_VIEW",
-      },
-    });
-    const counts = rows.reduce((map, row) => {
-      if (!row.postId) {
-        return map;
-      }
-
-      map.set(row.postId, (map.get(row.postId) || 0) + 1);
-      return map;
-    }, new Map());
-
-    groupedRows = [...counts.entries()]
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, 5)
-      .map(([postId, count]) => ({
-        _count: {
-          postId: count,
-        },
-        postId,
-      }));
-  }
-
-  const topPostMap = createTopPostMap(groupedRows);
-  const postIds = [...topPostMap.keys()];
-
-  if (!postIds.length || typeof db.post?.findMany !== "function") {
-    return [];
-  }
-
-  const posts = await db.post.findMany({
-    select: {
-      id: true,
-      publishedAt: true,
-      slug: true,
-      translations: {
-        orderBy: {
-          locale: "asc",
-        },
-        select: {
-          locale: true,
-          title: true,
-        },
-        take: 2,
-      },
-    },
-    where: {
-      id: {
-        in: postIds,
-      },
-    },
-  });
-
-  return posts
-    .map((post) => ({
-      id: post.id,
-      path: buildLocalizedPath(defaultLocale, publicRouteSegments.blogPost(post.slug)),
-      publishedAt: serializeDate(post.publishedAt),
-      slug: post.slug,
-      title: resolvePostTitle(post),
-      viewCount: topPostMap.get(post.id) || 0,
-    }))
-    .sort((left, right) => right.viewCount - left.viewCount);
 }
 
 export async function getAdminDashboardSnapshot(user, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const now = new Date();
   const canViewAnalytics = hasAdminPermission(user, ADMIN_PERMISSIONS.VIEW_ANALYTICS);
-  const trendWindow = createDateWindow(14, now);
-  const thirtyDayStart = subtractDays(now, 30);
-  const failureWindowStart = subtractDays(now, 14);
-
-  const [generationJobCount30d, completedJobCount30d, failedJobCount30d, warningJobCount30d, recentJobs, recentFailures, scheduledRuns] =
-    await Promise.all([
-      countGenerationJobs(db, {
-        createdAt: {
-          gte: thirtyDayStart,
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [
+    destinations,
+    streams,
+    fetchRuns,
+    publishAttempts,
+    latestStories,
+    recentAuditEvents,
+    viewEvents,
+  ] = await Promise.all([
+    db.destination.findMany({
+      orderBy: [{ platform: "asc" }, { name: "asc" }],
+    }),
+    db.publishingStream.findMany({
+      include: {
+        destination: {
+          select: {
+            name: true,
+            platform: true,
+          },
         },
-      }),
-      countGenerationJobs(db, {
-        createdAt: {
-          gte: thirtyDayStart,
+      },
+      orderBy: [{ status: "asc" }, { name: "asc" }],
+    }),
+    db.fetchRun.findMany({
+      include: {
+        providerConfig: {
+          select: {
+            id: true,
+            label: true,
+            providerKey: true,
+          },
         },
-        status: "COMPLETED",
-      }),
-      countGenerationJobs(db, {
-        createdAt: {
-          gte: thirtyDayStart,
+        stream: {
+          select: {
+            id: true,
+            mode: true,
+            name: true,
+          },
         },
-        status: "FAILED",
-      }),
-      countJobsWithWarnings(db, thirtyDayStart),
-      getRecentGenerationJobs(db, {}, 6),
-      getRecentFailureEvents(db, failureWindowStart, 12),
-      getScheduledPublishingRuns(db, 16),
-    ]);
-
-  const analytics = canViewAnalytics
-    ? await (async () => {
-        const [viewCounts, trendEvents, topPosts] = await Promise.all([
-          getViewCounts(db, thirtyDayStart),
-          getViewTrendData(db, trendWindow.startDate),
-          getTopPostViews(db, thirtyDayStart),
-        ]);
-
-        return {
-          ...viewCounts,
-          topPosts,
-          trend: createViewTrend(trendEvents, trendWindow.labels.length, now),
-        };
-      })()
-    : {
-        pageViewCount30d: null,
-        postViewCount30d: null,
-        topPosts: [],
-        totalViewCount30d: null,
-        trend: [],
-        websiteViewCount30d: null,
-      };
+      },
+      orderBy: [{ startedAt: "desc" }],
+      take: 20,
+      where: {
+        createdAt: {
+          gte: since,
+        },
+      },
+    }),
+    db.publishAttempt.findMany({
+      include: {
+        destination: {
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            slug: true,
+          },
+        },
+        stream: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ createdAt: "desc" }],
+      take: 20,
+      where: {
+        createdAt: {
+          gte: since,
+        },
+      },
+    }),
+    db.post.findMany({
+      include: {
+        translations: {
+          orderBy: {
+            locale: "asc",
+          },
+          select: {
+            locale: true,
+            title: true,
+          },
+        },
+        viewEvents: canViewAnalytics
+          ? {
+              select: {
+                id: true,
+              },
+            }
+          : false,
+      },
+      orderBy: [{ publishedAt: "desc" }],
+      take: 5,
+      where: {
+        status: "PUBLISHED",
+      },
+    }),
+    db.auditEvent.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      take: 12,
+    }),
+    canViewAnalytics
+      ? db.viewEvent.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          select: {
+            createdAt: true,
+            eventType: true,
+            postId: true,
+          },
+          where: {
+            createdAt: {
+              gte: since,
+            },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
 
   return {
-    analytics,
-    permissions: {
-      canViewAnalytics,
+    canViewAnalytics,
+    destinationStatus: {
+      connected: destinations.filter((destination) => destination.connectionStatus === "CONNECTED").length,
+      disconnected: destinations.filter((destination) => destination.connectionStatus === "DISCONNECTED").length,
+      error: destinations.filter((destination) => destination.connectionStatus === "ERROR").length,
+      total: destinations.length,
     },
-    recentFailures,
-    recentGenerationJobs: recentJobs,
-    scheduledRuns,
+    latestStories: latestStories.map((story) => ({
+      id: story.id,
+      publishedAt: serializeDate(story.publishedAt),
+      slug: story.slug,
+      title: story.translations[0]?.title || story.slug,
+      viewCount: canViewAnalytics ? story.viewEvents.length : null,
+    })),
+    recentAuditEvents: recentAuditEvents.map(serializeAuditEvent),
+    recentFetchRuns: fetchRuns.slice(0, 6).map(mapFetchRun),
+    recentPublishAttempts: publishAttempts.slice(0, 6).map(mapPublishAttempt),
+    streamStatus: {
+      active: streams.filter((stream) => stream.status === "ACTIVE").length,
+      paused: streams.filter((stream) => stream.status === "PAUSED").length,
+      total: streams.length,
+    },
     summary: {
-      completedJobCount30d,
-      failedJobCount30d,
-      failureLogCount14d: recentFailures.filter((failure) => failure.level === "error").length,
-      generationJobCount30d,
-      scheduledRunCount14d: scheduledRuns.length,
-      warningJobCount30d,
+      duplicateCount7d: sumCounts(fetchRuns, "duplicateCount"),
+      failedFetchRuns7d: fetchRuns.filter((run) => run.status === "FAILED").length,
+      failedPublishAttempts7d: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
+      fetchRunCount7d: fetchRuns.length,
+      publishAttemptCount7d: publishAttempts.length,
+      publishableCount7d: sumCounts(fetchRuns, "publishableCount"),
+      publishedCount7d: sumCounts(fetchRuns, "publishedCount"),
+      retryCount7d: publishAttempts.reduce((total, attempt) => total + (attempt.retryCount || 0), 0),
+      totalViews7d: canViewAnalytics ? viewEvents.length : null,
     },
+    trafficTrend: canViewAnalytics ? countIntoBuckets(viewEvents, 7) : [],
   };
 }
 
-export async function getAdminJobLogsSnapshot(filters = {}, prisma) {
+export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const normalizedFilters = {
-    jobId: trimText(filters.jobId) || null,
-    search: normalizeSearchValue(filters.search),
-    status: normalizeStatusFilter(filters.status),
-  };
-  const [jobs, selectedJobById, scheduledRuns, totalJobs, failedJobs, runningJobs, warningJobs] =
-    await Promise.all([
-      getRecentGenerationJobs(db, normalizedFilters, 20),
-      getGenerationJobDetails(db, normalizedFilters.jobId),
-      getScheduledPublishingRuns(db, 16),
-      countGenerationJobs(db),
-      countGenerationJobs(db, {
-        status: "FAILED",
-      }),
-      countGenerationJobs(db, {
-        status: "RUNNING",
-      }),
-      countJobsWithWarnings(db),
-    ]);
-  const selectedJob = selectedJobById || jobs[0] || null;
-  const selectedJobLogs = await getGenerationJobLogs(db, selectedJob?.id);
+  const normalizedSearch = normalizeSearch(search);
+  const normalizedStatus = trimText(status).toUpperCase() || "ALL";
+  const fetchRuns = await db.fetchRun.findMany({
+    include: {
+      providerConfig: {
+        select: {
+          id: true,
+          label: true,
+          providerKey: true,
+        },
+      },
+      stream: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: [{ startedAt: "desc" }],
+    take: 30,
+    where: {
+      ...(normalizedStatus !== "ALL"
+        ? {
+            status: normalizedStatus,
+          }
+        : {}),
+      ...(normalizedSearch
+        ? {
+            OR: [
+              {
+                stream: {
+                  name: {
+                    contains: normalizedSearch,
+                  },
+                },
+              },
+              {
+                providerConfig: {
+                  label: {
+                    contains: normalizedSearch,
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+  });
+  const publishAttempts = await db.publishAttempt.findMany({
+    include: {
+      destination: {
+        select: {
+          id: true,
+          name: true,
+          platform: true,
+        },
+      },
+      post: {
+        select: {
+          id: true,
+          slug: true,
+        },
+      },
+      stream: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take: 30,
+    where: {
+      ...(normalizedStatus !== "ALL"
+        ? {
+            status: normalizedStatus,
+          }
+        : {}),
+      ...(normalizedSearch
+        ? {
+            OR: [
+              {
+                destination: {
+                  name: {
+                    contains: normalizedSearch,
+                  },
+                },
+              },
+              {
+                stream: {
+                  name: {
+                    contains: normalizedSearch,
+                  },
+                },
+              },
+              {
+                post: {
+                  slug: {
+                    contains: normalizedSearch,
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+  });
+  const auditEvents = await db.auditEvent.findMany({
+    orderBy: [{ createdAt: "desc" }],
+    take: 20,
+    where: normalizedSearch
+      ? {
+          OR: [
+            {
+              action: {
+                contains: normalizedSearch,
+              },
+            },
+            {
+              entityId: {
+                contains: normalizedSearch,
+              },
+            },
+            {
+              entityType: {
+                contains: normalizedSearch,
+              },
+            },
+          ],
+        }
+      : undefined,
+  });
 
   return {
-    filters: normalizedFilters,
-    jobs,
-    scheduledRuns,
-    selectedJob: selectedJob
-      ? {
-          ...selectedJob,
-          logs: selectedJobLogs,
-        }
-      : null,
+    auditEvents: auditEvents.map(serializeAuditEvent),
+    fetchRuns: fetchRuns.map(mapFetchRun),
+    publishAttempts: publishAttempts.map(mapPublishAttempt),
     summary: {
-      failedJobs,
-      runningJobs,
-      scheduledRunCount: scheduledRuns.length,
-      totalJobs,
-      warningJobs,
+      failedFetchRuns: fetchRuns.filter((run) => run.status === "FAILED").length,
+      failedPublishAttempts: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
+      totalFetchRuns: fetchRuns.length,
+      totalPublishAttempts: publishAttempts.length,
     },
   };
 }
-
-export { jobStatusFilterValues };
