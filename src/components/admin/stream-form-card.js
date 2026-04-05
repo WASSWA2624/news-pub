@@ -97,6 +97,7 @@ export default function StreamFormCard({
 
   return (
     <form action={action} onSubmit={handleSubmit}>
+      {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
       <FormSection>
         <FormSectionTitle>Core setup</FormSectionTitle>
         <FieldGrid>
@@ -281,9 +282,7 @@ export default function StreamFormCard({
                 disabled={issues.length > 0}
                 formAction={runNowAction}
                 formNoValidate
-                name="streamId"
                 type="submit"
-                value={stream.id}
               >
                 Run now
               </SecondaryButton>

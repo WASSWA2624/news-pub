@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styled from "styled-components";
 
 import {
   ButtonRow,
@@ -43,6 +44,10 @@ function buildKindOptions(kindOptions, platform) {
   });
 }
 
+const DestinationFieldGrid = styled(FieldGrid)`
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+`;
+
 export default function DestinationFormCard({
   action,
   connectionStatusOptions = [],
@@ -67,7 +72,7 @@ export default function DestinationFormCard({
 
   return (
     <form action={action} onSubmit={handleSubmit}>
-      <FieldGrid>
+      <DestinationFieldGrid>
         <Field>
           <FieldLabel>Name</FieldLabel>
           <Input defaultValue={destination?.name || ""} name="name" required />
@@ -121,7 +126,7 @@ export default function DestinationFormCard({
             </Field>
           </>
         ) : null}
-      </FieldGrid>
+      </DestinationFieldGrid>
 
       {issues.length ? (
         <FormSection>
@@ -140,7 +145,7 @@ export default function DestinationFormCard({
         <>
           <FormSection>
             <FormSectionTitle>Connection details</FormSectionTitle>
-            <FieldGrid>
+            <DestinationFieldGrid>
               <Field>
                 <FieldLabel>External account ID</FieldLabel>
                 <Input defaultValue={destination.externalAccountId || ""} name="externalAccountId" />
@@ -156,7 +161,7 @@ export default function DestinationFormCard({
                   }
                 />
               </Field>
-            </FieldGrid>
+            </DestinationFieldGrid>
             <CheckboxRow>
               <CheckboxChip>
                 <input name="clearToken" type="checkbox" /> Clear stored token

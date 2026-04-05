@@ -2,12 +2,24 @@
   <defs>
     <linearGradient id="newspub-favicon-gradient" x1="10" x2="54" y1="8" y2="56" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#102033" />
-      <stop offset="0.55" stop-color="#005f73" />
-      <stop offset="1" stop-color="#1d8f95" />
+      <stop offset="0.5" stop-color="#1b4f93" />
+      <stop offset="1" stop-color="#0c6f82" />
+    </linearGradient>
+    <linearGradient id="newspub-favicon-paper" x1="18" x2="49" y1="16" y2="51" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#dce8f4" />
+    </linearGradient>
+    <linearGradient id="newspub-favicon-accent" x1="38" x2="50" y1="15" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd98d" />
+      <stop offset="1" stop-color="#f2b35a" />
     </linearGradient>
   </defs>
   <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#newspub-favicon-gradient)" />
   <rect x="4.75" y="4.75" width="54.5" height="54.5" rx="17.25" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" />
-  <circle cx="45" cy="19" r="6.5" fill="#f2b35a" />
-  <path d="M22 18.5V45.5M23 19H42M23 31.5H37.5M23 44H44" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="6" />
+  <path d="M20 16.5C20 14.8431 21.3431 13.5 23 13.5H37.4L48 24.1V45C48 48.3137 45.3137 51 42 51H23C21.3431 51 20 49.6569 20 48V16.5Z" fill="url(#newspub-favicon-paper)" />
+  <path d="M37.4 13.5V21.2C37.4 22.8016 38.6984 24.1 40.3 24.1H48" fill="#d2e1f0" />
+  <path d="M25 24H34.5M25 29.5H35.5M25 35H31.5" fill="none" stroke="#2f5b86" stroke-linecap="round" stroke-width="3.2" />
+  <path d="M31 40.5L42 29.5M36.5 29.5H42V35" fill="none" stroke="#0c6f82" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.1" />
+  <circle cx="45.5" cy="18.5" r="5.5" fill="url(#newspub-favicon-accent)" />
+  <circle cx="45.5" cy="18.5" r="2" fill="#fff3d8" opacity="0.95" />
 </svg>

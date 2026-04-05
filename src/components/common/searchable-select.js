@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 const VIEWPORT_MARGIN = 10;
 const DROPDOWN_GAP = 8;
@@ -59,6 +59,10 @@ function normalizeOption(option, index) {
     searchText: normalizeText([label, description, value, badge, ...keywords].join(" ")),
     value,
   };
+}
+
+function formatCountLabel(count, singular, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function getEnabledOptionIndexes(options) {
@@ -195,7 +199,36 @@ function resolveDropdownLayout(triggerRect, dropdownRect = null) {
   };
 }
 
+function getDropdownTransformOrigin(layout) {
+  if (layout?.placement === "top") {
+    return "center bottom";
+  }
+
+  if (layout?.placement === "left") {
+    return "right center";
+  }
+
+  if (layout?.placement === "right") {
+    return "left center";
+  }
+
+  return "center top";
+}
+
+const dropdownEnter = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
 const SelectRoot = styled.div`
+  container-type: inline-size;
   min-width: 0;
   width: 100%;
 `;
@@ -207,30 +240,49 @@ const HiddenInput = styled.input`
 const TriggerButton = styled.button`
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 255, 0.96)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.06), transparent 55%);
-  border: 1px solid ${({ $invalid }) => ($invalid ? "var(--theme-danger, #b42318)" : "var(--theme-border, #b8c8de)")};
-  border-radius: ${({ theme }) => theme.radius.sm};
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.98)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 56%);
+  border: 1px solid
+    ${({ $invalid, $open }) =>
+      $invalid
+        ? "var(--theme-danger, #b42318)"
+        : $open
+          ? "rgba(15, 111, 141, 0.3)"
+          : "var(--theme-border, #b8c8de)"};
+  border-radius: 12px;
   box-shadow:
-    0 10px 24px rgba(16, 32, 51, 0.05),
+    ${({ $open, $invalid }) =>
+      $open
+        ? $invalid
+          ? "0 18px 32px rgba(176, 46, 34, 0.1), 0 0 0 4px rgba(176, 46, 34, 0.09)"
+          : "0 18px 32px rgba(15, 96, 121, 0.11), 0 0 0 4px rgba(15, 111, 141, 0.09)"
+        : "0 10px 24px rgba(16, 32, 51, 0.05),"}
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
   gap: 0.68rem;
   justify-content: space-between;
-  min-height: 42px;
+  min-height: 44px;
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0.66rem 0.8rem;
+  padding: 0.74rem 0.82rem;
   text-align: left;
   transition:
+    background 160ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
   width: 100%;
 
   &:hover {
-    border-color: ${({ disabled }) => (disabled ? "var(--theme-border, #b8c8de)" : "rgba(36, 75, 115, 0.24)")};
+    border-color: ${({ disabled, $invalid, $open }) =>
+      disabled
+        ? "var(--theme-border, #b8c8de)"
+        : $invalid
+          ? "var(--theme-danger, #b42318)"
+          : $open
+            ? "rgba(15, 111, 141, 0.34)"
+            : "rgba(36, 75, 115, 0.24)"};
     transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
   }
 
@@ -244,10 +296,22 @@ const TriggerButton = styled.button`
   }
 `;
 
+const CompactTriggerButton = styled(TriggerButton)`
+  @container (max-width: 220px) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+`;
+
 const TriggerValue = styled.span`
   display: grid;
-  gap: 0.08rem;
+  flex: 1 1 auto;
+  gap: 0.24rem;
   min-width: 0;
+
+  @container (max-width: 220px) {
+    flex-basis: 100%;
+  }
 `;
 
 const TriggerLabel = styled.span`
@@ -266,7 +330,33 @@ const TriggerDescription = styled.span`
   color: var(--theme-muted, #54657f);
   font-size: 0.72rem;
   line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: normal;
+`;
+
+const TriggerChipRow = styled.span`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+`;
+
+const TriggerChip = styled.span`
+  align-items: center;
+  background: ${({ $muted }) =>
+    $muted ? "rgba(16, 32, 51, 0.05)" : "rgba(36, 75, 115, 0.08)"};
+  border: 1px solid
+    ${({ $muted }) =>
+      $muted ? "rgba(16, 32, 51, 0.08)" : "rgba(36, 75, 115, 0.12)"};
+  border-radius: 999px;
+  color: ${({ $muted }) => ($muted ? "rgba(61, 76, 102, 0.9)" : "#244b73")};
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
   overflow: hidden;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0 0.5rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -276,20 +366,24 @@ const TriggerAdornment = styled.span`
   display: inline-flex;
   flex: 0 0 auto;
   gap: 0.55rem;
+
+  @container (max-width: 220px) {
+    margin-left: auto;
+  }
 `;
 
 const TriggerBadge = styled.span`
-  background: rgba(36, 75, 115, 0.08);
-  border: 1px solid rgba(36, 75, 115, 0.12);
+  background: rgba(15, 111, 141, 0.08);
+  border: 1px solid rgba(15, 111, 141, 0.14);
   border-radius: 999px;
-  color: #244b73;
+  color: #0f5f79;
   display: inline-flex;
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   max-width: 6.8rem;
   overflow: hidden;
-  padding: 0.2rem 0.44rem;
+  padding: 0.24rem 0.48rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -298,7 +392,7 @@ const TriggerBadge = styled.span`
 const Caret = styled.span`
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 6px solid rgba(74, 90, 117, 0.92);
+  border-top: 6px solid rgba(56, 76, 103, 0.88);
   flex: 0 0 auto;
   transform: ${({ $open }) => ($open ? "rotate(180deg)" : "none")};
   transition: transform 160ms ease;
@@ -307,39 +401,84 @@ const Caret = styled.span`
 const DropdownSurface = styled.div`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.985)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.09), transparent 58%);
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 58%);
+  backdrop-filter: blur(14px);
   border: 1px solid rgba(24, 39, 66, 0.1);
   border-radius: 16px;
   box-shadow:
     0 28px 54px rgba(16, 32, 51, 0.14),
     0 6px 16px rgba(16, 32, 51, 0.05);
+  animation: ${dropdownEnter} 180ms cubic-bezier(0.22, 1, 0.36, 1);
   display: grid;
-  gap: 0.48rem;
+  gap: 0.58rem;
   grid-template-rows: auto minmax(0, 1fr);
   left: ${({ $layout }) => `${$layout?.left || 0}px`};
   max-height: ${({ $layout }) => `${$layout?.maxHeight || DEFAULT_DROPDOWN_HEIGHT}px`};
   overflow: hidden;
-  padding: 0.58rem;
+  padding: 0.62rem;
   position: fixed;
   top: ${({ $layout }) => `${$layout?.top || 0}px`};
+  transform-origin: ${({ $layout }) => getDropdownTransformOrigin($layout)};
   width: ${({ $layout }) => `${$layout?.width || BASE_DROPDOWN_WIDTH}px`};
   z-index: 9999;
 `;
 
+const DropdownTop = styled.div`
+  background:
+    linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 55%);
+  border: 1px solid rgba(24, 39, 66, 0.06);
+  border-radius: 14px;
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.62rem;
+`;
+
+const DropdownHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  justify-content: space-between;
+`;
+
+const DropdownEyebrow = styled.span`
+  color: rgba(32, 51, 78, 0.94);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const DropdownMeta = styled.span`
+  align-items: center;
+  background: rgba(15, 111, 141, 0.08);
+  border: 1px solid rgba(15, 111, 141, 0.12);
+  border-radius: 999px;
+  color: #0f5f79;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  min-height: 24px;
+  padding: 0 0.52rem;
+  text-transform: uppercase;
+`;
+
 const SearchWrap = styled.div`
   align-items: center;
-  background: rgba(247, 250, 255, 0.98);
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(24, 39, 66, 0.08);
-  border-radius: 999px;
+  border-radius: 12px;
   display: flex;
   flex: 0 0 auto;
   gap: 0.55rem;
-  min-height: 38px;
-  padding: 0 0.66rem;
+  min-height: 40px;
+  padding: 0 0.72rem;
 
   &:focus-within {
-    border-color: rgba(36, 75, 115, 0.2);
-    box-shadow: 0 0 0 3px rgba(36, 75, 115, 0.09);
+    border-color: rgba(15, 111, 141, 0.22);
+    box-shadow: 0 0 0 3px rgba(15, 111, 141, 0.09);
   }
 `;
 
@@ -381,47 +520,95 @@ const SearchInput = styled.input`
 `;
 
 const OptionList = styled.div`
-  display: grid;
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
-  gap: 0.3rem;
+  gap: 0.36rem;
   max-height: 100%;
   min-height: 0;
   overflow: auto;
   padding-right: 0.12rem;
+  scrollbar-color: rgba(36, 75, 115, 0.24) transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(36, 75, 115, 0.24);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
 `;
 
 const OptionButton = styled.button`
+  position: relative;
   background: ${({ $active, $selected }) =>
     $selected
-      ? "rgba(0, 95, 115, 0.11)"
+      ? "linear-gradient(180deg, rgba(15, 111, 141, 0.12), rgba(15, 111, 141, 0.08))"
       : $active
         ? "rgba(36, 75, 115, 0.08)"
-        : "transparent"};
+        : "rgba(255, 255, 255, 0.72)"};
   border: 1px solid
     ${({ $active, $selected }) =>
       $selected
-        ? "rgba(0, 95, 115, 0.18)"
+        ? "rgba(15, 111, 141, 0.2)"
         : $active
           ? "rgba(36, 75, 115, 0.14)"
-          : "transparent"};
+          : "rgba(24, 39, 66, 0.04)"};
   border-radius: 13px;
+  box-shadow: ${({ $selected }) =>
+    $selected ? "0 10px 22px rgba(15, 96, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72)" : "none"};
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: grid;
-  gap: 0.3rem;
+  flex: 0 0 auto;
+  gap: 0.34rem;
+  height: auto;
   min-height: 50px;
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
-  padding: 0.64rem 0.74rem;
+  overflow: hidden;
+  padding: 0.72rem 0.78rem 0.72rem 0.88rem;
   text-align: left;
   transition:
     background 160ms ease,
     border-color 160ms ease,
+    box-shadow 160ms ease,
     transform 160ms ease;
   width: 100%;
 
+  &::before {
+    background: ${({ $active, $selected }) =>
+      $selected
+        ? "linear-gradient(180deg, rgba(15, 111, 141, 0.9), rgba(13, 95, 121, 0.88))"
+        : $active
+          ? "rgba(36, 75, 115, 0.32)"
+          : "transparent"};
+    border-radius: 999px;
+    content: "";
+    left: 0.34rem;
+    position: absolute;
+    top: 0.6rem;
+    bottom: 0.6rem;
+    width: 3px;
+  }
+
   &:hover {
-    background: ${({ disabled }) => (disabled ? "transparent" : "rgba(36, 75, 115, 0.08)")};
-    border-color: ${({ disabled }) => (disabled ? "transparent" : "rgba(36, 75, 115, 0.14)")};
+    background: ${({ disabled, $selected }) =>
+      disabled
+        ? "rgba(255, 255, 255, 0.72)"
+        : $selected
+          ? "linear-gradient(180deg, rgba(15, 111, 141, 0.14), rgba(15, 111, 141, 0.09))"
+          : "rgba(36, 75, 115, 0.08)"};
+    border-color: ${({ disabled, $selected }) =>
+      disabled
+        ? "rgba(24, 39, 66, 0.04)"
+        : $selected
+          ? "rgba(15, 111, 141, 0.22)"
+          : "rgba(36, 75, 115, 0.14)"};
     transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
   }
 `;
@@ -475,20 +662,50 @@ const OptionBadge = styled.span`
 `;
 
 const OptionIndicator = styled.span`
-  background: ${({ $selected }) => ($selected ? "rgba(0, 95, 115, 0.92)" : "rgba(74, 90, 117, 0.18)")};
+  align-items: center;
+  background: ${({ $selected }) => ($selected ? "rgba(15, 111, 141, 0.92)" : "rgba(255, 255, 255, 0.92)")};
+  border: 1px solid ${({ $selected }) => ($selected ? "rgba(15, 111, 141, 0.92)" : "rgba(74, 90, 117, 0.18)")};
   border-radius: 999px;
-  box-shadow: ${({ $selected }) => ($selected ? "0 0 0 4px rgba(0, 95, 115, 0.12)" : "none")};
+  box-shadow: ${({ $selected }) => ($selected ? "0 0 0 4px rgba(15, 111, 141, 0.12)" : "none")};
   display: inline-flex;
   flex: 0 0 auto;
-  height: 0.58rem;
-  width: 0.58rem;
+  height: 1rem;
+  justify-content: center;
+  position: relative;
+  width: 1rem;
+
+  &::after {
+    border-bottom: 2px solid white;
+    border-right: 2px solid white;
+    content: "";
+    height: 0.42rem;
+    left: 0.32rem;
+    opacity: ${({ $selected }) => ($selected ? 1 : 0)};
+    position: absolute;
+    top: 0.18rem;
+    transform: rotate(45deg) scale(${({ $selected }) => ($selected ? 1 : 0.7)});
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease;
+    width: 0.22rem;
+  }
 `;
 
 const StateMessage = styled.div`
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 58%);
+  border: 1px dashed rgba(36, 75, 115, 0.14);
+  border-radius: 14px;
   color: var(--theme-muted, #54657f);
+  display: grid;
   font-size: 0.82rem;
+  justify-items: center;
   line-height: 1.55;
-  padding: 0.28rem 0.4rem;
+  min-height: 92px;
+  padding: 1rem 0.8rem;
+  text-align: center;
 `;
 
 export default function SearchableSelect({
@@ -540,6 +757,7 @@ export default function SearchableSelect({
     return normalizedOptions.filter((option) => selectedValueSet.has(option.value));
   }, [normalizedOptions, selectedValueSet]);
   const selectedOption = multiple ? null : selectedOptions[0] || null;
+  const previewOptions = useMemo(() => selectedOptions.slice(0, 2), [selectedOptions]);
   const normalizedQuery = normalizeText(query);
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) {
@@ -792,6 +1010,18 @@ export default function SearchableSelect({
   }
 
   const canPortal = typeof document !== "undefined";
+  const selectionSummary = multiple
+    ? selectedOptions.length
+      ? `${formatCountLabel(selectedOptions.length, "option")} selected`
+      : "Choose one or more"
+    : selectedOption
+      ? "Current selection"
+      : "Choose an option";
+  const resultSummary = loading
+    ? "Updating"
+    : normalizedQuery
+      ? formatCountLabel(filteredOptions.length, "match")
+      : formatCountLabel(normalizedOptions.length, "option");
   const dropdown = isOpen && canPortal && dropdownLayout
     ? createPortal(
         <DropdownSurface
@@ -799,31 +1029,37 @@ export default function SearchableSelect({
           data-placement={dropdownLayout.placement}
           ref={dropdownRef}
         >
-          <SearchWrap>
-            <SearchIcon aria-hidden="true" />
-            <SearchInput
-              aria-activedescendant={
-                resolvedActiveIndex >= 0 ? `${listboxId}-${filteredOptions[resolvedActiveIndex]?.id}` : undefined
-              }
-              aria-controls={listboxId}
-              aria-label={searchPlaceholder}
-              aria-autocomplete="list"
-              aria-expanded={isOpen}
-              onChange={(event) => {
-                const nextQuery = event.target.value;
+          <DropdownTop>
+            <DropdownHeader>
+              <DropdownEyebrow>{selectionSummary}</DropdownEyebrow>
+              <DropdownMeta>{resultSummary}</DropdownMeta>
+            </DropdownHeader>
+            <SearchWrap>
+              <SearchIcon aria-hidden="true" />
+              <SearchInput
+                aria-activedescendant={
+                  resolvedActiveIndex >= 0 ? `${listboxId}-${filteredOptions[resolvedActiveIndex]?.id}` : undefined
+                }
+                aria-controls={listboxId}
+                aria-label={searchPlaceholder}
+                aria-autocomplete="list"
+                aria-expanded={isOpen}
+                onChange={(event) => {
+                  const nextQuery = event.target.value;
 
-                setQuery(nextQuery);
-                setActiveIndex(-1);
-                onSearchChange?.(nextQuery);
-              }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder={searchPlaceholder}
-              ref={searchInputRef}
-              role="combobox"
-              type="search"
-              value={query}
-            />
-          </SearchWrap>
+                  setQuery(nextQuery);
+                  setActiveIndex(-1);
+                  onSearchChange?.(nextQuery);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={searchPlaceholder}
+                ref={searchInputRef}
+                role="combobox"
+                type="search"
+                value={query}
+              />
+            </SearchWrap>
+          </DropdownTop>
 
           {loading ? (
             <StateMessage>{loadingMessage}</StateMessage>
@@ -881,11 +1117,13 @@ export default function SearchableSelect({
             ))
           : <HiddenInput name={name} type="hidden" value={resolvedValue || ""} />
         : null}
-      <TriggerButton
+      <CompactTriggerButton
         $invalid={invalid}
+        $open={isOpen}
         aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-invalid={invalid || undefined}
         aria-label={ariaLabel || placeholder}
         disabled={disabled}
         id={resolvedId}
@@ -898,18 +1136,19 @@ export default function SearchableSelect({
           {multiple ? (
             selectedOptions.length ? (
               <>
-                <TriggerLabel>
-                  {selectedOptions.length === 1
-                    ? selectedOptions[0].label
-                    : `${selectedOptions.length} options selected`}
-                </TriggerLabel>
-                <TriggerDescription>
-                  {selectedOptions
-                    .slice(0, 3)
-                    .map((option) => option.label)
-                    .join(", ")}
-                  {selectedOptions.length > 3 ? `, +${selectedOptions.length - 3} more` : ""}
-                </TriggerDescription>
+                <TriggerLabel>{formatCountLabel(selectedOptions.length, "option")} selected</TriggerLabel>
+                <TriggerChipRow>
+                  {previewOptions.map((option) => (
+                    <TriggerChip key={option.id} title={option.label}>
+                      {option.label}
+                    </TriggerChip>
+                  ))}
+                  {selectedOptions.length > previewOptions.length ? (
+                    <TriggerChip $muted>
+                      +{selectedOptions.length - previewOptions.length} more
+                    </TriggerChip>
+                  ) : null}
+                </TriggerChipRow>
               </>
             ) : (
               <PlaceholderText>{placeholder}</PlaceholderText>
@@ -935,7 +1174,7 @@ export default function SearchableSelect({
               : null}
           <Caret $open={isOpen} aria-hidden="true" />
         </TriggerAdornment>
-      </TriggerButton>
+      </CompactTriggerButton>
       {dropdown}
     </SelectRoot>
   );
