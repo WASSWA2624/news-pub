@@ -18,29 +18,30 @@ const editorialFont = Newsreader({
 });
 
 export const metadata = {
-  applicationName: "Equip Blog",
+  applicationName: "NewsPub",
   title: {
-    default: "Equip Blog",
-    template: "%s | Equip Blog",
+    default: "NewsPub",
+    template: "%s | NewsPub",
   },
   description:
-    "Locale-ready scaffold for the Equip Blog public site and admin workspace.",
+    "News ingestion, review, scheduling, and publishing for website and social destinations.",
   icons: {
+    apple: [{ type: "image/svg+xml", url: "/favicon.svg" }],
     icon: [{ type: "image/svg+xml", url: "/favicon.svg" }],
     shortcut: ["/favicon.svg"],
-    apple: [{ type: "image/svg+xml", url: "/favicon.svg" }],
   },
   metadataBase: new URL(env.app.url),
   openGraph: {
-    description: "Locale-ready scaffold for the Equip Blog public site and admin workspace.",
+    description:
+      "News ingestion, review, scheduling, and publishing for website and social destinations.",
     images: [
       {
-        alt: "Equip Blog",
+        alt: "NewsPub",
         url: buildAbsoluteUrl("/opengraph-image"),
       },
     ],
-    siteName: "Equip Blog",
-    title: "Equip Blog",
+    siteName: "NewsPub",
+    title: "NewsPub",
     type: "website",
     url: env.app.url,
   },
@@ -50,9 +51,10 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    description: "Locale-ready scaffold for the Equip Blog public site and admin workspace.",
+    description:
+      "News ingestion, review, scheduling, and publishing for website and social destinations.",
     images: [buildAbsoluteUrl("/twitter-image")],
-    title: "Equip Blog",
+    title: "NewsPub",
   },
 };
 

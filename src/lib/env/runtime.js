@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { supportedAiProviderValues } from "@/lib/ai/provider-registry";
-
 const localeCodePattern = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const mimeTypePattern = /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i;
 
@@ -140,12 +138,14 @@ const serverEnvSchema = sharedEnvSchema
     }),
     SESSION_SECRET: requiredString("SESSION_SECRET"),
     SESSION_MAX_AGE_SECONDS: integerString("SESSION_MAX_AGE_SECONDS"),
-    AI_PROVIDER_DEFAULT: optionalString(),
-    AI_MODEL_DEFAULT: optionalString(),
-    AI_PROVIDER_FALLBACK: optionalString(),
-    AI_MODEL_FALLBACK: optionalString(),
-    AI_PROVIDER_CONFIG_SECRET: optionalString(),
-    OPENAI_API_KEY: optionalString(),
+    ADMIN_SEED_EMAIL: requiredString("ADMIN_SEED_EMAIL").email({
+      message: "ADMIN_SEED_EMAIL must be a valid email address.",
+    }),
+    ADMIN_SEED_PASSWORD: requiredString("ADMIN_SEED_PASSWORD"),
+    MEDIASTACK_API_KEY: optionalString(),
+    NEWSDATA_API_KEY: optionalString(),
+    NEWSAPI_API_KEY: optionalString(),
+    DESTINATION_TOKEN_ENCRYPTION_KEY: requiredString("DESTINATION_TOKEN_ENCRYPTION_KEY"),
     MEDIA_DRIVER: requiredString("MEDIA_DRIVER"),
     LOCAL_MEDIA_BASE_PATH: optionalString(),
     LOCAL_MEDIA_BASE_URL: optionalString(),
@@ -154,57 +154,17 @@ const serverEnvSchema = sharedEnvSchema
     S3_MEDIA_BASE_URL: optionalUrlString("S3_MEDIA_BASE_URL"),
     S3_ACCESS_KEY_ID: optionalString(),
     S3_SECRET_ACCESS_KEY: optionalString(),
-    ADMIN_SEED_EMAIL: requiredString("ADMIN_SEED_EMAIL").email({
-      message: "ADMIN_SEED_EMAIL must be a valid email address.",
-    }),
-    ADMIN_SEED_PASSWORD: requiredString("ADMIN_SEED_PASSWORD"),
-    COMMENT_RATE_LIMIT_WINDOW_MS: integerString("COMMENT_RATE_LIMIT_WINDOW_MS"),
-    COMMENT_RATE_LIMIT_MAX: integerString("COMMENT_RATE_LIMIT_MAX"),
-    COMMENT_CAPTCHA_ENABLED: booleanString("COMMENT_CAPTCHA_ENABLED"),
-    COMMENT_CAPTCHA_SECRET: optionalString(),
     UPLOAD_ALLOWED_MIME_TYPES: csvString("UPLOAD_ALLOWED_MIME_TYPES"),
+    MEDIA_MAX_REMOTE_FILE_BYTES: integerString("MEDIA_MAX_REMOTE_FILE_BYTES"),
     REVALIDATE_SECRET: requiredString("REVALIDATE_SECRET"),
     CRON_SECRET: requiredString("CRON_SECRET"),
+    ENABLE_ANALYTICS: booleanString("ENABLE_ANALYTICS"),
+    ENABLE_METRICS: booleanString("ENABLE_METRICS"),
+    DEFAULT_SCHEDULE_TIMEZONE: requiredString("DEFAULT_SCHEDULE_TIMEZONE"),
+    INITIAL_BACKFILL_HOURS: integerString("INITIAL_BACKFILL_HOURS"),
   })
   .superRefine((env, context) => {
-    const supportedProviders = [...supportedAiProviderValues];
     const supportedMediaDrivers = ["local", "s3"];
-
-    if ((env.AI_PROVIDER_DEFAULT && !env.AI_MODEL_DEFAULT) || (!env.AI_PROVIDER_DEFAULT && env.AI_MODEL_DEFAULT)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["AI_PROVIDER_DEFAULT"],
-        message: "AI_PROVIDER_DEFAULT and AI_MODEL_DEFAULT must be set together when bootstrapping provider defaults.",
-      });
-    }
-
-    if (
-      (env.AI_PROVIDER_FALLBACK && !env.AI_MODEL_FALLBACK) ||
-      (!env.AI_PROVIDER_FALLBACK && env.AI_MODEL_FALLBACK)
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["AI_PROVIDER_FALLBACK"],
-        message:
-          "AI_PROVIDER_FALLBACK and AI_MODEL_FALLBACK must be set together when bootstrapping fallback providers.",
-      });
-    }
-
-    if (env.AI_PROVIDER_DEFAULT && !supportedProviders.includes(env.AI_PROVIDER_DEFAULT)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["AI_PROVIDER_DEFAULT"],
-        message: `AI_PROVIDER_DEFAULT must be one of: ${supportedProviders.join(", ")}.`,
-      });
-    }
-
-    if (env.AI_PROVIDER_FALLBACK && !supportedProviders.includes(env.AI_PROVIDER_FALLBACK)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["AI_PROVIDER_FALLBACK"],
-        message: `AI_PROVIDER_FALLBACK must be one of: ${supportedProviders.join(", ")}.`,
-      });
-    }
 
     if (!supportedMediaDrivers.includes(env.MEDIA_DRIVER)) {
       context.addIssue({
@@ -263,14 +223,6 @@ const serverEnvSchema = sharedEnvSchema
         });
       }
     });
-
-    if (env.COMMENT_CAPTCHA_ENABLED && !env.COMMENT_CAPTCHA_SECRET) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["COMMENT_CAPTCHA_SECRET"],
-        message: "COMMENT_CAPTCHA_SECRET is required when COMMENT_CAPTCHA_ENABLED=true.",
-      });
-    }
   });
 
 function mapSharedEnv(parsedEnv) {
@@ -288,42 +240,14 @@ function mapSharedEnv(parsedEnv) {
 function mapServerEnv(parsedEnv) {
   return {
     ...mapSharedEnv(parsedEnv),
-    ai: {
-      default:
-        parsedEnv.AI_PROVIDER_DEFAULT && parsedEnv.AI_MODEL_DEFAULT
-          ? {
-              provider: parsedEnv.AI_PROVIDER_DEFAULT,
-              model: parsedEnv.AI_MODEL_DEFAULT,
-            }
-          : null,
-      fallback:
-        parsedEnv.AI_PROVIDER_FALLBACK && parsedEnv.AI_MODEL_FALLBACK
-          ? {
-              provider: parsedEnv.AI_PROVIDER_FALLBACK,
-              model: parsedEnv.AI_MODEL_FALLBACK,
-            }
-          : null,
-      openaiApiKey: parsedEnv.OPENAI_API_KEY || null,
-      providerConfigSecret: parsedEnv.AI_PROVIDER_CONFIG_SECRET || parsedEnv.SESSION_SECRET,
-    },
     auth: {
-      session: {
-        maxAgeSeconds: parsedEnv.SESSION_MAX_AGE_SECONDS,
-        secret: parsedEnv.SESSION_SECRET,
-      },
       adminSeed: {
         email: parsedEnv.ADMIN_SEED_EMAIL,
         password: parsedEnv.ADMIN_SEED_PASSWORD,
       },
-    },
-    comments: {
-      captcha: {
-        enabled: parsedEnv.COMMENT_CAPTCHA_ENABLED,
-        secret: parsedEnv.COMMENT_CAPTCHA_SECRET || null,
-      },
-      rateLimit: {
-        max: parsedEnv.COMMENT_RATE_LIMIT_MAX,
-        windowMs: parsedEnv.COMMENT_RATE_LIMIT_WINDOW_MS,
+      session: {
+        maxAgeSeconds: parsedEnv.SESSION_MAX_AGE_SECONDS,
+        secret: parsedEnv.SESSION_SECRET,
       },
     },
     cron: {
@@ -332,12 +256,16 @@ function mapServerEnv(parsedEnv) {
     database: {
       url: parsedEnv.DATABASE_URL,
     },
+    destinations: {
+      encryptionKey: parsedEnv.DESTINATION_TOKEN_ENCRYPTION_KEY,
+    },
     media: {
       driver: parsedEnv.MEDIA_DRIVER,
       local: {
         basePath: parsedEnv.LOCAL_MEDIA_BASE_PATH || null,
         baseUrl: parsedEnv.LOCAL_MEDIA_BASE_URL || null,
       },
+      maxRemoteFileBytes: parsedEnv.MEDIA_MAX_REMOTE_FILE_BYTES,
       s3: {
         accessKeyId: parsedEnv.S3_ACCESS_KEY_ID || null,
         baseUrl: parsedEnv.S3_MEDIA_BASE_URL || null,
@@ -347,8 +275,23 @@ function mapServerEnv(parsedEnv) {
       },
       uploadAllowedMimeTypes: parsedEnv.UPLOAD_ALLOWED_MIME_TYPES,
     },
+    observability: {
+      analyticsEnabled: parsedEnv.ENABLE_ANALYTICS,
+      metricsEnabled: parsedEnv.ENABLE_METRICS,
+    },
+    providers: {
+      credentials: {
+        mediastack: parsedEnv.MEDIASTACK_API_KEY || null,
+        newsapi: parsedEnv.NEWSAPI_API_KEY || null,
+        newsdata: parsedEnv.NEWSDATA_API_KEY || null,
+      },
+    },
     revalidate: {
       secret: parsedEnv.REVALIDATE_SECRET,
+    },
+    scheduler: {
+      defaultTimezone: parsedEnv.DEFAULT_SCHEDULE_TIMEZONE,
+      initialBackfillHours: parsedEnv.INITIAL_BACKFILL_HOURS,
     },
   };
 }

@@ -1,29 +1,41 @@
 export const ADMIN_HOME_PATH = "/admin";
 export const ADMIN_LOGIN_PATH = "/admin/login";
 export const ADMIN_REDIRECT_PARAM = "next";
-export const SESSION_COOKIE_NAME = "equip_admin_session";
+export const SESSION_COOKIE_NAME = "news_pub_admin_session";
 export const ADMIN_ROUTE_KIND_HEADER = "x-admin-route-kind";
 export const ADMIN_REQUEST_PATH_HEADER = "x-admin-request-path";
 
 const protectedAdminApiPrefixes = [
-  "/api/comments/",
+  "/api/destinations/",
+  "/api/jobs/",
   "/api/posts/",
+  "/api/providers/",
+  "/api/streams/",
+  "/api/templates/",
 ];
 
 const protectedAdminApiPaths = new Set([
   "/api/auth/logout",
   "/api/categories",
-  "/api/generate-post",
+  "/api/destinations",
   "/api/jobs",
-  "/api/localization",
-  "/api/manufacturers",
   "/api/media",
   "/api/metrics",
-  "/api/models",
   "/api/posts",
-  "/api/publish-post",
+  "/api/providers",
   "/api/revalidate",
-  "/api/save-draft",
+  "/api/seo",
+  "/api/settings",
+  "/api/streams",
+  "/api/templates",
+]);
+
+const publicAdminApiPrefixes = [
+  "/api/posts/slug/",
+];
+
+const publicAdminApiPaths = new Set([
+  "/api/analytics/views",
 ]);
 
 export function isAdminLoginPath(pathname) {
@@ -35,12 +47,12 @@ export function isProtectedAdminPagePath(pathname) {
 }
 
 export function isProtectedAdminApiPath(pathname) {
-  if (protectedAdminApiPaths.has(pathname)) {
-    return true;
+  if (publicAdminApiPaths.has(pathname) || publicAdminApiPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    return false;
   }
 
-  if (pathname.startsWith("/api/posts/slug/")) {
-    return false;
+  if (protectedAdminApiPaths.has(pathname)) {
+    return true;
   }
 
   return protectedAdminApiPrefixes.some((prefix) => pathname.startsWith(prefix));
@@ -65,7 +77,7 @@ export function normalizeAdminRedirectTarget(value) {
 }
 
 export function buildAdminLoginHref(nextPath = ADMIN_HOME_PATH) {
-  const url = new URL(ADMIN_LOGIN_PATH, "https://equip-blog.local");
+  const url = new URL(ADMIN_LOGIN_PATH, "https://news-pub.local");
 
   url.searchParams.set(ADMIN_REDIRECT_PARAM, normalizeAdminRedirectTarget(nextPath));
 

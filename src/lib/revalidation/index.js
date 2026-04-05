@@ -55,8 +55,6 @@ function resolveLocales(locales = supportedLocales) {
 
 export function buildPublishedPostRevalidationPaths({
   categorySlugs = [],
-  equipmentSlug,
-  manufacturerSlugs = [],
   locales = supportedLocales,
   slug,
 } = {}) {
@@ -64,25 +62,16 @@ export function buildPublishedPostRevalidationPaths({
   const paths = ["/sitemap.xml"];
 
   for (const locale of resolvedLocales) {
-    paths.push(buildLocalizedPath(locale, publicRouteSegments.blog));
+    paths.push(buildLocalizedPath(locale, publicRouteSegments.home));
+    paths.push(buildLocalizedPath(locale, publicRouteSegments.news));
 
     if (slug) {
-      paths.push(buildLocalizedPath(locale, publicRouteSegments.blogPost(slug)));
-    }
-
-    if (equipmentSlug) {
-      paths.push(buildLocalizedPath(locale, publicRouteSegments.equipment(equipmentSlug)));
+      paths.push(buildLocalizedPath(locale, publicRouteSegments.newsPost(slug)));
     }
 
     for (const categorySlug of categorySlugs) {
       if (typeof categorySlug === "string" && categorySlug.trim()) {
         paths.push(buildLocalizedPath(locale, publicRouteSegments.category(categorySlug)));
-      }
-    }
-
-    for (const manufacturerSlug of manufacturerSlugs) {
-      if (typeof manufacturerSlug === "string" && manufacturerSlug.trim()) {
-        paths.push(buildLocalizedPath(locale, publicRouteSegments.manufacturer(manufacturerSlug)));
       }
     }
   }

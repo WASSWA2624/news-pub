@@ -15,12 +15,12 @@ function createAdapterFromDatabaseUrl(databaseUrl) {
   }
 
   return new PrismaMariaDb({
+    connectionLimit: Number.parseInt(parsedUrl.searchParams.get("connection_limit") || "5", 10),
+    database,
     host: parsedUrl.hostname,
+    password: decodeURIComponent(parsedUrl.password),
     port: parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306,
     user: decodeURIComponent(parsedUrl.username),
-    password: decodeURIComponent(parsedUrl.password),
-    database,
-    connectionLimit: Number.parseInt(parsedUrl.searchParams.get("connection_limit") || "5", 10),
   });
 }
 
@@ -62,45 +62,42 @@ function getModelFieldNames(prisma, modelName) {
 function hasExpectedDelegates(prisma) {
   if (
     !prisma ||
-    typeof prisma.mediaAsset === "undefined" ||
-    typeof prisma.mediaVariant === "undefined" ||
-    typeof prisma.sEORecord === "undefined"
+    typeof prisma.newsProviderConfig === "undefined" ||
+    typeof prisma.publishingStream === "undefined" ||
+    typeof prisma.destination === "undefined"
   ) {
     return false;
   }
 
-  const mediaAssetFields = new Set(getModelFieldNames(prisma, "MediaAsset"));
-  const mediaVariantFields = new Set(getModelFieldNames(prisma, "MediaVariant"));
-  const seoRecordFields = new Set(getModelFieldNames(prisma, "SEORecord"));
+  const providerFields = new Set(getModelFieldNames(prisma, "NewsProviderConfig"));
+  const streamFields = new Set(getModelFieldNames(prisma, "PublishingStream"));
+  const fetchedArticleFields = new Set(getModelFieldNames(prisma, "FetchedArticle"));
 
   return (
-    mediaAssetFields.has("fileName") &&
-    mediaAssetFields.has("fileSizeBytes") &&
-    mediaAssetFields.has("variants") &&
-    mediaVariantFields.has("variantKey") &&
-    seoRecordFields.has("canonicalUrl") &&
-    seoRecordFields.has("postTranslation")
+    providerFields.has("providerKey") &&
+    providerFields.has("requestDefaultsJson") &&
+    streamFields.has("destinationId") &&
+    streamFields.has("activeProviderId") &&
+    fetchedArticleFields.has("dedupeFingerprint")
   );
 }
 
 function refreshPrismaClient() {
   const refreshedPrismaClient = createPrismaClient(true);
 
-  // Do not disconnect the retired client here. In dev, hot-refresh can leave
-  // in-flight requests still using the old adapter pool for a moment.
-  globalForPrisma.__equipBlogPrisma = refreshedPrismaClient;
+  globalForPrisma.__newsPubPrisma = refreshedPrismaClient;
 
   return refreshedPrismaClient;
 }
 
 export function getPrismaClient() {
-  if (!globalForPrisma.__equipBlogPrisma) {
-    globalForPrisma.__equipBlogPrisma = createPrismaClient();
+  if (!globalForPrisma.__newsPubPrisma) {
+    globalForPrisma.__newsPubPrisma = createPrismaClient();
   }
 
-  if (!hasExpectedDelegates(globalForPrisma.__equipBlogPrisma)) {
+  if (!hasExpectedDelegates(globalForPrisma.__newsPubPrisma)) {
     return refreshPrismaClient();
   }
 
-  return globalForPrisma.__equipBlogPrisma;
+  return globalForPrisma.__newsPubPrisma;
 }

@@ -1,113 +1,91 @@
-const release1EditorPolicy = Object.freeze({
-  canModerateComments: false,
-  canPublishPosts: false,
-});
-
-export const RELEASE_1_EDITOR_POLICY = release1EditorPolicy;
-
 export const ADMIN_PERMISSIONS = Object.freeze({
-  ARCHIVE_POSTS: "archive_posts",
   EDIT_POSTS: "edit_posts",
-  GENERATE_POSTS: "generate_posts",
   MANAGE_CATEGORIES: "manage_categories",
-  MANAGE_LOCALIZATION: "manage_localization",
-  MANAGE_MANUFACTURERS: "manage_manufacturers",
-  MANAGE_PROMPTS: "manage_prompts",
-  MANAGE_PROVIDER_CONFIG: "manage_provider_config",
+  MANAGE_DESTINATIONS: "manage_destinations",
+  MANAGE_MEDIA: "manage_media",
+  MANAGE_PROVIDERS: "manage_providers",
   MANAGE_SEO: "manage_seo",
   MANAGE_SETTINGS: "manage_settings",
-  MANAGE_SOURCE_CONFIG: "manage_source_config",
-  MODERATE_COMMENTS: "moderate_comments",
+  MANAGE_STREAMS: "manage_streams",
+  MANAGE_TEMPLATES: "manage_templates",
   PUBLISH_POSTS: "publish_posts",
   REVALIDATE_SITE: "revalidate_site",
   SCHEDULE_POSTS: "schedule_posts",
-  UPLOAD_MEDIA: "upload_media",
   VIEW_ANALYTICS: "view_analytics",
-  VIEW_CONTENT_LISTS: "view_content_lists",
   VIEW_DASHBOARD: "view_dashboard",
   VIEW_JOBS: "view_jobs",
+  VIEW_POST_INVENTORY: "view_post_inventory",
+  VIEW_REVIEW_QUEUE: "view_review_queue",
 });
 
 const adminPermissionMetadata = Object.freeze({
-  [ADMIN_PERMISSIONS.ARCHIVE_POSTS]: Object.freeze({
-    action: "archive posts",
-    title: "Archive posts",
-  }),
   [ADMIN_PERMISSIONS.EDIT_POSTS]: Object.freeze({
-    action: "edit draft content",
-    title: "Edit drafts",
-  }),
-  [ADMIN_PERMISSIONS.GENERATE_POSTS]: Object.freeze({
-    action: "generate new drafts",
-    title: "Generate drafts",
+    action: "edit story content",
+    title: "Edit stories",
   }),
   [ADMIN_PERMISSIONS.MANAGE_CATEGORIES]: Object.freeze({
     action: "manage categories",
     title: "Manage categories",
   }),
-  [ADMIN_PERMISSIONS.MANAGE_LOCALIZATION]: Object.freeze({
-    action: "manage localization settings",
-    title: "Manage localization",
+  [ADMIN_PERMISSIONS.MANAGE_DESTINATIONS]: Object.freeze({
+    action: "manage destinations",
+    title: "Manage destinations",
   }),
-  [ADMIN_PERMISSIONS.MANAGE_MANUFACTURERS]: Object.freeze({
-    action: "manage manufacturers",
-    title: "Manage manufacturers",
+  [ADMIN_PERMISSIONS.MANAGE_MEDIA]: Object.freeze({
+    action: "manage media assets",
+    title: "Manage media",
   }),
-  [ADMIN_PERMISSIONS.MANAGE_PROMPTS]: Object.freeze({
-    action: "manage prompt templates",
-    title: "Manage prompts",
-  }),
-  [ADMIN_PERMISSIONS.MANAGE_PROVIDER_CONFIG]: Object.freeze({
+  [ADMIN_PERMISSIONS.MANAGE_PROVIDERS]: Object.freeze({
     action: "manage provider configuration",
-    title: "Manage provider configuration",
+    title: "Manage providers",
   }),
   [ADMIN_PERMISSIONS.MANAGE_SEO]: Object.freeze({
     action: "manage SEO settings",
     title: "Manage SEO",
   }),
   [ADMIN_PERMISSIONS.MANAGE_SETTINGS]: Object.freeze({
-    action: "manage protected admin settings",
-    title: "Manage admin settings",
+    action: "manage workspace settings",
+    title: "Manage settings",
   }),
-  [ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG]: Object.freeze({
-    action: "manage source configuration",
-    title: "Manage sources",
+  [ADMIN_PERMISSIONS.MANAGE_STREAMS]: Object.freeze({
+    action: "manage publishing streams",
+    title: "Manage streams",
   }),
-  [ADMIN_PERMISSIONS.MODERATE_COMMENTS]: Object.freeze({
-    action: "moderate comments",
-    title: "Moderate comments",
+  [ADMIN_PERMISSIONS.MANAGE_TEMPLATES]: Object.freeze({
+    action: "manage destination templates",
+    title: "Manage templates",
   }),
   [ADMIN_PERMISSIONS.PUBLISH_POSTS]: Object.freeze({
-    action: "publish posts",
-    title: "Publish posts",
+    action: "publish stories",
+    title: "Publish stories",
   }),
   [ADMIN_PERMISSIONS.REVALIDATE_SITE]: Object.freeze({
-    action: "revalidate published content",
-    title: "Revalidate content",
+    action: "revalidate website content",
+    title: "Revalidate website content",
   }),
   [ADMIN_PERMISSIONS.SCHEDULE_POSTS]: Object.freeze({
-    action: "schedule posts",
-    title: "Schedule posts",
-  }),
-  [ADMIN_PERMISSIONS.UPLOAD_MEDIA]: Object.freeze({
-    action: "upload media",
-    title: "Upload media",
+    action: "schedule stories",
+    title: "Schedule stories",
   }),
   [ADMIN_PERMISSIONS.VIEW_ANALYTICS]: Object.freeze({
     action: "view analytics",
     title: "View analytics",
-  }),
-  [ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS]: Object.freeze({
-    action: "view content lists",
-    title: "View content lists",
   }),
   [ADMIN_PERMISSIONS.VIEW_DASHBOARD]: Object.freeze({
     action: "view the admin dashboard",
     title: "View dashboard",
   }),
   [ADMIN_PERMISSIONS.VIEW_JOBS]: Object.freeze({
-    action: "view job and generation logs",
+    action: "view job logs",
     title: "View job logs",
+  }),
+  [ADMIN_PERMISSIONS.VIEW_POST_INVENTORY]: Object.freeze({
+    action: "view story inventory",
+    title: "View story inventory",
+  }),
+  [ADMIN_PERMISSIONS.VIEW_REVIEW_QUEUE]: Object.freeze({
+    action: "review held stories",
+    title: "Review stories",
   }),
 });
 
@@ -121,26 +99,23 @@ const superAdminPermissionMatrix = Object.freeze(
 );
 
 const editorPermissionMatrix = Object.freeze({
-  [ADMIN_PERMISSIONS.ARCHIVE_POSTS]: false,
   [ADMIN_PERMISSIONS.EDIT_POSTS]: true,
-  [ADMIN_PERMISSIONS.GENERATE_POSTS]: true,
   [ADMIN_PERMISSIONS.MANAGE_CATEGORIES]: false,
-  [ADMIN_PERMISSIONS.MANAGE_LOCALIZATION]: false,
-  [ADMIN_PERMISSIONS.MANAGE_MANUFACTURERS]: false,
-  [ADMIN_PERMISSIONS.MANAGE_PROMPTS]: false,
-  [ADMIN_PERMISSIONS.MANAGE_PROVIDER_CONFIG]: false,
+  [ADMIN_PERMISSIONS.MANAGE_DESTINATIONS]: false,
+  [ADMIN_PERMISSIONS.MANAGE_MEDIA]: true,
+  [ADMIN_PERMISSIONS.MANAGE_PROVIDERS]: false,
   [ADMIN_PERMISSIONS.MANAGE_SEO]: false,
   [ADMIN_PERMISSIONS.MANAGE_SETTINGS]: false,
-  [ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG]: false,
-  [ADMIN_PERMISSIONS.MODERATE_COMMENTS]: release1EditorPolicy.canModerateComments,
-  [ADMIN_PERMISSIONS.PUBLISH_POSTS]: release1EditorPolicy.canPublishPosts,
+  [ADMIN_PERMISSIONS.MANAGE_STREAMS]: false,
+  [ADMIN_PERMISSIONS.MANAGE_TEMPLATES]: false,
+  [ADMIN_PERMISSIONS.PUBLISH_POSTS]: true,
   [ADMIN_PERMISSIONS.REVALIDATE_SITE]: false,
   [ADMIN_PERMISSIONS.SCHEDULE_POSTS]: true,
-  [ADMIN_PERMISSIONS.UPLOAD_MEDIA]: true,
   [ADMIN_PERMISSIONS.VIEW_ANALYTICS]: false,
-  [ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS]: true,
   [ADMIN_PERMISSIONS.VIEW_DASHBOARD]: true,
   [ADMIN_PERMISSIONS.VIEW_JOBS]: true,
+  [ADMIN_PERMISSIONS.VIEW_POST_INVENTORY]: true,
+  [ADMIN_PERMISSIONS.VIEW_REVIEW_QUEUE]: true,
 });
 
 export const ADMIN_PERMISSION_MATRIX = Object.freeze({
@@ -159,34 +134,19 @@ export const ADMIN_NAV_ITEMS = Object.freeze([
     permission: ADMIN_PERMISSIONS.VIEW_DASHBOARD,
   }),
   Object.freeze({
-    href: "/admin/generate",
-    key: "generate",
-    permission: ADMIN_PERMISSIONS.GENERATE_POSTS,
+    href: "/admin/providers",
+    key: "providers",
+    permission: ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
   }),
   Object.freeze({
-    href: "/admin/posts/drafts",
-    key: "drafts",
-    permission: ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS,
+    href: "/admin/destinations",
+    key: "destinations",
+    permission: ADMIN_PERMISSIONS.MANAGE_DESTINATIONS,
   }),
   Object.freeze({
-    href: "/admin/posts/published",
-    key: "published",
-    permission: ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS,
-  }),
-  Object.freeze({
-    href: "/admin/comments",
-    key: "comments",
-    permission: ADMIN_PERMISSIONS.MODERATE_COMMENTS,
-  }),
-  Object.freeze({
-    href: "/admin/media",
-    key: "media",
-    permission: ADMIN_PERMISSIONS.UPLOAD_MEDIA,
-  }),
-  Object.freeze({
-    href: "/admin/jobs",
-    key: "jobs",
-    permission: ADMIN_PERMISSIONS.VIEW_JOBS,
+    href: "/admin/streams",
+    key: "streams",
+    permission: ADMIN_PERMISSIONS.MANAGE_STREAMS,
   }),
   Object.freeze({
     href: "/admin/categories",
@@ -194,34 +154,39 @@ export const ADMIN_NAV_ITEMS = Object.freeze([
     permission: ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
   }),
   Object.freeze({
-    href: "/admin/manufacturers",
-    key: "manufacturers",
-    permission: ADMIN_PERMISSIONS.MANAGE_MANUFACTURERS,
+    href: "/admin/posts/review",
+    key: "review",
+    permission: ADMIN_PERMISSIONS.VIEW_REVIEW_QUEUE,
   }),
   Object.freeze({
-    href: "/admin/prompts",
-    key: "prompts",
-    permission: ADMIN_PERMISSIONS.MANAGE_PROMPTS,
+    href: "/admin/posts/published",
+    key: "published",
+    permission: ADMIN_PERMISSIONS.VIEW_POST_INVENTORY,
   }),
   Object.freeze({
-    href: "/admin/providers",
-    key: "providers",
-    permission: ADMIN_PERMISSIONS.MANAGE_PROVIDER_CONFIG,
+    href: "/admin/media",
+    key: "media",
+    permission: ADMIN_PERMISSIONS.MANAGE_MEDIA,
   }),
   Object.freeze({
-    href: "/admin/sources",
-    key: "sources",
-    permission: ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG,
+    href: "/admin/templates",
+    key: "templates",
+    permission: ADMIN_PERMISSIONS.MANAGE_TEMPLATES,
   }),
   Object.freeze({
-    href: "/admin/localization",
-    key: "localization",
-    permission: ADMIN_PERMISSIONS.MANAGE_LOCALIZATION,
+    href: "/admin/jobs",
+    key: "jobs",
+    permission: ADMIN_PERMISSIONS.VIEW_JOBS,
   }),
   Object.freeze({
     href: "/admin/seo",
     key: "seo",
     permission: ADMIN_PERMISSIONS.MANAGE_SEO,
+  }),
+  Object.freeze({
+    href: "/admin/settings",
+    key: "settings",
+    permission: ADMIN_PERMISSIONS.MANAGE_SETTINGS,
   }),
 ]);
 
@@ -232,39 +197,19 @@ const adminPageRules = Object.freeze([
     permission: ADMIN_PERMISSIONS.VIEW_DASHBOARD,
   }),
   Object.freeze({
-    label: "Generate",
-    matches: (pathname) => pathname === "/admin/generate",
-    permission: ADMIN_PERMISSIONS.GENERATE_POSTS,
+    label: "Providers",
+    matches: (pathname) => pathname === "/admin/providers",
+    permission: ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
   }),
   Object.freeze({
-    label: "Draft posts",
-    matches: (pathname) => pathname === "/admin/posts/drafts",
-    permission: ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS,
+    label: "Destinations",
+    matches: (pathname) => pathname === "/admin/destinations",
+    permission: ADMIN_PERMISSIONS.MANAGE_DESTINATIONS,
   }),
   Object.freeze({
-    label: "Published posts",
-    matches: (pathname) => pathname === "/admin/posts/published",
-    permission: ADMIN_PERMISSIONS.VIEW_CONTENT_LISTS,
-  }),
-  Object.freeze({
-    label: "Post editor",
-    matches: (pathname) => /^\/admin\/posts\/[^/]+$/.test(pathname),
-    permission: ADMIN_PERMISSIONS.EDIT_POSTS,
-  }),
-  Object.freeze({
-    label: "Comments moderation",
-    matches: (pathname) => pathname === "/admin/comments",
-    permission: ADMIN_PERMISSIONS.MODERATE_COMMENTS,
-  }),
-  Object.freeze({
-    label: "Media library",
-    matches: (pathname) => pathname === "/admin/media",
-    permission: ADMIN_PERMISSIONS.UPLOAD_MEDIA,
-  }),
-  Object.freeze({
-    label: "Job logs",
-    matches: (pathname) => pathname === "/admin/jobs",
-    permission: ADMIN_PERMISSIONS.VIEW_JOBS,
+    label: "Streams",
+    matches: (pathname) => pathname === "/admin/streams",
+    permission: ADMIN_PERMISSIONS.MANAGE_STREAMS,
   }),
   Object.freeze({
     label: "Categories",
@@ -272,39 +217,48 @@ const adminPageRules = Object.freeze([
     permission: ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
   }),
   Object.freeze({
-    label: "Manufacturers",
-    matches: (pathname) => pathname === "/admin/manufacturers",
-    permission: ADMIN_PERMISSIONS.MANAGE_MANUFACTURERS,
+    label: "Review Queue",
+    matches: (pathname) => pathname === "/admin/posts/review",
+    permission: ADMIN_PERMISSIONS.VIEW_REVIEW_QUEUE,
   }),
   Object.freeze({
-    label: "Prompts",
-    matches: (pathname) => pathname === "/admin/prompts",
-    permission: ADMIN_PERMISSIONS.MANAGE_PROMPTS,
+    label: "Published Stories",
+    matches: (pathname) => pathname === "/admin/posts/published",
+    permission: ADMIN_PERMISSIONS.VIEW_POST_INVENTORY,
   }),
   Object.freeze({
-    label: "Providers",
-    matches: (pathname) => pathname === "/admin/providers",
-    permission: ADMIN_PERMISSIONS.MANAGE_PROVIDER_CONFIG,
+    label: "Story Editor",
+    matches: (pathname) => /^\/admin\/posts\/[^/]+$/.test(pathname),
+    permission: ADMIN_PERMISSIONS.EDIT_POSTS,
   }),
   Object.freeze({
-    label: "Sources",
-    matches: (pathname) => pathname === "/admin/sources",
-    permission: ADMIN_PERMISSIONS.MANAGE_SOURCE_CONFIG,
+    label: "Media",
+    matches: (pathname) => pathname === "/admin/media",
+    permission: ADMIN_PERMISSIONS.MANAGE_MEDIA,
   }),
   Object.freeze({
-    label: "Localization",
-    matches: (pathname) => pathname === "/admin/localization",
-    permission: ADMIN_PERMISSIONS.MANAGE_LOCALIZATION,
+    label: "Templates",
+    matches: (pathname) => pathname === "/admin/templates",
+    permission: ADMIN_PERMISSIONS.MANAGE_TEMPLATES,
+  }),
+  Object.freeze({
+    label: "Jobs",
+    matches: (pathname) => pathname === "/admin/jobs",
+    permission: ADMIN_PERMISSIONS.VIEW_JOBS,
   }),
   Object.freeze({
     label: "SEO",
     matches: (pathname) => pathname === "/admin/seo",
     permission: ADMIN_PERMISSIONS.MANAGE_SEO,
   }),
+  Object.freeze({
+    label: "Settings",
+    matches: (pathname) => pathname === "/admin/settings",
+    permission: ADMIN_PERMISSIONS.MANAGE_SETTINGS,
+  }),
 ]);
 
 const sensitivePostStatusPermissions = Object.freeze({
-  ARCHIVED: ADMIN_PERMISSIONS.ARCHIVE_POSTS,
   PUBLISHED: ADMIN_PERMISSIONS.PUBLISH_POSTS,
   SCHEDULED: ADMIN_PERMISSIONS.SCHEDULE_POSTS,
 });
@@ -387,10 +341,14 @@ export function getRequiredPermissionsForPostUpdate(payload = {}) {
   const permissions = [];
 
   if (
-    payload.categoryIds !== undefined ||
+    payload.categories !== undefined ||
     payload.editorialStage !== undefined ||
     payload.slug !== undefined ||
-    payload.title !== undefined
+    payload.title !== undefined ||
+    payload.summary !== undefined ||
+    payload.contentHtml !== undefined ||
+    payload.contentMd !== undefined ||
+    payload.status === "DRAFT"
   ) {
     permissions.push(ADMIN_PERMISSIONS.EDIT_POSTS);
   }

@@ -15,8 +15,8 @@ import { redirect } from "next/navigation";
 
 export async function generateMetadata() {
   return {
-    title: "Equip Blog Admin",
-    description: "Admin workspace scaffold for Equip Blog.",
+    title: "NewsPub Admin",
+    description: "Operational workspace for NewsPub providers, streams, publishing, and analytics.",
   };
 }
 

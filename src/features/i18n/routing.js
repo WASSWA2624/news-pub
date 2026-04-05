@@ -4,14 +4,11 @@ const localeSegmentPattern = /^[a-z]{2}(?:-[a-z]{2})?$/i;
 
 export const publicRouteSegments = Object.freeze({
   about: Object.freeze(["about"]),
-  blog: Object.freeze(["blog"]),
-  blogPost: (slug) => ["blog", slug],
   category: (slug) => ["category", slug],
-  contact: Object.freeze(["contact"]),
   disclaimer: Object.freeze(["disclaimer"]),
-  equipment: (slug) => ["equipment", slug],
   home: Object.freeze([]),
-  manufacturer: (slug) => ["manufacturer", slug],
+  news: Object.freeze(["news"]),
+  newsPost: (slug) => ["news", slug],
   privacy: Object.freeze(["privacy"]),
   search: Object.freeze(["search"]),
 });
@@ -19,8 +16,7 @@ export const publicRouteSegments = Object.freeze({
 export const publicStaticRoutes = Object.freeze([
   { key: "home", segments: publicRouteSegments.home },
   { key: "about", segments: publicRouteSegments.about },
-  { key: "blog", segments: publicRouteSegments.blog },
-  { key: "contact", segments: publicRouteSegments.contact },
+  { key: "news", segments: publicRouteSegments.news },
   { key: "disclaimer", segments: publicRouteSegments.disclaimer },
   { key: "privacy", segments: publicRouteSegments.privacy },
   { key: "search", segments: publicRouteSegments.search },
@@ -28,10 +24,9 @@ export const publicStaticRoutes = Object.freeze([
 
 export const publicNavigationRoutes = Object.freeze([
   { key: "home", segments: publicRouteSegments.home },
-  { key: "blog", segments: publicRouteSegments.blog },
+  { key: "news", segments: publicRouteSegments.news },
   { key: "search", segments: publicRouteSegments.search },
   { key: "about", segments: publicRouteSegments.about },
-  { key: "contact", segments: publicRouteSegments.contact },
 ]);
 
 function normalizeLocale(locale) {
