@@ -21,8 +21,9 @@ import {
   SummaryLabel,
   SummaryValue,
   Textarea,
-  Select,
+  formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import SearchableSelect from "@/components/common/searchable-select";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -37,6 +38,35 @@ const kindValues = [
   "INSTAGRAM_BUSINESS"
 ];
 const connectionStatusValues = ["DISCONNECTED", "CONNECTED", "ERROR"];
+const kindDescriptions = Object.freeze({
+  FACEBOOK_PAGE: "Use a Facebook page publishing destination.",
+  FACEBOOK_PROFILE: "Use a Facebook profile publishing destination.",
+  INSTAGRAM_BUSINESS: "Use a publish-capable Instagram business account.",
+  INSTAGRAM_PERSONAL: "Stored for reference, but not publish-capable automatically.",
+  WEBSITE: "Publish directly to the NewsPub website.",
+});
+const connectionStatusDescriptions = Object.freeze({
+  CONNECTED: "Ready for publishing.",
+  DISCONNECTED: "Configured but not actively connected.",
+  ERROR: "Needs operator attention before publishing.",
+});
+const platformOptions = platformValues.map((value) => ({
+  badge: value,
+  description: `${formatEnumLabel(value)} destination`,
+  label: formatEnumLabel(value),
+  value,
+}));
+const kindOptions = kindValues.map((value) => ({
+  badge: value.split("_")[0],
+  description: kindDescriptions[value],
+  label: formatEnumLabel(value),
+  value,
+}));
+const connectionStatusOptions = connectionStatusValues.map((value) => ({
+  description: connectionStatusDescriptions[value],
+  label: formatEnumLabel(value),
+  value,
+}));
 
 function getTone(status) {
   if (status === "CONNECTED") {
@@ -96,33 +126,33 @@ export default async function DestinationsPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Platform</FieldLabel>
-                  <Select defaultValue={destination.platform} name="platform">
-                    {platformValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Platform"
+                    defaultValue={destination.platform}
+                    name="platform"
+                    options={platformOptions}
+                    placeholder="Select a platform"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Kind</FieldLabel>
-                  <Select defaultValue={destination.kind} name="kind">
-                    {kindValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Destination kind"
+                    defaultValue={destination.kind}
+                    name="kind"
+                    options={kindOptions}
+                    placeholder="Select a destination kind"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Connection status</FieldLabel>
-                  <Select defaultValue={destination.connectionStatus} name="connectionStatus">
-                    {connectionStatusValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Connection status"
+                    defaultValue={destination.connectionStatus}
+                    name="connectionStatus"
+                    options={connectionStatusOptions}
+                    placeholder="Select a connection status"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Status</FieldLabel>
@@ -183,23 +213,23 @@ export default async function DestinationsPage() {
               </Field>
               <Field>
                 <FieldLabel>Platform</FieldLabel>
-                <Select defaultValue="WEBSITE" name="platform">
-                  {platformValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Platform"
+                  defaultValue="WEBSITE"
+                  name="platform"
+                  options={platformOptions}
+                  placeholder="Select a platform"
+                />
               </Field>
               <Field>
                 <FieldLabel>Kind</FieldLabel>
-                <Select defaultValue="WEBSITE" name="kind">
-                  {kindValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Destination kind"
+                  defaultValue="WEBSITE"
+                  name="kind"
+                  options={kindOptions}
+                  placeholder="Select a destination kind"
+                />
               </Field>
             </FieldGrid>
             <ButtonRow style={{ marginTop: "0.85rem" }}>

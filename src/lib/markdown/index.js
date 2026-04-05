@@ -94,6 +94,10 @@ function renderMarkdownSection(section) {
       lines.push(faq.answer);
     }
   } else if (section.kind === "references") {
+    if (section.intro) {
+      lines.push(section.intro);
+    }
+
     lines.push(
       renderMarkdownList(section.items || [], (item) => renderMarkdownLink(item.title, item.url)),
     );
@@ -172,7 +176,7 @@ function renderHtmlSection(section) {
   }
 
   if (section.kind === "references") {
-    return `<section>${title}${renderHtmlList(
+    return `<section>${title}${section.intro ? `<p>${escapeHtml(section.intro)}</p>` : ""}${renderHtmlList(
       section.items || [],
       (item) => renderHtmlExternalLink(item.title, item.url),
     )}</section>`;

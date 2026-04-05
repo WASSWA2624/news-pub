@@ -30,8 +30,8 @@ describe("locale routing helpers", () => {
 
     expect(buildLocaleRootPath()).toBe("/en");
     expect(buildLocalizedPath("en", publicRouteSegments.about)).toBe("/en/about");
-    expect(buildLocalizedPath("en", publicRouteSegments.blogPost("microscope"))).toBe(
-      "/en/blog/microscope",
+    expect(buildLocalizedPath("en", publicRouteSegments.newsPost("breaking-story"))).toBe(
+      "/en/news/breaking-story",
     );
   });
 
@@ -96,11 +96,11 @@ describe("locale routing helpers", () => {
     expect(() => buildLocalizedPath("fr", publicRouteSegments.about)).toThrow(
       /Unsupported locale "fr"/,
     );
-    expect(getPathLocalePrefix("/fr/blog")).toEqual({
+    expect(getPathLocalePrefix("/fr/news")).toEqual({
       kind: "unsupported",
       locale: "fr",
       rawLocale: "fr",
-      remainingPath: "/blog",
+      remainingPath: "/news",
     });
     expect(getPathLocalePrefix("/admin")).toEqual({
       kind: "none",

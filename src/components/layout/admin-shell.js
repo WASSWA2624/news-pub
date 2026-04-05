@@ -136,6 +136,12 @@ function normalizeIdentityLabel(value) {
     .toLowerCase();
 }
 
+function getAdminNavigationLabel(messages, key) {
+  const adminMessages = messages?.admin || {};
+
+  return adminMessages.navigation?.[key] || adminMessages[key]?.title || key;
+}
+
 function distributeNavigationItemsByWidth(items, pathname, widthsByKey, availableWidth) {
   if (!items.length || !availableWidth) {
     return null;
@@ -711,9 +717,9 @@ export default function AdminShell({ children, messages, user }) {
   const navigationItems = useMemo(() => {
     return getAdminNavigation(user).map((item) => ({
       ...item,
-      label: messages.admin.navigation[item.key] || item.key,
+      label: getAdminNavigationLabel(messages, item.key),
     }));
-  }, [messages.admin.navigation, user]);
+  }, [messages, user]);
 
   useEffect(() => {
     function syncNavMeasurements() {

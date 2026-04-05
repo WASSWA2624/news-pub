@@ -24,6 +24,22 @@ function normalizeText(value) {
   return `${value ?? ""}`.trim().toLowerCase();
 }
 
+function normalizeSingleValue(value) {
+  return `${value ?? ""}`;
+}
+
+function normalizeMultipleValues(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((entry) => `${entry ?? ""}`))];
+  }
+
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+
+  return [`${value}`];
+}
+
 function normalizeOption(option, index) {
   const value = `${option?.value ?? ""}`;
   const label = option?.label ? `${option.label}` : value;
@@ -244,6 +260,15 @@ const TriggerLabel = styled.span`
 const PlaceholderText = styled(TriggerLabel)`
   color: ${({ theme }) => theme.colors.muted};
   font-weight: 500;
+`;
+
+const TriggerDescription = styled.span`
+  color: ${({ theme }) => theme.colors.muted};
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const TriggerAdornment = styled.span`
@@ -475,6 +500,7 @@ export default function SearchableSelect({
   invalid = false,
   loading = false,
   loadingMessage = "Loading options...",
+  multiple = false,
   name,
   onOpen,
   onSearchChange,
@@ -487,7 +513,9 @@ export default function SearchableSelect({
   const generatedId = useId();
   const resolvedId = id || generatedId;
   const listboxId = `${resolvedId}-listbox`;
-  const [internalValue, setInternalValue] = useState(defaultValue);
+  const [internalValue, setInternalValue] = useState(() =>
+    multiple ? normalizeMultipleValues(defaultValue) : normalizeSingleValue(defaultValue),
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -500,9 +528,18 @@ export default function SearchableSelect({
     () => options.map((option, index) => normalizeOption(option, index)),
     [options],
   );
-  const resolvedValue = value !== undefined ? value : internalValue;
-  const selectedOption =
-    normalizedOptions.find((option) => option.value === `${resolvedValue ?? ""}`) || null;
+  const resolvedValue = useMemo(() => {
+    const nextValue = value !== undefined ? value : internalValue;
+
+    return multiple ? normalizeMultipleValues(nextValue) : normalizeSingleValue(nextValue);
+  }, [internalValue, multiple, value]);
+  const selectedValueSet = useMemo(() => {
+    return multiple ? new Set(resolvedValue) : new Set([resolvedValue]);
+  }, [multiple, resolvedValue]);
+  const selectedOptions = useMemo(() => {
+    return normalizedOptions.filter((option) => selectedValueSet.has(option.value));
+  }, [normalizedOptions, selectedValueSet]);
+  const selectedOption = multiple ? null : selectedOptions[0] || null;
   const normalizedQuery = normalizeText(query);
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) {
@@ -520,12 +557,14 @@ export default function SearchableSelect({
       return activeIndex;
     }
 
-    const selectedIndex = filteredOptions.findIndex((option) => option.value === `${resolvedValue ?? ""}`);
+    const selectedIndex = filteredOptions.findIndex((option) =>
+      multiple ? selectedValueSet.has(option.value) : option.value === resolvedValue,
+    );
 
     return selectedIndex >= 0 && !filteredOptions[selectedIndex]?.disabled
       ? selectedIndex
       : getNextEnabledOptionIndex(filteredOptions, -1, 1);
-  }, [activeIndex, filteredOptions, resolvedValue]);
+  }, [activeIndex, filteredOptions, multiple, resolvedValue, selectedValueSet]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -641,7 +680,9 @@ export default function SearchableSelect({
     setIsOpen(true);
     setQuery("");
     setActiveIndex(() => {
-      const selectedIndex = normalizedOptions.findIndex((option) => option.value === `${resolvedValue ?? ""}`);
+      const selectedIndex = normalizedOptions.findIndex((option) =>
+        multiple ? selectedValueSet.has(option.value) : option.value === resolvedValue,
+      );
 
       if (selectedIndex >= 0 && !normalizedOptions[selectedIndex]?.disabled) {
         return selectedIndex;
@@ -655,6 +696,26 @@ export default function SearchableSelect({
 
   function commitSelection(option) {
     if (!option || option.disabled) {
+      return;
+    }
+
+    if (multiple) {
+      const nextValues = selectedValueSet.has(option.value)
+        ? resolvedValue.filter((entry) => entry !== option.value)
+        : [...resolvedValue, option.value];
+
+      if (value === undefined) {
+        setInternalValue(nextValues);
+      }
+
+      setQuery("");
+      setActiveIndex(-1);
+      onChange?.(nextValues, option);
+
+      window.requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+      });
+
       return;
     }
 
@@ -767,9 +828,9 @@ export default function SearchableSelect({
           {loading ? (
             <StateMessage>{loadingMessage}</StateMessage>
           ) : filteredOptions.length ? (
-            <OptionList id={listboxId} role="listbox">
+            <OptionList aria-multiselectable={multiple || undefined} id={listboxId} role="listbox">
               {filteredOptions.map((option, index) => {
-                const isSelected = option.value === `${resolvedValue ?? ""}`;
+                const isSelected = selectedValueSet.has(option.value);
 
                 return (
                   <OptionButton
@@ -813,7 +874,13 @@ export default function SearchableSelect({
 
   return (
     <SelectRoot ref={rootRef}>
-      {name ? <HiddenInput name={name} type="hidden" value={resolvedValue || ""} /> : null}
+      {name
+        ? multiple
+          ? resolvedValue.map((entry) => (
+              <HiddenInput key={`${name}-${entry}`} name={name} type="hidden" value={entry} />
+            ))
+          : <HiddenInput name={name} type="hidden" value={resolvedValue || ""} />
+        : null}
       <TriggerButton
         $invalid={invalid}
         aria-controls={listboxId}
@@ -828,14 +895,44 @@ export default function SearchableSelect({
         type="button"
       >
         <TriggerValue>
-          {selectedOption ? (
-            <TriggerLabel>{selectedOption.label}</TriggerLabel>
+          {multiple ? (
+            selectedOptions.length ? (
+              <>
+                <TriggerLabel>
+                  {selectedOptions.length === 1
+                    ? selectedOptions[0].label
+                    : `${selectedOptions.length} options selected`}
+                </TriggerLabel>
+                <TriggerDescription>
+                  {selectedOptions
+                    .slice(0, 3)
+                    .map((option) => option.label)
+                    .join(", ")}
+                  {selectedOptions.length > 3 ? `, +${selectedOptions.length - 3} more` : ""}
+                </TriggerDescription>
+              </>
+            ) : (
+              <PlaceholderText>{placeholder}</PlaceholderText>
+            )
+          ) : selectedOption ? (
+            <>
+              <TriggerLabel>{selectedOption.label}</TriggerLabel>
+              {selectedOption.description ? (
+                <TriggerDescription>{selectedOption.description}</TriggerDescription>
+              ) : null}
+            </>
           ) : (
             <PlaceholderText>{placeholder}</PlaceholderText>
           )}
         </TriggerValue>
         <TriggerAdornment>
-          {selectedOption?.badge ? <TriggerBadge>{selectedOption.badge}</TriggerBadge> : null}
+          {multiple
+            ? selectedOptions.length > 1
+              ? <TriggerBadge>{selectedOptions.length}</TriggerBadge>
+              : null
+            : selectedOption?.badge
+              ? <TriggerBadge>{selectedOption.badge}</TriggerBadge>
+              : null}
           <Caret $open={isOpen} aria-hidden="true" />
         </TriggerAdornment>
       </TriggerButton>

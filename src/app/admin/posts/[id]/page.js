@@ -20,9 +20,10 @@ import {
   SmallText,
   StatusBadge,
   Textarea,
-  Select,
   formatDateTime,
+  formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import SearchableSelect from "@/components/common/searchable-select";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -54,6 +55,34 @@ export default async function PostEditorPage({ params }) {
   const defaultArticleMatch = snapshot.post.articleMatches.find(
     (match) => match.destination?.platform === "WEBSITE",
   ) || snapshot.post.articleMatches[0];
+  const statusOptions = snapshot.statusValues.map((value) => ({
+    description: `${formatEnumLabel(value)} story state`,
+    label: formatEnumLabel(value),
+    value,
+  }));
+  const editorialStageOptions = snapshot.editorialStageValues.map((value) => ({
+    description: `${formatEnumLabel(value)} editorial step`,
+    label: formatEnumLabel(value),
+    value,
+  }));
+  const articleMatchOptions = [
+    {
+      description: "Let NewsPub pick the best website or destination match automatically.",
+      label: "Auto-select best match",
+      value: "",
+    },
+    ...snapshot.post.articleMatches.map((match) => ({
+      badge: match.status,
+      description: match.stream?.name || match.destination?.platform || "Linked destination match",
+      label: match.destination?.name || match.destination?.platform || "Destination",
+      value: match.id,
+    })),
+  ];
+  const categoryOptions = snapshot.categories.map((category) => ({
+    description: category.description || "Assign this story to the category.",
+    label: category.name,
+    value: category.id,
+  }));
 
   return (
     <AdminPage>
@@ -76,34 +105,33 @@ export default async function PostEditorPage({ params }) {
               </Field>
               <Field>
                 <FieldLabel>Status</FieldLabel>
-                <Select defaultValue={snapshot.post.status} name="status">
-                  {snapshot.statusValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Story status"
+                  defaultValue={snapshot.post.status}
+                  name="status"
+                  options={statusOptions}
+                  placeholder="Select a status"
+                />
               </Field>
               <Field>
                 <FieldLabel>Editorial stage</FieldLabel>
-                <Select defaultValue={snapshot.post.editorialStage} name="editorialStage">
-                  {snapshot.editorialStageValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Editorial stage"
+                  defaultValue={snapshot.post.editorialStage}
+                  name="editorialStage"
+                  options={editorialStageOptions}
+                  placeholder="Select an editorial stage"
+                />
               </Field>
               <Field>
                 <FieldLabel>Publish target match</FieldLabel>
-                <Select defaultValue={defaultArticleMatch?.id || ""} name="articleMatchId">
-                  <option value="">Auto-select best match</option>
-                  {snapshot.post.articleMatches.map((match) => (
-                    <option key={match.id} value={match.id}>
-                      {match.destination?.name || match.destination?.platform} ({match.status})
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Publish target match"
+                  defaultValue={defaultArticleMatch?.id || ""}
+                  name="articleMatchId"
+                  options={articleMatchOptions}
+                  placeholder="Select a destination match"
+                />
               </Field>
             </FieldGrid>
             <Field style={{ marginTop: "0.85rem" }}>
@@ -120,18 +148,14 @@ export default async function PostEditorPage({ params }) {
             </Field>
             <Field style={{ marginTop: "0.85rem" }}>
               <FieldLabel>Categories</FieldLabel>
-              <Select
+              <SearchableSelect
+                ariaLabel="Story categories"
                 defaultValue={snapshot.post.categories.map((category) => category.id)}
-                multiple
                 name="categoryIds"
-                style={{ minHeight: "180px" }}
-              >
-                {snapshot.categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </Select>
+                multiple
+                options={categoryOptions}
+                placeholder="Select one or more categories"
+              />
             </Field>
             <Field style={{ marginTop: "0.85rem" }}>
               <FieldLabel>Schedule publish time</FieldLabel>

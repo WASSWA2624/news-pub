@@ -22,8 +22,9 @@ import {
   SummaryLabel,
   SummaryValue,
   Textarea,
-  Select,
+  formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import SearchableSelect from "@/components/common/searchable-select";
 import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -31,6 +32,22 @@ import { runStreamNowAction, saveStreamAction } from "../actions";
 
 const modeValues = ["AUTO_PUBLISH", "REVIEW_REQUIRED"];
 const statusValues = ["ACTIVE", "PAUSED"];
+const modeOptions = modeValues.map((value) => ({
+  description:
+    value === "AUTO_PUBLISH"
+      ? "Eligible stories can move straight into publishing."
+      : "Stories stay queued for editorial review before publishing.",
+  label: formatEnumLabel(value),
+  value,
+}));
+const statusOptions = statusValues.map((value) => ({
+  description:
+    value === "ACTIVE"
+      ? "The stream can run on schedule or manually."
+      : "The stream is configured but currently paused.",
+  label: formatEnumLabel(value),
+  value,
+}));
 
 function getTone(status) {
   return status === "ACTIVE" ? "success" : "warning";
@@ -42,6 +59,36 @@ export default async function StreamsPage() {
     getStreamManagementSnapshot(),
   ]);
   const copy = messages.admin.streams;
+  const destinationOptions = snapshot.destinations.map((destination) => ({
+    badge: destination.platform,
+    description: destination.slug,
+    label: destination.name,
+    value: destination.id,
+  }));
+  const providerOptions = snapshot.providers.map((provider) => ({
+    badge: provider.providerKey,
+    description: provider.description || provider.baseUrl || "Configured provider",
+    label: provider.label,
+    value: provider.id,
+  }));
+  const templateOptions = [
+    {
+      description: "Let NewsPub resolve the best template from platform, locale, and category defaults.",
+      label: "No explicit template",
+      value: "",
+    },
+    ...snapshot.templates.map((template) => ({
+      badge: template.platform,
+      description: template.locale ? `Locale override: ${template.locale}` : "Platform-aware template",
+      label: template.name,
+      value: template.id,
+    })),
+  ];
+  const categoryOptions = snapshot.categories.map((category) => ({
+    description: category.description || "Assign this stream to the category.",
+    label: category.name,
+    value: category.id,
+  }));
 
   return (
     <AdminPage>
@@ -82,43 +129,43 @@ export default async function StreamsPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Destination</FieldLabel>
-                  <Select defaultValue={stream.destinationId} name="destinationId">
-                    {snapshot.destinations.map((destination) => (
-                      <option key={destination.id} value={destination.id}>
-                        {destination.name} ({destination.platform})
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Destination"
+                    defaultValue={stream.destinationId}
+                    name="destinationId"
+                    options={destinationOptions}
+                    placeholder="Select a destination"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Provider</FieldLabel>
-                  <Select defaultValue={stream.activeProviderId} name="activeProviderId">
-                    {snapshot.providers.map((provider) => (
-                      <option key={provider.id} value={provider.id}>
-                        {provider.label}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Provider"
+                    defaultValue={stream.activeProviderId}
+                    name="activeProviderId"
+                    options={providerOptions}
+                    placeholder="Select a provider"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Mode</FieldLabel>
-                  <Select defaultValue={stream.mode} name="mode">
-                    {modeValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Stream mode"
+                    defaultValue={stream.mode}
+                    name="mode"
+                    options={modeOptions}
+                    placeholder="Select a mode"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Status</FieldLabel>
-                  <Select defaultValue={stream.status} name="status">
-                    {statusValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Stream status"
+                    defaultValue={stream.status}
+                    name="status"
+                    options={statusOptions}
+                    placeholder="Select a status"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Locale</FieldLabel>
@@ -154,14 +201,13 @@ export default async function StreamsPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Default template</FieldLabel>
-                  <Select defaultValue={stream.defaultTemplateId || ""} name="defaultTemplateId">
-                    <option value="">No explicit template</option>
-                    {snapshot.templates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({template.platform})
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Default template"
+                    defaultValue={stream.defaultTemplateId || ""}
+                    name="defaultTemplateId"
+                    options={templateOptions}
+                    placeholder="Select a template"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Current state</FieldLabel>
@@ -190,13 +236,14 @@ export default async function StreamsPage() {
               </Field>
               <Field style={{ marginTop: "0.85rem" }}>
                 <FieldLabel>Categories</FieldLabel>
-                <Select defaultValue={stream.streamCategories.map((category) => category.id)} multiple name="categoryIds" style={{ minHeight: "160px" }}>
-                  {snapshot.categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Stream categories"
+                  defaultValue={stream.streamCategories.map((category) => category.id)}
+                  multiple
+                  name="categoryIds"
+                  options={categoryOptions}
+                  placeholder="Select one or more categories"
+                />
               </Field>
               <ButtonRow style={{ marginTop: "0.85rem" }}>
                 <PrimaryButton type="submit">Save stream</PrimaryButton>
@@ -231,33 +278,33 @@ export default async function StreamsPage() {
               </Field>
               <Field>
                 <FieldLabel>Destination</FieldLabel>
-                <Select name="destinationId">
-                  {snapshot.destinations.map((destination) => (
-                    <option key={destination.id} value={destination.id}>
-                      {destination.name}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Destination"
+                  defaultValue={snapshot.destinations[0]?.id || ""}
+                  name="destinationId"
+                  options={destinationOptions}
+                  placeholder="Select a destination"
+                />
               </Field>
               <Field>
                 <FieldLabel>Provider</FieldLabel>
-                <Select name="activeProviderId">
-                  {snapshot.providers.map((provider) => (
-                    <option key={provider.id} value={provider.id}>
-                      {provider.label}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Provider"
+                  defaultValue={snapshot.providers[0]?.id || ""}
+                  name="activeProviderId"
+                  options={providerOptions}
+                  placeholder="Select a provider"
+                />
               </Field>
               <Field>
                 <FieldLabel>Mode</FieldLabel>
-                <Select defaultValue="REVIEW_REQUIRED" name="mode">
-                  {modeValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Stream mode"
+                  defaultValue="REVIEW_REQUIRED"
+                  name="mode"
+                  options={modeOptions}
+                  placeholder="Select a mode"
+                />
               </Field>
               <Field>
                 <FieldLabel>Locale</FieldLabel>

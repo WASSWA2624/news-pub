@@ -20,14 +20,21 @@ import {
   SummaryLabel,
   SummaryValue,
   Textarea,
-  Select,
+  formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import SearchableSelect from "@/components/common/searchable-select";
 import { getTemplateManagementSnapshot } from "@/features/templates";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { saveTemplateAction } from "../actions";
 
 const platformValues = ["WEBSITE", "FACEBOOK", "INSTAGRAM"];
+const platformOptions = platformValues.map((value) => ({
+  badge: value,
+  description: `${formatEnumLabel(value)} publishing template`,
+  label: formatEnumLabel(value),
+  value,
+}));
 
 export default async function TemplatesPage() {
   const [messages, snapshot] = await Promise.all([
@@ -35,6 +42,18 @@ export default async function TemplatesPage() {
     getTemplateManagementSnapshot(),
   ]);
   const copy = messages.admin.templates;
+  const categoryOptions = [
+    {
+      description: "Use the platform and locale defaults without a category-specific override.",
+      label: "No category override",
+      value: "",
+    },
+    ...snapshot.categories.map((category) => ({
+      description: category.description || "Apply this template when the story is assigned to the category.",
+      label: category.name,
+      value: category.id,
+    })),
+  ];
 
   return (
     <AdminPage>
@@ -68,13 +87,13 @@ export default async function TemplatesPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Platform</FieldLabel>
-                  <Select defaultValue={template.platform} name="platform">
-                    {platformValues.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Template platform"
+                    defaultValue={template.platform}
+                    name="platform"
+                    options={platformOptions}
+                    placeholder="Select a platform"
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>Locale override</FieldLabel>
@@ -82,14 +101,13 @@ export default async function TemplatesPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Category override</FieldLabel>
-                  <Select defaultValue={template.categoryId || ""} name="categoryId">
-                    <option value="">No category override</option>
-                    {snapshot.categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </Select>
+                  <SearchableSelect
+                    ariaLabel="Category override"
+                    defaultValue={template.categoryId || ""}
+                    name="categoryId"
+                    options={categoryOptions}
+                    placeholder="Select a category override"
+                  />
                 </Field>
               </FieldGrid>
               <Field style={{ marginTop: "0.85rem" }}>
@@ -134,13 +152,13 @@ export default async function TemplatesPage() {
               </Field>
               <Field>
                 <FieldLabel>Platform</FieldLabel>
-                <Select defaultValue="WEBSITE" name="platform">
-                  {platformValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  ariaLabel="Template platform"
+                  defaultValue="WEBSITE"
+                  name="platform"
+                  options={platformOptions}
+                  placeholder="Select a platform"
+                />
               </Field>
             </FieldGrid>
             <Field style={{ marginTop: "0.85rem" }}>

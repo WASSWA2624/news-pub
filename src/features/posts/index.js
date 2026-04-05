@@ -87,7 +87,6 @@ async function createUniquePostSlug(db, rawSlug, currentPostId = null) {
   let slug = baseSlug;
   let suffix = 2;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existingPost = await db.post.findUnique({
       select: {

@@ -183,37 +183,57 @@ export const ButtonRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
+
+  @media (max-width: 560px) {
+    > button,
+    > a,
+    > form {
+      width: 100%;
+    }
+
+    > form > button {
+      width: 100%;
+    }
+  }
 `;
 
 export const PrimaryButton = styled.button`
+  align-items: center;
   background: linear-gradient(135deg, #0f6f8d 0%, #0b5871 100%);
   border: none;
   border-radius: 999px;
   color: white;
   cursor: pointer;
+  display: inline-flex;
   font-weight: 800;
+  justify-content: center;
   min-height: 42px;
   padding: 0.72rem 1rem;
 `;
 
 export const SecondaryButton = styled.button`
+  align-items: center;
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.1);
   border-radius: 999px;
   color: #22344f;
   cursor: pointer;
+  display: inline-flex;
   font-weight: 700;
+  justify-content: center;
   min-height: 42px;
   padding: 0.72rem 1rem;
 `;
 
 export const LinkButton = styled(Link)`
+  align-items: center;
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.1);
   border-radius: 999px;
   color: #22344f;
   display: inline-flex;
   font-weight: 700;
+  justify-content: center;
   min-height: 42px;
   padding: 0.72rem 1rem;
 `;
@@ -273,4 +293,14 @@ export function formatDateTime(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+export function formatEnumLabel(value) {
+  return `${value || ""}`
+    .trim()
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }

@@ -149,6 +149,20 @@
     "title": "NewsPub Admin",
     "description": "Operational control plane for providers, destinations, streams, review, publication, and reporting.",
     "footer": "NewsPub admin workspace",
+    "navigation": {
+      "dashboard": "Dashboard",
+      "providers": "Providers",
+      "destinations": "Destinations",
+      "streams": "Streams",
+      "categories": "Categories",
+      "review": "Review",
+      "published": "Published",
+      "media": "Media",
+      "templates": "Templates",
+      "jobs": "Jobs",
+      "seo": "SEO",
+      "settings": "Settings"
+    },
     "dashboard": {
       "title": "Dashboard",
       "description": "Operational health, publishing outcomes, and website traffic."

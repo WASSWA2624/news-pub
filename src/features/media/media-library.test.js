@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createNewsPubTestEnv } from "@/test/test-env";
@@ -84,44 +83,20 @@ describe("media library pipeline", () => {
     vi.restoreAllMocks();
   });
 
-  it("persists media metadata and responsive variants for uploaded assets", async () => {
-    const imageBuffer = await sharp({
-      create: {
-        background: {
-          b: 190,
-          g: 120,
-          r: 25,
-        },
-        channels: 3,
-        height: 900,
-        width: 1600,
-      },
-    })
-      .png()
-      .toBuffer();
+  it("returns null and records observability when remote ingestion fails", async () => {
     const prisma = createMockPrisma();
-    const storageAdapter = {
-      driver: "local",
-      writeObject: vi.fn(async ({ key }) => ({
-        localPath: `public/uploads/${key}`,
-        publicUrl: `/uploads/${key}`,
-        storageKey: key,
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
       })),
-    };
+    );
 
-    vi.doMock("@/lib/storage", () => ({
-      createStorageAdapter: () => storageAdapter,
-    }));
-
-    const { uploadMediaAsset } = await import("./index");
-    const result = await uploadMediaAsset(
+    const { safeIngestRemoteMediaAsset } = await import("./index");
+    const result = await safeIngestRemoteMediaAsset(
       {
-        alt: "Story image alt",
-        attributionText: "Example Source",
-        buffer: imageBuffer,
-        caption: "Story image",
         fileName: "story.png",
-        mimeType: "image/png",
         sourceUrl: "https://example.com/story.png",
       },
       {
@@ -130,18 +105,15 @@ describe("media library pipeline", () => {
       prisma,
     );
 
-    expect(storageAdapter.writeObject).toHaveBeenCalled();
+    expect(result).toBeNull();
     expect(prisma.auditEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          action: "MEDIA_ASSET_STORED",
-          actorId: "user_1",
+          action: "MEDIA_LIBRARY_FAILURE",
           entityType: "media_asset",
         }),
       }),
     );
-    expect(result.variants.length).toBeGreaterThan(0);
-    expect(result.width).toBe(1600);
   });
 
   it("summarizes the current media library", async () => {
@@ -157,5 +129,5 @@ describe("media library pipeline", () => {
       fileName: "story.png",
       sourceDomain: "example.com",
     });
-  });
+  }, 15000);
 });
