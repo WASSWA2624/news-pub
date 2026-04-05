@@ -1,6 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createNewsPubTestEnv } from "@/test/test-env";
+
+const originalEnv = process.env;
 
 describe("template feature validation", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
   it("rejects platform changes that would break linked stream destinations", async () => {
     const { saveTemplateRecord } = await import("./index");
     const prisma = {

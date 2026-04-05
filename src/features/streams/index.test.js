@@ -1,6 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createNewsPubTestEnv } from "@/test/test-env";
+
+const originalEnv = process.env;
 
 describe("stream feature validation", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
   it("rejects default templates that do not match the selected destination platform", async () => {
     const { saveStreamRecord } = await import("./index");
     const prisma = {
