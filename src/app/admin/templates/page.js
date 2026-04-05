@@ -4,19 +4,11 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
-  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
   CardTitle,
-  Field,
-  FieldGrid,
-  FieldLabel,
-  FormSection,
-  FormSectionTitle,
-  Input,
   MetaPill,
-  PrimaryButton,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -29,10 +21,9 @@ import {
   SummaryGrid,
   SummaryLabel,
   SummaryValue,
-  Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import SearchableSelect from "@/components/common/searchable-select";
+import TemplateFormCard from "@/components/admin/template-form-card";
 import { getTemplateManagementSnapshot } from "@/features/templates";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -105,72 +96,13 @@ export default async function TemplatesPage() {
                     {template.isDefault ? <MetaPill>Default</MetaPill> : null}
                   </RecordMeta>
                 </RecordHeader>
-
-                <form action={saveTemplateAction}>
-                  <input name="id" type="hidden" value={template.id} />
-                  <FormSection>
-                    <FormSectionTitle>Resolution rules</FormSectionTitle>
-                    <FieldGrid>
-                      <Field>
-                        <FieldLabel>Name</FieldLabel>
-                        <Input defaultValue={template.name} name="name" required />
-                      </Field>
-                      <Field as="div">
-                        <FieldLabel>Platform</FieldLabel>
-                        <SearchableSelect
-                          ariaLabel="Template platform"
-                          defaultValue={template.platform}
-                          name="platform"
-                          options={platformOptions}
-                          placeholder="Select a platform"
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel>Locale override</FieldLabel>
-                        <Input defaultValue={template.locale || ""} name="locale" />
-                      </Field>
-                      <Field as="div">
-                        <FieldLabel>Category override</FieldLabel>
-                        <SearchableSelect
-                          ariaLabel="Category override"
-                          defaultValue={template.categoryId || ""}
-                          name="categoryId"
-                          options={categoryOptions}
-                          placeholder="Select a category override"
-                        />
-                      </Field>
-                    </FieldGrid>
-                  </FormSection>
-
-                  <FormSection>
-                    <FormSectionTitle>Template content</FormSectionTitle>
-                    <Field>
-                      <FieldLabel>Title template</FieldLabel>
-                      <Textarea defaultValue={template.titleTemplate || ""} name="titleTemplate" />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Summary template</FieldLabel>
-                      <Textarea defaultValue={template.summaryTemplate || ""} name="summaryTemplate" />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Body template</FieldLabel>
-                      <Textarea defaultValue={template.bodyTemplate} name="bodyTemplate" />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Hashtags template</FieldLabel>
-                      <Textarea defaultValue={template.hashtagsTemplate || ""} name="hashtagsTemplate" />
-                    </Field>
-                    <ButtonRow>
-                      <label>
-                        <input defaultChecked={template.isDefault} name="isDefault" type="checkbox" /> Default for platform
-                      </label>
-                      <PrimaryButton type="submit">Save template</PrimaryButton>
-                    </ButtonRow>
-                    <SmallText>
-                      Linked streams: {(template.streams || []).map((stream) => stream.name).join(", ") || "None"}
-                    </SmallText>
-                  </FormSection>
-                </form>
+                <TemplateFormCard
+                  action={saveTemplateAction}
+                  categoryOptions={categoryOptions}
+                  platformOptions={platformOptions}
+                  submitLabel="Save template"
+                  template={template}
+                />
               </RecordCard>
             ))}
           </RecordStack>
@@ -183,37 +115,12 @@ export default async function TemplatesPage() {
               Template selection order follows stream, platform plus category, platform plus locale, then platform default.
             </CardDescription>
           </CardHeader>
-          <form action={saveTemplateAction}>
-            <FieldGrid>
-              <Field>
-                <FieldLabel>Name</FieldLabel>
-                <Input name="name" required />
-              </Field>
-              <Field as="div">
-                <FieldLabel>Platform</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Template platform"
-                  defaultValue="WEBSITE"
-                  name="platform"
-                  options={platformOptions}
-                  placeholder="Select a platform"
-                />
-              </Field>
-            </FieldGrid>
-            <FormSection>
-              <FormSectionTitle>Body template</FormSectionTitle>
-              <Field>
-                <FieldLabel>Body template</FieldLabel>
-                <Textarea
-                  name="bodyTemplate"
-                  placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
-                />
-              </Field>
-              <ButtonRow>
-                <PrimaryButton type="submit">Create template</PrimaryButton>
-              </ButtonRow>
-            </FormSection>
-          </form>
+          <TemplateFormCard
+            action={saveTemplateAction}
+            categoryOptions={categoryOptions}
+            platformOptions={platformOptions}
+            submitLabel="Create template"
+          />
         </Card>
       </SectionGrid>
     </AdminPage>

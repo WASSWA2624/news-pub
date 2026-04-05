@@ -1,5 +1,6 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
+import { getTemplateValidationIssues } from "@/lib/validation/configuration";
 
 export async function getTemplateManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -14,10 +15,16 @@ export async function getTemplateManagementSnapshot(prisma) {
           },
         },
         streams: {
-          select: {
-            id: true,
-            name: true,
-            status: true,
+          include: {
+            destination: {
+              select: {
+                id: true,
+                kind: true,
+                name: true,
+                platform: true,
+                slug: true,
+              },
+            },
           },
         },
       },
@@ -26,6 +33,7 @@ export async function getTemplateManagementSnapshot(prisma) {
     db.category.findMany({
       orderBy: [{ name: "asc" }],
       select: {
+        description: true,
         id: true,
         name: true,
       },
@@ -34,7 +42,10 @@ export async function getTemplateManagementSnapshot(prisma) {
 
   return {
     categories,
-    templates,
+    templates: templates.map((template) => ({
+      ...template,
+      validationIssues: getTemplateValidationIssues(template),
+    })),
     summary: {
       defaultCount: templates.filter((template) => template.isDefault).length,
       totalCount: templates.length,
@@ -45,10 +56,52 @@ export async function getTemplateManagementSnapshot(prisma) {
 export async function saveTemplateRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const name = trimText(input.name);
-  const platform = trimText(input.platform);
+  const platform = trimText(input.platform).toUpperCase();
 
   if (!name || !platform || !trimText(input.bodyTemplate)) {
     throw new NewsPubError("Template name, platform, and body template are required.", {
+      status: "template_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const linkedTemplate = input.id
+    ? await db.destinationTemplate.findUnique({
+        include: {
+          streams: {
+            include: {
+              destination: {
+                select: {
+                  id: true,
+                  kind: true,
+                  name: true,
+                  platform: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+        where: {
+          id: input.id,
+        },
+      })
+    : null;
+
+  if (input.id && !linkedTemplate) {
+    throw new NewsPubError("The requested template could not be found.", {
+      status: "template_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const validationIssues = getTemplateValidationIssues({
+    platform,
+    streams: linkedTemplate?.streams || [],
+  });
+
+  if (validationIssues.length) {
+    throw new NewsPubError(validationIssues[0].message, {
       status: "template_validation_failed",
       statusCode: 400,
     });

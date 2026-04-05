@@ -344,6 +344,12 @@ const fieldStyles = `
     box-shadow: 0 0 0 4px rgba(27, 79, 147, 0.08);
     outline: none;
   }
+
+  &[aria-invalid="true"] {
+    border-color: rgba(176, 46, 34, 0.42);
+    box-shadow: 0 0 0 4px rgba(176, 46, 34, 0.08);
+    outline: none;
+  }
 `;
 
 export const Input = styled.input`
@@ -519,6 +525,49 @@ export const StatusBadge = styled.span`
   padding: 0 0.62rem;
   text-transform: uppercase;
   width: fit-content;
+`;
+
+export const NoticeBanner = styled.div`
+  background: ${({ $tone }) =>
+    $tone === "success"
+      ? "rgba(27, 138, 73, 0.08)"
+      : $tone === "warning"
+        ? "rgba(168, 113, 12, 0.1)"
+        : "rgba(176, 46, 34, 0.08)"};
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === "success"
+        ? "rgba(27, 138, 73, 0.18)"
+        : $tone === "warning"
+          ? "rgba(168, 113, 12, 0.18)"
+          : "rgba(176, 46, 34, 0.18)"};
+  border-radius: 14px;
+  color: ${({ $tone }) =>
+    $tone === "success"
+      ? "#197341"
+      : $tone === "warning"
+        ? "#8f630c"
+        : "#a63725"};
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+`;
+
+export const NoticeTitle = styled.strong`
+  color: inherit;
+  font-size: 0.88rem;
+  letter-spacing: -0.01em;
+`;
+
+export const NoticeList = styled.ul`
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1rem;
+`;
+
+export const NoticeItem = styled.li`
+  line-height: 1.5;
 `;
 
 export const EmptyState = styled.p`

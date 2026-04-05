@@ -1,6 +1,7 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { decryptSecretValue, encryptSecretValue } from "@/lib/security/secrets";
+import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
 function createTokenHint(value) {
   const normalizedValue = trimText(value);
@@ -34,6 +35,7 @@ export async function getDestinationManagementSnapshot(prisma) {
     destinations: destinations.map((destination) => ({
       ...destination,
       hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
+      validationIssues: getDestinationValidationIssues(destination),
       storedTokenPreview: destination.encryptedTokenCiphertext
         ? decryptSecretValue({
             ciphertext: destination.encryptedTokenCiphertext,
@@ -54,9 +56,23 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const slug = trimText(input.slug);
   const name = trimText(input.name);
+  const platform = trimText(input.platform).toUpperCase();
+  const kind = trimText(input.kind).toUpperCase();
 
-  if (!slug || !name || !trimText(input.platform) || !trimText(input.kind)) {
+  if (!slug || !name || !platform || !kind) {
     throw new NewsPubError("Destination name, slug, platform, and kind are required.", {
+      status: "destination_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const validationIssues = getDestinationValidationIssues({
+    kind,
+    platform,
+  });
+
+  if (validationIssues.length) {
+    throw new NewsPubError(validationIssues[0].message, {
       status: "destination_validation_failed",
       statusCode: 400,
     });
@@ -77,11 +93,11 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
       encryptedTokenIv: nextToken || input.clearToken ? encryptedToken?.iv || null : undefined,
       encryptedTokenTag: nextToken || input.clearToken ? encryptedToken?.tag || null : undefined,
       externalAccountId: trimText(input.externalAccountId) || null,
-      kind: trimText(input.kind),
+      kind,
       lastConnectedAt:
         trimText(input.connectionStatus) === "CONNECTED" ? new Date() : input.lastConnectedAt || null,
       name,
-      platform: trimText(input.platform),
+      platform,
       settingsJson: input.settingsJson || {},
       tokenHint: nextToken ? createTokenHint(nextToken) : input.clearToken ? null : undefined,
     },
@@ -93,10 +109,10 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
       encryptedTokenIv: encryptedToken?.iv || null,
       encryptedTokenTag: encryptedToken?.tag || null,
       externalAccountId: trimText(input.externalAccountId) || null,
-      kind: trimText(input.kind),
+      kind,
       lastConnectedAt: trimText(input.connectionStatus) === "CONNECTED" ? new Date() : null,
       name,
-      platform: trimText(input.platform),
+      platform,
       settingsJson: input.settingsJson || {},
       slug,
       tokenHint: createTokenHint(nextToken),

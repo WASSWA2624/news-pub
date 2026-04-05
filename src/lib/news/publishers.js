@@ -1,5 +1,6 @@
 import { decryptSecretValue } from "@/lib/security/secrets";
 import { NewsPubError, trimText } from "@/lib/news/shared";
+import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
 const defaultGraphApiBaseUrl = "https://graph.facebook.com/v22.0";
 
@@ -310,6 +311,20 @@ async function publishInstagramDestination(destination, payload) {
 
 /** Publishes a prepared payload to the configured external destination adapter. */
 export async function publishExternalDestination({ destination, payload }) {
+  const validationIssues = getDestinationValidationIssues(destination);
+
+  if (validationIssues.length) {
+    throw new DestinationPublishError(validationIssues[0].message, {
+      responseJson: {
+        error: "destination_configuration_invalid",
+        issues: validationIssues,
+      },
+      retryable: false,
+      status: "destination_configuration_invalid",
+      statusCode: 400,
+    });
+  }
+
   if (destination?.platform === "FACEBOOK") {
     return publishFacebookDestination(destination, payload);
   }

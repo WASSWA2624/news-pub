@@ -20,6 +20,7 @@ import { revalidatePublishedPostPaths } from "@/lib/revalidation";
 import { env } from "@/lib/env/server";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { DestinationPublishError, publishExternalDestination } from "@/lib/news/publishers";
+import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
 /**
  * Core NewsPub ingest, filtering, review, scheduling, and publication workflows.
@@ -502,8 +503,22 @@ async function executePublishAttempt(db, attemptId) {
     });
   }
 
+  const destination = attempt.destination;
   const translation = pickTranslation(attempt.post?.translations || [], attempt.stream.locale);
   const template = await resolveTemplate(db, attempt.stream);
+  const configurationIssues = getStreamValidationIssues({
+    destination,
+    mode: attempt.stream.mode,
+    template,
+  });
+
+  if (configurationIssues.length) {
+    throw new NewsPubError(configurationIssues[0].message, {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
+
   const context = buildTemplateContext({
     articleMatch: attempt.articleMatch,
     post: attempt.post,
@@ -534,7 +549,6 @@ async function executePublishAttempt(db, attemptId) {
     },
   });
 
-  const destination = attempt.destination;
   const needsToken = destination.platform !== "WEBSITE";
 
   if (needsToken && (!destination.encryptedTokenCiphertext || destination.connectionStatus !== "CONNECTED")) {
@@ -723,7 +737,7 @@ async function executePublishAttempt(db, attemptId) {
       entityType: "publish_attempt",
       payloadJson: {
         platform: attempt.platform,
-        remoteId,
+        remoteId: publishResult.remoteId || null,
       },
     },
     db,
@@ -958,6 +972,19 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
   if (stream.status !== "ACTIVE") {
     throw new NewsPubError("Publishing stream must be active before it can run.", {
       status: "stream_not_active",
+      statusCode: 400,
+    });
+  }
+
+  const streamValidationIssues = getStreamValidationIssues({
+    destination: stream.destination,
+    mode: stream.mode,
+    template: stream.defaultTemplate,
+  });
+
+  if (streamValidationIssues.length) {
+    throw new NewsPubError(streamValidationIssues[0].message, {
+      status: "stream_validation_failed",
       statusCode: 400,
     });
   }

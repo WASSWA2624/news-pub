@@ -1,6 +1,7 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
+import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
 function normalizeKeywordList(value) {
   if (Array.isArray(value)) {
@@ -46,6 +47,7 @@ export async function getStreamManagementSnapshot(prisma) {
         destination: {
           select: {
             id: true,
+            kind: true,
             name: true,
             platform: true,
             slug: true,
@@ -58,8 +60,10 @@ export async function getStreamManagementSnapshot(prisma) {
       orderBy: [{ name: "asc" }],
       select: {
         id: true,
+        kind: true,
         name: true,
         platform: true,
+        slug: true,
       },
     }),
     db.newsProviderConfig.findMany({
@@ -75,6 +79,7 @@ export async function getStreamManagementSnapshot(prisma) {
       orderBy: [{ platform: "asc" }, { name: "asc" }],
       select: {
         id: true,
+        locale: true,
         name: true,
         platform: true,
       },
@@ -98,6 +103,11 @@ export async function getStreamManagementSnapshot(prisma) {
       includeKeywordsJson: stream.includeKeywordsJson || [],
       excludeKeywordsJson: stream.excludeKeywordsJson || [],
       streamCategories: stream.categories.map((entry) => entry.category),
+      validationIssues: getStreamValidationIssues({
+        destination: stream.destination,
+        mode: stream.mode,
+        template: stream.defaultTemplate,
+      }),
     })),
     summary: {
       activeCount: streams.filter((stream) => stream.status === "ACTIVE").length,
@@ -115,6 +125,60 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
 
   if (!name || !input.destinationId || !input.activeProviderId || !input.locale) {
     throw new NewsPubError("Stream name, destination, provider, and locale are required.", {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const [destination, defaultTemplate] = await Promise.all([
+    db.destination.findUnique({
+      select: {
+        id: true,
+        kind: true,
+        name: true,
+        platform: true,
+        slug: true,
+      },
+      where: {
+        id: input.destinationId,
+      },
+    }),
+    input.defaultTemplateId
+      ? db.destinationTemplate.findUnique({
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+          },
+          where: {
+            id: input.defaultTemplateId,
+          },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  if (!destination) {
+    throw new NewsPubError("The selected destination could not be found.", {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  if (input.defaultTemplateId && !defaultTemplate) {
+    throw new NewsPubError("The selected default template could not be found.", {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const validationIssues = getStreamValidationIssues({
+    destination,
+    mode: trimText(input.mode) || "REVIEW_REQUIRED",
+    template: defaultTemplate,
+  });
+
+  if (validationIssues.length) {
+    throw new NewsPubError(validationIssues[0].message, {
       status: "stream_validation_failed",
       statusCode: 400,
     });

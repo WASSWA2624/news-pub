@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getStreamManagementSnapshot, saveStreamRecord } from "@/features/streams";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import { NewsPubError } from "@/lib/news/shared";
 import { validateJsonRequest } from "@/lib/validation/api-placeholders";
 
 const streamSchema = z.object({
@@ -56,12 +57,27 @@ export async function PUT(request) {
     return result.response;
   }
 
-  const record = await saveStreamRecord(result.data, {
-    actorId: auth.user.id,
-  });
+  try {
+    const record = await saveStreamRecord(result.data, {
+      actorId: auth.user.id,
+    });
 
-  return NextResponse.json({
-    data: record,
-    success: true,
-  });
+    return NextResponse.json({
+      data: record,
+      success: true,
+    });
+  } catch (error) {
+    if (error instanceof NewsPubError) {
+      return NextResponse.json(
+        {
+          message: error.message,
+          status: error.status,
+          success: false,
+        },
+        { status: error.statusCode },
+      );
+    }
+
+    throw error;
+  }
 }

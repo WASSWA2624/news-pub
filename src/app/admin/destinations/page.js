@@ -4,21 +4,11 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
-  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
   CardTitle,
-  CheckboxChip,
-  CheckboxRow,
-  Field,
-  FieldGrid,
-  FieldLabel,
-  FormSection,
-  FormSectionTitle,
-  Input,
   MetaPill,
-  PrimaryButton,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -32,10 +22,9 @@ import {
   SummaryGrid,
   SummaryLabel,
   SummaryValue,
-  Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import SearchableSelect from "@/components/common/searchable-select";
+import DestinationFormCard from "@/components/admin/destination-form-card";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -143,100 +132,14 @@ export default async function DestinationsPage() {
                     </StatusBadge>
                   </RecordMeta>
                 </RecordHeader>
-
-                <form action={saveDestinationAction}>
-                  <FieldGrid>
-                    <Field>
-                      <FieldLabel>Name</FieldLabel>
-                      <Input defaultValue={destination.name} name="name" required />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Slug</FieldLabel>
-                      <Input defaultValue={destination.slug} name="slug" required />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Platform</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Platform"
-                        defaultValue={destination.platform}
-                        name="platform"
-                        options={platformOptions}
-                        placeholder="Select a platform"
-                      />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Kind</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Destination kind"
-                        defaultValue={destination.kind}
-                        name="kind"
-                        options={kindOptions}
-                        placeholder="Select a destination kind"
-                      />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Connection status</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Connection status"
-                        defaultValue={destination.connectionStatus}
-                        name="connectionStatus"
-                        options={connectionStatusOptions}
-                        placeholder="Select a connection status"
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Account handle</FieldLabel>
-                      <Input defaultValue={destination.accountHandle || ""} name="accountHandle" />
-                    </Field>
-                  </FieldGrid>
-
-                  <FormSection>
-                    <FormSectionTitle>Connection details</FormSectionTitle>
-                    <FieldGrid>
-                      <Field>
-                        <FieldLabel>External account ID</FieldLabel>
-                        <Input defaultValue={destination.externalAccountId || ""} name="externalAccountId" />
-                      </Field>
-                      <Field>
-                        <FieldLabel>Update token</FieldLabel>
-                        <Input
-                          name="token"
-                          placeholder={
-                            destination.tokenHint
-                              ? `Stored token ending ${destination.tokenHint}`
-                              : "Paste a new token"
-                          }
-                        />
-                      </Field>
-                    </FieldGrid>
-                    <CheckboxRow>
-                      <CheckboxChip>
-                        <input name="clearToken" type="checkbox" /> Clear stored token
-                      </CheckboxChip>
-                    </CheckboxRow>
-                  </FormSection>
-
-                  <FormSection>
-                    <FormSectionTitle>Operational notes</FormSectionTitle>
-                    <Field>
-                      <FieldLabel>Connection error</FieldLabel>
-                      <Textarea defaultValue={destination.connectionError || ""} name="connectionError" />
-                    </Field>
-                    <Field>
-                      <FieldLabel>Settings JSON</FieldLabel>
-                      <Textarea
-                        defaultValue={JSON.stringify(destination.settingsJson || {}, null, 2)}
-                        name="settingsJson"
-                      />
-                    </Field>
-                    <ButtonRow>
-                      <PrimaryButton type="submit">Save destination</PrimaryButton>
-                    </ButtonRow>
-                    <SmallText>
-                      Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
-                    </SmallText>
-                  </FormSection>
-                </form>
+                <DestinationFormCard
+                  action={saveDestinationAction}
+                  connectionStatusOptions={connectionStatusOptions}
+                  destination={destination}
+                  kindOptions={kindOptions}
+                  platformOptions={platformOptions}
+                  submitLabel="Save destination"
+                />
               </RecordCard>
             ))}
           </RecordStack>
@@ -249,44 +152,12 @@ export default async function DestinationsPage() {
               Website and social endpoints can be managed independently and connected to multiple streams.
             </CardDescription>
           </CardHeader>
-          <form action={saveDestinationAction}>
-            <FieldGrid>
-              <Field>
-                <FieldLabel>Name</FieldLabel>
-                <Input name="name" required />
-              </Field>
-              <Field>
-                <FieldLabel>Slug</FieldLabel>
-                <Input name="slug" required />
-              </Field>
-              <Field as="div">
-                <FieldLabel>Platform</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Platform"
-                  defaultValue="WEBSITE"
-                  name="platform"
-                  options={platformOptions}
-                  placeholder="Select a platform"
-                />
-              </Field>
-              <Field as="div">
-                <FieldLabel>Kind</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Destination kind"
-                  defaultValue="WEBSITE"
-                  name="kind"
-                  options={kindOptions}
-                  placeholder="Select a destination kind"
-                />
-              </Field>
-            </FieldGrid>
-            <FormSection>
-              <FormSectionTitle>Save record</FormSectionTitle>
-              <ButtonRow>
-                <PrimaryButton type="submit">Create destination</PrimaryButton>
-              </ButtonRow>
-            </FormSection>
-          </form>
+          <DestinationFormCard
+            action={saveDestinationAction}
+            kindOptions={kindOptions}
+            platformOptions={platformOptions}
+            submitLabel="Create destination"
+          />
         </Card>
       </SectionGrid>
     </AdminPage>

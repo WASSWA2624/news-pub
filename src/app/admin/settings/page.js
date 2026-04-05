@@ -10,6 +10,10 @@ import {
   CardTitle,
   DataTable,
   DataTableWrap,
+  NoticeBanner,
+  NoticeItem,
+  NoticeList,
+  NoticeTitle,
   PrimaryButton,
   SectionGrid,
   SmallText,
@@ -56,6 +60,10 @@ export default async function SettingsPage() {
           <SummaryValue>{snapshot.summary.streamCount}</SummaryValue>
           <SummaryLabel>Stream records</SummaryLabel>
         </SummaryCard>
+        <SummaryCard>
+          <SummaryValue>{snapshot.summary.configurationIssueCount}</SummaryValue>
+          <SummaryLabel>Configuration issues</SummaryLabel>
+        </SummaryCard>
       </SummaryGrid>
 
       <SectionGrid>
@@ -100,6 +108,34 @@ export default async function SettingsPage() {
           <SmallText>Default schedule timezone: {snapshot.scheduler.defaultTimezone}</SmallText>
           <SmallText>Analytics enabled: {snapshot.toggles.enableAnalytics ? "Yes" : "No"}</SmallText>
           <SmallText>Metrics enabled: {snapshot.toggles.enableMetrics ? "Yes" : "No"}</SmallText>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration health</CardTitle>
+            <SmallText>
+              Cross-check destination kinds, stream modes, and template platforms before scheduled jobs hit them.
+            </SmallText>
+          </CardHeader>
+          {snapshot.configurationIssues.length ? (
+            <NoticeBanner $tone="danger">
+              <NoticeTitle>Detected incompatible records</NoticeTitle>
+              <NoticeList>
+                {snapshot.configurationIssues.map((issue) => (
+                  <NoticeItem key={`${issue.entityType}-${issue.entityId}-${issue.code}`}>
+                    {issue.entityType}: {issue.entityLabel}. {issue.message}
+                  </NoticeItem>
+                ))}
+              </NoticeList>
+            </NoticeBanner>
+          ) : (
+            <NoticeBanner $tone="success">
+              <NoticeTitle>No incompatible settings detected</NoticeTitle>
+              <SmallText>
+                Destinations, streams, and templates are aligned for the current workspace snapshot.
+              </SmallText>
+            </NoticeBanner>
+          )}
         </Card>
       </SectionGrid>
     </AdminPage>
