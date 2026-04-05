@@ -229,7 +229,7 @@ const CheckboxLabel = styled.label`
 `;
 
 const Checkbox = styled.input`
-  accent-color: ${({ theme }) => theme.colors.primary};
+  accent-color: var(--theme-primary);
   height: 1rem;
   width: 1rem;
 `;

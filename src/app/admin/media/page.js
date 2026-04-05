@@ -6,6 +6,7 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardDescription,
   CardTitle,
   DataTable,
@@ -57,10 +58,12 @@ export default async function MediaPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Upload media asset</CardTitle>
-          <CardDescription>
-            Uploaded assets go through the shared storage adapter and responsive variant pipeline.
-          </CardDescription>
+          <CardHeader>
+            <CardTitle>Upload media asset</CardTitle>
+            <CardDescription>
+              Uploaded assets go through the shared storage adapter and responsive variant pipeline.
+            </CardDescription>
+          </CardHeader>
           <form action={uploadMediaAction}>
             <FieldGrid>
               <Field>
@@ -91,7 +94,10 @@ export default async function MediaPage() {
         </Card>
 
         <Card>
-          <CardTitle>Current media library</CardTitle>
+          <CardHeader>
+            <CardTitle>Current media library</CardTitle>
+            <CardDescription>Files stay scannable on mobile with the same details visible as compact cards.</CardDescription>
+          </CardHeader>
           {snapshot.assets.length ? (
             <DataTableWrap>
               <DataTable>
@@ -104,17 +110,17 @@ export default async function MediaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {snapshot.assets.map((asset) => (
-                    <tr key={asset.id}>
-                      <td>
-                        <strong>{asset.fileName || asset.id}</strong>
-                        <SmallText>{asset.alt || asset.caption || "No descriptive text"}</SmallText>
-                      </td>
-                      <td>{asset.sourceDomain || asset.storageDriver}</td>
-                      <td>{asset.fileSizeBytes || 0} bytes</td>
-                      <td>{asset.variants.length}</td>
-                    </tr>
-                  ))}
+                {snapshot.assets.map((asset) => (
+                  <tr key={asset.id}>
+                    <td data-label="Asset">
+                      <strong>{asset.fileName || asset.id}</strong>
+                      <SmallText>{asset.alt || asset.caption || "No descriptive text"}</SmallText>
+                    </td>
+                    <td data-label="Source">{asset.sourceDomain || asset.storageDriver}</td>
+                    <td data-label="Size">{asset.fileSizeBytes || 0} bytes</td>
+                    <td data-label="Variants">{asset.variants.length}</td>
+                  </tr>
+                ))}
                 </tbody>
               </DataTable>
             </DataTableWrap>

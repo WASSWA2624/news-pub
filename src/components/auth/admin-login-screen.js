@@ -8,7 +8,7 @@ const Shell = styled.main`
   align-items: center;
   display: grid;
   min-height: 100vh;
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: clamp(0.9rem, 4vw, ${({ theme }) => theme.spacing.xl});
 `;
 
 const Panel = styled.section`
@@ -20,7 +20,7 @@ const Panel = styled.section`
   color: white;
   display: grid;
   margin: 0 auto;
-  max-width: 1040px;
+  max-width: 980px;
   overflow: hidden;
   width: 100%;
 
@@ -32,7 +32,12 @@ const Panel = styled.section`
 const Narrative = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
+  order: 2;
   padding: clamp(2rem, 4vw, 3.5rem);
+
+  @media (min-width: 900px) {
+    order: 1;
+  }
 `;
 
 const Eyebrow = styled.p`
@@ -45,7 +50,7 @@ const Eyebrow = styled.p`
 `;
 
 const Title = styled.h1`
-  font-size: clamp(2.4rem, 4vw, 4.6rem);
+  font-size: clamp(1.95rem, 7vw, 4rem);
   line-height: 0.98;
   margin: 0;
   max-width: 10ch;
@@ -53,7 +58,7 @@ const Title = styled.h1`
 
 const Description = styled.p`
   color: rgba(255, 255, 255, 0.8);
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   line-height: 1.7;
   margin: 0;
   max-width: 54ch;
@@ -75,7 +80,7 @@ const InsightCard = styled.article`
   border-radius: ${({ theme }) => theme.radius.md};
   display: grid;
   gap: 0.4rem;
-  padding: ${({ theme }) => theme.spacing.lg};
+  padding: clamp(0.85rem, 2vw, ${({ theme }) => theme.spacing.lg});
 `;
 
 const InsightTitle = styled.h2`
@@ -91,10 +96,15 @@ const InsightBody = styled.p`
 
 const FormCard = styled.div`
   background: rgba(249, 251, 253, 0.98);
-  color: ${({ theme }) => theme.colors.text};
+  color: var(--theme-text, #152844);
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
+  order: 1;
   padding: clamp(1.6rem, 3vw, 2.5rem);
+
+  @media (min-width: 900px) {
+    order: 2;
+  }
 `;
 
 const FormHeader = styled.div`
@@ -103,12 +113,12 @@ const FormHeader = styled.div`
 `;
 
 const FormTitle = styled.h2`
-  font-size: 1.6rem;
+  font-size: 1.45rem;
   margin: 0;
 `;
 
 const FormDescription = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
+  color: var(--theme-muted, #54657f);
   line-height: 1.6;
   margin: 0;
 `;
@@ -134,13 +144,13 @@ const PasswordField = styled.div`
 
 const Input = styled.input`
   background: white;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: 1px solid var(--theme-border, #b8c8de);
   border-radius: ${({ theme }) => theme.radius.sm};
   min-height: 48px;
   padding: 0.8rem 0.9rem;
 
   &:focus {
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: var(--theme-primary, #1b4f93);
     box-shadow: 0 0 0 4px rgba(0, 95, 115, 0.12);
     outline: none;
   }
@@ -154,7 +164,7 @@ const PasswordToggle = styled.button`
   align-items: center;
   background: transparent;
   border: none;
-  color: ${({ theme }) => theme.colors.primary};
+  color: var(--theme-primary, #1b4f93);
   cursor: pointer;
   display: inline-flex;
   font-size: 0.9rem;
@@ -166,7 +176,7 @@ const PasswordToggle = styled.button`
   position: absolute;
 
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline: 2px solid var(--theme-primary, #1b4f93);
     outline-offset: -2px;
   }
 `;
@@ -175,19 +185,20 @@ const ErrorNotice = styled.p`
   background: rgba(180, 35, 24, 0.08);
   border: 1px solid rgba(180, 35, 24, 0.2);
   border-radius: ${({ theme }) => theme.radius.sm};
-  color: ${({ theme }) => theme.colors.danger};
+  color: var(--theme-danger, #b42318);
   margin: 0;
   padding: 0.8rem 0.9rem;
 `;
 
 const SubmitButton = styled.button`
-  background: ${({ theme }) => theme.colors.primary};
+  background: var(--theme-primary, #1b4f93);
   border: none;
   border-radius: 999px;
   color: white;
   cursor: pointer;
-  min-height: 50px;
-  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  min-height: 46px;
+  padding: 0.8rem 1.1rem;
   transition: transform 120ms ease, opacity 120ms ease;
 
   &:disabled {
@@ -201,7 +212,7 @@ const SubmitButton = styled.button`
 `;
 
 const FinePrint = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
+  color: var(--theme-muted, #54657f);
   font-size: 0.92rem;
   line-height: 1.6;
   margin: 0;

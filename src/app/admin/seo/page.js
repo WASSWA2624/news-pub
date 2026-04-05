@@ -5,6 +5,7 @@ import {
   AdminPage,
   AdminTitle,
   Card,
+  CardHeader,
   CardTitle,
   DataTable,
   DataTableWrap,
@@ -49,7 +50,10 @@ export default async function SeoPage() {
       </SummaryGrid>
 
       <Card>
-        <CardTitle>Published story metadata</CardTitle>
+        <CardHeader>
+          <CardTitle>Published story metadata</CardTitle>
+          <EmptyState>SEO review stays compact on mobile without losing canonical and locale coverage details.</EmptyState>
+        </CardHeader>
         {snapshot.stories.length ? (
           <DataTableWrap>
             <DataTable>
@@ -64,10 +68,10 @@ export default async function SeoPage() {
               <tbody>
                 {snapshot.stories.map((story) => (
                   <tr key={story.slug}>
-                    <td>{story.metaTitle}</td>
-                    <td>{story.canonicalUrl}</td>
-                    <td>{story.locales.join(", ")}</td>
-                    <td>{story.missingSeoRecord ? "Needs review" : "Configured"}</td>
+                    <td data-label="Story">{story.metaTitle}</td>
+                    <td data-label="Canonical URL">{story.canonicalUrl}</td>
+                    <td data-label="Locales">{story.locales.join(", ")}</td>
+                    <td data-label="SEO status">{story.missingSeoRecord ? "Needs review" : "Configured"}</td>
                   </tr>
                 ))}
               </tbody>

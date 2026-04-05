@@ -202,10 +202,10 @@ function distributeNavigationItemsByWidth(items, pathname, widthsByKey, availabl
 
 const Shell = styled.div`
   background:
-    radial-gradient(circle at top left, rgba(152, 176, 205, 0.24), transparent 24%),
-    radial-gradient(circle at 88% 22%, rgba(255, 255, 255, 0.84), transparent 26%),
-    linear-gradient(180deg, #f7f8fc 0%, #eef2f9 55%, #edf1f8 100%);
-  color: ${({ theme }) => theme.colors.text};
+    radial-gradient(circle at top left, rgba(130, 166, 198, 0.18), transparent 26%),
+    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.78), transparent 24%),
+    linear-gradient(180deg, #f7f9fc 0%, #f0f4fa 54%, #edf2f9 100%);
+  color: var(--theme-text, #152844);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -219,12 +219,12 @@ const Header = styled.header`
 
 const HeaderSurface = styled.div`
   background:
-    radial-gradient(circle at top right, rgba(38, 138, 164, 0.36), transparent 24%),
-    radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.08), transparent 20%),
-    linear-gradient(135deg, #11273d 0%, #17374d 44%, #0f6177 100%);
+    radial-gradient(circle at top right, rgba(38, 138, 164, 0.3), transparent 24%),
+    radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.07), transparent 20%),
+    linear-gradient(135deg, #102438 0%, #163248 46%, #0f5d73 100%);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 22px 48px rgba(16, 32, 51, 0.16);
+  box-shadow: 0 18px 36px rgba(16, 32, 51, 0.12);
   overflow: visible;
   position: relative;
 
@@ -247,27 +247,27 @@ const HeaderSurface = styled.div`
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.35rem;
+  gap: 0.3rem;
   margin: 0 auto;
-  max-width: 1560px;
+  max-width: 1420px;
   padding:
-    clamp(0.2rem, 0.7vw, 0.35rem)
-    clamp(0.3rem, 1vw, 0.7rem)
-    clamp(0.2rem, 0.7vw, 0.35rem);
+    clamp(0.28rem, 0.8vw, 0.4rem)
+    clamp(0.45rem, 1.1vw, 0.8rem)
+    clamp(0.3rem, 0.8vw, 0.45rem);
   position: relative;
   width: 100%;
 
   @media (max-width: 479px) {
     padding:
-      0.4rem
-      0.3rem
-      0.4rem;
+      0.42rem
+      0.34rem
+      0.46rem;
   }
 `;
 
 const MobileHeaderLayout = styled.div`
   display: grid;
-  gap: 0.32rem;
+  gap: 0.28rem;
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
     display: none;
@@ -280,7 +280,7 @@ const DesktopBar = styled.div`
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
     align-items: center;
     display: grid;
-    gap: 0.45rem;
+    gap: 0.4rem;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 `;
@@ -288,7 +288,7 @@ const DesktopBar = styled.div`
 const TopRow = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.42rem;
+  gap: 0.34rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
@@ -296,12 +296,12 @@ const BrandLink = styled(Link)`
   align-items: start;
   color: white;
   display: inline-flex;
-  gap: 0.48rem;
+  gap: 0.42rem;
   min-width: 0;
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.5rem;
   }
 `;
 
@@ -312,7 +312,7 @@ const BrandCopy = styled.span`
 `;
 
 const BrandTitle = styled.span`
-  font-size: clamp(0.9rem, 1.4vw, 1rem);
+  font-size: clamp(0.84rem, 1.2vw, 0.96rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -321,16 +321,16 @@ const BrandTitle = styled.span`
 const UserBadge = styled.div`
   align-items: center;
   backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   display: grid;
-  gap: 0.35rem;
+  gap: 0.3rem;
   grid-template-columns: minmax(0, 1fr);
   justify-self: end;
-  max-width: min(100%, 20rem);
-  padding: 0.35rem 0.5rem;
+  max-width: min(100%, 16rem);
+  padding: 0.32rem 0.46rem;
   width: fit-content;
 
   @media (min-width: 480px) {
@@ -338,8 +338,8 @@ const UserBadge = styled.div`
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    gap: 0.45rem;
-    padding: 0.32rem 0.48rem;
+    gap: 0.38rem;
+    padding: 0.28rem 0.44rem;
   }
 `;
 
@@ -351,17 +351,22 @@ const UserCopy = styled.div`
 
 const UserName = styled.strong`
   color: white;
-  font-size: clamp(0.76rem, 1vw, 0.84rem);
+  font-size: clamp(0.72rem, 0.95vw, 0.82rem);
   line-height: 1.08;
 `;
 
 const UserMeta = styled.span`
   color: rgba(242, 247, 252, 0.84);
-  font-size: clamp(0.64rem, 0.9vw, 0.72rem);
+  display: none;
+  font-size: clamp(0.62rem, 0.88vw, 0.7rem);
   line-height: 1.18;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  @media (min-width: 540px) {
+    display: inline;
+  }
 `;
 
 const RolePill = styled.span`
@@ -371,14 +376,14 @@ const RolePill = styled.span`
   border-radius: 999px;
   color: rgba(246, 250, 247, 0.92);
   display: none;
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  padding: 0.28rem 0.5rem;
+  padding: 0.22rem 0.45rem;
   text-transform: uppercase;
   white-space: nowrap;
 
-  @media (min-width: 640px) {
+  @media (min-width: 480px) {
     display: inline-flex;
   }
 `;
@@ -386,7 +391,7 @@ const RolePill = styled.span`
 const NavRow = styled.div`
   align-items: center;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.3rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
@@ -403,11 +408,11 @@ const PrimaryNavScroller = styled.div`
 
 const PrimaryNav = styled.nav`
   display: inline-flex;
-  gap: 0.12rem;
+  gap: 0.1rem;
   min-width: max-content;
 
   @media (max-width: 479px) {
-    gap: 0.08rem;
+    gap: 0.06rem;
   }
 `;
 
@@ -415,14 +420,14 @@ const PrimaryNavLink = styled(Link)`
   align-items: center;
   background: ${({ $active }) => ($active ? "rgba(31, 49, 76, 0.58)" : "transparent")};
   border: 1px solid ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.08)" : "transparent")};
-  border-radius: 14px;
+  border-radius: 13px;
   color: ${({ $active }) => ($active ? "white" : "rgba(244, 248, 252, 0.94)")};
   display: inline-flex;
-  font-size: clamp(0.76rem, 0.95vw, 0.84rem);
+  font-size: clamp(0.72rem, 0.9vw, 0.82rem);
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
   letter-spacing: -0.02em;
-  min-height: 34px;
-  padding: 0 0.62rem;
+  min-height: 32px;
+  padding: 0 0.58rem;
   transition:
     background 160ms ease,
     color 160ms ease,
@@ -431,13 +436,13 @@ const PrimaryNavLink = styled(Link)`
 
   @media (max-width: 479px) {
     font-size: 0.72rem;
-    min-height: 30px;
-    padding: 0 0.42rem;
+    min-height: 29px;
+    padding: 0 0.4rem;
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    min-height: 32px;
-    padding: 0 0.58rem;
+    min-height: 31px;
+    padding: 0 0.54rem;
   }
 
   &:hover {
@@ -457,27 +462,27 @@ const OverflowButton = styled.button`
   backdrop-filter: blur(14px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  border-radius: 13px;
   color: white;
   cursor: pointer;
   display: inline-grid;
-  height: 34px;
+  height: 32px;
   justify-items: center;
   padding: 0;
   transition:
     background 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
-  width: 34px;
+  width: 32px;
 
   @media (max-width: 479px) {
-    height: 30px;
-    width: 30px;
+    height: 29px;
+    width: 29px;
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    height: 32px;
-    width: 32px;
+    height: 31px;
+    width: 31px;
   }
 
   &:hover {
@@ -545,25 +550,25 @@ const OverflowMenu = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.98)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.08), transparent 44%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 22px;
+  border-radius: 18px;
   box-shadow:
-    0 18px 40px rgba(16, 32, 51, 0.14),
+    0 16px 34px rgba(16, 32, 51, 0.14),
     0 6px 14px rgba(16, 32, 51, 0.08);
   display: ${({ $open }) => ($open ? "grid" : "none")};
   gap: 0.2rem;
-  min-width: min(calc(100vw - 1.4rem), 296px);
+  min-width: min(calc(100vw - 1.2rem), 280px);
   overflow: hidden;
   position: absolute;
   right: 0;
   top: calc(100% + 0.45rem);
-  width: min(calc(100vw - 1.4rem), 296px);
+  width: min(calc(100vw - 1.2rem), 280px);
   z-index: 50;
 `;
 
 const OverflowSection = styled.div`
   display: grid;
-  gap: 0.38rem;
-  padding: 0.75rem;
+  gap: 0.34rem;
+  padding: 0.7rem;
 `;
 
 const OverflowSectionTitle = styled.span`
@@ -587,16 +592,16 @@ const OverflowLink = styled(Link)`
       ? "linear-gradient(180deg, rgba(36, 75, 115, 0.12), rgba(36, 75, 115, 0.08))"
       : "rgba(255, 255, 255, 0.8)"};
   border: 1px solid ${({ $active }) => ($active ? "rgba(36, 75, 115, 0.14)" : "rgba(16, 32, 51, 0.06)")};
-  border-radius: 15px;
+  border-radius: 14px;
   color: ${({ $active }) => ($active ? "#244b73" : "#182742")};
   display: grid;
   gap: 0.2rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: ${({ $active }) => ($active ? 800 : 600)};
   letter-spacing: -0.02em;
-  min-height: 52px;
-  padding: 0.72rem 0.8rem;
+  min-height: 48px;
+  padding: 0.66rem 0.74rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -655,25 +660,26 @@ const OverflowActionLink = styled(Link)`
   border-radius: 999px;
   color: #244b73;
   display: inline-flex;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   justify-content: center;
-  min-height: 40px;
-  padding: 0 0.9rem;
+  min-height: 38px;
+  padding: 0 0.86rem;
 `;
 
 const OverflowLogoutButton = styled(AdminLogoutButton)`
   background: linear-gradient(180deg, #244b73, #1d3d5e);
   border-color: transparent;
   display: inline-flex;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   justify-content: center;
-  min-height: 40px;
+  min-height: 38px;
   width: 100%;
 `;
 
 const Main = styled.div`
   flex: 1;
+  padding-bottom: 1rem;
 `;
 
 export default function AdminShell({ children, messages, user }) {

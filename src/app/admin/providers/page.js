@@ -6,13 +6,25 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardDescription,
   CardTitle,
+  CheckboxChip,
+  CheckboxRow,
   Field,
   FieldGrid,
   FieldLabel,
   Input,
+  FormSection,
+  FormSectionTitle,
+  MetaPill,
   PrimaryButton,
+  RecordCard,
+  RecordHeader,
+  RecordMeta,
+  RecordStack,
+  RecordTitle,
+  RecordTitleBlock,
   SectionGrid,
   SmallText,
   StatusBadge,
@@ -59,65 +71,92 @@ export default async function ProvidersPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Configured providers</CardTitle>
-          <CardDescription>
-            Provider secrets remain env-only. This screen controls selection, defaults, labels, and
-            request defaults.
-          </CardDescription>
-          {snapshot.configs.map((provider) => (
-            <form action={saveProviderAction} key={provider.id}>
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>Provider key</FieldLabel>
-                  <Input defaultValue={provider.providerKey} name="providerKey" required />
-                </Field>
-                <Field>
-                  <FieldLabel>Label</FieldLabel>
-                  <Input defaultValue={provider.label} name="label" required />
-                </Field>
-                <Field>
-                  <FieldLabel>Base URL</FieldLabel>
-                  <Input defaultValue={provider.baseUrl || ""} name="baseUrl" />
-                </Field>
-                <Field>
-                  <FieldLabel>Credential state</FieldLabel>
-                  <div>
+          <CardHeader>
+            <CardTitle>Configured providers</CardTitle>
+            <CardDescription>
+              Provider secrets remain env-only. This screen controls selection, defaults, labels,
+              and request defaults.
+            </CardDescription>
+          </CardHeader>
+          <RecordStack>
+            {snapshot.configs.map((provider) => (
+              <RecordCard key={provider.id}>
+                <RecordHeader>
+                  <RecordTitleBlock>
+                    <RecordTitle>{provider.label}</RecordTitle>
+                    <SmallText>
+                      {provider.description || provider.baseUrl || "Provider configuration record."}
+                    </SmallText>
+                  </RecordTitleBlock>
+                  <RecordMeta>
+                    <MetaPill>{provider.providerKey}</MetaPill>
                     <StatusBadge $tone={provider.credentialState === "configured" ? "success" : "warning"}>
                       {provider.credentialState}
                     </StatusBadge>
-                  </div>
-                </Field>
-              </FieldGrid>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Description</FieldLabel>
-                <Textarea defaultValue={provider.description || ""} name="description" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Request defaults JSON</FieldLabel>
-                <Textarea
-                  defaultValue={JSON.stringify(provider.requestDefaultsJson || {}, null, 2)}
-                  name="requestDefaultsJson"
-                />
-              </Field>
-              <ButtonRow style={{ marginTop: "0.85rem" }}>
-                <label>
-                  <input defaultChecked={provider.isEnabled} name="isEnabled" type="checkbox" /> Enabled
-                </label>
-                <label>
-                  <input defaultChecked={provider.isSelectable} name="isSelectable" type="checkbox" /> Selectable
-                </label>
-                <label>
-                  <input defaultChecked={provider.isDefault} name="isDefault" type="checkbox" /> Default
-                </label>
-                <PrimaryButton type="submit">Save provider</PrimaryButton>
-              </ButtonRow>
-            </form>
-          ))}
+                  </RecordMeta>
+                </RecordHeader>
+
+                <form action={saveProviderAction}>
+                  <FieldGrid>
+                    <Field>
+                      <FieldLabel>Provider key</FieldLabel>
+                      <Input defaultValue={provider.providerKey} name="providerKey" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Label</FieldLabel>
+                      <Input defaultValue={provider.label} name="label" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Base URL</FieldLabel>
+                      <Input defaultValue={provider.baseUrl || ""} name="baseUrl" />
+                    </Field>
+                  </FieldGrid>
+
+                  <FormSection>
+                    <FormSectionTitle>Request behavior</FormSectionTitle>
+                    <Field>
+                      <FieldLabel>Description</FieldLabel>
+                      <Textarea defaultValue={provider.description || ""} name="description" />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Request defaults JSON</FieldLabel>
+                      <Textarea
+                        defaultValue={JSON.stringify(provider.requestDefaultsJson || {}, null, 2)}
+                        name="requestDefaultsJson"
+                      />
+                    </Field>
+                  </FormSection>
+
+                  <FormSection>
+                    <FormSectionTitle>Availability</FormSectionTitle>
+                    <CheckboxRow>
+                      <CheckboxChip>
+                        <input defaultChecked={provider.isEnabled} name="isEnabled" type="checkbox" /> Enabled
+                      </CheckboxChip>
+                      <CheckboxChip>
+                        <input defaultChecked={provider.isSelectable} name="isSelectable" type="checkbox" /> Selectable
+                      </CheckboxChip>
+                      <CheckboxChip>
+                        <input defaultChecked={provider.isDefault} name="isDefault" type="checkbox" /> Default
+                      </CheckboxChip>
+                    </CheckboxRow>
+                    <ButtonRow>
+                      <PrimaryButton type="submit">Save provider</PrimaryButton>
+                    </ButtonRow>
+                  </FormSection>
+                </form>
+              </RecordCard>
+            ))}
+          </RecordStack>
         </Card>
 
         <Card>
-          <CardTitle>Add provider record</CardTitle>
-          <CardDescription>Supported providers are seeded, but additional records can still be adjusted here.</CardDescription>
+          <CardHeader>
+            <CardTitle>Add provider record</CardTitle>
+            <CardDescription>
+              Supported providers are seeded, but additional records can still be adjusted here.
+            </CardDescription>
+          </CardHeader>
           <form action={saveProviderAction}>
             <FieldGrid>
               <Field>
@@ -129,23 +168,28 @@ export default async function ProvidersPage() {
                 <Input name="label" placeholder="Mediastack" required />
               </Field>
             </FieldGrid>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Description</FieldLabel>
-              <Textarea name="description" />
-            </Field>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Request defaults JSON</FieldLabel>
-              <Textarea name="requestDefaultsJson" placeholder='{"languages":["en"]}' />
-            </Field>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
-              <label>
-                <input defaultChecked name="isEnabled" type="checkbox" /> Enabled
-              </label>
-              <label>
-                <input defaultChecked name="isSelectable" type="checkbox" /> Selectable
-              </label>
-              <PrimaryButton type="submit">Create provider</PrimaryButton>
-            </ButtonRow>
+            <FormSection>
+              <FormSectionTitle>Defaults</FormSectionTitle>
+              <Field>
+                <FieldLabel>Description</FieldLabel>
+                <Textarea name="description" />
+              </Field>
+              <Field>
+                <FieldLabel>Request defaults JSON</FieldLabel>
+                <Textarea name="requestDefaultsJson" placeholder='{"languages":["en"]}' />
+              </Field>
+              <CheckboxRow>
+                <CheckboxChip>
+                  <input defaultChecked name="isEnabled" type="checkbox" /> Enabled
+                </CheckboxChip>
+                <CheckboxChip>
+                  <input defaultChecked name="isSelectable" type="checkbox" /> Selectable
+                </CheckboxChip>
+              </CheckboxRow>
+              <ButtonRow>
+                <PrimaryButton type="submit">Create provider</PrimaryButton>
+              </ButtonRow>
+            </FormSection>
           </form>
           <SmallText>
             Supported catalog: {snapshot.supportedProviders.map((provider) => provider.label).join(", ")}.

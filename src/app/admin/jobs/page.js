@@ -88,16 +88,16 @@ export default async function JobsPage({ searchParams }) {
                 <tbody>
                   {snapshot.fetchRuns.map((run) => (
                     <tr key={run.id}>
-                      <td>
+                      <td data-label="Stream">
                         <strong>{run.stream?.name || "Stream"}</strong>
                         <SmallText>{run.provider?.label || "Provider"}</SmallText>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <StatusBadge $tone={getTone(run.status)}>{run.status}</StatusBadge>
                       </td>
-                      <td>{run.fetchedCount}</td>
-                      <td>{run.publishedCount}</td>
-                      <td>{formatDateTime(run.startedAt)}</td>
+                      <td data-label="Fetched">{run.fetchedCount}</td>
+                      <td data-label="Published">{run.publishedCount}</td>
+                      <td data-label="Started">{formatDateTime(run.startedAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -125,16 +125,16 @@ export default async function JobsPage({ searchParams }) {
                 <tbody>
                   {snapshot.publishAttempts.map((attempt) => (
                     <tr key={attempt.id}>
-                      <td>
+                      <td data-label="Destination">
                         <strong>{attempt.destination?.name || attempt.platform}</strong>
                         <SmallText>{attempt.stream?.name || "Stream"}</SmallText>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
                       </td>
-                      <td>{attempt.remoteId || "Pending"}</td>
-                      <td>{formatDateTime(attempt.queuedAt)}</td>
-                      <td>
+                      <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
+                      <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
+                      <td data-label="Retry">
                         {attempt.status === "FAILED" ? (
                           <form action={retryPublishAttemptAction}>
                             <input name="attemptId" type="hidden" value={attempt.id} />
@@ -171,12 +171,12 @@ export default async function JobsPage({ searchParams }) {
               <tbody>
                 {snapshot.auditEvents.map((event) => (
                   <tr key={event.id}>
-                    <td>{event.action}</td>
-                    <td>
+                    <td data-label="Action">{event.action}</td>
+                    <td data-label="Entity">
                       <strong>{event.entityType}</strong>
                       <SmallText>{event.entityId}</SmallText>
                     </td>
-                    <td>{formatDateTime(event.createdAt)}</td>
+                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

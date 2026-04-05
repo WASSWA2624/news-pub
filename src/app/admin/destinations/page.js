@@ -6,13 +6,25 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardDescription,
   CardTitle,
+  CheckboxChip,
+  CheckboxRow,
   Field,
   FieldGrid,
   FieldLabel,
+  FormSection,
+  FormSectionTitle,
   Input,
+  MetaPill,
   PrimaryButton,
+  RecordCard,
+  RecordHeader,
+  RecordMeta,
+  RecordStack,
+  RecordTitle,
+  RecordTitleBlock,
   SectionGrid,
   SmallText,
   StatusBadge,
@@ -112,95 +124,131 @@ export default async function DestinationsPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Configured destinations</CardTitle>
-          {snapshot.destinations.map((destination) => (
-            <form action={saveDestinationAction} key={destination.id}>
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>Name</FieldLabel>
-                  <Input defaultValue={destination.name} name="name" required />
-                </Field>
-                <Field>
-                  <FieldLabel>Slug</FieldLabel>
-                  <Input defaultValue={destination.slug} name="slug" required />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Platform</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Platform"
-                    defaultValue={destination.platform}
-                    name="platform"
-                    options={platformOptions}
-                    placeholder="Select a platform"
-                  />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Kind</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Destination kind"
-                    defaultValue={destination.kind}
-                    name="kind"
-                    options={kindOptions}
-                    placeholder="Select a destination kind"
-                  />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Connection status</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Connection status"
-                    defaultValue={destination.connectionStatus}
-                    name="connectionStatus"
-                    options={connectionStatusOptions}
-                    placeholder="Select a connection status"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>Status</FieldLabel>
-                  <div>
+          <CardHeader>
+            <CardTitle>Configured destinations</CardTitle>
+            <CardDescription>Keep each publishing target compact, connected, and easy to audit from mobile.</CardDescription>
+          </CardHeader>
+          <RecordStack>
+            {snapshot.destinations.map((destination) => (
+              <RecordCard key={destination.id}>
+                <RecordHeader>
+                  <RecordTitleBlock>
+                    <RecordTitle>{destination.name}</RecordTitle>
+                    <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                  </RecordTitleBlock>
+                  <RecordMeta>
+                    <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
                     <StatusBadge $tone={getTone(destination.connectionStatus)}>
                       {destination.connectionStatus}
                     </StatusBadge>
-                  </div>
-                </Field>
-              </FieldGrid>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Account handle</FieldLabel>
-                <Input defaultValue={destination.accountHandle || ""} name="accountHandle" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>External account ID</FieldLabel>
-                <Input defaultValue={destination.externalAccountId || ""} name="externalAccountId" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Connection error</FieldLabel>
-                <Textarea defaultValue={destination.connectionError || ""} name="connectionError" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Settings JSON</FieldLabel>
-                <Textarea defaultValue={JSON.stringify(destination.settingsJson || {}, null, 2)} name="settingsJson" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Update token</FieldLabel>
-                <Input name="token" placeholder={destination.tokenHint ? `Stored token ending ${destination.tokenHint}` : "Paste a new token"} />
-              </Field>
-              <ButtonRow style={{ marginTop: "0.85rem" }}>
-                <label>
-                  <input name="clearToken" type="checkbox" /> Clear stored token
-                </label>
-                <PrimaryButton type="submit">Save destination</PrimaryButton>
-              </ButtonRow>
-              <SmallText>
-                Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
-              </SmallText>
-            </form>
-          ))}
+                  </RecordMeta>
+                </RecordHeader>
+
+                <form action={saveDestinationAction}>
+                  <FieldGrid>
+                    <Field>
+                      <FieldLabel>Name</FieldLabel>
+                      <Input defaultValue={destination.name} name="name" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Slug</FieldLabel>
+                      <Input defaultValue={destination.slug} name="slug" required />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Platform</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Platform"
+                        defaultValue={destination.platform}
+                        name="platform"
+                        options={platformOptions}
+                        placeholder="Select a platform"
+                      />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Kind</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Destination kind"
+                        defaultValue={destination.kind}
+                        name="kind"
+                        options={kindOptions}
+                        placeholder="Select a destination kind"
+                      />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Connection status</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Connection status"
+                        defaultValue={destination.connectionStatus}
+                        name="connectionStatus"
+                        options={connectionStatusOptions}
+                        placeholder="Select a connection status"
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Account handle</FieldLabel>
+                      <Input defaultValue={destination.accountHandle || ""} name="accountHandle" />
+                    </Field>
+                  </FieldGrid>
+
+                  <FormSection>
+                    <FormSectionTitle>Connection details</FormSectionTitle>
+                    <FieldGrid>
+                      <Field>
+                        <FieldLabel>External account ID</FieldLabel>
+                        <Input defaultValue={destination.externalAccountId || ""} name="externalAccountId" />
+                      </Field>
+                      <Field>
+                        <FieldLabel>Update token</FieldLabel>
+                        <Input
+                          name="token"
+                          placeholder={
+                            destination.tokenHint
+                              ? `Stored token ending ${destination.tokenHint}`
+                              : "Paste a new token"
+                          }
+                        />
+                      </Field>
+                    </FieldGrid>
+                    <CheckboxRow>
+                      <CheckboxChip>
+                        <input name="clearToken" type="checkbox" /> Clear stored token
+                      </CheckboxChip>
+                    </CheckboxRow>
+                  </FormSection>
+
+                  <FormSection>
+                    <FormSectionTitle>Operational notes</FormSectionTitle>
+                    <Field>
+                      <FieldLabel>Connection error</FieldLabel>
+                      <Textarea defaultValue={destination.connectionError || ""} name="connectionError" />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Settings JSON</FieldLabel>
+                      <Textarea
+                        defaultValue={JSON.stringify(destination.settingsJson || {}, null, 2)}
+                        name="settingsJson"
+                      />
+                    </Field>
+                    <ButtonRow>
+                      <PrimaryButton type="submit">Save destination</PrimaryButton>
+                    </ButtonRow>
+                    <SmallText>
+                      Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
+                    </SmallText>
+                  </FormSection>
+                </form>
+              </RecordCard>
+            ))}
+          </RecordStack>
         </Card>
 
         <Card>
-          <CardTitle>Add destination</CardTitle>
-          <CardDescription>
-            Website and social endpoints can be managed independently and connected to multiple streams.
-          </CardDescription>
+          <CardHeader>
+            <CardTitle>Add destination</CardTitle>
+            <CardDescription>
+              Website and social endpoints can be managed independently and connected to multiple streams.
+            </CardDescription>
+          </CardHeader>
           <form action={saveDestinationAction}>
             <FieldGrid>
               <Field>
@@ -232,9 +280,12 @@ export default async function DestinationsPage() {
                 />
               </Field>
             </FieldGrid>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
-              <PrimaryButton type="submit">Create destination</PrimaryButton>
-            </ButtonRow>
+            <FormSection>
+              <FormSectionTitle>Save record</FormSectionTitle>
+              <ButtonRow>
+                <PrimaryButton type="submit">Create destination</PrimaryButton>
+              </ButtonRow>
+            </FormSection>
           </form>
         </Card>
       </SectionGrid>

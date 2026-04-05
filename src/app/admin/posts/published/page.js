@@ -5,6 +5,7 @@ import {
   AdminPage,
   AdminTitle,
   Card,
+  CardHeader,
   CardTitle,
   DataTable,
   DataTableWrap,
@@ -58,7 +59,10 @@ export default async function PublishedPostsPage({ searchParams }) {
       </SummaryGrid>
 
       <Card>
-        <CardTitle>Published stories</CardTitle>
+        <CardHeader>
+          <CardTitle>Published stories</CardTitle>
+          <SmallText>Published inventory stays compact on mobile while preserving website and source context.</SmallText>
+        </CardHeader>
         {snapshot.items.length ? (
           <DataTableWrap>
             <DataTable>
@@ -75,19 +79,19 @@ export default async function PublishedPostsPage({ searchParams }) {
               <tbody>
                 {snapshot.items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Story">
                       <strong>{item.title}</strong>
                       <SmallText>{item.slug}</SmallText>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusBadge $tone={item.status === "PUBLISHED" ? "success" : "warning"}>
                         {item.status}
                       </StatusBadge>
                     </td>
-                    <td>{formatDateTime(item.publishedAt)}</td>
-                    <td>{item.sourceName}</td>
-                    <td>{item.websitePublished ? "Yes" : "No"}</td>
-                    <td>
+                    <td data-label="Published">{formatDateTime(item.publishedAt)}</td>
+                    <td data-label="Source">{item.sourceName}</td>
+                    <td data-label="Website">{item.websitePublished ? "Yes" : "No"}</td>
+                    <td data-label="Action">
                       <LinkButton href={`/admin/posts/${item.id}`}>Open editor</LinkButton>
                     </td>
                   </tr>

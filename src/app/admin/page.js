@@ -108,17 +108,17 @@ export default async function AdminDashboardPage() {
                 <tbody>
                   {snapshot.recentFetchRuns.map((run) => (
                     <tr key={run.id}>
-                      <td>
+                      <td data-label="Stream">
                         <strong>{run.stream?.name || "Stream"}</strong>
                         <SmallText>{run.provider?.label || "Provider"}</SmallText>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <StatusBadge $tone={getTone(run.status)}>{run.status}</StatusBadge>
                       </td>
-                      <td>{run.fetchedCount}</td>
-                      <td>{run.publishableCount}</td>
-                      <td>{run.publishedCount}</td>
-                      <td>{formatDateTime(run.startedAt)}</td>
+                      <td data-label="Fetched">{run.fetchedCount}</td>
+                      <td data-label="Publishable">{run.publishableCount}</td>
+                      <td data-label="Published">{run.publishedCount}</td>
+                      <td data-label="Started">{formatDateTime(run.startedAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -165,15 +165,15 @@ export default async function AdminDashboardPage() {
                 <tbody>
                   {snapshot.recentPublishAttempts.map((attempt) => (
                     <tr key={attempt.id}>
-                      <td>
+                      <td data-label="Destination">
                         <strong>{attempt.destination?.name || attempt.platform}</strong>
                         <SmallText>{attempt.stream?.name || "Stream"}</SmallText>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
                       </td>
-                      <td>{attempt.remoteId || "Pending"}</td>
-                      <td>{formatDateTime(attempt.queuedAt)}</td>
+                      <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
+                      <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,12 +199,12 @@ export default async function AdminDashboardPage() {
                 <tbody>
                   {snapshot.latestStories.map((story) => (
                     <tr key={story.id}>
-                      <td>
+                      <td data-label="Story">
                         <strong>{story.title}</strong>
                         <SmallText>{story.slug}</SmallText>
                       </td>
-                      <td>{formatDateTime(story.publishedAt)}</td>
-                      {snapshot.canViewAnalytics ? <td>{story.viewCount}</td> : null}
+                      <td data-label="Published">{formatDateTime(story.publishedAt)}</td>
+                      {snapshot.canViewAnalytics ? <td data-label="Views">{story.viewCount}</td> : null}
                     </tr>
                   ))}
                 </tbody>

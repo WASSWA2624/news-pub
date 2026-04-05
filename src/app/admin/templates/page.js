@@ -6,13 +6,23 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardDescription,
   CardTitle,
   Field,
   FieldGrid,
   FieldLabel,
+  FormSection,
+  FormSectionTitle,
   Input,
+  MetaPill,
   PrimaryButton,
+  RecordCard,
+  RecordHeader,
+  RecordMeta,
+  RecordStack,
+  RecordTitle,
+  RecordTitleBlock,
   SectionGrid,
   SmallText,
   SummaryCard,
@@ -76,74 +86,103 @@ export default async function TemplatesPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Configured templates</CardTitle>
-          {snapshot.templates.map((template) => (
-            <form action={saveTemplateAction} key={template.id}>
-              <input name="id" type="hidden" value={template.id} />
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>Name</FieldLabel>
-                  <Input defaultValue={template.name} name="name" required />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Platform</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Template platform"
-                    defaultValue={template.platform}
-                    name="platform"
-                    options={platformOptions}
-                    placeholder="Select a platform"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>Locale override</FieldLabel>
-                  <Input defaultValue={template.locale || ""} name="locale" />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Category override</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Category override"
-                    defaultValue={template.categoryId || ""}
-                    name="categoryId"
-                    options={categoryOptions}
-                    placeholder="Select a category override"
-                  />
-                </Field>
-              </FieldGrid>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Title template</FieldLabel>
-                <Textarea defaultValue={template.titleTemplate || ""} name="titleTemplate" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Summary template</FieldLabel>
-                <Textarea defaultValue={template.summaryTemplate || ""} name="summaryTemplate" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Body template</FieldLabel>
-                <Textarea defaultValue={template.bodyTemplate} name="bodyTemplate" />
-              </Field>
-              <Field style={{ marginTop: "0.85rem" }}>
-                <FieldLabel>Hashtags template</FieldLabel>
-                <Textarea defaultValue={template.hashtagsTemplate || ""} name="hashtagsTemplate" />
-              </Field>
-              <ButtonRow style={{ marginTop: "0.85rem" }}>
-                <label>
-                  <input defaultChecked={template.isDefault} name="isDefault" type="checkbox" /> Default for platform
-                </label>
-                <PrimaryButton type="submit">Save template</PrimaryButton>
-              </ButtonRow>
-              <SmallText>
-                Linked streams: {(template.streams || []).map((stream) => stream.name).join(", ") || "None"}
-              </SmallText>
-            </form>
-          ))}
+          <CardHeader>
+            <CardTitle>Configured templates</CardTitle>
+            <CardDescription>Each template stays grouped by overrides so editorial teams can scan intent quickly.</CardDescription>
+          </CardHeader>
+          <RecordStack>
+            {snapshot.templates.map((template) => (
+              <RecordCard key={template.id}>
+                <RecordHeader>
+                  <RecordTitleBlock>
+                    <RecordTitle>{template.name}</RecordTitle>
+                    <SmallText>
+                      {template.category?.name || template.locale || "Platform-level template"}
+                    </SmallText>
+                  </RecordTitleBlock>
+                  <RecordMeta>
+                    <MetaPill>{formatEnumLabel(template.platform)}</MetaPill>
+                    {template.isDefault ? <MetaPill>Default</MetaPill> : null}
+                  </RecordMeta>
+                </RecordHeader>
+
+                <form action={saveTemplateAction}>
+                  <input name="id" type="hidden" value={template.id} />
+                  <FormSection>
+                    <FormSectionTitle>Resolution rules</FormSectionTitle>
+                    <FieldGrid>
+                      <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <Input defaultValue={template.name} name="name" required />
+                      </Field>
+                      <Field as="div">
+                        <FieldLabel>Platform</FieldLabel>
+                        <SearchableSelect
+                          ariaLabel="Template platform"
+                          defaultValue={template.platform}
+                          name="platform"
+                          options={platformOptions}
+                          placeholder="Select a platform"
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel>Locale override</FieldLabel>
+                        <Input defaultValue={template.locale || ""} name="locale" />
+                      </Field>
+                      <Field as="div">
+                        <FieldLabel>Category override</FieldLabel>
+                        <SearchableSelect
+                          ariaLabel="Category override"
+                          defaultValue={template.categoryId || ""}
+                          name="categoryId"
+                          options={categoryOptions}
+                          placeholder="Select a category override"
+                        />
+                      </Field>
+                    </FieldGrid>
+                  </FormSection>
+
+                  <FormSection>
+                    <FormSectionTitle>Template content</FormSectionTitle>
+                    <Field>
+                      <FieldLabel>Title template</FieldLabel>
+                      <Textarea defaultValue={template.titleTemplate || ""} name="titleTemplate" />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Summary template</FieldLabel>
+                      <Textarea defaultValue={template.summaryTemplate || ""} name="summaryTemplate" />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Body template</FieldLabel>
+                      <Textarea defaultValue={template.bodyTemplate} name="bodyTemplate" />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Hashtags template</FieldLabel>
+                      <Textarea defaultValue={template.hashtagsTemplate || ""} name="hashtagsTemplate" />
+                    </Field>
+                    <ButtonRow>
+                      <label>
+                        <input defaultChecked={template.isDefault} name="isDefault" type="checkbox" /> Default for platform
+                      </label>
+                      <PrimaryButton type="submit">Save template</PrimaryButton>
+                    </ButtonRow>
+                    <SmallText>
+                      Linked streams: {(template.streams || []).map((stream) => stream.name).join(", ") || "None"}
+                    </SmallText>
+                  </FormSection>
+                </form>
+              </RecordCard>
+            ))}
+          </RecordStack>
         </Card>
 
         <Card>
-          <CardTitle>Add template</CardTitle>
-          <CardDescription>
-            Template selection order follows stream, platform plus category, platform plus locale, then platform default.
-          </CardDescription>
+          <CardHeader>
+            <CardTitle>Add template</CardTitle>
+            <CardDescription>
+              Template selection order follows stream, platform plus category, platform plus locale, then platform default.
+            </CardDescription>
+          </CardHeader>
           <form action={saveTemplateAction}>
             <FieldGrid>
               <Field>
@@ -161,16 +200,19 @@ export default async function TemplatesPage() {
                 />
               </Field>
             </FieldGrid>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Body template</FieldLabel>
-              <Textarea
-                name="bodyTemplate"
-                placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
-              />
-            </Field>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
-              <PrimaryButton type="submit">Create template</PrimaryButton>
-            </ButtonRow>
+            <FormSection>
+              <FormSectionTitle>Body template</FormSectionTitle>
+              <Field>
+                <FieldLabel>Body template</FieldLabel>
+                <Textarea
+                  name="bodyTemplate"
+                  placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
+                />
+              </Field>
+              <ButtonRow>
+                <PrimaryButton type="submit">Create template</PrimaryButton>
+              </ButtonRow>
+            </FormSection>
           </form>
         </Card>
       </SectionGrid>

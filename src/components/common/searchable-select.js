@@ -4,13 +4,13 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 
-const VIEWPORT_MARGIN = 12;
+const VIEWPORT_MARGIN = 10;
 const DROPDOWN_GAP = 8;
-const MIN_DROPDOWN_WIDTH = 280;
-const BASE_DROPDOWN_WIDTH = 340;
-const MAX_DROPDOWN_WIDTH = 520;
-const DEFAULT_DROPDOWN_HEIGHT = 360;
-const MIN_FIT_THRESHOLD = 220;
+const MIN_DROPDOWN_WIDTH = 240;
+const BASE_DROPDOWN_WIDTH = 320;
+const MAX_DROPDOWN_WIDTH = 460;
+const DEFAULT_DROPDOWN_HEIGHT = 320;
+const MIN_FIT_THRESHOLD = 200;
 
 function clampValue(value, minimum, maximum) {
   if (maximum < minimum) {
@@ -209,19 +209,19 @@ const TriggerButton = styled.button`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 255, 0.96)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.06), transparent 55%);
-  border: 1px solid ${({ $invalid, theme }) => ($invalid ? theme.colors.danger : theme.colors.border)};
+  border: 1px solid ${({ $invalid }) => ($invalid ? "var(--theme-danger, #b42318)" : "var(--theme-border, #b8c8de)")};
   border-radius: ${({ theme }) => theme.radius.sm};
   box-shadow:
     0 10px 24px rgba(16, 32, 51, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  color: ${({ theme }) => theme.colors.text};
+  color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
-  gap: 0.75rem;
+  gap: 0.68rem;
   justify-content: space-between;
-  min-height: 46px;
+  min-height: 42px;
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0.72rem 0.9rem;
+  padding: 0.66rem 0.8rem;
   text-align: left;
   transition:
     border-color 160ms ease,
@@ -230,12 +230,12 @@ const TriggerButton = styled.button`
   width: 100%;
 
   &:hover {
-    border-color: ${({ disabled, theme }) => (disabled ? theme.colors.border : "rgba(36, 75, 115, 0.24)")};
+    border-color: ${({ disabled }) => (disabled ? "var(--theme-border, #b8c8de)" : "rgba(36, 75, 115, 0.24)")};
     transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
   }
 
   &:focus-visible {
-    border-color: ${({ $invalid, theme }) => ($invalid ? theme.colors.danger : theme.colors.primary)};
+    border-color: ${({ $invalid }) => ($invalid ? "var(--theme-danger, #b42318)" : "var(--theme-primary, #1b4f93)")};
     box-shadow:
       0 16px 30px rgba(16, 32, 51, 0.08),
       0 0 0 4px
@@ -258,13 +258,13 @@ const TriggerLabel = styled.span`
 `;
 
 const PlaceholderText = styled(TriggerLabel)`
-  color: ${({ theme }) => theme.colors.muted};
+  color: var(--theme-muted, #54657f);
   font-weight: 500;
 `;
 
 const TriggerDescription = styled.span`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 0.76rem;
+  color: var(--theme-muted, #54657f);
+  font-size: 0.72rem;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -284,12 +284,12 @@ const TriggerBadge = styled.span`
   border-radius: 999px;
   color: #244b73;
   display: inline-flex;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  max-width: 7.5rem;
+  max-width: 6.8rem;
   overflow: hidden;
-  padding: 0.24rem 0.48rem;
+  padding: 0.2rem 0.44rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -309,17 +309,17 @@ const DropdownSurface = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.985)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.09), transparent 58%);
   border: 1px solid rgba(24, 39, 66, 0.1);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow:
     0 28px 54px rgba(16, 32, 51, 0.14),
     0 6px 16px rgba(16, 32, 51, 0.05);
   display: grid;
-  gap: 0.55rem;
+  gap: 0.48rem;
   grid-template-rows: auto minmax(0, 1fr);
   left: ${({ $layout }) => `${$layout?.left || 0}px`};
   max-height: ${({ $layout }) => `${$layout?.maxHeight || DEFAULT_DROPDOWN_HEIGHT}px`};
   overflow: hidden;
-  padding: 0.68rem;
+  padding: 0.58rem;
   position: fixed;
   top: ${({ $layout }) => `${$layout?.top || 0}px`};
   width: ${({ $layout }) => `${$layout?.width || BASE_DROPDOWN_WIDTH}px`};
@@ -334,8 +334,8 @@ const SearchWrap = styled.div`
   display: flex;
   flex: 0 0 auto;
   gap: 0.55rem;
-  min-height: 40px;
-  padding: 0 0.72rem;
+  min-height: 38px;
+  padding: 0 0.66rem;
 
   &:focus-within {
     border-color: rgba(36, 75, 115, 0.2);
@@ -368,22 +368,22 @@ const SearchIcon = styled.span`
 const SearchInput = styled.input`
   background: transparent;
   border: none;
-  color: ${({ theme }) => theme.colors.text};
+  color: var(--theme-text, #152844);
   flex: 1 1 auto;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   min-width: 0;
   outline: none;
   padding: 0;
 
   &::placeholder {
-    color: ${({ theme }) => theme.colors.muted};
+    color: var(--theme-muted, #54657f);
   }
 `;
 
 const OptionList = styled.div`
   display: grid;
   flex: 1 1 auto;
-  gap: 0.34rem;
+  gap: 0.3rem;
   max-height: 100%;
   min-height: 0;
   overflow: auto;
@@ -404,14 +404,14 @@ const OptionButton = styled.button`
         : $active
           ? "rgba(36, 75, 115, 0.14)"
           : "transparent"};
-  border-radius: 14px;
-  color: ${({ theme }) => theme.colors.text};
+  border-radius: 13px;
+  color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: grid;
-  gap: 0.34rem;
-  min-height: 56px;
+  gap: 0.3rem;
+  min-height: 50px;
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
-  padding: 0.72rem 0.82rem;
+  padding: 0.64rem 0.74rem;
   text-align: left;
   transition:
     background 160ms ease,
@@ -429,20 +429,20 @@ const OptionButton = styled.button`
 const OptionHeader = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.48rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const OptionLabel = styled.div`
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.28;
   overflow-wrap: anywhere;
 `;
 
 const OptionDescription = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
-  font-size: 0.78rem;
+  color: var(--theme-muted, #54657f);
+  font-size: 0.74rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
 `;
@@ -451,7 +451,7 @@ const OptionMeta = styled.div`
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0.45rem;
+  gap: 0.38rem;
   justify-self: end;
   padding-top: 0.08rem;
 `;
@@ -463,12 +463,12 @@ const OptionBadge = styled.span`
   color: #244b73;
   display: inline-flex;
   flex: 0 1 auto;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  max-width: 10rem;
+  max-width: 8rem;
   overflow: hidden;
-  padding: 0.22rem 0.46rem;
+  padding: 0.2rem 0.42rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -485,7 +485,7 @@ const OptionIndicator = styled.span`
 `;
 
 const StateMessage = styled.div`
-  color: ${({ theme }) => theme.colors.muted};
+  color: var(--theme-muted, #54657f);
   font-size: 0.82rem;
   line-height: 1.55;
   padding: 0.28rem 0.4rem;

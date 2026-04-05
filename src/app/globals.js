@@ -25,20 +25,20 @@ function toRgbChannels(hex) {
 const GlobalStyles = createGlobalStyle`
   :root {
     color-scheme: light;
-    --theme-accent: ${({ theme }) => theme.colors.accent};
-    --theme-accent-rgb: ${({ theme }) => toRgbChannels(theme.colors.accent)};
-    --theme-bg: ${({ theme }) => theme.colors.bg};
-    --theme-bg-rgb: ${({ theme }) => toRgbChannels(theme.colors.bg)};
-    --theme-border: ${({ theme }) => theme.colors.border};
-    --theme-border-rgb: ${({ theme }) => toRgbChannels(theme.colors.border)};
-    --theme-muted: ${({ theme }) => theme.colors.muted};
-    --theme-muted-rgb: ${({ theme }) => toRgbChannels(theme.colors.muted)};
-    --theme-primary: ${({ theme }) => theme.colors.primary};
-    --theme-primary-rgb: ${({ theme }) => toRgbChannels(theme.colors.primary)};
-    --theme-surface: ${({ theme }) => theme.colors.surface};
-    --theme-surface-rgb: ${({ theme }) => toRgbChannels(theme.colors.surface)};
-    --theme-text: ${({ theme }) => theme.colors.text};
-    --theme-text-rgb: ${({ theme }) => toRgbChannels(theme.colors.text)};
+    --theme-accent: ${({ theme }) => theme?.colors?.accent || "#3f7ae0"};
+    --theme-accent-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.accent || "#3f7ae0")};
+    --theme-bg: ${({ theme }) => theme?.colors?.bg || "#edf3fb"};
+    --theme-bg-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.bg || "#edf3fb")};
+    --theme-border: ${({ theme }) => theme?.colors?.border || "#b8c8de"};
+    --theme-border-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.border || "#b8c8de")};
+    --theme-muted: ${({ theme }) => theme?.colors?.muted || "#54657f"};
+    --theme-muted-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.muted || "#54657f")};
+    --theme-primary: ${({ theme }) => theme?.colors?.primary || "#1b4f93"};
+    --theme-primary-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.primary || "#1b4f93")};
+    --theme-surface: ${({ theme }) => theme?.colors?.surface || "#f8fbff"};
+    --theme-surface-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.surface || "#f8fbff")};
+    --theme-text: ${({ theme }) => theme?.colors?.text || "#152844"};
+    --theme-text-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.text || "#152844")};
   }
 
   * {
@@ -49,7 +49,7 @@ const GlobalStyles = createGlobalStyle`
   body {
     margin: 0;
     min-height: 100%;
-    background-color: ${({ theme }) => theme.colors.bg};
+    background-color: ${({ theme }) => theme?.colors?.bg || "#edf3fb"};
     background:
       radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.1), transparent 24%),
       radial-gradient(circle at 88% 12%, rgba(var(--theme-primary-rgb), 0.07), transparent 22%),
@@ -59,7 +59,7 @@ const GlobalStyles = createGlobalStyle`
         rgba(var(--theme-surface-rgb), 0.98) 46%,
         rgba(var(--theme-bg-rgb), 0.96) 100%
       );
-    color: ${({ theme }) => theme.colors.text};
+    color: ${({ theme }) => theme?.colors?.text || "#152844"};
     font-family: var(--font-ui), "Segoe UI", sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -77,7 +77,7 @@ const GlobalStyles = createGlobalStyle`
 
   ::selection {
     background: rgba(var(--theme-accent-rgb), 0.22);
-    color: ${({ theme }) => theme.colors.text};
+    color: ${({ theme }) => theme?.colors?.text || "#152844"};
   }
 
   button,

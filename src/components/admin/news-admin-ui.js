@@ -3,110 +3,221 @@ import styled from "styled-components";
 
 export const AdminPage = styled.main`
   display: grid;
-  gap: 1.15rem;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: 1380px;
+  padding: clamp(0.8rem, 2.6vw, 1.5rem);
+  width: 100%;
 `;
 
 export const AdminHero = styled.section`
   background:
-    radial-gradient(circle at top left, rgba(14, 106, 137, 0.18), transparent 30%),
-    radial-gradient(circle at 88% 18%, rgba(244, 191, 54, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.94));
+    radial-gradient(circle at top left, rgba(15, 111, 141, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 18%, rgba(224, 165, 58, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 249, 253, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 18px;
-  box-shadow: 0 18px 44px rgba(17, 31, 55, 0.06);
+  box-shadow: 0 18px 40px rgba(17, 31, 55, 0.06);
   display: grid;
-  gap: 0.65rem;
-  padding: clamp(1rem, 2.6vw, 1.6rem);
+  gap: 0.5rem;
+  padding: clamp(0.95rem, 3vw, 1.35rem);
 `;
 
 export const AdminEyebrow = styled.p`
-  color: rgba(14, 90, 122, 0.82);
-  font-size: 0.76rem;
+  color: rgba(14, 90, 122, 0.8);
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   margin: 0;
   text-transform: uppercase;
 `;
 
 export const AdminTitle = styled.h1`
   color: #162744;
-  font-size: clamp(1.85rem, 4vw, 2.8rem);
-  letter-spacing: -0.045em;
-  line-height: 1;
+  font-size: clamp(1.45rem, 5vw, 2.45rem);
+  letter-spacing: -0.04em;
+  line-height: 0.98;
   margin: 0;
 `;
 
 export const AdminDescription = styled.p`
   color: rgba(72, 85, 108, 0.94);
+  font-size: 0.94rem;
   line-height: 1.65;
   margin: 0;
-  max-width: 72ch;
+  max-width: 68ch;
 `;
 
 export const SummaryGrid = styled.div`
   display: grid;
-  gap: 0.85rem;
+  gap: 0.75rem;
 
-  @media (min-width: 780px) {
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 980px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 `;
 
 export const SummaryCard = styled.article`
-  background: rgba(255, 255, 255, 0.88);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.95)),
+    radial-gradient(circle at top right, rgba(36, 75, 115, 0.06), transparent 46%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+  border-radius: 16px;
+  box-shadow: 0 14px 30px rgba(18, 34, 58, 0.04);
   display: grid;
-  gap: 0.2rem;
-  padding: 0.9rem 1rem;
+  gap: 0.22rem;
+  padding: 0.85rem 0.95rem;
 `;
 
 export const SummaryValue = styled.strong`
   color: #132949;
-  font-size: 1.25rem;
+  font-size: clamp(1.05rem, 3.5vw, 1.35rem);
+  letter-spacing: -0.03em;
 `;
 
 export const SummaryLabel = styled.span`
   color: rgba(73, 87, 112, 0.82);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
 `;
 
 export const SectionGrid = styled.div`
+  align-items: start;
   display: grid;
-  gap: 1rem;
+  gap: 0.95rem;
 
   @media (min-width: 1080px) {
-    align-items: start;
     grid-template-columns: ${({ $wide }) =>
-      $wide ? "minmax(0, 1.45fr) minmax(320px, 0.95fr)" : "minmax(0, 1fr) minmax(320px, 360px)"};
+      $wide ? "minmax(0, 1.35fr) minmax(300px, 0.9fr)" : "minmax(0, 1fr) minmax(280px, 360px)"};
   }
+`;
+
+export const SidebarStack = styled.div`
+  display: grid;
+  gap: 0.95rem;
 `;
 
 export const Card = styled.section`
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 18px;
-  box-shadow: 0 16px 38px rgba(18, 34, 58, 0.05);
+  box-shadow: 0 16px 34px rgba(18, 34, 58, 0.05);
   display: grid;
-  gap: 0.95rem;
-  padding: clamp(1rem, 2vw, 1.2rem);
+  gap: 0.85rem;
+  min-width: 0;
+  padding: clamp(0.9rem, 2.4vw, 1.15rem);
+`;
+
+export const CardHeader = styled.div`
+  display: grid;
+  gap: 0.3rem;
 `;
 
 export const CardTitle = styled.h2`
   color: #162744;
-  font-size: 1.15rem;
+  font-size: 1.06rem;
   letter-spacing: -0.03em;
   margin: 0;
 `;
 
 export const CardDescription = styled.p`
   color: rgba(72, 85, 108, 0.92);
+  font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
 `;
 
+export const RecordStack = styled.div`
+  display: grid;
+  gap: 0.8rem;
+`;
+
+export const RecordCard = styled.article`
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.95)),
+    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 44%);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.85rem;
+`;
+
+export const RecordHeader = styled.div`
+  display: grid;
+  gap: 0.55rem;
+
+  @media (min-width: 720px) {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+`;
+
+export const RecordTitleBlock = styled.div`
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+`;
+
+export const RecordTitle = styled.h3`
+  color: #172844;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+`;
+
+export const RecordMeta = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+`;
+
+export const MetaPill = styled.span`
+  align-items: center;
+  background: rgba(36, 75, 115, 0.08);
+  border: 1px solid rgba(36, 75, 115, 0.12);
+  border-radius: 999px;
+  color: #244b73;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  min-height: 28px;
+  padding: 0 0.66rem;
+  text-transform: uppercase;
+`;
+
+export const FormSection = styled.div`
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.8rem;
+
+  &:not(:first-child) {
+    border-top: 1px solid rgba(16, 32, 51, 0.08);
+  }
+`;
+
+export const FormSectionTitle = styled.h4`
+  color: #21344f;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+`;
+
 export const DataTableWrap = styled.div`
+  min-width: 0;
   overflow-x: auto;
+
+  @media (max-width: 719px) {
+    overflow: visible;
+  }
 `;
 
 export const DataTable = styled.table`
@@ -116,43 +227,103 @@ export const DataTable = styled.table`
   th,
   td {
     border-bottom: 1px solid rgba(16, 32, 51, 0.08);
-    padding: 0.7rem 0.45rem;
+    padding: 0.72rem 0.45rem;
     text-align: left;
     vertical-align: top;
   }
 
   th {
     color: rgba(60, 76, 104, 0.82);
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
   }
 
   td {
     color: #21344f;
+    font-size: 0.92rem;
     line-height: 1.55;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 719px) {
+    display: block;
+
+    thead {
+      border: 0;
+      clip: rect(0 0 0 0);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      width: 1px;
+    }
+
+    tbody {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    tr {
+      background:
+        linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(255, 255, 255, 0.96)),
+        radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 48%);
+      border: 1px solid rgba(16, 32, 51, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(16, 32, 51, 0.04);
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.85rem;
+    }
+
+    th,
+    td {
+      border: none;
+      display: grid;
+      gap: 0.14rem;
+      padding: 0;
+    }
+
+    td::before {
+      color: rgba(69, 83, 108, 0.86);
+      content: attr(data-label);
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
   }
 `;
 
 export const FieldGrid = styled.div`
   display: grid;
-  gap: 0.85rem;
+  gap: 0.75rem;
 
-  @media (min-width: 720px) {
+  @media (min-width: 700px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1240px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 `;
 
 export const Field = styled.label`
   display: grid;
-  gap: 0.36rem;
+  gap: 0.34rem;
+  min-width: 0;
 `;
 
 export const FieldLabel = styled.span`
   color: #22344f;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
 `;
 
 const fieldStyles = `
@@ -160,9 +331,19 @@ const fieldStyles = `
   border: 1px solid rgba(16, 32, 51, 0.12);
   border-radius: 12px;
   color: #1f314b;
-  min-height: 44px;
-  padding: 0.72rem 0.85rem;
+  min-height: 42px;
+  padding: 0.7rem 0.82rem;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
   width: 100%;
+
+  &:focus {
+    border-color: rgba(27, 79, 147, 0.42);
+    box-shadow: 0 0 0 4px rgba(27, 79, 147, 0.08);
+    outline: none;
+  }
 `;
 
 export const Input = styled.input`
@@ -175,14 +356,45 @@ export const Select = styled.select`
 
 export const Textarea = styled.textarea`
   ${fieldStyles}
-  min-height: 132px;
+  min-height: 128px;
   resize: vertical;
 `;
 
-export const ButtonRow = styled.div`
+export const CheckboxRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.55rem;
+`;
+
+export const CheckboxChip = styled.label`
+  align-items: center;
+  background: rgba(16, 32, 51, 0.04);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 999px;
+  color: #22344f;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  min-height: 38px;
+  padding: 0 0.78rem;
+
+  input {
+    accent-color: var(--theme-primary);
+    margin: 0;
+  }
+`;
+
+export const ButtonRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+
+  > form {
+    display: inline-flex;
+  }
 
   @media (max-width: 560px) {
     > button,
@@ -197,48 +409,82 @@ export const ButtonRow = styled.div`
   }
 `;
 
-export const PrimaryButton = styled.button`
+const buttonStyles = `
   align-items: center;
-  background: linear-gradient(135deg, #0f6f8d 0%, #0b5871 100%);
-  border: none;
   border-radius: 999px;
-  color: white;
   cursor: pointer;
   display: inline-flex;
+  font-size: 0.88rem;
   font-weight: 800;
   justify-content: center;
-  min-height: 42px;
-  padding: 0.72rem 1rem;
+  min-height: 40px;
+  padding: 0.66rem 0.95rem;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.7;
+  }
+`;
+
+export const PrimaryButton = styled.button`
+  ${buttonStyles}
+  background: linear-gradient(135deg, #0f6f8d 0%, #0d5f79 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 12px 24px rgba(15, 96, 121, 0.18);
+  color: white;
+
+  &:focus-visible {
+    box-shadow:
+      0 12px 24px rgba(15, 96, 121, 0.2),
+      0 0 0 4px rgba(15, 111, 141, 0.12);
+  }
 `;
 
 export const SecondaryButton = styled.button`
-  align-items: center;
+  ${buttonStyles}
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 999px;
   color: #22344f;
-  cursor: pointer;
-  display: inline-flex;
-  font-weight: 700;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0.72rem 1rem;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px rgba(27, 79, 147, 0.08);
+  }
+`;
+
+export const DangerButton = styled.button`
+  ${buttonStyles}
+  background: rgba(180, 35, 24, 0.08);
+  border: 1px solid rgba(180, 35, 24, 0.14);
+  color: #a63725;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.08);
+  }
 `;
 
 export const LinkButton = styled(Link)`
-  align-items: center;
+  ${buttonStyles}
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 999px;
   color: #22344f;
-  display: inline-flex;
-  font-weight: 700;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0.72rem 1rem;
 `;
 
 export const StatusBadge = styled.span`
+  align-items: center;
   background: ${({ $tone }) =>
     $tone === "success"
       ? "rgba(27, 138, 73, 0.1)"
@@ -266,9 +512,12 @@ export const StatusBadge = styled.span`
           ? "#8f630c"
           : "#30435f"};
   display: inline-flex;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  padding: 0.28rem 0.62rem;
+  letter-spacing: 0.08em;
+  min-height: 28px;
+  padding: 0 0.62rem;
+  text-transform: uppercase;
   width: fit-content;
 `;
 
@@ -280,6 +529,7 @@ export const EmptyState = styled.p`
 
 export const SmallText = styled.p`
   color: rgba(72, 85, 108, 0.88);
+  font-size: 0.86rem;
   line-height: 1.55;
   margin: 0;
 `;

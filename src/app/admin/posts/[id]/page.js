@@ -13,16 +13,20 @@ import {
   Field,
   FieldGrid,
   FieldLabel,
+  FormSection,
+  FormSectionTitle,
   Input,
   LinkButton,
   PrimaryButton,
   SectionGrid,
+  SidebarStack,
   SmallText,
   StatusBadge,
   Textarea,
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
@@ -98,87 +102,109 @@ export default async function PostEditorPage({ params }) {
           <form action={updatePostEditorAction}>
             <input name="locale" type="hidden" value={translation?.locale || defaultLocale} />
             <input name="postId" type="hidden" value={snapshot.post.id} />
-            <FieldGrid>
+            <FormSection>
+              <FormSectionTitle>Editorial settings</FormSectionTitle>
+              <FieldGrid>
+                <Field>
+                  <FieldLabel>Slug</FieldLabel>
+                  <Input defaultValue={snapshot.post.slug} name="slug" required />
+                </Field>
+                <Field as="div">
+                  <FieldLabel>Status</FieldLabel>
+                  <SearchableSelect
+                    ariaLabel="Story status"
+                    defaultValue={snapshot.post.status}
+                    name="status"
+                    options={statusOptions}
+                    placeholder="Select a status"
+                  />
+                </Field>
+                <Field as="div">
+                  <FieldLabel>Editorial stage</FieldLabel>
+                  <SearchableSelect
+                    ariaLabel="Editorial stage"
+                    defaultValue={snapshot.post.editorialStage}
+                    name="editorialStage"
+                    options={editorialStageOptions}
+                    placeholder="Select an editorial stage"
+                  />
+                </Field>
+                <Field as="div">
+                  <FieldLabel>Publish target match</FieldLabel>
+                  <SearchableSelect
+                    ariaLabel="Publish target match"
+                    defaultValue={defaultArticleMatch?.id || ""}
+                    name="articleMatchId"
+                    options={articleMatchOptions}
+                    placeholder="Select a destination match"
+                  />
+                </Field>
+              </FieldGrid>
+            </FormSection>
+
+            <FormSection>
+              <FormSectionTitle>Story copy</FormSectionTitle>
               <Field>
-                <FieldLabel>Slug</FieldLabel>
-                <Input defaultValue={snapshot.post.slug} name="slug" required />
+                <FieldLabel>Title</FieldLabel>
+                <Input defaultValue={translation?.title || ""} name="title" required />
               </Field>
-              <Field as="div">
-                <FieldLabel>Status</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Story status"
-                  defaultValue={snapshot.post.status}
-                  name="status"
-                  options={statusOptions}
-                  placeholder="Select a status"
+              <Field>
+                <FieldLabel>Summary</FieldLabel>
+                <Textarea defaultValue={translation?.summary || snapshot.post.excerpt} name="summary" />
+              </Field>
+              <Field>
+                <FieldLabel>Body markdown</FieldLabel>
+                <Textarea
+                  defaultValue={translation?.contentMd || ""}
+                  name="contentMd"
+                  style={{ minHeight: "280px" }}
                 />
               </Field>
+            </FormSection>
+
+            <FormSection>
+              <FormSectionTitle>Publishing</FormSectionTitle>
               <Field as="div">
-                <FieldLabel>Editorial stage</FieldLabel>
+                <FieldLabel>Categories</FieldLabel>
                 <SearchableSelect
-                  ariaLabel="Editorial stage"
-                  defaultValue={snapshot.post.editorialStage}
-                  name="editorialStage"
-                  options={editorialStageOptions}
-                  placeholder="Select an editorial stage"
+                  ariaLabel="Story categories"
+                  defaultValue={snapshot.post.categories.map((category) => category.id)}
+                  name="categoryIds"
+                  multiple
+                  options={categoryOptions}
+                  placeholder="Select one or more categories"
                 />
               </Field>
-              <Field as="div">
-                <FieldLabel>Publish target match</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Publish target match"
-                  defaultValue={defaultArticleMatch?.id || ""}
-                  name="articleMatchId"
-                  options={articleMatchOptions}
-                  placeholder="Select a destination match"
-                />
+              <Field>
+                <FieldLabel>Schedule publish time</FieldLabel>
+                <Input name="publishAt" type="datetime-local" />
               </Field>
-            </FieldGrid>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Title</FieldLabel>
-              <Input defaultValue={translation?.title || ""} name="title" required />
-            </Field>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Summary</FieldLabel>
-              <Textarea defaultValue={translation?.summary || snapshot.post.excerpt} name="summary" />
-            </Field>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Body markdown</FieldLabel>
-              <Textarea defaultValue={translation?.contentMd || ""} name="contentMd" style={{ minHeight: "280px" }} />
-            </Field>
-            <Field as="div" style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Categories</FieldLabel>
-              <SearchableSelect
-                ariaLabel="Story categories"
-                defaultValue={snapshot.post.categories.map((category) => category.id)}
-                name="categoryIds"
-                multiple
-                options={categoryOptions}
-                placeholder="Select one or more categories"
-              />
-            </Field>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Schedule publish time</FieldLabel>
-              <Input name="publishAt" type="datetime-local" />
-            </Field>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
-              <PrimaryButton name="intent" type="submit" value="save">
-                Save story
-              </PrimaryButton>
-              <PrimaryButton name="intent" type="submit" value="publish">
-                Publish now
-              </PrimaryButton>
-              <PrimaryButton name="intent" type="submit" value="schedule">
-                Schedule publish
-              </PrimaryButton>
-              <PrimaryButton name="intent" type="submit" value="archive">
-                Archive story
-              </PrimaryButton>
-            </ButtonRow>
+              <ButtonRow>
+                <PrimaryButton name="intent" type="submit" value="save">
+                  Save story
+                </PrimaryButton>
+                <PrimaryButton name="intent" type="submit" value="publish">
+                  Publish now
+                </PrimaryButton>
+                <PrimaryButton name="intent" type="submit" value="schedule">
+                  Schedule publish
+                </PrimaryButton>
+                <ConfirmSubmitButton
+                  confirmLabel="Archive story"
+                  description="The story will be moved to an archived state. Use this when it should no longer remain active in the editorial flow."
+                  submitName="intent"
+                  submitValue="archive"
+                  title="Archive this story?"
+                  tone="danger"
+                >
+                  Archive story
+                </ConfirmSubmitButton>
+              </ButtonRow>
+            </FormSection>
           </form>
         </Card>
 
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <SidebarStack>
           <Card>
             <CardTitle>Story status</CardTitle>
             <ButtonRow>
@@ -202,7 +228,7 @@ export default async function PostEditorPage({ params }) {
             <SmallText>{snapshot.post.sourceArticle?.sourceName || "Unknown source"}</SmallText>
             <SmallText>{snapshot.post.sourceArticle?.sourceUrl || "No source URL"}</SmallText>
           </Card>
-        </div>
+        </SidebarStack>
       </SectionGrid>
 
       <Card>
@@ -222,16 +248,16 @@ export default async function PostEditorPage({ params }) {
               <tbody>
                 {snapshot.post.articleMatches.map((match) => (
                   <tr key={match.id}>
-                    <td>
+                    <td data-label="Destination">
                       <strong>{match.destination?.name || "Destination"}</strong>
                       <SmallText>{match.stream?.name || "Stream"}</SmallText>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusBadge $tone={getTone(match.status)}>{match.status}</StatusBadge>
                     </td>
-                    <td>{formatDateTime(match.queuedAt)}</td>
-                    <td>{formatDateTime(match.publishedAt)}</td>
-                    <td>{match.publishAttempts.length}</td>
+                    <td data-label="Queued">{formatDateTime(match.queuedAt)}</td>
+                    <td data-label="Published">{formatDateTime(match.publishedAt)}</td>
+                    <td data-label="Attempts">{match.publishAttempts.length}</td>
                   </tr>
                 ))}
               </tbody>

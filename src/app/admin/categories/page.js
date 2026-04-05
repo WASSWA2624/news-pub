@@ -6,6 +6,7 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardDescription,
   CardTitle,
   DataTable,
@@ -24,6 +25,7 @@ import {
   Textarea,
   SecondaryButton,
 } from "@/components/admin/news-admin-ui";
+import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import { getCategoryManagementSnapshot } from "@/features/categories";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -61,7 +63,10 @@ export default async function CategoriesPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Current categories</CardTitle>
+          <CardHeader>
+            <CardTitle>Current categories</CardTitle>
+            <CardDescription>Review taxonomy usage before removing a category from the editorial system.</CardDescription>
+          </CardHeader>
           <DataTableWrap>
             <DataTable>
               <thead>
@@ -76,17 +81,23 @@ export default async function CategoriesPage() {
               <tbody>
                 {snapshot.categories.map((category) => (
                   <tr key={category.id}>
-                    <td>
+                    <td data-label="Name">
                       <strong>{category.name}</strong>
                       <SmallText>{category.description || "No description"}</SmallText>
                     </td>
-                    <td>{category.slug}</td>
-                    <td>{category.postCount}</td>
-                    <td>{category.streamCount}</td>
-                    <td>
+                    <td data-label="Slug">{category.slug}</td>
+                    <td data-label="Posts">{category.postCount}</td>
+                    <td data-label="Streams">{category.streamCount}</td>
+                    <td data-label="Actions">
                       <form action={deleteCategoryAction}>
                         <input name="id" type="hidden" value={category.id} />
-                        <SecondaryButton type="submit">Delete</SecondaryButton>
+                        <ConfirmSubmitButton
+                          confirmLabel="Delete category"
+                          description={`This will permanently remove ${category.name}. Make sure it is no longer needed by stories or streams.`}
+                          title="Delete this category?"
+                        >
+                          Delete
+                        </ConfirmSubmitButton>
                       </form>
                     </td>
                   </tr>
@@ -97,8 +108,10 @@ export default async function CategoriesPage() {
         </Card>
 
         <Card>
-          <CardTitle>Create or update category</CardTitle>
-          <CardDescription>Categories drive stream filters, landing pages, and website discovery.</CardDescription>
+          <CardHeader>
+            <CardTitle>Create or update category</CardTitle>
+            <CardDescription>Categories drive stream filters, landing pages, and website discovery.</CardDescription>
+          </CardHeader>
           <form action={saveCategoryAction}>
             <FieldGrid>
               <Field>

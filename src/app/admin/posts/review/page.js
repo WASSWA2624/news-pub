@@ -5,6 +5,7 @@ import {
   AdminPage,
   AdminTitle,
   Card,
+  CardHeader,
   CardTitle,
   DataTable,
   DataTableWrap,
@@ -66,7 +67,10 @@ export default async function ReviewQueuePage({ searchParams }) {
       </SummaryGrid>
 
       <Card>
-        <CardTitle>Review queue</CardTitle>
+        <CardHeader>
+          <CardTitle>Review queue</CardTitle>
+          <SmallText>Stories stay easy to scan on small screens without losing the editorial status details.</SmallText>
+        </CardHeader>
         {snapshot.items.length ? (
           <DataTableWrap>
             <DataTable>
@@ -83,17 +87,17 @@ export default async function ReviewQueuePage({ searchParams }) {
               <tbody>
                 {snapshot.items.map((item) => (
                   <tr key={item.id}>
-                    <td>
+                    <td data-label="Story">
                       <strong>{item.title}</strong>
                       <SmallText>{item.slug}</SmallText>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <StatusBadge $tone={getTone(item.status)}>{item.status}</StatusBadge>
                     </td>
-                    <td>{item.editorialStage}</td>
-                    <td>{item.sourceName}</td>
-                    <td>{formatDateTime(item.scheduledPublishAt)}</td>
-                    <td>
+                    <td data-label="Editorial stage">{item.editorialStage}</td>
+                    <td data-label="Source">{item.sourceName}</td>
+                    <td data-label="Scheduled">{formatDateTime(item.scheduledPublishAt)}</td>
+                    <td data-label="Action">
                       <LinkButton href={`/admin/posts/${item.id}`}>Open editor</LinkButton>
                     </td>
                   </tr>

@@ -6,6 +6,7 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardHeader,
   CardTitle,
   DataTable,
   DataTableWrap,
@@ -59,7 +60,10 @@ export default async function SettingsPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Locales</CardTitle>
+          <CardHeader>
+            <CardTitle>Locales</CardTitle>
+            <SmallText>Locale status stays readable in stacked cards on smaller screens.</SmallText>
+          </CardHeader>
           <DataTableWrap>
             <DataTable>
               <thead>
@@ -72,9 +76,9 @@ export default async function SettingsPage() {
               <tbody>
                 {snapshot.locales.map((locale) => (
                   <tr key={locale.code}>
-                    <td>{locale.code}</td>
-                    <td>{locale.name}</td>
-                    <td>
+                    <td data-label="Code">{locale.code}</td>
+                    <td data-label="Name">{locale.name}</td>
+                    <td data-label="State">
                       {locale.isDefault ? "Default" : locale.isActive ? "Active" : "Inactive"}
                     </td>
                   </tr>
@@ -85,7 +89,10 @@ export default async function SettingsPage() {
         </Card>
 
         <Card>
-          <CardTitle>Runtime configuration</CardTitle>
+          <CardHeader>
+            <CardTitle>Runtime configuration</CardTitle>
+            <SmallText>Operational values are grouped into a short checklist instead of a large settings form.</SmallText>
+          </CardHeader>
           <SmallText>Storage driver: {snapshot.storage.driver}</SmallText>
           <SmallText>Max remote file bytes: {snapshot.storage.maxRemoteFileBytes}</SmallText>
           <SmallText>Allowed upload MIME types: {snapshot.storage.uploadAllowedMimeTypes.join(", ")}</SmallText>
