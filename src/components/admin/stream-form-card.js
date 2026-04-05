@@ -77,6 +77,7 @@ export default function StreamFormCard({
   const [destinationId, setDestinationId] = useState(stream?.destinationId || destinationOptions[0]?.value || "");
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
+  const [status, setStatus] = useState(stream?.status || "ACTIVE");
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
   const issues = getStreamValidationIssues({
@@ -148,54 +149,47 @@ export default function StreamFormCard({
               value={mode}
             />
           </Field>
-          {stream ? (
-            <Field as="div">
-              <FieldLabel>Status</FieldLabel>
-              <SearchableSelect
-                ariaLabel="Stream status"
-                defaultValue={stream.status}
-                name="status"
-                options={statusOptions}
-                placeholder="Select a status"
-              />
-            </Field>
-          ) : null}
+          <Field as="div">
+            <FieldLabel>Status</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Stream status"
+              name="status"
+              onChange={(value) => setStatus(`${value || ""}`)}
+              options={statusOptions}
+              placeholder="Select a status"
+              value={status}
+            />
+          </Field>
           <Field>
             <FieldLabel>Locale</FieldLabel>
             <Input defaultValue={stream?.locale || "en"} name="locale" required />
           </Field>
-          {stream ? (
-            <>
-              <Field>
-                <FieldLabel>Timezone</FieldLabel>
-                <Input defaultValue={stream.timezone} name="timezone" required />
-              </Field>
-              <Field as="div">
-                <FieldLabel>Default template</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Default template"
-                  invalid={issues.length > 0}
-                  name="defaultTemplateId"
-                  onChange={(value) => setDefaultTemplateId(`${value || ""}`)}
-                  options={resolvedTemplateOptions}
-                  placeholder="Select a template"
-                  value={defaultTemplateId}
-                />
-                {selectedDestination ? (
-                  <SmallText>
-                    Compatible template platform: {formatEnumLabel(selectedDestination.platform)}
-                  </SmallText>
-                ) : null}
-              </Field>
-            </>
-          ) : null}
-        </FieldGrid>
-        {stream ? (
           <Field>
-            <FieldLabel>Description</FieldLabel>
-            <Textarea defaultValue={stream.description || ""} name="description" />
+            <FieldLabel>Timezone</FieldLabel>
+            <Input defaultValue={stream?.timezone || "UTC"} name="timezone" required />
           </Field>
-        ) : null}
+          <Field as="div">
+            <FieldLabel>Default template</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Default template"
+              invalid={issues.length > 0}
+              name="defaultTemplateId"
+              onChange={(value) => setDefaultTemplateId(`${value || ""}`)}
+              options={resolvedTemplateOptions}
+              placeholder="Select a template"
+              value={defaultTemplateId}
+            />
+            {selectedDestination ? (
+              <SmallText>
+                Compatible template platform: {formatEnumLabel(selectedDestination.platform)}
+              </SmallText>
+            ) : null}
+          </Field>
+        </FieldGrid>
+        <Field>
+          <FieldLabel>Description</FieldLabel>
+          <Textarea defaultValue={stream?.description || ""} name="description" />
+        </Field>
       </FormSection>
 
       {issues.length ? (
@@ -211,97 +205,100 @@ export default function StreamFormCard({
         </FormSection>
       ) : null}
 
-      {stream ? (
-        <>
-          <FormSection>
-            <FormSectionTitle>Scheduling and limits</FormSectionTitle>
-            <FieldGrid>
-              <Field>
-                <FieldLabel>Schedule interval minutes</FieldLabel>
-                <Input
-                  defaultValue={stream.scheduleIntervalMinutes}
-                  name="scheduleIntervalMinutes"
-                  type="number"
-                />
-              </Field>
-              <Field>
-                <FieldLabel>Schedule expression</FieldLabel>
-                <Input defaultValue={stream.scheduleExpression || ""} name="scheduleExpression" />
-              </Field>
-              <Field>
-                <FieldLabel>Max posts per run</FieldLabel>
-                <Input defaultValue={stream.maxPostsPerRun} name="maxPostsPerRun" type="number" />
-              </Field>
-              <Field>
-                <FieldLabel>Duplicate window hours</FieldLabel>
-                <Input defaultValue={stream.duplicateWindowHours} name="duplicateWindowHours" type="number" />
-              </Field>
-              <Field>
-                <FieldLabel>Retry limit</FieldLabel>
-                <Input defaultValue={stream.retryLimit} name="retryLimit" type="number" />
-              </Field>
-              <Field>
-                <FieldLabel>Retry backoff minutes</FieldLabel>
-                <Input defaultValue={stream.retryBackoffMinutes} name="retryBackoffMinutes" type="number" />
-              </Field>
-            </FieldGrid>
-          </FormSection>
+      <FormSection>
+        <FormSectionTitle>Scheduling and limits</FormSectionTitle>
+        <FieldGrid>
+          <Field>
+            <FieldLabel>Schedule interval minutes</FieldLabel>
+            <Input
+              defaultValue={stream?.scheduleIntervalMinutes || 60}
+              name="scheduleIntervalMinutes"
+              type="number"
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Schedule expression</FieldLabel>
+            <Input defaultValue={stream?.scheduleExpression || ""} name="scheduleExpression" />
+          </Field>
+          <Field>
+            <FieldLabel>Max posts per run</FieldLabel>
+            <Input defaultValue={stream?.maxPostsPerRun || 5} name="maxPostsPerRun" type="number" />
+          </Field>
+          <Field>
+            <FieldLabel>Duplicate window hours</FieldLabel>
+            <Input
+              defaultValue={stream?.duplicateWindowHours || 48}
+              name="duplicateWindowHours"
+              type="number"
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Retry limit</FieldLabel>
+            <Input defaultValue={stream?.retryLimit || 3} name="retryLimit" type="number" />
+          </Field>
+          <Field>
+            <FieldLabel>Retry backoff minutes</FieldLabel>
+            <Input
+              defaultValue={stream?.retryBackoffMinutes || 15}
+              name="retryBackoffMinutes"
+              type="number"
+            />
+          </Field>
+        </FieldGrid>
+      </FormSection>
 
-          <FormSection>
-            <FormSectionTitle>Targeting rules</FormSectionTitle>
-            <Field>
-              <FieldLabel>Include keywords</FieldLabel>
-              <Textarea
-                defaultValue={(stream.includeKeywordsJson || []).join(", ")}
-                name="includeKeywordsJson"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>Exclude keywords</FieldLabel>
-              <Textarea
-                defaultValue={(stream.excludeKeywordsJson || []).join(", ")}
-                name="excludeKeywordsJson"
-              />
-            </Field>
-            <Field as="div">
-              <FieldLabel>Categories</FieldLabel>
-              <SearchableSelect
-                ariaLabel="Stream categories"
-                defaultValue={stream.streamCategories.map((category) => category.id)}
-                multiple
-                name="categoryIds"
-                options={categoryOptions}
-                placeholder="Select one or more categories"
-              />
-            </Field>
-            <ButtonRow>
-              <PrimaryButton disabled={issues.length > 0} type="submit">
-                {submitLabel}
-              </PrimaryButton>
-              <SecondaryButton
-                disabled={issues.length > 0}
-                formAction={runNowAction}
-                formNoValidate
-                type="submit"
-              >
-                Run now
-              </SecondaryButton>
-            </ButtonRow>
-            <SmallText>
-              Destination: {stream.destination?.name || "Unknown"} | Provider: {stream.activeProvider?.label || "Unknown"}
-            </SmallText>
-          </FormSection>
-        </>
-      ) : (
-        <FormSection>
-          <FormSectionTitle>Save record</FormSectionTitle>
-          <ButtonRow>
-            <PrimaryButton disabled={issues.length > 0} type="submit">
-              {submitLabel}
-            </PrimaryButton>
-          </ButtonRow>
-        </FormSection>
-      )}
+      <FormSection>
+        <FormSectionTitle>Targeting rules</FormSectionTitle>
+        <Field>
+          <FieldLabel>Include keywords</FieldLabel>
+          <Textarea
+            defaultValue={(stream?.includeKeywordsJson || []).join(", ")}
+            name="includeKeywordsJson"
+          />
+        </Field>
+        <Field>
+          <FieldLabel>Exclude keywords</FieldLabel>
+          <Textarea
+            defaultValue={(stream?.excludeKeywordsJson || []).join(", ")}
+            name="excludeKeywordsJson"
+          />
+        </Field>
+        <Field as="div">
+          <FieldLabel>Categories</FieldLabel>
+          <SearchableSelect
+            ariaLabel="Stream categories"
+            defaultValue={stream?.streamCategories?.map((category) => category.id) || []}
+            multiple
+            name="categoryIds"
+            options={categoryOptions}
+            placeholder="Select one or more categories"
+          />
+        </Field>
+        <ButtonRow>
+          <PrimaryButton disabled={issues.length > 0} type="submit">
+            {submitLabel}
+          </PrimaryButton>
+          {stream ? (
+            <SecondaryButton
+              disabled={issues.length > 0}
+              formAction={runNowAction}
+              formNoValidate
+              type="submit"
+            >
+              Run now
+            </SecondaryButton>
+          ) : null}
+        </ButtonRow>
+        {stream ? (
+          <SmallText>
+            Destination: {stream.destination?.name || "Unknown"} | Provider: {stream.activeProvider?.label || "Unknown"}
+          </SmallText>
+        ) : (
+          <SmallText>
+            New streams can be created with schedule, retry, and targeting rules in a single pass.
+          </SmallText>
+        )}
+      </FormSection>
     </form>
   );
 }

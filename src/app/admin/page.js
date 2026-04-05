@@ -6,18 +6,20 @@ import {
   AdminTitle,
   ButtonRow,
   Card,
+  CardDescription,
   CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
+  MetaPill,
   PrimaryButton,
   SectionGrid,
   SmallText,
-  StatusBadge,
   SummaryCard,
   SummaryGrid,
   SummaryLabel,
   SummaryValue,
+  StatusBadge,
   formatDateTime,
 } from "@/components/admin/news-admin-ui";
 import { getAdminDashboardSnapshot } from "@/features/analytics";
@@ -130,8 +132,16 @@ export default async function AdminDashboardPage() {
         </Card>
 
         <Card>
-          <CardTitle>Connection health</CardTitle>
+          <CardTitle>Operational health</CardTitle>
           <SummaryGrid>
+            <SummaryCard>
+              <SummaryValue>{snapshot.providerStatus.enabled}</SummaryValue>
+              <SummaryLabel>Enabled providers</SummaryLabel>
+            </SummaryCard>
+            <SummaryCard>
+              <SummaryValue>{snapshot.providerStatus.missingCredentials}</SummaryValue>
+              <SummaryLabel>Providers missing credentials</SummaryLabel>
+            </SummaryCard>
             <SummaryCard>
               <SummaryValue>{snapshot.destinationStatus.connected}</SummaryValue>
               <SummaryLabel>Connected destinations</SummaryLabel>
@@ -145,6 +155,88 @@ export default async function AdminDashboardPage() {
               <SummaryLabel>Active streams</SummaryLabel>
             </SummaryCard>
           </SummaryGrid>
+          <CardDescription>
+            The dashboard keeps provider credentials, destination health, and active stream coverage in one glance.
+          </CardDescription>
+        </Card>
+      </SectionGrid>
+
+      <SectionGrid>
+        <Card>
+          <CardTitle>Provider status</CardTitle>
+          {snapshot.providerStatus.providers.length ? (
+            <DataTableWrap>
+              <DataTable>
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Credentials</th>
+                    <th>Availability</th>
+                    <th>Streams</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshot.providerStatus.providers.map((provider) => (
+                    <tr key={provider.id}>
+                      <td data-label="Provider">
+                        <strong>{provider.label}</strong>
+                        <SmallText>{provider.providerKey}</SmallText>
+                      </td>
+                      <td data-label="Credentials">
+                        <StatusBadge
+                          $tone={provider.credentialState === "configured" ? "success" : "warning"}
+                        >
+                          {provider.credentialState}
+                        </StatusBadge>
+                      </td>
+                      <td data-label="Availability">
+                        <MetaPill>{provider.isEnabled ? "Enabled" : "Disabled"}</MetaPill>
+                        {provider.isDefault ? <MetaPill>Default</MetaPill> : null}
+                      </td>
+                      <td data-label="Streams">{provider.activeStreamCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </DataTableWrap>
+          ) : (
+            <EmptyState>No provider records have been configured yet.</EmptyState>
+          )}
+        </Card>
+
+        <Card>
+          <CardTitle>Recent failures and retries</CardTitle>
+          {snapshot.recentFailures.length ? (
+            <DataTableWrap>
+              <DataTable>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshot.recentFailures.map((failure) => (
+                    <tr key={failure.id}>
+                      <td data-label="Type">{failure.type}</td>
+                      <td data-label="Target">
+                        <strong>{failure.label}</strong>
+                        <SmallText>{failure.details}</SmallText>
+                      </td>
+                      <td data-label="Status">
+                        <StatusBadge $tone="danger">{failure.status}</StatusBadge>
+                      </td>
+                      <td data-label="Created">{formatDateTime(failure.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+            </DataTableWrap>
+          ) : (
+            <EmptyState>No recent failures were recorded in the last 7 days.</EmptyState>
+          )}
         </Card>
       </SectionGrid>
 

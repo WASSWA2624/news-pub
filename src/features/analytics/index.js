@@ -1,4 +1,5 @@
 import { hasAdminPermission, ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import { getProviderCredentialState } from "@/lib/news/providers";
 import { serializeAuditEvent } from "@/lib/analytics";
 import { resolvePrismaClient } from "@/lib/news/shared";
 
@@ -118,11 +119,36 @@ function mapPublishAttempt(attempt) {
   };
 }
 
+function mapProviderStatus(config) {
+  return {
+    activeStreamCount: config.streams?.length || 0,
+    credentialState: getProviderCredentialState(config.providerKey),
+    id: config.id,
+    isDefault: Boolean(config.isDefault),
+    isEnabled: Boolean(config.isEnabled),
+    isSelectable: Boolean(config.isSelectable),
+    label: config.label,
+    providerKey: config.providerKey,
+  };
+}
+
+function mapFailureItem(item) {
+  return {
+    createdAt: item.createdAt,
+    details: item.details,
+    id: item.id,
+    label: item.label,
+    status: item.status,
+    type: item.type,
+  };
+}
+
 export async function getAdminDashboardSnapshot(user, prisma) {
   const db = await resolvePrismaClient(prisma);
   const canViewAnalytics = hasAdminPermission(user, ADMIN_PERMISSIONS.VIEW_ANALYTICS);
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [
+    providers,
     destinations,
     streams,
     fetchRuns,
@@ -131,6 +157,16 @@ export async function getAdminDashboardSnapshot(user, prisma) {
     recentAuditEvents,
     viewEvents,
   ] = await Promise.all([
+    db.newsProviderConfig.findMany({
+      include: {
+        streams: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: [{ isDefault: "desc" }, { label: "asc" }],
+    }),
     db.destination.findMany({
       orderBy: [{ platform: "asc" }, { name: "asc" }],
     }),
@@ -245,6 +281,34 @@ export async function getAdminDashboardSnapshot(user, prisma) {
         })
       : Promise.resolve([]),
   ]);
+  const recentFailures = [
+    ...fetchRuns
+      .filter((run) => run.status === "FAILED")
+      .map((run) =>
+        mapFailureItem({
+          createdAt: serializeDate(run.startedAt || run.createdAt),
+          details: run.errorMessage || run.providerConfig?.label || "Fetch run failed.",
+          id: `fetch:${run.id}`,
+          label: run.stream?.name || "Stream fetch run",
+          status: run.status,
+          type: "Fetch",
+        }),
+      ),
+    ...publishAttempts
+      .filter((attempt) => attempt.status === "FAILED")
+      .map((attempt) =>
+        mapFailureItem({
+          createdAt: serializeDate(attempt.queuedAt || attempt.createdAt),
+          details: attempt.errorMessage || attempt.destination?.name || "Publish attempt failed.",
+          id: `publish:${attempt.id}`,
+          label: attempt.destination?.name || attempt.platform,
+          status: attempt.status,
+          type: "Publish",
+        }),
+      ),
+  ]
+    .sort((left, right) => `${right.createdAt || ""}`.localeCompare(`${left.createdAt || ""}`))
+    .slice(0, 6);
 
   return {
     canViewAnalytics,
@@ -254,6 +318,14 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       error: destinations.filter((destination) => destination.connectionStatus === "ERROR").length,
       total: destinations.length,
     },
+    providerStatus: {
+      configured: providers.length,
+      enabled: providers.filter((provider) => provider.isEnabled).length,
+      missingCredentials: providers.filter(
+        (provider) => getProviderCredentialState(provider.providerKey) !== "configured",
+      ).length,
+      providers: providers.map(mapProviderStatus),
+    },
     latestStories: latestStories.map((story) => ({
       id: story.id,
       publishedAt: serializeDate(story.publishedAt),
@@ -262,6 +334,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       viewCount: canViewAnalytics ? story.viewEvents.length : null,
     })),
     recentAuditEvents: recentAuditEvents.map(serializeAuditEvent),
+    recentFailures,
     recentFetchRuns: fetchRuns.slice(0, 6).map(mapFetchRun),
     recentPublishAttempts: publishAttempts.slice(0, 6).map(mapPublishAttempt),
     streamStatus: {

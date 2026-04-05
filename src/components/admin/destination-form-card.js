@@ -58,6 +58,7 @@ export default function DestinationFormCard({
 }) {
   const [platform, setPlatform] = useState(`${destination?.platform || "WEBSITE"}`);
   const [kind, setKind] = useState(`${destination?.kind || "WEBSITE"}`);
+  const [connectionStatus, setConnectionStatus] = useState(`${destination?.connectionStatus || "DISCONNECTED"}`);
   const issues = getDestinationValidationIssues({ kind, platform });
   const allowedKinds = getAllowedDestinationKinds(platform).map((value) => formatEnumLabel(value));
   const resolvedKindOptions = buildKindOptions(kindOptions, platform);
@@ -108,24 +109,21 @@ export default function DestinationFormCard({
             Compatible kinds for {formatEnumLabel(platform)}: {allowedKinds.join(", ") || "Choose a platform first."}
           </SmallText>
         </Field>
-        {destination ? (
-          <>
-            <Field as="div">
-              <FieldLabel>Connection status</FieldLabel>
-              <SearchableSelect
-                ariaLabel="Connection status"
-                defaultValue={destination.connectionStatus}
-                name="connectionStatus"
-                options={connectionStatusOptions}
-                placeholder="Select a connection status"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>Account handle</FieldLabel>
-              <Input defaultValue={destination.accountHandle || ""} name="accountHandle" />
-            </Field>
-          </>
-        ) : null}
+        <Field as="div">
+          <FieldLabel>Connection status</FieldLabel>
+          <SearchableSelect
+            ariaLabel="Connection status"
+            name="connectionStatus"
+            onChange={(value) => setConnectionStatus(`${value || ""}`)}
+            options={connectionStatusOptions}
+            placeholder="Select a connection status"
+            value={connectionStatus}
+          />
+        </Field>
+        <Field>
+          <FieldLabel>Account handle</FieldLabel>
+          <Input defaultValue={destination?.accountHandle || ""} name="accountHandle" />
+        </Field>
       </DestinationFieldGrid>
 
       {issues.length ? (
@@ -141,67 +139,58 @@ export default function DestinationFormCard({
         </FormSection>
       ) : null}
 
-      {destination ? (
-        <>
-          <FormSection>
-            <FormSectionTitle>Connection details</FormSectionTitle>
-            <DestinationFieldGrid>
-              <Field>
-                <FieldLabel>External account ID</FieldLabel>
-                <Input defaultValue={destination.externalAccountId || ""} name="externalAccountId" />
-              </Field>
-              <Field>
-                <FieldLabel>Update token</FieldLabel>
-                <Input
-                  name="token"
-                  placeholder={
-                    destination.tokenHint
-                      ? `Stored token ending ${destination.tokenHint}`
-                      : "Paste a new token"
-                  }
-                />
-              </Field>
-            </DestinationFieldGrid>
-            <CheckboxRow>
-              <CheckboxChip>
-                <input name="clearToken" type="checkbox" /> Clear stored token
-              </CheckboxChip>
-            </CheckboxRow>
-          </FormSection>
+      <FormSection>
+        <FormSectionTitle>Connection details</FormSectionTitle>
+        <DestinationFieldGrid>
+          <Field>
+            <FieldLabel>External account ID</FieldLabel>
+            <Input defaultValue={destination?.externalAccountId || ""} name="externalAccountId" />
+          </Field>
+          <Field>
+            <FieldLabel>Update token</FieldLabel>
+            <Input
+              name="token"
+              placeholder={
+                destination?.tokenHint ? `Stored token ending ${destination.tokenHint}` : "Paste a new token"
+              }
+            />
+          </Field>
+        </DestinationFieldGrid>
+        <CheckboxRow>
+          <CheckboxChip>
+            <input name="clearToken" type="checkbox" /> Clear stored token
+          </CheckboxChip>
+        </CheckboxRow>
+      </FormSection>
 
-          <FormSection>
-            <FormSectionTitle>Operational notes</FormSectionTitle>
-            <Field>
-              <FieldLabel>Connection error</FieldLabel>
-              <Textarea defaultValue={destination.connectionError || ""} name="connectionError" />
-            </Field>
-            <Field>
-              <FieldLabel>Settings JSON</FieldLabel>
-              <Textarea
-                defaultValue={JSON.stringify(destination.settingsJson || {}, null, 2)}
-                name="settingsJson"
-              />
-            </Field>
-            <ButtonRow>
-              <PrimaryButton disabled={issues.length > 0} type="submit">
-                {submitLabel}
-              </PrimaryButton>
-            </ButtonRow>
-            <SmallText>
-              Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
-            </SmallText>
-          </FormSection>
-        </>
-      ) : (
-        <FormSection>
-          <FormSectionTitle>Save record</FormSectionTitle>
-          <ButtonRow>
-            <PrimaryButton disabled={issues.length > 0} type="submit">
-              {submitLabel}
-            </PrimaryButton>
-          </ButtonRow>
-        </FormSection>
-      )}
+      <FormSection>
+        <FormSectionTitle>Operational notes</FormSectionTitle>
+        <Field>
+          <FieldLabel>Connection error</FieldLabel>
+          <Textarea defaultValue={destination?.connectionError || ""} name="connectionError" />
+        </Field>
+        <Field>
+          <FieldLabel>Settings JSON</FieldLabel>
+          <Textarea
+            defaultValue={JSON.stringify(destination?.settingsJson || {}, null, 2)}
+            name="settingsJson"
+          />
+        </Field>
+        <ButtonRow>
+          <PrimaryButton disabled={issues.length > 0} type="submit">
+            {submitLabel}
+          </PrimaryButton>
+        </ButtonRow>
+        {destination ? (
+          <SmallText>
+            Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
+          </SmallText>
+        ) : (
+          <SmallText>
+            New destinations can be fully configured here, including token storage and operational metadata.
+          </SmallText>
+        )}
+      </FormSection>
     </form>
   );
 }

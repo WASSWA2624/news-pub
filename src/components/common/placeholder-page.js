@@ -136,15 +136,15 @@ export default function PlaceholderPage({
       </Hero>
       <SectionGrid>
         <Card>
-          <CardTitle>Scaffold status</CardTitle>
+          <CardTitle>Access context</CardTitle>
           <BulletList>
-            <li>Route file exists and renders successfully.</li>
-            <li>Behavior will be added in later execution steps.</li>
-            <li>This screen keeps the repo runnable while features land incrementally.</li>
+            <li>This route is active in the current NewsPub build.</li>
+            <li>The current session or role determines whether actions are available.</li>
+            <li>Underlying APIs stay protected even when UI access is limited.</li>
           </BulletList>
         </Card>
         <Card>
-          <CardTitle>Next implementation targets</CardTitle>
+          <CardTitle>What to check next</CardTitle>
           <BulletList>
             {notes.map((note) => (
               <li key={note}>{note}</li>
@@ -152,10 +152,7 @@ export default function PlaceholderPage({
           </BulletList>
         </Card>
       </SectionGrid>
-      <FooterNote>
-        This placeholder is intentionally lightweight so later steps can add behavior without
-        restructuring the route tree.
-      </FooterNote>
+      <FooterNote>Access messaging stays lightweight here so the surrounding route structure remains stable.</FooterNote>
     </Wrapper>
   );
 }

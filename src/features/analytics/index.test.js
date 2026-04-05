@@ -164,6 +164,28 @@ function createMockPrisma() {
         { connectionStatus: "ERROR" },
       ]),
     },
+    newsProviderConfig: {
+      findMany: vi.fn(async () => [
+        {
+          id: "provider_1",
+          isDefault: true,
+          isEnabled: true,
+          isSelectable: true,
+          label: "Mediastack",
+          providerKey: "mediastack",
+          streams: [{ id: "stream_1" }, { id: "stream_2" }],
+        },
+        {
+          id: "provider_2",
+          isDefault: false,
+          isEnabled: true,
+          isSelectable: true,
+          label: "NewsAPI",
+          providerKey: "newsapi",
+          streams: [],
+        },
+      ]),
+    },
     fetchRun: {
       findMany: vi.fn(async ({ where } = {}) =>
         fetchRuns.filter((run) => !where?.status || run.status === where.status),
@@ -197,6 +219,8 @@ describe("analytics feature snapshots", () => {
     process.env = {
       ...originalEnv,
       ...createNewsPubTestEnv(),
+      MEDIASTACK_API_KEY: "mediastack-key",
+      NEWSAPI_API_KEY: "",
     };
   });
 
@@ -229,6 +253,19 @@ describe("analytics feature snapshots", () => {
       connected: 1,
       error: 1,
       total: 2,
+    });
+    expect(snapshot.providerStatus).toMatchObject({
+      configured: 2,
+      enabled: 2,
+      missingCredentials: 1,
+    });
+    expect(snapshot.providerStatus.providers[0]).toMatchObject({
+      activeStreamCount: 2,
+      credentialState: "configured",
+      providerKey: "mediastack",
+    });
+    expect(snapshot.recentFailures[0]).toMatchObject({
+      status: "FAILED",
     });
     expect(snapshot.latestStories[0]).toMatchObject({
       slug: "breaking-story",
