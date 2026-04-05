@@ -1,0 +1,503 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  EDITOR
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EditorialStage {
+  GENERATED
+  REVIEWED
+  EDITED
+  APPROVED
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SPAM
+}
+
+enum GenerationJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ViewEventType {
+  WEBSITE_VIEW
+  PAGE_VIEW
+  POST_VIEW
+}
+
+enum SourceType {
+  OFFICIAL_MANUFACTURER_WEBSITE
+  OFFICIAL_PRODUCT_PAGE
+  OFFICIAL_MANUAL
+  OFFICIAL_DISTRIBUTOR_DOCUMENTATION
+  TRUSTED_BIOMEDICAL_REFERENCE
+  TRUSTED_PROFESSIONAL_SOCIETY
+  REPUTABLE_EDUCATIONAL_INSTITUTION
+  APPROVED_SEARCH_RESULT
+}
+
+model Locale {
+  code             String            @id @db.VarChar(16)
+  name             String            @db.VarChar(64)
+  isActive         Boolean           @default(true)
+  isDefault        Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  postTranslations PostTranslation[]
+  generationJobs   GenerationJob[]
+  viewEvents       ViewEvent[]
+}
+
+model User {
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique @db.VarChar(191)
+  name                    String                   @db.VarChar(191)
+  passwordHash            String                   @db.VarChar(255)
+  role                    UserRole
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  adminSessions           AdminSession[]
+  authoredPosts           Post[]
+  commentModerationEvents CommentModerationEvent[]
+  auditEvents             AuditEvent[]
+}
+
+model AdminSession {
+  id            String   @id @default(cuid())
+  userId        String
+  tokenHash     String   @unique @db.VarChar(64)
+  expiresAt     DateTime
+  invalidatedAt DateTime?
+  createdAt     DateTime @default(now())
+  lastUsedAt    DateTime @default(now())
+  userAgent     String?  @db.VarChar(512)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId, expiresAt])
+}
+
+model Equipment {
+  id               String            @id @default(cuid())
+  name             String            @db.VarChar(191)
+  normalizedName   String            @unique @db.VarChar(191)
+  slug             String            @unique @db.VarChar(191)
+  description      String?           @db.LongText
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  aliases          EquipmentAlias[]
+  posts            Post[]
+  models           Model[]
+  sourceReferences SourceReference[]
+}
+
+model EquipmentAlias {
+  id              String    @id @default(cuid())
+  equipmentId     String
+  alias           String    @db.VarChar(191)
+  normalizedAlias String    @unique @db.VarChar(191)
+  equipment       Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id                 String             @id @default(cuid())
+  equipmentId        String
+  slug               String             @unique @db.VarChar(191)
+  status             PostStatus         @default(DRAFT)
+  editorialStage     EditorialStage     @default(GENERATED)
+  excerpt            String             @db.LongText
+  featuredImageId    String?
+  authorId           String
+  scheduledPublishAt DateTime?
+  publishedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  equipment          Equipment          @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  featuredImage      MediaAsset?        @relation("PostFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  author             User               @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  translations       PostTranslation[]
+  faults             Fault[]
+  maintenanceTasks   MaintenanceTask[]
+  sourceReferences   SourceReference[]
+  comments           Comment[]
+  generationJobs     GenerationJob[]
+  categories         PostCategory[]
+  tags               PostTag[]
+  manufacturers      PostManufacturer[]
+  viewEvents         ViewEvent[]
+
+  @@index([status, publishedAt])
+  @@index([status, scheduledPublishAt])
+}
+
+model PostTranslation {
+  id                    String     @id @default(cuid())
+  postId                String
+  locale                String     @db.VarChar(16)
+  title                 String     @db.VarChar(255)
+  contentMd             String     @db.LongText
+  contentHtml           String     @db.LongText
+  structuredContentJson Json
+  excerpt               String     @db.LongText
+  disclaimer            String     @db.LongText
+  faqJson               Json
+  isAutoTranslated      Boolean    @default(false)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  post                  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  localeRecord          Locale     @relation(fields: [locale], references: [code], onDelete: Restrict)
+  seoRecord             SEORecord?
+
+  @@unique([postId, locale])
+  @@index([locale, postId])
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  name        String         @unique @db.VarChar(191)
+  slug        String         @unique @db.VarChar(191)
+  description String?        @db.LongText
+  posts       PostCategory[]
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique @db.VarChar(191)
+  slug  String    @unique @db.VarChar(191)
+  posts PostTag[]
+}
+
+model Manufacturer {
+  id                  String              @id @default(cuid())
+  name                String              @db.VarChar(191)
+  normalizedName      String              @db.VarChar(191)
+  slug                String              @unique @db.VarChar(191)
+  primaryDomain       String              @db.VarChar(191)
+  headquartersCountry String?             @db.VarChar(64)
+  branchCountriesJson Json?
+  rankingScore        Int                 @default(0)
+  aliases             ManufacturerAlias[]
+  models              Model[]
+  sourceReferences    SourceReference[]
+  posts               PostManufacturer[]
+
+  @@unique([normalizedName, primaryDomain])
+}
+
+model ManufacturerAlias {
+  id              String       @id @default(cuid())
+  manufacturerId  String
+  alias           String       @db.VarChar(191)
+  normalizedAlias String       @db.VarChar(191)
+  manufacturer    Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@unique([manufacturerId, normalizedAlias])
+}
+
+model Model {
+  id               String            @id @default(cuid())
+  manufacturerId   String
+  equipmentId      String
+  name             String            @db.VarChar(191)
+  normalizedName   String            @db.VarChar(191)
+  slug             String            @db.VarChar(191)
+  latestKnownYear  Int?
+  summary          String?           @db.LongText
+  rankingScore     Int               @default(0)
+  manufacturer     Manufacturer      @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
+  equipment        Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  sourceReferences SourceReference[]
+
+  @@unique([manufacturerId, slug])
+}
+
+model Fault {
+  id              String @id @default(cuid())
+  postId          String
+  title           String @db.VarChar(255)
+  normalizedTitle String @db.VarChar(255)
+  cause           String @db.LongText
+  symptoms        String @db.LongText
+  remedy          String @db.LongText
+  severity        String @db.VarChar(64)
+  evidenceCount   Int    @default(0)
+  sortOrder       Int    @default(0)
+  post            Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, normalizedTitle])
+}
+
+model MaintenanceTask {
+  id          String @id @default(cuid())
+  postId      String
+  frequency   String @db.VarChar(128)
+  title       String @db.VarChar(255)
+  description String @db.LongText
+  sortOrder   Int    @default(0)
+  post        Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model MediaAsset {
+  id              String      @id @default(cuid())
+  fileName        String?     @db.VarChar(255)
+  fileSizeBytes   Int?
+  storageDriver   String      @db.VarChar(32)
+  storageKey      String?     @db.VarChar(255)
+  publicUrl       String?     @db.VarChar(2048)
+  localPath       String?     @db.VarChar(512)
+  sourceUrl       String?     @db.VarChar(2048)
+  sourceDomain    String?     @db.VarChar(191)
+  alt             String?     @db.LongText
+  caption         String?     @db.LongText
+  mimeType        String?     @db.VarChar(191)
+  width           Int?
+  height          Int?
+  attributionText String?     @db.LongText
+  licenseType     String?     @db.VarChar(128)
+  usageNotes      String?     @db.LongText
+  isAiGenerated   Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  variants        MediaVariant[]
+  featuredInPosts Post[]      @relation("PostFeaturedImage")
+  seoOgRecords    SEORecord[] @relation("SeoOgImage")
+}
+
+model MediaVariant {
+  id            String     @id @default(cuid())
+  mediaAssetId  String
+  variantKey    String     @db.VarChar(64)
+  format        String     @db.VarChar(32)
+  mimeType      String?    @db.VarChar(191)
+  width         Int
+  height        Int
+  fileSizeBytes Int?
+  storageKey    String?    @db.VarChar(255)
+  publicUrl     String?    @db.VarChar(2048)
+  localPath     String?    @db.VarChar(512)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([mediaAssetId])
+  @@index([mediaAssetId, variantKey])
+}
+
+model SourceReference {
+  id              String        @id @default(cuid())
+  postId          String?
+  equipmentId     String?
+  manufacturerId  String?
+  modelId         String?
+  title           String        @db.VarChar(255)
+  url             String        @db.VarChar(2048)
+  sourceDomain    String        @db.VarChar(191)
+  sourceType      SourceType
+  fileType        String?       @db.VarChar(64)
+  language        String?       @db.VarChar(32)
+  accessStatus    String?       @db.VarChar(64)
+  reliabilityTier String?       @db.VarChar(64)
+  lastCheckedAt   DateTime?
+  notes           String?       @db.LongText
+  excerpt         String?       @db.LongText
+  post            Post?         @relation(fields: [postId], references: [id], onDelete: SetNull)
+  equipment       Equipment?    @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  manufacturer    Manufacturer? @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
+  model           Model?        @relation(fields: [modelId], references: [id], onDelete: SetNull)
+}
+
+model Comment {
+  id               String                   @id @default(cuid())
+  postId           String
+  parentId         String?
+  name             String                   @db.VarChar(191)
+  email            String?                  @db.VarChar(191)
+  body             String                   @db.LongText
+  status           CommentStatus            @default(PENDING)
+  ipHash           String                   @db.VarChar(255)
+  userAgent        String?                  @db.VarChar(512)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  post             Post                     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent           Comment?                 @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies          Comment[]                @relation("CommentReplies")
+  moderationEvents CommentModerationEvent[]
+}
+
+model CommentModerationEvent {
+  id        String   @id @default(cuid())
+  commentId String
+  actorId   String?
+  action    String   @db.VarChar(64)
+  notes     String?  @db.LongText
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model GenerationJob {
+  id                  String              @id @default(cuid())
+  postId              String?
+  equipmentName       String              @db.VarChar(191)
+  locale              String              @db.VarChar(16)
+  providerConfigId    String
+  status              GenerationJobStatus @default(PENDING)
+  currentStage        String?             @db.VarChar(128)
+  requestJson         Json
+  responseJson        Json?
+  warningJson         Json?
+  errorMessage        String?             @db.LongText
+  replaceExistingPost Boolean             @default(false)
+  schedulePublishAt   DateTime?
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  post                Post?               @relation(fields: [postId], references: [id], onDelete: SetNull)
+  localeRecord        Locale              @relation(fields: [locale], references: [code], onDelete: Restrict)
+  providerConfig      ModelProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
+}
+
+model PromptTemplate {
+  id                 String   @id @default(cuid())
+  name               String   @db.VarChar(191)
+  purpose            String   @db.VarChar(64)
+  version            Int
+  systemPrompt       String   @db.LongText
+  userPromptTemplate String   @db.LongText
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([purpose, version])
+}
+
+model SourceConfig {
+  id                 String     @id @default(cuid())
+  name               String     @db.VarChar(191)
+  sourceType         SourceType @unique
+  priority           Int
+  isEnabled          Boolean    @default(true)
+  allowedDomainsJson Json
+  notes              String?    @db.LongText
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model ModelProviderConfig {
+  id             String          @id @default(cuid())
+  provider       String          @db.VarChar(64)
+  model          String          @db.VarChar(128)
+  purpose        String          @db.VarChar(64)
+  apiKeyEnvName  String          @db.VarChar(64)
+  apiKeyEncrypted String?        @db.LongText
+  apiKeyLast4    String?         @db.VarChar(8)
+  apiKeyUpdatedAt DateTime?
+  isDefault      Boolean         @default(false)
+  isEnabled      Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  generationJobs GenerationJob[]
+
+  @@unique([provider, model, purpose])
+}
+
+model SEORecord {
+  id                 String          @id @default(cuid())
+  postTranslationId  String          @unique
+  canonicalUrl       String          @db.VarChar(2048)
+  metaTitle          String          @db.VarChar(255)
+  metaDescription    String          @db.LongText
+  ogTitle            String          @db.VarChar(255)
+  ogDescription      String          @db.LongText
+  ogImageId          String?
+  twitterTitle       String          @db.VarChar(255)
+  twitterDescription String          @db.LongText
+  keywordsJson       Json
+  authorsJson        Json
+  noindex            Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  postTranslation    PostTranslation @relation(fields: [postTranslationId], references: [id], onDelete: Cascade)
+  ogImage            MediaAsset?     @relation("SeoOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+}
+
+model ViewEvent {
+  id           String        @id @default(cuid())
+  postId       String?
+  path         String        @db.VarChar(2048)
+  locale       String        @db.VarChar(16)
+  eventType    ViewEventType
+  ipHash       String        @db.VarChar(255)
+  userAgent    String?       @db.VarChar(512)
+  referrer     String?       @db.VarChar(2048)
+  createdAt    DateTime      @default(now())
+  post         Post?         @relation(fields: [postId], references: [id], onDelete: SetNull)
+  localeRecord Locale        @relation(fields: [locale], references: [code], onDelete: Restrict)
+
+  @@index([eventType, createdAt])
+  @@index([postId, createdAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  actorId     String?
+  entityType  String   @db.VarChar(64)
+  entityId    String   @db.VarChar(191)
+  action      String   @db.VarChar(64)
+  payloadJson Json?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model PostCategory {
+  postId     String
+  categoryId String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@index([categoryId])
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model PostManufacturer {
+  postId         String
+  manufacturerId String
+  post           Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@id([postId, manufacturerId])
+  @@index([manufacturerId])
+}

@@ -1,0 +1,21 @@
+{
+  "watch": [
+    ".env.local",
+    ".env",
+    ".env.development.local",
+    "jsconfig.json",
+    "next.config.mjs",
+    "package.json",
+    "prisma/schema.prisma"
+  ],
+  "ignore": [
+    ".next",
+    "coverage",
+    "dev-plan",
+    "docs",
+    "node_modules"
+  ],
+  "ext": "js,json,mjs,prisma",
+  "delay": "300",
+  "exec": "npm run dev:next"
+}

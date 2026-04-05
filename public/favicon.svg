@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Equip Blog">
+  <defs>
+    <linearGradient id="equip-blog-favicon-gradient" x1="10" x2="54" y1="8" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#102033" />
+      <stop offset="0.55" stop-color="#005f73" />
+      <stop offset="1" stop-color="#1d8f95" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#equip-blog-favicon-gradient)" />
+  <rect x="4.75" y="4.75" width="54.5" height="54.5" rx="17.25" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" />
+  <circle cx="45" cy="19" r="6.5" fill="#f2b35a" />
+  <path d="M22 18.5V45.5M23 19H42M23 31.5H37.5M23 44H44" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="6" />
+</svg>
