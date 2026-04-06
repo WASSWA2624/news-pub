@@ -123,7 +123,11 @@ const CompactStoryExcerpt = styled.p`
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
+
+  @media (min-width: 760px) {
+    -webkit-line-clamp: 1;
+  }
 `;
 
 const CompactStoryReadMore = styled(Link)`
@@ -149,6 +153,7 @@ const HomeViewMoreButton = styled.button`
   font-weight: 800;
   letter-spacing: 0.01em;
   padding: 0;
+  min-height: 44px;
 
   &:hover:not(:disabled) {
     text-decoration: underline;
@@ -280,6 +285,9 @@ export default function HomeLatestStories({
 
   return (
     <>
+      <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+        {isLoading ? "Loading more stories" : ""}
+      </span>
       <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />
       {error ? <HomeListError role="status">{error}</HomeListError> : null}
       {hasMore ? (
@@ -290,7 +298,7 @@ export default function HomeLatestStories({
             onClick={handleViewMore}
             type="button"
           >
-            {viewMoreLabel}
+            {isLoading ? "Loading..." : viewMoreLabel}
           </HomeViewMoreButton>
         </HomeListFooter>
       ) : null}

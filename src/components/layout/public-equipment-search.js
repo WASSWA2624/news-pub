@@ -8,6 +8,10 @@ const Form = styled.form`
   display: grid;
   gap: 0.45rem;
   grid-template-columns: minmax(0, 1fr) auto;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 const Input = styled.input`
@@ -37,6 +41,11 @@ const Button = styled.button`
   font-weight: 700;
   min-height: 44px;
   padding: 0 1rem;
+
+  @media (max-width: 640px) {
+    min-height: 46px;
+    width: 100%;
+  }
 `;
 
 /**

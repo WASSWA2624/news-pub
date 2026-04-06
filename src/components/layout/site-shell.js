@@ -57,7 +57,7 @@ const HeaderInner = styled.div`
   gap: 0.9rem;
   margin: 0 auto;
   max-width: 1280px;
-  padding: 0.8rem 1rem;
+  padding: clamp(0.72rem, 1.8vw, 0.9rem) clamp(0.82rem, 2.2vw, 1rem);
 
   @media (min-width: 980px) {
     align-items: center;
@@ -94,12 +94,27 @@ const Navigation = styled.nav`
   display: flex;
   flex-wrap: wrap;
   gap: 0.9rem;
+  overflow-x: auto;
+  padding-bottom: 0.18rem;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 980px) {
+    align-items: center;
+    overflow: visible;
+    padding-bottom: 0;
+  }
 `;
 
 const NavigationLink = styled(Link)`
   color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
   font-size: 0.95rem;
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
+  line-height: 1.2;
+  min-height: 2rem;
 `;
 
 const Dropdown = styled.details`
@@ -175,7 +190,7 @@ const DropdownList = styled.div`
   @media (max-width: 780px) {
     position: static;
     margin-top: 0.55rem;
-    width: min(100%, 320px);
+    width: 100%;
   }
 `;
 
@@ -190,6 +205,7 @@ const DropdownLink = styled(Link)`
   gap: 0.75rem;
   padding: 0.65rem 0.7rem;
   transition: background 0.18s ease, color 0.18s ease;
+  min-height: 44px;
 
   &:hover {
     background: rgba(var(--theme-primary-rgb), 0.08);
@@ -218,6 +234,7 @@ const CountryFlag = styled.img`
 
 const SearchWrap = styled.div`
   max-width: 100%;
+  width: 100%;
 `;
 
 const Content = styled.div`

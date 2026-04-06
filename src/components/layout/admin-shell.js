@@ -482,6 +482,7 @@ const PrimaryNavScroller = styled.div`
   overflow-x: auto;
   padding-bottom: 0.1rem;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     display: none;
@@ -676,6 +677,11 @@ const OverflowMenu = styled.div`
   top: calc(100% + 0.45rem);
   width: min(calc(100vw - 1.2rem), 280px);
   z-index: 50;
+
+  @media (max-width: 479px) {
+    right: -0.2rem;
+    width: min(calc(100vw - 0.8rem), 280px);
+  }
 `;
 
 const OverflowSection = styled.div`

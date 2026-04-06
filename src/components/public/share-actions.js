@@ -112,6 +112,10 @@ const ShareButtonRow = styled.div`
   gap: 0.72rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   ${({ $compact }) =>
     $compact &&
     css`
@@ -161,7 +165,7 @@ const shareTileStyles = css`
     $compact &&
     css`
       border-radius: 14px;
-      min-height: 58px;
+      min-height: 52px;
       padding: 0.56rem 0.62rem;
     `}
 `;

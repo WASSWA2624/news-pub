@@ -71,6 +71,7 @@ const GlobalStyles = createGlobalStyle`
       );
     color: ${({ theme }) => theme?.colors?.text || "#152844"};
     font-family: var(--font-ui), "Segoe UI", sans-serif;
+    line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
@@ -85,6 +86,11 @@ const GlobalStyles = createGlobalStyle`
     text-decoration: none;
   }
 
+  :focus-visible {
+    outline: 2px solid rgba(var(--theme-primary-rgb), 0.6);
+    outline-offset: 2px;
+  }
+
   ::selection {
     background: rgba(var(--theme-accent-rgb), 0.22);
     color: ${({ theme }) => theme?.colors?.text || "#152844"};
@@ -94,6 +100,17 @@ const GlobalStyles = createGlobalStyle`
   input,
   textarea {
     font: inherit;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 `;
 
