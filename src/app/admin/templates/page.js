@@ -4,6 +4,7 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -23,6 +24,7 @@ import {
   SummaryValue,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import TemplateFormCard from "@/components/admin/template-form-card";
 import { getTemplateManagementSnapshot } from "@/features/templates";
 import { defaultLocale } from "@/features/i18n/config";
@@ -340,13 +342,25 @@ export default async function TemplatesPage() {
                     {template.isDefault ? <MetaPill>Default</MetaPill> : null}
                   </RecordMeta>
                 </RecordHeader>
-                <TemplateFormCard
-                  action={saveTemplateAction}
-                  categoryOptions={categoryOptions}
-                  platformOptions={platformOptions}
-                  submitLabel="Save template"
-                  template={template}
-                />
+                <SmallText>
+                  Resolution rules and content blocks now open in a larger modal so fallback logic stays readable while editing.
+                </SmallText>
+                <ButtonRow>
+                  <AdminFormModal
+                    description="Adjust template precedence, platform compatibility, and content blocks in a scrollable full-size editor."
+                    size="full"
+                    title={`Edit ${template.name}`}
+                    triggerLabel="Edit template"
+                  >
+                    <TemplateFormCard
+                      action={saveTemplateAction}
+                      categoryOptions={categoryOptions}
+                      platformOptions={platformOptions}
+                      submitLabel="Save template"
+                      template={template}
+                    />
+                  </AdminFormModal>
+                </ButtonRow>
               </TemplateRecord>
             ))}
           </RecordStack>
@@ -359,12 +373,26 @@ export default async function TemplatesPage() {
               Template selection follows stream, platform plus category, platform plus locale, then platform default.
             </CardDescription>
           </CardHeader>
-          <TemplateFormCard
-            action={saveTemplateAction}
-            categoryOptions={categoryOptions}
-            platformOptions={platformOptions}
-            submitLabel="Create template"
-          />
+          <SmallText>
+            Start a new template in a full-space modal when you need room for longer body copy and override rules.
+          </SmallText>
+          <ButtonRow>
+            <AdminFormModal
+              description="Create a new publishing template with platform, locale, category, and content-block controls in one place."
+              size="full"
+              title="Create template"
+              triggerFullWidth
+              triggerLabel="New template"
+              triggerTone="primary"
+            >
+              <TemplateFormCard
+                action={saveTemplateAction}
+                categoryOptions={categoryOptions}
+                platformOptions={platformOptions}
+                submitLabel="Create template"
+              />
+            </AdminFormModal>
+          </ButtonRow>
         </StickyCard>
       </StudioGrid>
     </AdminPage>

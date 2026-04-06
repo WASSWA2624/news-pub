@@ -4,7 +4,6 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
-  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -23,13 +22,49 @@ import {
   SummaryLabel,
   SummaryValue,
   Textarea,
-  SecondaryButton,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import { getCategoryManagementSnapshot } from "@/features/categories";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import styled from "styled-components";
 import { deleteCategoryAction, saveCategoryAction } from "../actions";
+
+const CategoryForm = styled.form`
+  display: grid;
+  gap: 0.85rem;
+`;
+
+const ActionCluster = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+`;
+
+function CategoryEditorForm({ category = null, submitLabel }) {
+  return (
+    <CategoryForm action={saveCategoryAction}>
+      {category ? <input name="id" type="hidden" value={category.id} /> : null}
+      <FieldGrid>
+        <Field>
+          <FieldLabel>Name</FieldLabel>
+          <Input defaultValue={category?.name || ""} name="name" required />
+        </Field>
+        <Field>
+          <FieldLabel>Slug</FieldLabel>
+          <Input defaultValue={category?.slug || ""} name="slug" />
+        </Field>
+      </FieldGrid>
+      <Field>
+        <FieldLabel>Description</FieldLabel>
+        <Textarea defaultValue={category?.description || ""} name="description" />
+      </Field>
+      <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
+    </CategoryForm>
+  );
+}
 
 export default async function CategoriesPage() {
   const [messages, snapshot] = await Promise.all([
@@ -89,16 +124,26 @@ export default async function CategoriesPage() {
                     <td data-label="Posts">{category.postCount}</td>
                     <td data-label="Streams">{category.streamCount}</td>
                     <td data-label="Actions">
-                      <form action={deleteCategoryAction}>
-                        <input name="id" type="hidden" value={category.id} />
-                        <ConfirmSubmitButton
-                          confirmLabel="Delete category"
-                          description={`This will permanently remove ${category.name}. Make sure it is no longer needed by stories or streams.`}
-                          title="Delete this category?"
+                      <ActionCluster>
+                        <AdminFormModal
+                          description="Update the category name, slug, and description without leaving the taxonomy table."
+                          size="compact"
+                          title={`Edit ${category.name}`}
+                          triggerLabel="Edit"
                         >
-                          Delete
-                        </ConfirmSubmitButton>
-                      </form>
+                          <CategoryEditorForm category={category} submitLabel="Save category" />
+                        </AdminFormModal>
+                        <form action={deleteCategoryAction}>
+                          <input name="id" type="hidden" value={category.id} />
+                          <ConfirmSubmitButton
+                            confirmLabel="Delete category"
+                            description={`This will permanently remove ${category.name}. Make sure it is no longer needed by stories or streams.`}
+                            title="Delete this category?"
+                          >
+                            Delete
+                          </ConfirmSubmitButton>
+                        </form>
+                      </ActionCluster>
                     </td>
                   </tr>
                 ))}
@@ -109,28 +154,22 @@ export default async function CategoriesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Create or update category</CardTitle>
+            <CardTitle>Create category</CardTitle>
             <CardDescription>Categories drive stream filters, landing pages, and website discovery.</CardDescription>
           </CardHeader>
-          <form action={saveCategoryAction}>
-            <FieldGrid>
-              <Field>
-                <FieldLabel>Name</FieldLabel>
-                <Input name="name" required />
-              </Field>
-              <Field>
-                <FieldLabel>Slug</FieldLabel>
-                <Input name="slug" />
-              </Field>
-            </FieldGrid>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Description</FieldLabel>
-              <Textarea name="description" />
-            </Field>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
-              <PrimaryButton type="submit">Save category</PrimaryButton>
-            </ButtonRow>
-          </form>
+          <SmallText>
+            Open a compact modal to add a new taxonomy entry while keeping the category inventory visible.
+          </SmallText>
+          <AdminFormModal
+            description="Create a category with a clean compact form that fits the taxonomy workflow."
+            size="compact"
+            title="Create category"
+            triggerFullWidth
+            triggerLabel="New category"
+            triggerTone="primary"
+          >
+            <CategoryEditorForm submitLabel="Save category" />
+          </AdminFormModal>
         </Card>
       </SectionGrid>
     </AdminPage>

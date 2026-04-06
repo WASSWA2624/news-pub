@@ -1011,6 +1011,9 @@ export default function SearchableSelect({
   }
 
   const canPortal = typeof document !== "undefined";
+  const portalTarget = canPortal
+    ? rootRef.current?.closest("[data-floating-root]") || document.body
+    : null;
   const selectionSummary = multiple
     ? selectedOptions.length
       ? `${formatCountLabel(selectedOptions.length, "option")} selected`
@@ -1023,7 +1026,7 @@ export default function SearchableSelect({
     : normalizedQuery
       ? formatCountLabel(filteredOptions.length, "match")
       : formatCountLabel(normalizedOptions.length, "option");
-  const dropdown = isOpen && canPortal && dropdownLayout
+  const dropdown = isOpen && canPortal && dropdownLayout && portalTarget
     ? createPortal(
         <DropdownSurface
           $layout={dropdownLayout}
@@ -1105,7 +1108,7 @@ export default function SearchableSelect({
             <StateMessage>{emptyMessage}</StateMessage>
           )}
         </DropdownSurface>,
-        document.body,
+        portalTarget,
       )
     : null;
 

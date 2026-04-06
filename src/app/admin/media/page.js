@@ -4,7 +4,6 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
-  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -25,10 +24,17 @@ import {
   SummaryValue,
   Textarea,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import { getMediaLibrarySnapshot } from "@/features/media";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import styled from "styled-components";
 import { uploadMediaAction } from "../actions";
+
+const UploadForm = styled.form`
+  display: grid;
+  gap: 0.85rem;
+`;
 
 export default async function MediaPage() {
   const [messages, snapshot] = await Promise.all([
@@ -64,33 +70,43 @@ export default async function MediaPage() {
               Uploaded assets go through the shared storage adapter and responsive variant pipeline.
             </CardDescription>
           </CardHeader>
-          <form action={uploadMediaAction}>
-            <FieldGrid>
+          <SmallText>
+            Launch a compact upload modal when you need to add a file, source metadata, and descriptive text.
+          </SmallText>
+          <AdminFormModal
+            description="Upload a media asset with source information, descriptive text, and attribution in one responsive form."
+            size="wide"
+            title="Upload media asset"
+            triggerFullWidth
+            triggerLabel="Upload asset"
+            triggerTone="primary"
+          >
+            <UploadForm action={uploadMediaAction}>
+              <FieldGrid>
+                <Field>
+                  <FieldLabel>File</FieldLabel>
+                  <Input name="file" required type="file" />
+                </Field>
+                <Field>
+                  <FieldLabel>Source URL</FieldLabel>
+                  <Input name="sourceUrl" />
+                </Field>
+                <Field>
+                  <FieldLabel>Alt text</FieldLabel>
+                  <Input name="alt" />
+                </Field>
+                <Field>
+                  <FieldLabel>Attribution</FieldLabel>
+                  <Input name="attributionText" />
+                </Field>
+              </FieldGrid>
               <Field>
-                <FieldLabel>File</FieldLabel>
-                <Input name="file" required type="file" />
+                <FieldLabel>Caption</FieldLabel>
+                <Textarea name="caption" />
               </Field>
-              <Field>
-                <FieldLabel>Source URL</FieldLabel>
-                <Input name="sourceUrl" />
-              </Field>
-              <Field>
-                <FieldLabel>Alt text</FieldLabel>
-                <Input name="alt" />
-              </Field>
-              <Field>
-                <FieldLabel>Attribution</FieldLabel>
-                <Input name="attributionText" />
-              </Field>
-            </FieldGrid>
-            <Field style={{ marginTop: "0.85rem" }}>
-              <FieldLabel>Caption</FieldLabel>
-              <Textarea name="caption" />
-            </Field>
-            <ButtonRow style={{ marginTop: "0.85rem" }}>
               <PrimaryButton type="submit">Upload asset</PrimaryButton>
-            </ButtonRow>
-          </form>
+            </UploadForm>
+          </AdminFormModal>
         </Card>
 
         <Card>

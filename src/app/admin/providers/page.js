@@ -4,6 +4,7 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -23,6 +24,7 @@ import {
   SummaryLabel,
   SummaryValue,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import ProviderFormCard from "@/components/admin/provider-form-card";
 import { getProviderManagementSnapshot } from "@/features/providers";
 import { defaultLocale } from "@/features/i18n/config";
@@ -85,7 +87,19 @@ export default async function ProvidersPage() {
                     </StatusBadge>
                   </RecordMeta>
                 </RecordHeader>
-                <ProviderFormCard action={saveProviderAction} provider={provider} />
+                <SmallText>
+                  Availability, labels, and request defaults are now edited in a dedicated workspace so the provider list stays easier to scan.
+                </SmallText>
+                <ButtonRow>
+                  <AdminFormModal
+                    description="Review provider metadata, request defaults, and availability settings without crowding the dashboard grid."
+                    size="full"
+                    title={`Edit ${provider.label}`}
+                    triggerLabel="Edit provider"
+                  >
+                    <ProviderFormCard action={saveProviderAction} provider={provider} />
+                  </AdminFormModal>
+                </ButtonRow>
               </RecordCard>
             ))}
           </RecordStack>

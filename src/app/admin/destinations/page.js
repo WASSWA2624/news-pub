@@ -4,6 +4,7 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -24,6 +25,7 @@ import {
   SummaryValue,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import DestinationFormCard from "@/components/admin/destination-form-card";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { defaultLocale } from "@/features/i18n/config";
@@ -228,14 +230,26 @@ export default async function DestinationsPage() {
                     </StatusBadge>
                   </RecordMeta>
                 </RecordHeader>
-                <DestinationFormCard
-                  action={saveDestinationAction}
-                  connectionStatusOptions={connectionStatusOptions}
-                  destination={destination}
-                  kindOptions={kindOptions}
-                  platformOptions={platformOptions}
-                  submitLabel="Save destination"
-                />
+                <SmallText>
+                  Identity, routing, credentials, and operational notes open in a focused modal with room for longer configurations.
+                </SmallText>
+                <ButtonRow>
+                  <AdminFormModal
+                    description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
+                    size="full"
+                    title={`Edit ${destination.name}`}
+                    triggerLabel="Edit destination"
+                  >
+                    <DestinationFormCard
+                      action={saveDestinationAction}
+                      connectionStatusOptions={connectionStatusOptions}
+                      destination={destination}
+                      kindOptions={kindOptions}
+                      platformOptions={platformOptions}
+                      submitLabel="Save destination"
+                    />
+                  </AdminFormModal>
+                </ButtonRow>
               </DestinationRecord>
             ))}
           </RecordStack>
@@ -248,12 +262,27 @@ export default async function DestinationsPage() {
               Website and social endpoints can be managed independently and connected to multiple streams.
             </CardDescription>
           </CardHeader>
-          <DestinationFormCard
-            action={saveDestinationAction}
-            kindOptions={kindOptions}
-            platformOptions={platformOptions}
-            submitLabel="Create destination"
-          />
+          <SmallText>
+            Open a full-size composer when you need to add a new website or social endpoint without leaving the directory view.
+          </SmallText>
+          <ButtonRow>
+            <AdminFormModal
+              description="Create a new destination with identity, routing, status, and credential details in a single responsive workspace."
+              size="full"
+              title="Create destination"
+              triggerFullWidth
+              triggerLabel="New destination"
+              triggerTone="primary"
+            >
+              <DestinationFormCard
+                action={saveDestinationAction}
+                connectionStatusOptions={connectionStatusOptions}
+                kindOptions={kindOptions}
+                platformOptions={platformOptions}
+                submitLabel="Create destination"
+              />
+            </AdminFormModal>
+          </ButtonRow>
         </StickyCard>
       </DestinationGrid>
     </AdminPage>

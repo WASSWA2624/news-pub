@@ -194,6 +194,23 @@ export async function runStreamNowAction(formData) {
   redirectToPath("/admin/streams");
 }
 
+export async function runSelectedStreamsAction(formData) {
+  const auth = await requireAdminPageSession("/admin/streams");
+  const streamIds = parseRepeatedField(formData, "streamIds");
+
+  for (const streamId of streamIds) {
+    await runStreamFetch(
+      streamId,
+      {
+        actorId: getActorId(auth),
+        triggerType: "manual",
+      },
+    );
+  }
+
+  redirectToPath("/admin/streams");
+}
+
 export async function runSchedulerAction() {
   await requireAdminPageSession("/admin");
   await runScheduledStreams();

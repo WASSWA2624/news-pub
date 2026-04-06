@@ -15,7 +15,7 @@ import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { getProviderDefinition } from "@/lib/news/provider-definitions";
-import { runStreamNowAction, saveStreamAction } from "../actions";
+import { runSelectedStreamsAction, runStreamNowAction, saveStreamAction } from "../actions";
 
 const modeValues = ["AUTO_PUBLISH", "REVIEW_REQUIRED"];
 const statusValues = ["ACTIVE", "PAUSED"];
@@ -106,6 +106,7 @@ export default async function StreamsPage() {
         destinationOptions={destinationOptions}
         modeOptions={modeOptions}
         providerOptions={providerOptions}
+        runSelectedStreamsAction={runSelectedStreamsAction}
         runNowAction={runStreamNowAction}
         saveStreamAction={saveStreamAction}
         statusOptions={statusOptions}

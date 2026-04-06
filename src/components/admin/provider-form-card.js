@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import styled from "styled-components";
 
 import {
   ButtonRow,
@@ -20,6 +21,11 @@ import {
 import SearchableSelect from "@/components/common/searchable-select";
 import { getProviderRequestDefaultValues, listProviderDefinitions } from "@/lib/news/provider-definitions";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
+
+const ProviderForm = styled.form`
+  display: grid;
+  gap: 0.95rem;
+`;
 
 const providerDescriptions = Object.freeze({
   mediastack: "Mediastack provider integration with the official live news filters.",
@@ -63,7 +69,7 @@ export default function ProviderFormCard({
     : selectedDefinition?.defaultRequestDefaults || {};
 
   return (
-    <form action={action}>
+    <ProviderForm action={action}>
       <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
         <Field as="div">
           <FieldLabel>Provider Key</FieldLabel>
@@ -151,6 +157,6 @@ export default function ProviderFormCard({
           <PrimaryButton type="submit">Save provider</PrimaryButton>
         </ButtonRow>
       </FormSection>
-    </form>
+    </ProviderForm>
   );
 }
