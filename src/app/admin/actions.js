@@ -12,6 +12,10 @@ import { saveProviderRecord } from "@/features/providers";
 import { updatePostEditorialRecord } from "@/features/posts";
 import { saveStreamRecord } from "@/features/streams";
 import { requireAdminPageSession } from "@/lib/auth";
+import {
+  MULTI_VALUE_EMPTY_SENTINEL,
+  sanitizeProviderFieldValues,
+} from "@/lib/news/provider-definitions";
 import { retryPublishAttempt, runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
 
 function trimText(value) {
@@ -36,6 +40,47 @@ function parseJsonField(formData, key, fallbackValue = {}) {
   }
 }
 
+function parseRepeatedField(formData, key) {
+  return formData
+    .getAll(key)
+    .map((value) => trimText(value))
+    .filter((value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL);
+}
+
+function parseScopedFields(formData, prefix) {
+  const groupedEntries = new Map();
+
+  for (const [rawKey, rawValue] of formData.entries()) {
+    if (!rawKey.startsWith(prefix)) {
+      continue;
+    }
+
+    const key = trimText(rawKey.slice(prefix.length));
+    const value = trimText(rawValue);
+
+    if (!key) {
+      continue;
+    }
+
+    if (!groupedEntries.has(key)) {
+      groupedEntries.set(key, []);
+    }
+
+    groupedEntries.get(key).push(value);
+  }
+
+  return [...groupedEntries.entries()].reduce((result, [key, values]) => {
+    const hadSentinel = values.includes(MULTI_VALUE_EMPTY_SENTINEL);
+    const cleanedValues = values.filter(
+      (value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL,
+    );
+
+    result[key] = values.length > 1 || hadSentinel ? cleanedValues : cleanedValues[0] || "";
+
+    return result;
+  }, {});
+}
+
 function redirectToPath(pathname) {
   revalidatePath(pathname);
   redirect(pathname);
@@ -47,6 +92,7 @@ function getActorId(auth) {
 
 export async function saveProviderAction(formData) {
   const auth = await requireAdminPageSession("/admin/providers");
+  const providerKey = trimText(formData.get("providerKey")).toLowerCase();
 
   await saveProviderRecord(
     {
@@ -56,8 +102,11 @@ export async function saveProviderAction(formData) {
       isEnabled: getBoolean(formData, "isEnabled"),
       isSelectable: getBoolean(formData, "isSelectable"),
       label: formData.get("label"),
-      providerKey: formData.get("providerKey"),
-      requestDefaultsJson: parseJsonField(formData, "requestDefaultsJson", {}),
+      providerKey,
+      requestDefaultsJson: sanitizeProviderFieldValues(
+        providerKey,
+        parseScopedFields(formData, "requestDefault."),
+      ),
     },
     {
       actorId: getActorId(auth),
@@ -98,17 +147,20 @@ export async function saveStreamAction(formData) {
   await saveStreamRecord(
     {
       activeProviderId: formData.get("activeProviderId"),
-      categoryIds: formData.getAll("categoryIds").map((value) => trimText(value)),
+      categoryIds: parseRepeatedField(formData, "categoryIds"),
+      countryAllowlistJson: parseRepeatedField(formData, "countryAllowlistJson"),
       defaultTemplateId: formData.get("defaultTemplateId"),
       description: formData.get("description"),
       destinationId: formData.get("destinationId"),
       duplicateWindowHours: formData.get("duplicateWindowHours"),
       excludeKeywordsJson: formData.get("excludeKeywordsJson"),
       includeKeywordsJson: formData.get("includeKeywordsJson"),
+      languageAllowlistJson: parseRepeatedField(formData, "languageAllowlistJson"),
       locale: formData.get("locale"),
       maxPostsPerRun: formData.get("maxPostsPerRun"),
       mode: formData.get("mode"),
       name: formData.get("name"),
+      providerFilters: parseScopedFields(formData, "providerFilter."),
       retryBackoffMinutes: formData.get("retryBackoffMinutes"),
       retryLimit: formData.get("retryLimit"),
       scheduleExpression: formData.get("scheduleExpression"),

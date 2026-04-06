@@ -16,6 +16,7 @@ import { getAdminNavigation } from "@/lib/auth/rbac";
  */
 const MOBILE_BREAKPOINT = 720;
 const DESKTOP_BREAKPOINT = 1220;
+const TABLET_HEADER_BREAKPOINT = 720;
 
 const MOBILE_PRIMARY_KEYS = Object.freeze(["dashboard", "review", "published"]);
 
@@ -140,6 +141,23 @@ function getAdminNavigationLabel(messages, key) {
   const adminMessages = messages?.admin || {};
 
   return adminMessages.navigation?.[key] || adminMessages[key]?.title || key;
+}
+
+function getAdminShellTitle(title) {
+  return `${title || "NewsPub"}`.replace(/\s+admin$/i, "").trim() || "NewsPub";
+}
+
+function getUserFirstNameInitials(name) {
+  const normalizedName = `${name || ""}`.trim();
+
+  if (!normalizedName) {
+    return "A";
+  }
+
+  const [firstName] = normalizedName.split(/\s+/);
+  const letters = firstName.replace(/[^a-z0-9]/gi, "").slice(0, 2);
+
+  return (letters || firstName.slice(0, 1) || "A").toUpperCase();
 }
 
 function distributeNavigationItemsByWidth(items, pathname, widthsByKey, availableWidth) {
@@ -269,7 +287,7 @@ const MobileHeaderLayout = styled.div`
   display: grid;
   gap: 0.28rem;
 
-  @media (min-width: ${DESKTOP_BREAKPOINT}px) {
+  @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     display: none;
   }
 `;
@@ -277,7 +295,7 @@ const MobileHeaderLayout = styled.div`
 const DesktopBar = styled.div`
   display: none;
 
-  @media (min-width: ${DESKTOP_BREAKPOINT}px) {
+  @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     align-items: center;
     display: grid;
     gap: 0.4rem;
@@ -318,74 +336,138 @@ const BrandTitle = styled.span`
   line-height: 1.05;
 `;
 
-const UserBadge = styled.div`
+const ProfileMenuWrap = styled.div`
+  position: relative;
+`;
+
+const ProfileTrigger = styled.button`
   align-items: center;
   backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 13px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  display: grid;
-  gap: 0.3rem;
-  grid-template-columns: minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.2), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 18px rgba(4, 14, 24, 0.18);
+  color: white;
+  cursor: pointer;
+  display: inline-grid;
+  height: 2.5rem;
   justify-self: end;
-  max-width: min(100%, 16rem);
-  padding: 0.32rem 0.46rem;
-  width: fit-content;
+  padding: 0;
+  place-items: center;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+  width: 2.5rem;
 
-  @media (min-width: 480px) {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    gap: 0.38rem;
-    padding: 0.28rem 0.44rem;
+  &:hover {
+    background:
+      radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.24), transparent 46%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
   }
 `;
 
-const UserCopy = styled.div`
+const ProfileInitials = styled.span`
+  align-items: center;
+  color: white;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 900;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-indent: 0.08em;
+  text-transform: uppercase;
+`;
+
+const ProfileMenu = styled.div`
+  backdrop-filter: blur(20px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(243, 247, 251, 0.975)),
+    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 40%);
+  border: 1px solid rgba(16, 32, 51, 0.07);
+  border-radius: 10px;
+  box-shadow:
+    0 14px 28px rgba(16, 32, 51, 0.12),
+    0 3px 8px rgba(16, 32, 51, 0.05);
+  display: ${({ $open }) => ($open ? "grid" : "none")};
+  gap: 0;
+  min-width: min(calc(100vw - 1.2rem), 300px);
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: min(calc(100vw - 1.2rem), 300px);
+  z-index: 55;
+`;
+
+const ProfileHeader = styled.div`
+  align-items: center;
   display: grid;
-  gap: 0.05rem;
+  gap: 0.8rem;
+  grid-template-columns: auto minmax(0, 1fr);
+`;
+
+const ProfileInitialsBadge = styled.span`
+  align-items: center;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(135deg, #214b69 0%, #17687c 100%);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 6px 14px rgba(22, 67, 92, 0.12);
+  color: white;
+  display: inline-flex;
+  font-size: 0.94rem;
+  font-weight: 900;
+  height: 3rem;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  text-indent: 0.08em;
+  width: 3rem;
+`;
+
+const ProfileCopy = styled.div`
+  display: grid;
+  gap: 0.16rem;
   min-width: 0;
 `;
 
-const UserName = styled.strong`
-  color: white;
-  font-size: clamp(0.72rem, 0.95vw, 0.82rem);
-  line-height: 1.08;
+const ProfileName = styled.strong`
+  color: #152844;
+  font-size: 0.95rem;
+  line-height: 1.14;
 `;
 
-const UserMeta = styled.span`
-  color: rgba(242, 247, 252, 0.84);
-  display: none;
-  font-size: clamp(0.62rem, 0.88vw, 0.7rem);
-  line-height: 1.18;
+const ProfileMeta = styled.span`
+  color: rgba(92, 103, 124, 0.95);
+  font-size: 0.78rem;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  @media (min-width: 540px) {
-    display: inline;
-  }
 `;
 
-const RolePill = styled.span`
+const ProfileRolePill = styled.span`
   align-items: center;
-  background: rgba(185, 205, 192, 0.18);
-  border: 1px solid rgba(215, 228, 217, 0.22);
-  border-radius: 999px;
-  color: rgba(246, 250, 247, 0.92);
-  display: none;
-  font-size: 0.56rem;
+  background: linear-gradient(180deg, rgba(40, 77, 113, 0.07), rgba(40, 77, 113, 0.04));
+  border: 1px solid rgba(36, 75, 115, 0.09);
+  border-radius: 6px;
+  color: #244b73;
+  display: inline-flex;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  padding: 0.22rem 0.45rem;
+  padding: 0.32rem 0.55rem;
   text-transform: uppercase;
   white-space: nowrap;
-
-  @media (min-width: 480px) {
-    display: inline-flex;
-  }
 `;
 
 const NavRow = styled.div`
@@ -408,48 +490,79 @@ const PrimaryNavScroller = styled.div`
 
 const PrimaryNav = styled.nav`
   display: inline-flex;
-  gap: 0.1rem;
+  align-items: center;
+  gap: 0.2rem;
   min-width: max-content;
 
   @media (max-width: 479px) {
-    gap: 0.06rem;
+    gap: 0.04rem;
   }
 `;
 
 const PrimaryNavLink = styled(Link)`
   align-items: center;
-  background: ${({ $active }) => ($active ? "rgba(31, 49, 76, 0.58)" : "transparent")};
-  border: 1px solid ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.08)" : "transparent")};
-  border-radius: 13px;
-  color: ${({ $active }) => ($active ? "white" : "rgba(244, 248, 252, 0.94)")};
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: ${({ $active }) => ($active ? "#ffffff" : "rgba(244, 248, 252, 0.88)")};
   display: inline-flex;
-  font-size: clamp(0.72rem, 0.9vw, 0.82rem);
-  font-weight: ${({ $active }) => ($active ? 800 : 700)};
-  letter-spacing: -0.02em;
+  font-size: clamp(0.76rem, 0.92vw, 0.88rem);
+  font-weight: ${({ $active }) => ($active ? 800 : 650)};
+  letter-spacing: -0.03em;
   min-height: 32px;
-  padding: 0 0.58rem;
+  padding: 0.1rem 0.45rem 0.24rem;
+  position: relative;
   transition:
-    background 160ms ease,
+    color 160ms ease,
     color 160ms ease,
     transform 160ms ease;
   white-space: nowrap;
 
   @media (max-width: 479px) {
-    font-size: 0.72rem;
-    min-height: 29px;
-    padding: 0 0.4rem;
+    font-size: 0.74rem;
+    min-height: 28px;
+    padding: 0.08rem 0.3rem 0.2rem;
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
     min-height: 31px;
-    padding: 0 0.54rem;
+    padding: 0.08rem 0.42rem 0.22rem;
+  }
+
+  &::after {
+    background: ${({ $active }) =>
+      $active ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.42)"};
+    border-radius: 999px;
+    bottom: 0;
+    content: "";
+    height: ${({ $active }) => ($active ? "2px" : "1px")};
+    left: 0.45rem;
+    opacity: ${({ $active }) => ($active ? 1 : 0)};
+    position: absolute;
+    right: 0.45rem;
+    transform: translateY(0);
+    transition:
+      opacity 160ms ease,
+      background 160ms ease;
+
+    @media (max-width: 479px) {
+      left: 0.3rem;
+      right: 0.3rem;
+    }
+
+    @media (min-width: ${DESKTOP_BREAKPOINT}px) {
+      left: 0.42rem;
+      right: 0.42rem;
+    }
   }
 
   &:hover {
-    background: ${({ $active }) =>
-      $active ? "rgba(31, 49, 76, 0.64)" : "rgba(255, 255, 255, 0.08)"};
     color: white;
     transform: translateY(-1px);
+
+    &::after {
+      opacity: 1;
+    }
   }
 `;
 
@@ -568,15 +681,19 @@ const OverflowMenu = styled.div`
 const OverflowSection = styled.div`
   display: grid;
   gap: 0.34rem;
-  padding: 0.7rem;
+  padding: 0.9rem 1rem;
+
+  & + & {
+    border-top: 1px solid rgba(16, 32, 51, 0.07);
+  }
 `;
 
 const OverflowSectionTitle = styled.span`
-  color: rgba(80, 92, 115, 0.92);
-  font-size: 0.66rem;
+  color: rgba(80, 92, 115, 0.88);
+  font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
-  padding: 0 0.2rem;
+  letter-spacing: 0.18em;
+  padding: 0 0.05rem;
   text-transform: uppercase;
 `;
 
@@ -655,25 +772,37 @@ const OverflowActions = styled.div`
 
 const OverflowActionLink = styled(Link)`
   align-items: center;
-  background: rgba(36, 75, 115, 0.05);
+  background: linear-gradient(180deg, rgba(36, 75, 115, 0.04), rgba(36, 75, 115, 0.02));
   border: 1px solid rgba(36, 75, 115, 0.08);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #244b73;
   display: inline-flex;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 0.86rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+
+  &:hover {
+    background: linear-gradient(180deg, rgba(36, 75, 115, 0.07), rgba(36, 75, 115, 0.04));
+    border-color: rgba(36, 75, 115, 0.12);
+    transform: translateY(-1px);
+  }
 `;
 
 const OverflowLogoutButton = styled(AdminLogoutButton)`
-  background: linear-gradient(180deg, #244b73, #1d3d5e);
+  background: linear-gradient(180deg, #274c73, #234568);
   border-color: transparent;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(36, 75, 115, 0.16);
   display: inline-flex;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   justify-content: center;
-  min-height: 38px;
+  min-height: 46px;
   width: 100%;
 `;
 
@@ -685,6 +814,7 @@ const Main = styled.div`
 export default function AdminShell({ children, messages, user }) {
   const pathname = usePathname();
   const menuRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const primaryNavViewportRef = useRef(null);
   const measurementRefs = useRef({});
   const [openMenuContext, setOpenMenuContext] = useState(null);
@@ -710,6 +840,12 @@ export default function AdminShell({ children, messages, user }) {
     function handlePointerDown(event) {
       if (!menuRef.current?.contains(event.target)) {
         setOpenMenuContext(null);
+      }
+
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setOpenMenuContext((currentValue) =>
+          currentValue === "profile" ? null : currentValue,
+        );
       }
     }
 
@@ -770,7 +906,7 @@ export default function AdminShell({ children, messages, user }) {
 
   const effectiveViewportWidth = viewportWidth ?? MOBILE_BREAKPOINT;
   const isDesktopViewport =
-    viewportWidth !== null && viewportWidth >= DESKTOP_BREAKPOINT;
+    viewportWidth !== null && viewportWidth >= TABLET_HEADER_BREAKPOINT;
   const primaryKeys = getPrimaryKeysForViewport(effectiveViewportWidth);
   const widthDrivenDistribution = useMemo(() => {
     return distributeNavigationItemsByWidth(navigationItems, pathname, navItemWidths, navViewportWidth);
@@ -782,8 +918,11 @@ export default function AdminShell({ children, messages, user }) {
 
   const menuContext = `${pathname}:${primaryKeys.join("|")}`;
   const isOverflowOpen = openMenuContext === menuContext;
+  const isProfileMenuOpen = openMenuContext === "profile";
   const roleLabel = user.role.replace(/_/g, " ");
   const shouldShowRolePill = normalizeIdentityLabel(user.name) !== normalizeIdentityLabel(roleLabel);
+  const userInitials = getUserFirstNameInitials(user.name);
+  const shellTitle = getAdminShellTitle(messages.admin.title);
 
   function renderPrimaryNavigation() {
     return primaryItems.map((item) => {
@@ -853,7 +992,7 @@ export default function AdminShell({ children, messages, user }) {
                 <BrandLink href="/admin">
                   <NewsPubLogo size={34} />
                   <BrandCopy>
-                    <BrandTitle>{messages.admin.title}</BrandTitle>
+                    <BrandTitle>{shellTitle}</BrandTitle>
                   </BrandCopy>
                 </BrandLink>
 
@@ -861,77 +1000,7 @@ export default function AdminShell({ children, messages, user }) {
                   <PrimaryNav aria-label="Admin navigation">{renderPrimaryNavigation()}</PrimaryNav>
                 </PrimaryNavScroller>
 
-                <MenuWrap ref={menuRef}>
-                  <OverflowButton
-                    aria-controls="admin-overflow-navigation"
-                    aria-expanded={isOverflowOpen}
-                    aria-label={isOverflowOpen ? "Close more menu" : "Open more menu"}
-                    onClick={() =>
-                      setOpenMenuContext((currentValue) =>
-                        currentValue === menuContext ? null : menuContext,
-                      )
-                    }
-                    type="button"
-                  >
-                    <OverflowDots aria-hidden="true">
-                      <OverflowDot />
-                      <OverflowDot />
-                      <OverflowDot />
-                    </OverflowDots>
-                  </OverflowButton>
-
-                  <OverflowMenu $open={isOverflowOpen} id="admin-overflow-navigation">
-                    {overflowItems.length ? (
-                      <OverflowSection>
-                        <OverflowSectionTitle>Hidden Navigation</OverflowSectionTitle>
-                        <OverflowList>{renderOverflowNavigation()}</OverflowList>
-                      </OverflowSection>
-                    ) : null}
-
-                    <OverflowSection>
-                      <OverflowSectionTitle>Workspace</OverflowSectionTitle>
-                      <OverflowActions>
-                        <OverflowActionLink href={publicSiteHref} onClick={() => setOpenMenuContext(null)}>
-                          Open public site
-                        </OverflowActionLink>
-                        <OverflowLogoutButton />
-                      </OverflowActions>
-                    </OverflowSection>
-                  </OverflowMenu>
-                </MenuWrap>
-
-                <UserBadge aria-label="Authenticated admin">
-                  <UserCopy>
-                    <UserName>{user.name}</UserName>
-                    <UserMeta>{user.email}</UserMeta>
-                  </UserCopy>
-                  {shouldShowRolePill ? <RolePill>{roleLabel}</RolePill> : null}
-                </UserBadge>
-              </DesktopBar>
-            ) : (
-              <MobileHeaderLayout>
-                <TopRow>
-                  <BrandLink href="/admin">
-                    <NewsPubLogo size={32} />
-                    <BrandCopy>
-                      <BrandTitle>{messages.admin.title}</BrandTitle>
-                    </BrandCopy>
-                  </BrandLink>
-
-                  <UserBadge aria-label="Authenticated admin">
-                    <UserCopy>
-                      <UserName>{user.name}</UserName>
-                      <UserMeta>{user.email}</UserMeta>
-                    </UserCopy>
-                    {shouldShowRolePill ? <RolePill>{roleLabel}</RolePill> : null}
-                  </UserBadge>
-                </TopRow>
-
-                <NavRow>
-                  <PrimaryNavScroller ref={primaryNavViewportRef}>
-                    <PrimaryNav aria-label="Admin navigation">{renderPrimaryNavigation()}</PrimaryNav>
-                  </PrimaryNavScroller>
-
+                {overflowItems.length ? (
                   <MenuWrap ref={menuRef}>
                     <OverflowButton
                       aria-controls="admin-overflow-navigation"
@@ -952,24 +1021,142 @@ export default function AdminShell({ children, messages, user }) {
                     </OverflowButton>
 
                     <OverflowMenu $open={isOverflowOpen} id="admin-overflow-navigation">
-                      {overflowItems.length ? (
-                        <OverflowSection>
-                          <OverflowSectionTitle>Hidden Navigation</OverflowSectionTitle>
-                          <OverflowList>{renderOverflowNavigation()}</OverflowList>
-                        </OverflowSection>
-                      ) : null}
+                      <OverflowSection>
+                        <OverflowSectionTitle>Hidden Navigation</OverflowSectionTitle>
+                        <OverflowList>{renderOverflowNavigation()}</OverflowList>
+                      </OverflowSection>
+                    </OverflowMenu>
+                  </MenuWrap>
+                ) : null}
+
+                <ProfileMenuWrap ref={profileMenuRef}>
+                  <ProfileTrigger
+                    aria-controls="admin-profile-menu"
+                    aria-expanded={isProfileMenuOpen}
+                    aria-label={isProfileMenuOpen ? "Close account menu" : "Open account menu"}
+                    onClick={() =>
+                      setOpenMenuContext((currentValue) =>
+                        currentValue === "profile" ? null : "profile",
+                      )
+                    }
+                    type="button"
+                  >
+                    <ProfileInitials aria-hidden="true">{userInitials}</ProfileInitials>
+                  </ProfileTrigger>
+
+                  <ProfileMenu $open={isProfileMenuOpen} id="admin-profile-menu">
+                    <OverflowSection>
+                      <ProfileHeader>
+                        <ProfileInitialsBadge aria-hidden="true">{userInitials}</ProfileInitialsBadge>
+                        <ProfileCopy>
+                          <ProfileName>{user.name}</ProfileName>
+                          <ProfileMeta>{user.email}</ProfileMeta>
+                          {shouldShowRolePill ? <ProfileRolePill>{roleLabel}</ProfileRolePill> : null}
+                        </ProfileCopy>
+                      </ProfileHeader>
+                    </OverflowSection>
+
+                    <OverflowSection>
+                      <OverflowSectionTitle>Workspace</OverflowSectionTitle>
+                      <OverflowActions>
+                        <OverflowActionLink
+                          href={publicSiteHref}
+                          onClick={() => setOpenMenuContext(null)}
+                        >
+                          Open public site
+                        </OverflowActionLink>
+                        <OverflowLogoutButton />
+                      </OverflowActions>
+                    </OverflowSection>
+                  </ProfileMenu>
+                </ProfileMenuWrap>
+              </DesktopBar>
+            ) : (
+              <MobileHeaderLayout>
+                <TopRow>
+                  <BrandLink href="/admin">
+                    <NewsPubLogo size={32} />
+                    <BrandCopy>
+                      <BrandTitle>{shellTitle}</BrandTitle>
+                    </BrandCopy>
+                  </BrandLink>
+
+                  <ProfileMenuWrap ref={profileMenuRef}>
+                    <ProfileTrigger
+                      aria-controls="admin-profile-menu"
+                      aria-expanded={isProfileMenuOpen}
+                      aria-label={isProfileMenuOpen ? "Close account menu" : "Open account menu"}
+                      onClick={() =>
+                        setOpenMenuContext((currentValue) =>
+                          currentValue === "profile" ? null : "profile",
+                        )
+                      }
+                      type="button"
+                    >
+                      <ProfileInitials aria-hidden="true">{userInitials}</ProfileInitials>
+                    </ProfileTrigger>
+
+                    <ProfileMenu $open={isProfileMenuOpen} id="admin-profile-menu">
+                      <OverflowSection>
+                        <ProfileHeader>
+                          <ProfileInitialsBadge aria-hidden="true">{userInitials}</ProfileInitialsBadge>
+                          <ProfileCopy>
+                            <ProfileName>{user.name}</ProfileName>
+                            <ProfileMeta>{user.email}</ProfileMeta>
+                            {shouldShowRolePill ? <ProfileRolePill>{roleLabel}</ProfileRolePill> : null}
+                          </ProfileCopy>
+                        </ProfileHeader>
+                      </OverflowSection>
 
                       <OverflowSection>
                         <OverflowSectionTitle>Workspace</OverflowSectionTitle>
                         <OverflowActions>
-                          <OverflowActionLink href={publicSiteHref} onClick={() => setOpenMenuContext(null)}>
+                          <OverflowActionLink
+                            href={publicSiteHref}
+                            onClick={() => setOpenMenuContext(null)}
+                          >
                             Open public site
                           </OverflowActionLink>
                           <OverflowLogoutButton />
                         </OverflowActions>
                       </OverflowSection>
-                    </OverflowMenu>
-                  </MenuWrap>
+                    </ProfileMenu>
+                  </ProfileMenuWrap>
+                </TopRow>
+
+                <NavRow>
+                  <PrimaryNavScroller ref={primaryNavViewportRef}>
+                    <PrimaryNav aria-label="Admin navigation">{renderPrimaryNavigation()}</PrimaryNav>
+                  </PrimaryNavScroller>
+
+                  {overflowItems.length ? (
+                    <MenuWrap ref={menuRef}>
+                      <OverflowButton
+                        aria-controls="admin-overflow-navigation"
+                        aria-expanded={isOverflowOpen}
+                        aria-label={isOverflowOpen ? "Close more menu" : "Open more menu"}
+                        onClick={() =>
+                          setOpenMenuContext((currentValue) =>
+                            currentValue === menuContext ? null : menuContext,
+                          )
+                        }
+                        type="button"
+                      >
+                        <OverflowDots aria-hidden="true">
+                          <OverflowDot />
+                          <OverflowDot />
+                          <OverflowDot />
+                        </OverflowDots>
+                      </OverflowButton>
+
+                      <OverflowMenu $open={isOverflowOpen} id="admin-overflow-navigation">
+                        <OverflowSection>
+                          <OverflowSectionTitle>Hidden Navigation</OverflowSectionTitle>
+                          <OverflowList>{renderOverflowNavigation()}</OverflowList>
+                        </OverflowSection>
+                      </OverflowMenu>
+                    </MenuWrap>
+                  ) : null}
                 </NavRow>
               </MobileHeaderLayout>
             )}
