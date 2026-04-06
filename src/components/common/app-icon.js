@@ -25,9 +25,11 @@ const aliasMap = Object.freeze({
   edit: "edit",
   eye: "eye",
   "eye-off": "eye-off",
+  facebook: "facebook",
   globe: "globe",
   home: "home",
   jobs: "clock",
+  instagram: "instagram",
   locale: "globe",
   locales: "globe",
   lock: "lock",
@@ -195,6 +197,17 @@ function renderIcon(name) {
           <path d="M10.6 10.6A2.6 2.6 0 0 0 12 14.6" />
         </>
       );
+    case "facebook":
+      return (
+        <>
+          <rect height="16" rx="4" width="16" x="4" y="4" />
+          <path
+            d="M13.4 19v-5.2h1.8l.3-2.1h-2.1v-1.3c0-.9.3-1.4 1.4-1.4H16V7.1c-.4-.1-1-.1-1.7-.1-2.3 0-3.6 1.4-3.6 3.6v1.1H9.2v2.1h1.5V19Z"
+            fill="currentColor"
+            stroke="none"
+          />
+        </>
+      );
     case "file-text":
       return (
         <>
@@ -242,6 +255,14 @@ function renderIcon(name) {
           <circle cx="12" cy="12" r="8.5" />
           <path d="M12 10v5" />
           <circle cx="12" cy="7.2" r=".6" fill="currentColor" stroke="none" />
+        </>
+      );
+    case "instagram":
+      return (
+        <>
+          <rect height="16" rx="4.5" width="16" x="4" y="4" />
+          <circle cx="12" cy="12" r="3.5" />
+          <circle cx="16.3" cy="7.7" r=".9" fill="currentColor" stroke="none" />
         </>
       );
     case "layout":

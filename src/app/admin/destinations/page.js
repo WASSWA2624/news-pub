@@ -30,6 +30,7 @@ import {
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import DestinationFormCard from "@/components/admin/destination-form-card";
+import AppIcon from "@/components/common/app-icon";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { getMetaDestinationFormConfig } from "@/features/destinations/meta-config";
 import { defaultLocale } from "@/features/i18n/config";
@@ -61,17 +62,39 @@ const PlatformRail = styled.div`
 
 const PlatformChip = styled.span`
   align-items: center;
-  background: rgba(15, 111, 141, 0.07);
-  border: 1px solid rgba(15, 111, 141, 0.12);
+  background: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "rgba(24, 119, 242, 0.1)"
+      : $platform === "INSTAGRAM"
+        ? "rgba(225, 48, 108, 0.1)"
+        : "rgba(15, 111, 141, 0.07)"};
+  border: 1px solid
+    ${({ $platform }) =>
+      $platform === "FACEBOOK"
+        ? "rgba(24, 119, 242, 0.18)"
+        : $platform === "INSTAGRAM"
+          ? "rgba(225, 48, 108, 0.18)"
+          : "rgba(15, 111, 141, 0.12)"};
   border-radius: 999px;
-  color: #0d5f79;
+  color: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "#1666d3"
+      : $platform === "INSTAGRAM"
+        ? "#b42357"
+        : "#0d5f79"};
   display: inline-flex;
   font-size: 0.64rem;
   font-weight: 800;
+  gap: 0.38rem;
   letter-spacing: 0.08em;
   min-height: 28px;
   padding: 0 0.7rem;
   text-transform: uppercase;
+
+  svg {
+    height: 0.8rem;
+    width: 0.8rem;
+  }
 `;
 
 const DestinationRecord = styled(RecordCard)`
@@ -82,6 +105,53 @@ const DestinationRecord = styled(RecordCard)`
 const RecordLead = styled.div`
   display: grid;
   gap: 0.35rem;
+`;
+
+const DestinationHeading = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  min-width: 0;
+`;
+
+const DestinationIdentity = styled.div`
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+`;
+
+const DestinationPlatformBadge = styled.span`
+  align-items: center;
+  background: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "linear-gradient(180deg, rgba(24, 119, 242, 0.16), rgba(24, 119, 242, 0.08))"
+      : $platform === "INSTAGRAM"
+        ? "linear-gradient(180deg, rgba(225, 48, 108, 0.16), rgba(225, 48, 108, 0.08))"
+        : "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))"};
+  border: 1px solid
+    ${({ $platform }) =>
+      $platform === "FACEBOOK"
+        ? "rgba(24, 119, 242, 0.18)"
+        : $platform === "INSTAGRAM"
+          ? "rgba(225, 48, 108, 0.18)"
+          : "rgba(15, 111, 141, 0.18)"};
+  border-radius: 14px;
+  color: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "#1666d3"
+      : $platform === "INSTAGRAM"
+        ? "#b42357"
+        : "#0d5f79"};
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+
+  svg {
+    height: 1rem;
+    width: 1rem;
+  }
 `;
 
 const ActionCluster = styled.div`
@@ -117,10 +187,16 @@ const RoutePill = styled.span`
   display: inline-flex;
   font-size: 0.62rem;
   font-weight: 800;
+  gap: 0.32rem;
   letter-spacing: 0.08em;
   min-height: 24px;
   padding: 0 0.55rem;
   text-transform: uppercase;
+
+  svg {
+    height: 0.72rem;
+    width: 0.72rem;
+  }
 `;
 
 const StickyCard = styled(Card)`
@@ -198,6 +274,18 @@ function getDeleteDescription(destination) {
   return `This will permanently remove ${destination.name}. Saved tokens, routing details, and connection notes will be deleted.`;
 }
 
+function getDestinationPlatformIcon(platform) {
+  if (platform === "FACEBOOK") {
+    return "facebook";
+  }
+
+  if (platform === "INSTAGRAM") {
+    return "instagram";
+  }
+
+  return "globe";
+}
+
 export default async function DestinationsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const metaConfig = getMetaDestinationFormConfig();
@@ -239,7 +327,10 @@ export default async function DestinationsPage({ searchParams }) {
             </CardHeader>
             <PlatformRail>
               {platformValues.map((platform) => (
-                <PlatformChip key={platform}>{formatEnumLabel(platform)}</PlatformChip>
+                <PlatformChip key={platform} $platform={platform}>
+                  <AppIcon name={getDestinationPlatformIcon(platform)} size={12} />
+                  {formatEnumLabel(platform)}
+                </PlatformChip>
               ))}
             </PlatformRail>
           </DirectoryHeader>
@@ -252,10 +343,26 @@ export default async function DestinationsPage({ searchParams }) {
                 <DestinationRecord key={destination.id}>
                   <RecordHeader>
                     <RecordTitleBlock as={RecordLead}>
-                      <RecordTitle>{destination.name}</RecordTitle>
-                      <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                      <DestinationHeading>
+                        <DestinationPlatformBadge $platform={destination.platform}>
+                          <AppIcon
+                            name={getDestinationPlatformIcon(destination.platform)}
+                            size={16}
+                          />
+                        </DestinationPlatformBadge>
+                        <DestinationIdentity>
+                          <RecordTitle>{destination.name}</RecordTitle>
+                          <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                        </DestinationIdentity>
+                      </DestinationHeading>
                       <RouteRail>
-                        <RoutePill $tone="accent">{formatEnumLabel(destination.platform)}</RoutePill>
+                        <RoutePill $tone="accent">
+                          <AppIcon
+                            name={getDestinationPlatformIcon(destination.platform)}
+                            size={11}
+                          />
+                          {formatEnumLabel(destination.platform)}
+                        </RoutePill>
                         <RoutePill>{formatEnumLabel(destination.kind)}</RoutePill>
                         <RoutePill>{destination.slug}</RoutePill>
                       </RouteRail>
