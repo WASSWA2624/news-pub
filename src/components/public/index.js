@@ -27,22 +27,6 @@ function formatDateTimeLabel(locale, value) {
   }).format(new Date(value));
 }
 
-function buildHref(pathname, searchParams = {}) {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (value === undefined || value === null || value === "") {
-      continue;
-    }
-
-    params.set(key, `${value}`);
-  }
-
-  const query = params.toString();
-
-  return query ? `${pathname}?${query}` : pathname;
-}
-
 function stripHtmlTags(value) {
   return typeof value === "string" ? value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
 }
@@ -1410,40 +1394,7 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
 }
 
 function StoryList({ emptyLabel, items = [], locale }) {
-  if (!items.length) {
-    return <EmptyState>{emptyLabel}</EmptyState>;
-  }
-
-  return (
-    <StoryGrid>
-      {items.map((item) => {
-        const primaryMedia = item.primaryMedia || (item.image?.url ? { ...item.image, kind: "image" } : null);
-
-        return (
-          <StoryCard $hasMedia={Boolean(primaryMedia)} key={item.id}>
-            {primaryMedia ? renderStoryMedia(primaryMedia) : null}
-            <StoryBody $compact={!primaryMedia}>
-              <MetaRow>
-                {item.publishedAt ? <MetaBadge>{formatDateLabel(locale, item.publishedAt)}</MetaBadge> : null}
-                <MetaBadge>{item.sourceName}</MetaBadge>
-              </MetaRow>
-              <StoryTitleLink href={item.path}>{item.title}</StoryTitleLink>
-              <StorySummary>{item.summary}</StorySummary>
-              {item.categories?.length ? (
-                <ChipRow>
-                  {item.categories.map((category) => (
-                    <ChipLink href={category.path} key={category.slug}>
-                      {category.name}
-                    </ChipLink>
-                  ))}
-                </ChipRow>
-              ) : null}
-            </StoryBody>
-          </StoryCard>
-        );
-      })}
-    </StoryGrid>
-  );
+  return <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />;
 }
 
 export function PublicHomePage({ locale, messages, pageContent, pageData }) {
@@ -1504,7 +1455,9 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
             <SidebarList>
               {pageData.topCategories.map((category) => (
                 <SidebarLink href={category.path} key={category.slug}>
-                  <SidebarTitle>{category.name}</SidebarTitle>
+                  <SidebarTitle>
+                    <span aria-hidden="true">{category.logoEmoji || "📰"}</span> {category.name}
+                  </SidebarTitle>
                   <SidebarMeta>
                     {category.count} {(common.resultsLabel || "stories").toLowerCase()}
                   </SidebarMeta>
@@ -1529,18 +1482,21 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
 }
 
 export function PublicCollectionPage({
+  collectionCountry = "",
+  collectionSlug = "",
+  collectionView = "",
   entity = null,
   locale,
   messages,
   pageContent,
   pageData,
-  pathname,
-  query = {},
+  query = "",
   searchFilters = {},
   showSearch = false,
 }) {
   const common = messages.common || {};
   const countryOptions = Array.isArray(searchFilters.countries) ? searchFilters.countries : [];
+  const searchPath = buildLocalizedPath(locale, publicRouteSegments.search);
 
   return (
     <PageMain>
@@ -1550,27 +1506,30 @@ export function PublicCollectionPage({
       />
       <Hero>
         <Eyebrow>{pageContent.eyebrow || "Published stories"}</Eyebrow>
-        <Title>{entity?.name || pageContent.title}</Title>
+        <Title>
+          {entity?.name ? <span aria-hidden="true">{entity.logoEmoji || "📰"} </span> : null}
+          {entity?.name || pageContent.title}
+        </Title>
         <Description>{entity?.description || pageContent.description}</Description>
       </Hero>
 
       <Panel>
         {showSearch ? (
-          <SearchForm action={pathname} method="get">
+          <SearchForm action={searchPath} method="get">
             <SearchInput
-              defaultValue={query.q || ""}
+              defaultValue={query}
               name="q"
               placeholder={common.searchPlaceholder || "Search published stories"}
             />
             <SearchSelect
               aria-label={common.countryFilterLabel || "Filter by country"}
-              defaultValue={query.country || ""}
+              defaultValue={collectionCountry}
               name="country"
             >
               <option value="">{common.allCountriesOption || "All countries"}</option>
               {countryOptions.map((country) => (
                 <option key={country.value} value={country.value}>
-                  {country.label}
+                  {country.flagEmoji ? `${country.flagEmoji} ` : ""}{country.label}
                 </option>
               ))}
             </SearchSelect>
@@ -1578,47 +1537,20 @@ export function PublicCollectionPage({
           </SearchForm>
         ) : null}
 
-        {showSearch ? (
-          <HomeStoryList
-            emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
-            items={pageData.items}
-            locale={locale}
-          />
-        ) : (
-          <StoryList
-            emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
-            items={pageData.items}
-            locale={locale}
-          />
-        )}
-
-        <PaginationRow>
-          <MetaBadge>
-            {pageData.pagination.startItem}-{pageData.pagination.endItem} / {pageData.pagination.totalItems}
-          </MetaBadge>
-          <MetaRow>
-            {pageData.pagination.hasPreviousPage ? (
-              <PaginationLink
-                href={buildHref(pathname, {
-                  ...query,
-                  page: pageData.pagination.currentPage - 1,
-                })}
-              >
-                {common.previousPage || "Previous"}
-              </PaginationLink>
-            ) : null}
-            {pageData.pagination.hasNextPage ? (
-              <PaginationLink
-                href={buildHref(pathname, {
-                  ...query,
-                  page: pageData.pagination.currentPage + 1,
-                })}
-              >
-                {common.nextPage || "Next"}
-              </PaginationLink>
-            ) : null}
-          </MetaRow>
-        </PaginationRow>
+        <HomeLatestStories
+          collectionCountry={collectionCountry}
+          collectionSlug={collectionSlug}
+          collectionView={collectionView}
+          emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
+          initialHasMore={Boolean(pageData?.pagination?.hasNextPage)}
+          initialItems={pageData.items}
+          initialPage={pageData?.pagination?.currentPage || 1}
+          locale={locale}
+          mode="collection"
+          query={query}
+          requestErrorLabel={common.viewMoreError || "Could not load more stories right now."}
+          viewMoreLabel={common.viewMoreAction || "View more"}
+        />
       </Panel>
     </PageMain>
   );
@@ -1721,6 +1653,7 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               <StoryTagRow>
                 {article.categories.map((category) => (
                   <StoryTag href={category.path} key={category.slug}>
+                    <span aria-hidden="true">{category.logoEmoji || "📰"}</span>{" "}
                     {formatDisplayText(category.name, category.slug)}
                   </StoryTag>
                 ))}
@@ -1873,21 +1806,12 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                 <StoryRailTitle>{common.relatedPostsTitle || "Related stories"}</StoryRailTitle>
                 <StoryRailText>More coverage connected by source or category so the next read is easy to pick.</StoryRailText>
                 <StoryRelatedList>
-                  {pageData.relatedStories.length ? (
-                    pageData.relatedStories.map((story) => (
-                      <StoryRelatedCard href={story.path} key={story.id}>
-                        <StoryRelatedEyebrow>{formatDisplayText(story.sourceName, "News source")}</StoryRelatedEyebrow>
-                        <SidebarTitle>{formatDisplayText(story.title, story.slug)}</SidebarTitle>
-                        <SidebarMeta>
-                          {formatDisplayText(story.sourceName, "News source")}
-                          {story.publishedAt ? ` | ${formatDateLabel(locale, story.publishedAt)}` : ""}
-                        </SidebarMeta>
-                      </StoryRelatedCard>
-                    ))
-                ) : (
-                  <EmptyState>{common.emptyStateDescription || "More stories will appear here soon."}</EmptyState>
-                )}
-              </StoryRelatedList>
+                  <HomeStoryList
+                    emptyLabel={common.emptyStateDescription || "More stories will appear here soon."}
+                    items={pageData.relatedStories}
+                    locale={locale}
+                  />
+                </StoryRelatedList>
             </StoryRailSection>
           </StorySidebar>
         </StoryLayout>

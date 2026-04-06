@@ -5,7 +5,8 @@ import SiteShell from "@/components/layout/site-shell";
 import { isSupportedLocale, supportedLocales } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
-import { getPublishedCategoryNavigationData } from "@/features/public-site";
+import { getPublishedCategoryNavigationData, getPublishedSearchFilterData } from "@/features/public-site";
+import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { buildOrganizationJsonLd } from "@/lib/seo";
 
 export const dynamicParams = false;
@@ -38,10 +39,19 @@ export default async function LocaleLayout({ children, params }) {
     notFound();
   }
 
-  const [messages, categoryLinks] = await Promise.all([
+  const [messages, categoryLinks, searchFilters] = await Promise.all([
     getMessages(locale),
     getPublishedCategoryNavigationData({ locale, limit: 8 }),
+    getPublishedSearchFilterData({ locale }),
   ]);
+  const searchPath = buildLocalizedPath(locale, publicRouteSegments.search);
+  const countryLinks = (searchFilters?.countries || []).slice(0, 10).map((country) => ({
+    count: country.count,
+    flagEmoji: country.flagEmoji || "",
+    label: country.label,
+    path: `${searchPath}?country=${encodeURIComponent(country.value)}`,
+    value: country.value,
+  }));
 
   return (
     <LocaleMessagesProvider locale={locale} messages={messages}>
@@ -55,7 +65,7 @@ export default async function LocaleLayout({ children, params }) {
           }),
         ]}
       />
-      <SiteShell categoryLinks={categoryLinks} locale={locale} messages={messages}>
+      <SiteShell categoryLinks={categoryLinks} countryLinks={countryLinks} locale={locale} messages={messages}>
         {children}
       </SiteShell>
     </LocaleMessagesProvider>

@@ -1,6 +1,5 @@
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
-import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -43,15 +42,13 @@ export default async function SearchPage({ params, searchParams }) {
 
   return (
     <PublicCollectionPage
+      collectionCountry={pageData.country || ""}
+      collectionView="search"
       locale={locale}
       messages={messages.public}
       pageContent={messages.public?.search || {}}
       pageData={pageData}
-      pathname={buildLocalizedPath(locale, publicRouteSegments.search)}
-      query={{
-        ...(pageData.country ? { country: pageData.country } : {}),
-        ...(pageData.query ? { q: pageData.query } : {}),
-      }}
+      query={pageData.query || ""}
       searchFilters={filterData}
       showSearch
     />

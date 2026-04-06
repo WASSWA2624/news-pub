@@ -59,6 +59,8 @@ export default async function CategoryPage({ params, searchParams }) {
         ]}
       />
       <PublicCollectionPage
+        collectionSlug={pageData.entity.slug}
+        collectionView="category"
         entity={pageData.entity}
         locale={locale}
         messages={messages.public}
@@ -68,8 +70,6 @@ export default async function CategoryPage({ params, searchParams }) {
           title: pageData.entity.name,
         }}
         pageData={pageData}
-        pathname={pageData.entity.path}
-        query={{}}
       />
     </>
   );

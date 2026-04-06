@@ -28,7 +28,7 @@ export default function TwitterImage() {
         <div
           style={{
             background: "#102033",
-            borderRadius: 28,
+            borderRadius: 0,
             color: "white",
             display: "flex",
             flexDirection: "column",

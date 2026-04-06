@@ -1,6 +1,6 @@
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
-import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedNewsIndexData, publicListingPageSize } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -37,12 +37,11 @@ export default async function NewsIndexPage({ params, searchParams }) {
 
   return (
     <PublicCollectionPage
+      collectionView="news"
       locale={locale}
       messages={messages.public}
       pageContent={messages.public?.news || {}}
       pageData={pageData}
-      pathname={buildLocalizedPath(locale, publicRouteSegments.news)}
-      query={{}}
     />
   );
 }

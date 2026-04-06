@@ -54,6 +54,60 @@ function formatCountryLabel(countryCode, locale = defaultLocale) {
   }
 }
 
+function formatCountryFlag(countryCode) {
+  const normalizedCountry = normalizeCountry(countryCode).toUpperCase();
+
+  if (!/^[A-Z]{2}$/.test(normalizedCountry)) {
+    return "";
+  }
+
+  return String.fromCodePoint(...normalizedCountry.split("").map((char) => 127397 + char.charCodeAt(0)));
+}
+
+function getCategoryLogoEmoji(category = {}) {
+  const slug = trimText(category.slug).toLowerCase();
+  const name = trimText(category.name).toLowerCase();
+  const text = `${slug} ${name}`;
+
+  if (!text) {
+    return "📰";
+  }
+
+  if (/(sport|football|soccer|nba|tennis|cricket|fifa|olympic)/.test(text)) {
+    return "🏅";
+  }
+
+  if (/(busines|market|econom|finance|stock|trade|money)/.test(text)) {
+    return "💼";
+  }
+
+  if (/(tech|ai|software|digital|cyber|startup|science)/.test(text)) {
+    return "💻";
+  }
+
+  if (/(politic|election|govern|policy|diplomac|parliament)/.test(text)) {
+    return "🏛️";
+  }
+
+  if (/(health|medic|hospital|disease|wellness|fitness)/.test(text)) {
+    return "🩺";
+  }
+
+  if (/(entertain|movie|music|celebr|culture|art|fashion)/.test(text)) {
+    return "🎬";
+  }
+
+  if (/(travel|tour|world|region|global|international)/.test(text)) {
+    return "🌍";
+  }
+
+  if (/(climate|weather|environment|energy|nature)/.test(text)) {
+    return "🌿";
+  }
+
+  return "📰";
+}
+
 function mapImage(asset, fallbackAlt = "Story image") {
   if (!asset) {
     return null;
@@ -350,6 +404,7 @@ function mapCategory(category, locale) {
   return {
     description: category.description || null,
     id: category.id,
+    logoEmoji: getCategoryLogoEmoji(category),
     name: category.name,
     path: buildLocalizedPath(locale, publicRouteSegments.category(category.slug)),
     slug: category.slug,
@@ -507,6 +562,7 @@ async function getPublishedCountryCounts(db, locale) {
   return [...counts.entries()]
     .map(([value, count]) => ({
       count,
+      flagEmoji: formatCountryFlag(value),
       label: formatCountryLabel(value, locale),
       value,
     }))

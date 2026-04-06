@@ -210,15 +210,22 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
 }
 
 export default function HomeLatestStories({
+  collectionCountry = "",
+  collectionSlug = "",
+  collectionView = "",
   emptyLabel,
   initialHasMore = false,
   initialItems = [],
+  initialPage = 1,
   locale,
+  mode = "home",
+  query = "",
   requestErrorLabel = "Could not load more stories right now.",
   viewMoreLabel = "View more",
 }) {
   const [items, setItems] = useState(initialItems);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -231,12 +238,24 @@ export default function HomeLatestStories({
     setIsLoading(true);
 
     try {
-      const searchParams = new URLSearchParams({
-        locale,
-        skip: `${items.length + 1}`,
-        take: `${publicHomeLatestIncrementCount}`,
-      });
-      const response = await fetch(`/api/public/latest-stories?${searchParams.toString()}`, {
+      const searchParams = new URLSearchParams(
+        mode === "collection"
+          ? {
+              locale,
+              page: `${currentPage + 1}`,
+              view: collectionView,
+              ...(collectionSlug ? { slug: collectionSlug } : {}),
+              ...(query ? { q: query } : {}),
+              ...(collectionCountry ? { country: collectionCountry } : {}),
+            }
+          : {
+              locale,
+              skip: `${items.length + 1}`,
+              take: `${publicHomeLatestIncrementCount}`,
+            },
+      );
+      const endpoint = mode === "collection" ? "/api/public/collection-stories" : "/api/public/latest-stories";
+      const response = await fetch(`${endpoint}?${searchParams.toString()}`, {
         cache: "no-store",
       });
       const payload = await response.json().catch(() => null);
@@ -249,6 +268,9 @@ export default function HomeLatestStories({
 
       setItems((currentItems) => [...currentItems, ...nextItems]);
       setHasMore(Boolean(payload.data.hasMore));
+      if (mode === "collection") {
+        setCurrentPage((previousPage) => payload?.data?.page || previousPage + 1);
+      }
     } catch {
       setError(requestErrorLabel);
     } finally {

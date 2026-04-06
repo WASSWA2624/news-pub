@@ -45,6 +45,16 @@ const GlobalStyles = createGlobalStyle`
     box-sizing: border-box;
   }
 
+  *,
+  *::before,
+  *::after {
+    border-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+  }
+
   html,
   body {
     margin: 0;

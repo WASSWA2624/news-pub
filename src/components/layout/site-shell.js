@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 
 import NewsPubLogo from "@/components/common/news-pub-logo";
@@ -66,7 +67,7 @@ const HeaderInner = styled.div`
 
 const BrandLink = styled(Link)`
   align-items: center;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme?.colors?.text ?? "var(--theme-text)"};
   display: inline-flex;
   gap: 0.65rem;
 `;
@@ -84,7 +85,7 @@ const HeaderMeta = styled.div`
 `;
 
 const HeaderTagline = styled.p`
-  color: ${({ theme }) => theme.colors.muted};
+  color: ${({ theme }) => theme?.colors?.muted ?? "var(--theme-muted)"};
   margin: 0;
   max-width: 52ch;
 `;
@@ -101,34 +102,75 @@ const NavigationLink = styled(Link)`
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
 `;
 
-const CategoryMenu = styled.details`
+const Dropdown = styled.details`
   position: relative;
 `;
 
-const CategoryMenuSummary = styled.summary`
-  color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
+const DropdownSummary = styled.summary`
+  align-items: center;
+  background: ${({ $active, $open }) => (
+    $open || $active ? "rgba(var(--theme-primary-rgb), 0.12)" : "rgba(var(--theme-primary-rgb), 0.05)"
+  )};
+  border: 1px solid ${({ $active }) => ($active ? "rgba(var(--theme-primary-rgb), 0.42)" : "rgba(var(--theme-border-rgb), 0.85)")};
+  border-radius: 999px;
+  color: ${({ $active, $open }) => ($open || $active ? "var(--theme-primary)" : "var(--theme-text)")};
   cursor: pointer;
+  display: inline-flex;
   font-size: 0.95rem;
-  font-weight: ${({ $active }) => ($active ? 800 : 700)};
+  font-weight: ${({ $active, $open }) => ($open || $active ? 800 : 700)};
+  gap: 0.45rem;
   list-style: none;
+  padding: 0.38rem 0.76rem;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    background: rgba(var(--theme-primary-rgb), 0.12);
+    border-color: rgba(var(--theme-primary-rgb), 0.42);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(var(--theme-primary-rgb), 0.2);
+    outline: none;
+  }
 
   &::-webkit-details-marker {
     display: none;
   }
 `;
 
-const CategoryMenuList = styled.div`
+const DropdownChevron = styled.span`
+  color: inherit;
+  font-size: 0.68rem;
+  transform: ${({ $open }) => ($open ? "translateY(1px) rotate(180deg)" : "translateY(1px) rotate(0deg)")};
+  transition: transform 0.18s ease;
+`;
+
+const DropdownList = styled.div`
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(var(--theme-border-rgb), 0.92);
   border-radius: 16px;
   box-shadow: 0 24px 48px rgba(var(--theme-primary-rgb), 0.12);
   display: grid;
-  gap: 0.15rem;
-  min-width: 220px;
-  padding: 0.55rem;
+  gap: 0.25rem;
+  max-height: min(62vh, 360px);
+  min-width: 260px;
+  overflow-y: auto;
+  padding: 0.5rem;
   position: absolute;
   top: calc(100% + 0.6rem);
   z-index: 10;
+  animation: fadeDropdownIn 0.15s ease;
+
+  @keyframes fadeDropdownIn {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @media (max-width: 780px) {
     position: static;
@@ -137,7 +179,7 @@ const CategoryMenuList = styled.div`
   }
 `;
 
-const CategoryMenuLink = styled(Link)`
+const DropdownLink = styled(Link)`
   align-items: center;
   border-radius: 12px;
   color: var(--theme-text);
@@ -147,15 +189,22 @@ const CategoryMenuLink = styled(Link)`
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.65rem 0.7rem;
+  transition: background 0.18s ease, color 0.18s ease;
 
   &:hover {
     background: rgba(var(--theme-primary-rgb), 0.08);
   }
 `;
 
-const CategoryMenuCount = styled.span`
+const DropdownCount = styled.span`
   color: rgba(var(--theme-text-rgb), 0.62);
   font-size: 0.78rem;
+`;
+
+const DropdownLabel = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
 `;
 
 const SearchWrap = styled.div`
@@ -230,8 +279,13 @@ const FooterBottom = styled.div`
 /**
  * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
  */
-export default function SiteShell({ categoryLinks = [], children, locale, messages }) {
+export default function SiteShell({ categoryLinks = [], children, countryLinks = [], locale, messages }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const categoryDropdownRef = useRef(null);
+  const countryDropdownRef = useRef(null);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isCountryOpen, setIsCountryOpen] = useState(false);
   const currentYear = new Date().getFullYear();
   const searchBarCopy = messages.site.searchBar || {};
   const headerTagline = typeof messages.site.tagline === "string" ? messages.site.tagline.trim() : "";
@@ -243,12 +297,71 @@ export default function SiteShell({ categoryLinks = [], children, locale, messag
   const disclaimerHref = buildLocalizedPath(locale, publicRouteSegments.disclaimer);
   const privacyHref = buildLocalizedPath(locale, publicRouteSegments.privacy);
   const isCategoryActive = normalizePathname(pathname).startsWith(`/${locale}/category`);
+  const countryQuery = typeof searchParams?.get("country") === "string" ? searchParams.get("country").trim() : "";
+  const isCountryActive = normalizePathname(pathname) === normalizePathname(searchHref) && Boolean(countryQuery);
   const primaryLinks = [
     { href: homeHref, key: "home", label: messages.site.navigation.home },
     { href: newsHref, key: "news", label: messages.site.navigation.news },
     { href: searchHref, key: "search", label: messages.site.navigation.search },
     { href: aboutHref, key: "about", label: messages.site.navigation.about },
   ];
+
+  useEffect(() => {
+    setIsCategoryOpen(false);
+    setIsCountryOpen(false);
+  }, [pathname, countryQuery]);
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      const target = event.target;
+
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(target) &&
+        countryDropdownRef.current &&
+        !countryDropdownRef.current.contains(target)
+      ) {
+        setIsCategoryOpen(false);
+        setIsCountryOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsCategoryOpen(false);
+        setIsCountryOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  function handleDropdownToggle(kind) {
+    if (kind === "category") {
+      setIsCategoryOpen((current) => {
+        const next = !current;
+        if (next) {
+          setIsCountryOpen(false);
+        }
+        return next;
+      });
+      return;
+    }
+
+    setIsCountryOpen((current) => {
+      const next = !current;
+      if (next) {
+        setIsCategoryOpen(false);
+      }
+      return next;
+    });
+  }
 
   return (
     <Shell>
@@ -274,19 +387,56 @@ export default function SiteShell({ categoryLinks = [], children, locale, messag
               </NavigationLink>
             ))}
             {categoryLinks.length ? (
-              <CategoryMenu>
-                <CategoryMenuSummary $active={isCategoryActive}>
+              <Dropdown open={isCategoryOpen} ref={categoryDropdownRef}>
+                <DropdownSummary
+                  $active={isCategoryActive}
+                  $open={isCategoryOpen}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleDropdownToggle("category");
+                  }}
+                >
                   {messages.site.navigation.categories || "Categories"}
-                </CategoryMenuSummary>
-                <CategoryMenuList>
+                  <DropdownChevron $open={isCategoryOpen} aria-hidden="true">▼</DropdownChevron>
+                </DropdownSummary>
+                <DropdownList>
                   {categoryLinks.map((category) => (
-                    <CategoryMenuLink href={category.path} key={category.slug}>
-                      <span>{category.name}</span>
-                      <CategoryMenuCount>{category.count}</CategoryMenuCount>
-                    </CategoryMenuLink>
+                    <DropdownLink href={category.path} key={category.slug}>
+                      <DropdownLabel>
+                        <span aria-hidden="true">{category.logoEmoji || "📰"}</span>
+                        <span>{category.name}</span>
+                      </DropdownLabel>
+                      <DropdownCount>{category.count}</DropdownCount>
+                    </DropdownLink>
                   ))}
-                </CategoryMenuList>
-              </CategoryMenu>
+                </DropdownList>
+              </Dropdown>
+            ) : null}
+            {countryLinks.length ? (
+              <Dropdown open={isCountryOpen} ref={countryDropdownRef}>
+                <DropdownSummary
+                  $active={isCountryActive}
+                  $open={isCountryOpen}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleDropdownToggle("country");
+                  }}
+                >
+                  {messages.site.navigation.countriesRegions || "Countries/Regions"}
+                  <DropdownChevron $open={isCountryOpen} aria-hidden="true">▼</DropdownChevron>
+                </DropdownSummary>
+                <DropdownList>
+                  {countryLinks.map((country) => (
+                    <DropdownLink href={country.path} key={country.value}>
+                      <DropdownLabel>
+                        {country.flagEmoji ? <span aria-hidden="true">{country.flagEmoji}</span> : null}
+                        <span>{country.label}</span>
+                      </DropdownLabel>
+                      <DropdownCount>{country.count}</DropdownCount>
+                    </DropdownLink>
+                  ))}
+                </DropdownList>
+              </Dropdown>
             ) : null}
           </Navigation>
 
@@ -321,6 +471,11 @@ export default function SiteShell({ categoryLinks = [], children, locale, messag
               {categoryLinks[0] ? (
                 <FooterLink href={categoryLinks[0].path}>
                   {messages.site.navigation.categories || "Categories"}
+                </FooterLink>
+              ) : null}
+              {countryLinks[0] ? (
+                <FooterLink href={countryLinks[0].path}>
+                  {messages.site.navigation.countriesRegions || "Countries/Regions"}
                 </FooterLink>
               ) : null}
             </FooterLinkList>
