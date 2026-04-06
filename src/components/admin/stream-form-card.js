@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import styled from "styled-components";
 
 import {
@@ -27,6 +27,7 @@ import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import SearchableSelect from "@/components/common/searchable-select";
+import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
 import {
   getStreamValidationIssues,
@@ -36,6 +37,25 @@ import {
 const StreamFieldGrid = styled(FieldGrid)`
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 `;
+
+function buildSuggestedStreamName(destination, provider) {
+  const destinationLabel = normalizeDisplayText(destination?.label || destination?.name || "");
+  const providerLabel = normalizeDisplayText(provider?.label || "");
+
+  if (destinationLabel && providerLabel) {
+    return `${destinationLabel} via ${providerLabel}`;
+  }
+
+  if (destinationLabel) {
+    return `${destinationLabel} stream`;
+  }
+
+  if (providerLabel) {
+    return `${providerLabel} stream`;
+  }
+
+  return "";
+}
 
 function buildTemplateOptions(templateOptions, destination) {
   return templateOptions.map((option) => {
@@ -86,13 +106,27 @@ export default function StreamFormCard({
   submitLabel,
   templateOptions = [],
 }) {
+  const initialActiveProviderId = stream?.activeProviderId || providerOptions[0]?.value || "";
+  const initialDestinationId = stream?.destinationId || destinationOptions[0]?.value || "";
+  const initialSelectedDestination =
+    destinationOptions.find((option) => option.value === initialDestinationId) || null;
+  const initialSelectedProvider =
+    providerOptions.find((option) => option.value === initialActiveProviderId) || null;
+  const initialSuggestedName =
+    stream?.name || buildSuggestedStreamName(initialSelectedDestination, initialSelectedProvider);
+  const initialSuggestedSlug =
+    stream?.slug || (initialSuggestedName ? createSlug(initialSuggestedName, "stream") : "");
+  const [name, setName] = useState(initialSuggestedName);
+  const [slug, setSlug] = useState(initialSuggestedSlug);
   const [activeProviderId, setActiveProviderId] = useState(
-    stream?.activeProviderId || providerOptions[0]?.value || "",
+    initialActiveProviderId,
   );
-  const [destinationId, setDestinationId] = useState(stream?.destinationId || destinationOptions[0]?.value || "");
+  const [destinationId, setDestinationId] = useState(initialDestinationId);
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
+  const [nameWasEdited, setNameWasEdited] = useState(Boolean(normalizeDisplayText(stream?.name || "")));
+  const [slugWasEdited, setSlugWasEdited] = useState(Boolean(normalizeDisplayText(stream?.slug || "")));
   const formId = useId();
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
@@ -104,6 +138,21 @@ export default function StreamFormCard({
   });
   const resolvedTemplateOptions = buildTemplateOptions(templateOptions, selectedDestination);
   const resolvedModeOptions = buildModeOptions(modeOptions, selectedDestination);
+
+  const applyIdentitySuggestion = useCallback(
+    (destination, provider) => {
+      const suggestedName = buildSuggestedStreamName(destination, provider);
+
+      if ((!nameWasEdited || !normalizeDisplayText(name)) && suggestedName) {
+        setName(suggestedName);
+
+        if (!slugWasEdited || !normalizeDisplayText(slug)) {
+          setSlug(createSlug(suggestedName, "stream"));
+        }
+      }
+    },
+    [name, nameWasEdited, slug, slugWasEdited],
+  );
 
   function handleSubmit(event) {
     if (!issues.length) {
@@ -121,11 +170,33 @@ export default function StreamFormCard({
         <StreamFieldGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
-            <Input defaultValue={stream?.name || ""} name="name" required />
+            <Input
+              name="name"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+
+                setName(nextValue);
+                setNameWasEdited(true);
+
+                if (!slugWasEdited) {
+                  setSlug(createSlug(nextValue, "stream"));
+                }
+              }}
+              required
+              value={name}
+            />
           </Field>
           <Field>
             <FieldLabel>Slug</FieldLabel>
-            <Input defaultValue={stream?.slug || ""} name="slug" required={Boolean(stream)} />
+            <Input
+              name="slug"
+              onChange={(event) => {
+                setSlug(event.target.value);
+                setSlugWasEdited(true);
+              }}
+              required={Boolean(stream)}
+              value={slug}
+            />
           </Field>
           <Field as="div">
             <FieldLabel>Destination</FieldLabel>
@@ -133,7 +204,14 @@ export default function StreamFormCard({
               ariaLabel="Destination"
               invalid={issues.length > 0}
               name="destinationId"
-              onChange={(value) => setDestinationId(`${value || ""}`)}
+              onChange={(value) => {
+                const nextDestinationId = `${value || ""}`;
+                const nextDestination =
+                  destinationOptions.find((option) => option.value === nextDestinationId) || null;
+
+                setDestinationId(nextDestinationId);
+                applyIdentitySuggestion(nextDestination, selectedProvider);
+              }}
               options={destinationOptions}
               placeholder="Select a destination"
               value={destinationId}
@@ -149,7 +227,14 @@ export default function StreamFormCard({
             <SearchableSelect
               ariaLabel="Provider"
               name="activeProviderId"
-              onChange={(value) => setActiveProviderId(`${value || ""}`)}
+              onChange={(value) => {
+                const nextProviderId = `${value || ""}`;
+                const nextProvider =
+                  providerOptions.find((option) => option.value === nextProviderId) || null;
+
+                setActiveProviderId(nextProviderId);
+                applyIdentitySuggestion(selectedDestination, nextProvider);
+              }}
               options={providerOptions}
               placeholder="Select a provider"
               value={activeProviderId}
