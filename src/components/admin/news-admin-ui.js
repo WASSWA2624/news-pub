@@ -3,10 +3,10 @@ import styled from "styled-components";
 
 export const AdminPage = styled.main`
   display: grid;
-  gap: 0.8rem;
+  gap: 0.6rem;
   margin: 0 auto;
   max-width: 1380px;
-  padding: clamp(0.65rem, 2vw, 1.1rem);
+  padding: clamp(0.5rem, 1.6vw, 0.9rem);
   width: 100%;
 `;
 
@@ -19,8 +19,8 @@ export const AdminHero = styled.section`
   border-radius: 16px;
   box-shadow: 0 14px 32px rgba(17, 31, 55, 0.05);
   display: grid;
-  gap: 0.35rem;
-  padding: clamp(0.75rem, 2.2vw, 1rem);
+  gap: 0.28rem;
+  padding: clamp(0.62rem, 1.8vw, 0.88rem);
 `;
 
 export const AdminEyebrow = styled.p`
@@ -50,7 +50,7 @@ export const AdminDescription = styled.p`
 
 export const SummaryGrid = styled.div`
   display: grid;
-  gap: 0.6rem;
+  gap: 0.45rem;
 
   @media (min-width: 560px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -69,8 +69,8 @@ export const SummaryCard = styled.article`
   border-radius: 14px;
   box-shadow: 0 10px 22px rgba(18, 34, 58, 0.04);
   display: grid;
-  gap: 0.18rem;
-  padding: 0.7rem 0.8rem;
+  gap: 0.12rem;
+  padding: 0.58rem 0.66rem;
 `;
 
 export const SummaryValue = styled.strong`
@@ -88,7 +88,7 @@ export const SummaryLabel = styled.span`
 export const SectionGrid = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.8rem;
+  gap: 0.6rem;
 
   @media (min-width: 1080px) {
     grid-template-columns: ${({ $wide }) =>
@@ -98,7 +98,7 @@ export const SectionGrid = styled.div`
 
 export const SidebarStack = styled.div`
   display: grid;
-  gap: 0.8rem;
+  gap: 0.6rem;
 `;
 
 export const Card = styled.section`
@@ -107,14 +107,14 @@ export const Card = styled.section`
   border-radius: 16px;
   box-shadow: 0 12px 26px rgba(18, 34, 58, 0.045);
   display: grid;
-  gap: 0.7rem;
+  gap: 0.55rem;
   min-width: 0;
-  padding: clamp(0.75rem, 2vw, 0.95rem);
+  padding: clamp(0.62rem, 1.7vw, 0.82rem);
 `;
 
 export const CardHeader = styled.div`
   display: grid;
-  gap: 0.22rem;
+  gap: 0.18rem;
 `;
 
 export const CardTitle = styled.h2`
@@ -133,7 +133,7 @@ export const CardDescription = styled.p`
 
 export const RecordStack = styled.div`
   display: grid;
-  gap: 0.65rem;
+  gap: 0.5rem;
 `;
 
 export const RecordCard = styled.article`
@@ -143,13 +143,13 @@ export const RecordCard = styled.article`
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 14px;
   display: grid;
-  gap: 0.65rem;
-  padding: 0.75rem;
+  gap: 0.5rem;
+  padding: 0.62rem;
 `;
 
 export const RecordHeader = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.32rem;
 
   @media (min-width: 720px) {
     align-items: start;
@@ -159,7 +159,7 @@ export const RecordHeader = styled.div`
 
 export const RecordTitleBlock = styled.div`
   display: grid;
-  gap: 0.18rem;
+  gap: 0.14rem;
   min-width: 0;
 `;
 
@@ -174,7 +174,7 @@ export const RecordMeta = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.28rem;
 `;
 
 export const MetaPill = styled.span`
@@ -187,15 +187,15 @@ export const MetaPill = styled.span`
   font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 24px;
-  padding: 0 0.55rem;
+  min-height: 22px;
+  padding: 0 0.46rem;
   text-transform: uppercase;
 `;
 
 export const FormSection = styled.div`
   display: grid;
-  gap: 0.6rem;
-  padding-top: 0.65rem;
+  gap: 0.45rem;
+  padding-top: 0.5rem;
 
   &:not(:first-child) {
     border-top: 1px solid rgba(16, 32, 51, 0.08);
@@ -227,7 +227,7 @@ export const DataTable = styled.table`
   th,
   td {
     border-bottom: 1px solid rgba(16, 32, 51, 0.08);
-    padding: 0.58rem 0.42rem;
+    padding: 0.46rem 0.34rem;
     text-align: left;
     vertical-align: top;
   }
@@ -266,7 +266,7 @@ export const DataTable = styled.table`
 
     tbody {
       display: grid;
-      gap: 0.65rem;
+      gap: 0.5rem;
     }
 
     tr {
@@ -277,8 +277,8 @@ export const DataTable = styled.table`
       border-radius: 14px;
       box-shadow: 0 12px 24px rgba(16, 32, 51, 0.04);
       display: grid;
-      gap: 0.45rem;
-      padding: 0.75rem;
+      gap: 0.34rem;
+      padding: 0.62rem;
     }
 
     th,
@@ -302,7 +302,7 @@ export const DataTable = styled.table`
 
 export const FieldGrid = styled.div`
   display: grid;
-  gap: 0.6rem;
+  gap: 0.45rem;
 
   @media (min-width: 700px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -315,7 +315,7 @@ export const FieldGrid = styled.div`
 
 export const Field = styled.label`
   display: grid;
-  gap: 0.28rem;
+  gap: 0.22rem;
   min-width: 0;
 `;
 
@@ -332,8 +332,8 @@ const fieldStyles = `
   border-radius: 10px;
   color: #1f314b;
   font-size: 0.88rem;
-  min-height: 38px;
-  padding: 0.58rem 0.72rem;
+  min-height: 34px;
+  padding: 0.48rem 0.62rem;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -363,14 +363,14 @@ export const Select = styled.select`
 
 export const Textarea = styled.textarea`
   ${fieldStyles}
-  min-height: 108px;
+  min-height: 96px;
   resize: vertical;
 `;
 
 export const CheckboxRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.32rem;
 `;
 
 export const CheckboxChip = styled.label`
@@ -383,9 +383,9 @@ export const CheckboxChip = styled.label`
   display: inline-flex;
   font-size: 0.76rem;
   font-weight: 600;
-  gap: 0.36rem;
-  min-height: 32px;
-  padding: 0 0.62rem;
+  gap: 0.28rem;
+  min-height: 28px;
+  padding: 0 0.52rem;
 
   input {
     accent-color: var(--theme-primary);
@@ -397,7 +397,7 @@ export const ButtonRow = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.32rem;
 
   > form {
     display: inline-flex;
@@ -436,10 +436,10 @@ const buttonStyles = `
   display: inline-flex;
   font-size: 0.8rem;
   font-weight: 800;
-  gap: 0.42rem;
+  gap: 0.32rem;
   justify-content: center;
-  min-height: 34px;
-  padding: 0.52rem 0.8rem;
+  min-height: 31px;
+  padding: 0.44rem 0.68rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -536,8 +536,8 @@ export const StatusBadge = styled.span`
   font-size: 0.63rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 24px;
-  padding: 0 0.52rem;
+  min-height: 22px;
+  padding: 0 0.44rem;
   text-transform: uppercase;
   width: fit-content;
 `;
@@ -564,8 +564,8 @@ export const NoticeBanner = styled.div`
         ? "#8f630c"
         : "#a63725"};
   display: grid;
-  gap: 0.28rem;
-  padding: 0.68rem 0.78rem;
+  gap: 0.22rem;
+  padding: 0.56rem 0.66rem;
 `;
 
 export const NoticeTitle = styled.strong`
@@ -576,9 +576,9 @@ export const NoticeTitle = styled.strong`
 
 export const NoticeList = styled.ul`
   display: grid;
-  gap: 0.28rem;
+  gap: 0.2rem;
   margin: 0;
-  padding-left: 1rem;
+  padding-left: 0.9rem;
 `;
 
 export const NoticeItem = styled.li`

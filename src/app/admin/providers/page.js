@@ -90,7 +90,7 @@ export default async function ProvidersPage() {
                 <SmallText>
                   Availability, labels, and request defaults are now edited in a dedicated workspace so the provider list stays easier to scan.
                 </SmallText>
-                <ButtonRow>
+                <ButtonRow style={{ justifyContent: "flex-end" }}>
                   <AdminFormModal
                     description="Review provider metadata, request defaults, and availability settings without crowding the dashboard grid."
                     size="full"
