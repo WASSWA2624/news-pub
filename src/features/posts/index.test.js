@@ -432,3 +432,75 @@ describe("post editor updates", () => {
     expect(publishArticleMatch).not.toHaveBeenCalled();
   });
 });
+
+describe("post image fallbacks", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("uses the fetched source image in the editor snapshot when no local featured image exists", async () => {
+    const { getPostEditorSnapshot } = await import("./index");
+    const post = createEditorPost({
+      sourceArticle: {
+        author: null,
+        body: null,
+        id: "article_1",
+        imageUrl: "https://cdn.example.com/source-story.jpg",
+        language: "en",
+        providerArticleId: "provider-article-1",
+        providerCategoriesJson: [],
+        providerCountriesJson: [],
+        providerRegionsJson: [],
+        publishedAt: new Date("2026-04-01T08:00:00.000Z"),
+        sourceName: "Example Source",
+        sourceUrl: "https://example.com/source-story",
+        summary: "Story summary",
+        tagsJson: [],
+        title: "Story title",
+      },
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+
+    expect(snapshot.post.featuredImage).toMatchObject({
+      alt: "Story title",
+      url: "https://cdn.example.com/source-story.jpg",
+    });
+  });
+
+  it("uses the fetched source image in published translation snapshots when no local featured image exists", async () => {
+    const { getPublishedPostTranslationBySlug } = await import("./index");
+    const post = createEditorPost({
+      sourceArticle: {
+        imageUrl: "https://cdn.example.com/source-story.jpg",
+      },
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    const snapshot = await getPublishedPostTranslationBySlug({ locale: "en", slug: post.slug }, prisma);
+
+    expect(snapshot.featuredImage).toMatchObject({
+      alt: "Story title",
+      url: "https://cdn.example.com/source-story.jpg",
+    });
+  });
+});

@@ -382,7 +382,7 @@ function createStoragePrefix(fileName, now = new Date()) {
 }
 
 function createPreviewUrl(asset) {
-  return asset.publicUrl || asset.variants?.[0]?.publicUrl || asset.sourceUrl || null;
+  return asset.sourceUrl || asset.publicUrl || asset.variants?.[0]?.publicUrl || null;
 }
 
 function serializeMediaVariant(variant) {

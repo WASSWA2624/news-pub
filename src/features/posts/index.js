@@ -128,9 +128,30 @@ function mapImage(asset) {
     caption: asset.caption || null,
     height: asset.height || null,
     id: asset.id,
-    url: asset.publicUrl || asset.sourceUrl || null,
+    url: asset.sourceUrl || asset.publicUrl || null,
     width: asset.width || null,
   };
+}
+
+function mapRemoteImage(url, fallbackAlt = "Story image") {
+  const normalizedUrl = trimText(url);
+
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  return {
+    alt: fallbackAlt,
+    caption: null,
+    height: null,
+    id: null,
+    url: normalizedUrl,
+    width: null,
+  };
+}
+
+function mapPostImage(post, fallbackAlt = "Story image") {
+  return mapRemoteImage(post?.sourceArticle?.imageUrl, fallbackAlt) || mapImage(post?.featuredImage);
 }
 
 function mapCategory(category, locale = defaultLocale) {
@@ -222,7 +243,7 @@ function mapInventoryPost(post, locale = defaultLocale) {
     categories: (post.categories || []).map(({ category }) => mapCategory(category, locale)),
     editorialStage: post.editorialStage,
     excerpt: post.excerpt,
-    featuredImage: mapImage(post.featuredImage),
+    featuredImage: mapPostImage(post, translation?.title || post.slug),
     id: post.id,
     locale: translation?.locale || locale,
     path: buildLocalizedPath(translation?.locale || locale, publicRouteSegments.newsPost(post.slug)),
@@ -391,6 +412,11 @@ const postInventoryInclude = Object.freeze({
       publicUrl: true,
       sourceUrl: true,
       width: true,
+    },
+  },
+  sourceArticle: {
+    select: {
+      imageUrl: true,
     },
   },
   publishAttempts: {
@@ -806,7 +832,7 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
       categories: (post.categories || []).map(({ category }) => mapCategory(category, locale)),
       editorialStage: post.editorialStage,
       excerpt: post.excerpt,
-      featuredImage: mapImage(post.featuredImage),
+      featuredImage: mapPostImage(post, activeTranslation?.title || post.slug),
       id: post.id,
       providerKey: post.providerKey,
       publishedAt: serializeDate(post.publishedAt),
@@ -1151,6 +1177,11 @@ export async function getPublishedPostTranslationBySlug({ locale = defaultLocale
         },
       },
       featuredImage: true,
+      sourceArticle: {
+        select: {
+          imageUrl: true,
+        },
+      },
       publishAttempts: {
         where: {
           platform: "WEBSITE",
@@ -1187,7 +1218,7 @@ export async function getPublishedPostTranslationBySlug({ locale = defaultLocale
 
   return {
     categories: post.categories.map(({ category }) => mapCategory(category, translation.locale)),
-    featuredImage: mapImage(post.featuredImage),
+    featuredImage: mapPostImage(post, translation.title),
     id: post.id,
     locale: translation.locale,
     path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),

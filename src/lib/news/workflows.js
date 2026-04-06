@@ -1,7 +1,6 @@
 import { createAuditEventRecord, recordObservabilityEvent } from "@/lib/analytics";
 import { getDestinationSocialGuardrails } from "@/features/destinations/meta-config";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
-import { safeIngestRemoteMediaAsset } from "@/features/media";
 import { discoverRemoteImageUrl } from "@/lib/media";
 import { fetchProviderArticles } from "@/lib/news/providers";
 import {
@@ -295,32 +294,6 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
   ]);
   let featuredImageId = existingPost?.featuredImageId || null;
 
-  if (article.imageUrl && !featuredImageId) {
-    const mediaAsset = await safeIngestRemoteMediaAsset(
-      {
-        alt: article.title,
-        attributionText: article.sourceName,
-        caption: article.summary || article.title,
-        sourceUrl: article.imageUrl,
-      },
-      { actorId },
-      db,
-    );
-
-    featuredImageId = mediaAsset?.id || null;
-
-    if (featuredImageId) {
-      await db.fetchedArticle.update({
-        where: {
-          id: article.id,
-        },
-        data: {
-          featuredMediaId: featuredImageId,
-        },
-      });
-    }
-  }
-
   const post = existingPost
     ? await db.post.update({
         where: {
@@ -437,10 +410,11 @@ function buildTemplateContext({ articleMatch, post, stream, template, translatio
     .map((keyword) => `#${createSlug(keyword, "news")}`)
     .join(" ");
   const imageUrl =
-    translation?.seoRecord?.ogImage?.publicUrl
+    post.sourceArticle?.imageUrl
     || translation?.seoRecord?.ogImage?.sourceUrl
-    || post.featuredImage?.publicUrl
+    || translation?.seoRecord?.ogImage?.publicUrl
     || post.featuredImage?.sourceUrl
+    || post.featuredImage?.publicUrl
     || null;
 
   return {
@@ -634,6 +608,11 @@ async function executePublishAttempt(db, attemptId) {
       post: {
         include: {
           featuredImage: true,
+          sourceArticle: {
+            select: {
+              imageUrl: true,
+            },
+          },
           translations: {
             include: {
               seoRecord: {

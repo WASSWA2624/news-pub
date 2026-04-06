@@ -3,8 +3,8 @@
  * Option catalogs and field groupings are aligned with the official provider docs.
  */
 
-import { formatCountryFlagEmoji, formatCountryFlagImageUrl } from "@/lib/countries";
-import { formatLanguageFlagEmoji, formatLanguageFlagImageUrl } from "@/lib/languages";
+import { formatCountryFlagEmoji, formatCountryFlagImageUrl } from "../countries/index.js";
+import { formatLanguageFlagEmoji, formatLanguageFlagImageUrl } from "../languages/index.js";
 
 export const MULTI_VALUE_EMPTY_SENTINEL = "__newspub_empty__";
 

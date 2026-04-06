@@ -1,4 +1,4 @@
-import { formatCountryFlagEmoji, formatCountryFlagImageUrl, normalizeCountryCode } from "@/lib/countries";
+import { formatCountryFlagEmoji, formatCountryFlagImageUrl, normalizeCountryCode } from "../countries/index.js";
 
 const representativeCountryByLanguageCode = Object.freeze({
   af: "za",

@@ -87,7 +87,7 @@ function mapImage(asset, fallbackAlt = "Story image") {
   }
 
   const alt = asset.alt || asset.caption || fallbackAlt;
-  const url = getRenderableImageUrl(asset.publicUrl || asset.sourceUrl || "", {
+  const url = getRenderableImageUrl(asset.sourceUrl || asset.publicUrl || "", {
     alt,
     caption: asset.caption || null,
     height: asset.height,
