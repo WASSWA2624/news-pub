@@ -34,6 +34,8 @@ import SearchableSelect from "@/components/common/searchable-select";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import { NewsPubError } from "@/lib/news/shared";
+import { notFound } from "next/navigation";
 import { updatePostEditorAction } from "../../actions";
 
 function getTone(status) {
@@ -50,13 +52,21 @@ function getTone(status) {
 
 export default async function PostEditorPage({ params }) {
   const { id } = await params;
-  const [messages, snapshot] = await Promise.all([
-    getMessages(defaultLocale),
-    getPostEditorSnapshot({
+  const messages = await getMessages(defaultLocale);
+  let snapshot;
+
+  try {
+    snapshot = await getPostEditorSnapshot({
       locale: defaultLocale,
       postId: id,
-    }),
-  ]);
+    });
+  } catch (error) {
+    if (error instanceof NewsPubError && error.status === "post_not_found") {
+      notFound();
+    }
+
+    throw error;
+  }
   const copy = messages.admin.postEditor;
   const translation = snapshot.selectedTranslation;
   const defaultArticleMatch = snapshot.post.articleMatches.find(
