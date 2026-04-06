@@ -38,7 +38,9 @@
       "shareDescription": "Send this story to teammates or publish it through your own channels.",
       "shareTitle": "Share this story",
       "topCategoriesTitle": "Top categories",
-      "updatedLabel": "Updated"
+      "updatedLabel": "Updated",
+      "viewMoreAction": "View more",
+      "viewMoreError": "Could not load more stories right now."
     },
     "home": {
       "eyebrow": "Latest coverage",

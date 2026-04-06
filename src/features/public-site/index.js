@@ -5,6 +5,8 @@ import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/ne
 import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
+import { publicHomeLatestIncrementCount, publicHomeLatestInitialCount } from "./constants";
+
 /**
  * Public-site data mappers for locale-aware NewsPub story discovery pages.
  */
@@ -379,6 +381,17 @@ function buildPublishedWebsiteWhere(extraWhere = {}) {
   };
 }
 
+function buildPublishedLocaleWhere(locale, extraWhere = {}) {
+  return buildPublishedWebsiteWhere({
+    translations: {
+      some: {
+        locale,
+      },
+    },
+    ...extraWhere,
+  });
+}
+
 const publicPostInclude = Object.freeze({
   categories: {
     include: {
@@ -441,43 +454,71 @@ async function getPublishedCategoryCounts(db) {
     .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
 }
 
-async function getLatestPublishedPosts(db, locale, take = 7) {
+async function getLatestPublishedPosts(
+  db,
+  locale,
+  { skip = 0, take = publicHomeLatestInitialCount + 1 } = {},
+) {
   return db.post.findMany({
     include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    skip,
     take,
-    where: buildPublishedWebsiteWhere({
-      translations: {
-        some: {
-          locale,
-        },
-      },
-    }),
+    where: buildPublishedLocaleWhere(locale),
   });
 }
 
 export async function getPublishedHomePageData({ locale = defaultLocale } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const [latestPosts, topCategories, publishedStoryCount] = await Promise.all([
-    getLatestPublishedPosts(db, locale, 7),
+  const [latestPosts, localizedPublishedStoryCount, topCategories, publishedStoryCount] = await Promise.all([
+    getLatestPublishedPosts(db, locale, {
+      take: publicHomeLatestInitialCount + 1,
+    }),
+    db.post.count({
+      where: buildPublishedLocaleWhere(locale),
+    }),
     getPublishedCategoryCounts(db),
     db.post.count({
       where: buildPublishedWebsiteWhere(),
     }),
   ]);
   const cards = latestPosts.map((post) => mapPostCard(post, locale));
+  const featuredStory = cards[0] || null;
+  const latestStories = cards.slice(1, publicHomeLatestInitialCount + 1);
+  const latestStoryCount = Math.max(localizedPublishedStoryCount - (featuredStory ? 1 : 0), 0);
 
   return {
-    featuredStory: cards[0] || null,
-    latestStories: cards.slice(1),
+    featuredStory,
+    hasMoreLatestStories: latestStoryCount > latestStories.length,
+    latestStories,
     summary: {
       categoryCount: topCategories.length,
+      latestStoryCount,
       publishedStoryCount,
     },
     topCategories: topCategories.slice(0, 6).map((category) => ({
       count: category.count,
       ...mapCategory(category, locale),
     })),
+  };
+}
+
+export async function getPublishedHomeLatestStoriesData(
+  { locale = defaultLocale, skip = 1, take = publicHomeLatestIncrementCount } = {},
+  prisma,
+) {
+  const db = await resolvePrismaClient(prisma);
+  const safeSkip = Number.isFinite(skip) ? Math.max(0, Math.trunc(skip)) : 1;
+  const safeTake = Number.isFinite(take) ? Math.max(1, Math.trunc(take)) : publicHomeLatestIncrementCount;
+  const posts = await getLatestPublishedPosts(db, locale, {
+    skip: safeSkip,
+    take: safeTake + 1,
+  });
+  const cards = posts.map((post) => mapPostCard(post, locale));
+
+  return {
+    hasMore: cards.length > safeTake,
+    items: cards.slice(0, safeTake),
   };
 }
 

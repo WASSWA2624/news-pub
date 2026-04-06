@@ -133,11 +133,111 @@ describe("public site data", () => {
       path: "/en/news/follow-up-story",
       title: "Follow-up story",
     });
+    expect(pageData.hasMoreLatestStories).toBe(false);
+    expect(pageData.summary.latestStoryCount).toBe(1);
     expect(pageData.topCategories[0]).toMatchObject({
       count: 2,
       path: "/en/category/technology",
       slug: "technology",
     });
+  });
+
+  it("loads the first five latest stories after the featured item", async () => {
+    const posts = Array.from({ length: 12 }, (_value, index) =>
+      createPublishedPost({
+        id: `post_${index + 1}`,
+        publishedAt: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
+        slug: `story-${index + 1}`,
+        translations: [
+          {
+            contentHtml: `<p>Story ${index + 1} body.</p>`,
+            contentMd: `Story ${index + 1} body.`,
+            locale: "en",
+            seoRecord: null,
+            sourceAttribution: "Source: Example Source - https://example.com/story",
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: `Story ${index + 1} summary`,
+            title: `Story ${index + 1}`,
+          },
+        ],
+      }),
+    );
+    const prisma = {
+      category: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      post: {
+        count: vi.fn().mockResolvedValue(12),
+        findMany: vi.fn().mockResolvedValue(posts),
+      },
+    };
+    const { getPublishedHomePageData } = await import("./index");
+
+    const pageData = await getPublishedHomePageData({ locale: "en" }, prisma);
+
+    expect(pageData.featuredStory?.title).toBe("Story 1");
+    expect(pageData.latestStories).toHaveLength(5);
+    expect(pageData.hasMoreLatestStories).toBe(true);
+    expect(pageData.summary.latestStoryCount).toBe(11);
+    expect(pageData.latestStories.at(-1)).toMatchObject({
+      title: "Story 6",
+    });
+  });
+
+  it("returns additional home latest stories in batches of five", async () => {
+    const posts = Array.from({ length: 12 }, (_value, index) =>
+      createPublishedPost({
+        id: `post_${index + 1}`,
+        publishedAt: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
+        slug: `story-${index + 1}`,
+        translations: [
+          {
+            contentHtml: `<p>Story ${index + 1} body.</p>`,
+            contentMd: `Story ${index + 1} body.`,
+            locale: "en",
+            seoRecord: null,
+            sourceAttribution: "Source: Example Source - https://example.com/story",
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: `Story ${index + 1} summary`,
+            title: `Story ${index + 1}`,
+          },
+        ],
+      }),
+    );
+    const prisma = {
+      post: {
+        findMany: vi.fn().mockResolvedValue(posts.slice(6, 12)),
+      },
+    };
+    const { getPublishedHomeLatestStoriesData } = await import("./index");
+
+    const batch = await getPublishedHomeLatestStoriesData(
+      {
+        locale: "en",
+        skip: 6,
+        take: 5,
+      },
+      prisma,
+    );
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 6,
+        take: 6,
+      }),
+    );
+    expect(batch.items).toHaveLength(5);
+    expect(batch.items[0]).toMatchObject({
+      title: "Story 7",
+    });
+    expect(batch.items.at(-1)).toMatchObject({
+      title: "Story 11",
+    });
+    expect(batch.hasMore).toBe(true);
   });
 
   it("searches published stories and preserves pagination metadata", async () => {
