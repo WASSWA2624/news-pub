@@ -1,5 +1,6 @@
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
+import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
 
