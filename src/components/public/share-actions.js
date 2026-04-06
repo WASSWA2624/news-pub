@@ -29,7 +29,7 @@ const Panel = styled.section`
     css`
       border-radius: 16px;
       gap: 0.8rem;
-      padding: 0.88rem 0.92rem 0.96rem;
+      padding: 0.78rem 0.92rem 0.96rem;
     `}
 
   &::before {
@@ -45,17 +45,27 @@ const Panel = styled.section`
     right: 1rem;
     top: 1rem;
     border-radius: 999px;
+
+    ${({ $compact }) =>
+      $compact &&
+      css`
+        left: 0.92rem;
+        right: 0.92rem;
+        top: 0.66rem;
+      `}
   }
 `;
 
 const SectionHeader = styled.div`
   display: grid;
   gap: 0.22rem;
+  padding-top: 0.6rem;
 
   ${({ $compact }) =>
     $compact &&
     css`
       gap: 0.16rem;
+      padding-top: 0.42rem;
     `}
 `;
 

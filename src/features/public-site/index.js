@@ -1,5 +1,6 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { createImagePlaceholderDataUrl, getRenderableImageUrl } from "@/lib/media";
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
 import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
 import { buildAbsoluteUrl } from "@/lib/seo";
@@ -33,11 +34,18 @@ function mapImage(asset, fallbackAlt = "Story image") {
     return null;
   }
 
-  const url = sanitizeMediaUrl(asset.publicUrl || asset.sourceUrl || "");
+  const alt = asset.alt || asset.caption || fallbackAlt;
+  const url = getRenderableImageUrl(asset.publicUrl || asset.sourceUrl || "", {
+    alt,
+    caption: asset.caption || null,
+    height: asset.height,
+    sourceUrl: asset.sourceUrl || asset.publicUrl || "",
+    width: asset.width,
+  });
 
   return url
     ? {
-        alt: asset.alt || asset.caption || fallbackAlt,
+        alt,
         caption: asset.caption || null,
         height: asset.height || null,
         url,
@@ -161,17 +169,49 @@ function inferMediaKind({ kind, mimeType, type, url }) {
 }
 
 function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
-  const safeUrl = sanitizeMediaUrl(url);
+  const alt = metadata.alt || metadata.caption || fallbackAlt;
+  const safeUrl = getRenderableImageUrl(url, {
+    alt,
+    caption: metadata.caption || null,
+    height: metadata.height,
+    sourceUrl: metadata.sourceUrl || url || "",
+    width: metadata.width,
+  });
 
   return safeUrl
     ? {
-        alt: metadata.alt || metadata.caption || fallbackAlt,
+        alt,
         caption: metadata.caption || null,
         height: metadata.height || null,
         url: safeUrl,
         width: metadata.width || null,
       }
     : null;
+}
+
+function createFallbackPrimaryMedia({
+  fallbackAlt = "Story image",
+  sourceName = "",
+  sourceUrl = "",
+  summary = "",
+} = {}) {
+  const alt = trimText(fallbackAlt) || "Story image";
+
+  return {
+    alt,
+    caption: null,
+    height: 900,
+    kind: "image",
+    sourceUrl: trimText(sourceUrl) || null,
+    url: createImagePlaceholderDataUrl({
+      alt,
+      caption: trimText(summary) || (trimText(sourceName) ? `Preview unavailable from ${sourceName}.` : ""),
+      sourceUrl,
+      width: 1600,
+      height: 900,
+    }),
+    width: 1600,
+  };
 }
 
 function mapMediaItem(rawItem, fallbackAlt = "Story media") {
@@ -294,11 +334,19 @@ function mapCategory(category, locale) {
 function mapPostCard(post, locale = defaultLocale) {
   const translation = pickTranslation(post.translations || [], locale);
   const fallbackAlt = translation?.title || post.slug;
+  const summary = translation?.summary || post.excerpt;
   const image = mapImage(post.featuredImage, fallbackAlt)
     || mapRemoteImage(post.sourceArticle?.imageUrl, fallbackAlt);
   const media = extractStructuredMedia(translation?.structuredContentJson, fallbackAlt);
   const primaryMedia = media[0]
-    || (image ? { ...image, kind: "image", sourceUrl: image.url } : null);
+    || (image
+      ? { ...image, kind: "image", sourceUrl: image.url }
+      : createFallbackPrimaryMedia({
+          fallbackAlt,
+          sourceName: post.sourceName,
+          sourceUrl: post.sourceUrl,
+          summary,
+        }));
 
   return {
     categories: (post.categories || []).map(({ category }) => mapCategory(category, translation?.locale || locale)),
@@ -312,7 +360,7 @@ function mapPostCard(post, locale = defaultLocale) {
     slug: post.slug,
     sourceName: post.sourceName,
     sourceUrl: post.sourceUrl,
-    summary: translation?.summary || post.excerpt,
+    summary,
     title: translation?.title || post.slug,
     updatedAt: serializeDate(post.updatedAt),
   };
@@ -664,7 +712,14 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
   const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
   const primaryMedia = media[0]
-    || (image ? { ...image, kind: "image", sourceUrl: image.url } : null);
+    || (image
+      ? { ...image, kind: "image", sourceUrl: image.url }
+      : createFallbackPrimaryMedia({
+          fallbackAlt: translation.title,
+          sourceName: post.sourceName,
+          sourceUrl: post.sourceUrl,
+          summary: translation.summary,
+        }));
   const article = {
     canonicalUrl:
       translation.seoRecord?.canonicalUrl ||

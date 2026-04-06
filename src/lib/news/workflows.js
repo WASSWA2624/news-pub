@@ -1,6 +1,7 @@
 import { createAuditEventRecord, recordObservabilityEvent } from "@/lib/analytics";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { safeIngestRemoteMediaAsset } from "@/features/media";
+import { discoverRemoteImageUrl } from "@/lib/media";
 import { fetchProviderArticles } from "@/lib/news/providers";
 import {
   NewsPubError,
@@ -121,6 +122,16 @@ function evaluateArticleAgainstStream(article, stream) {
     reasons: [],
     status: stream.mode === "REVIEW_REQUIRED" ? "HELD_FOR_REVIEW" : "ELIGIBLE",
   };
+}
+
+export async function resolveFetchedArticleImageUrl(article = {}) {
+  const directImageUrl = trimText(article.imageUrl);
+
+  if (directImageUrl) {
+    return directImageUrl;
+  }
+
+  return discoverRemoteImageUrl(article.sourceUrl);
 }
 
 async function findDuplicateArticleMatch(db, article, stream) {
@@ -1037,11 +1048,12 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         continue;
       }
 
+      const resolvedImageUrl = await resolveFetchedArticleImageUrl(articleCandidate);
       const fetchedArticle = await db.fetchedArticle.create({
         data: {
           body: articleCandidate.body || null,
           dedupeFingerprint: articleCandidate.dedupeFingerprint,
-          imageUrl: articleCandidate.imageUrl || null,
+          imageUrl: resolvedImageUrl || null,
           language: trimText(articleCandidate.language) || null,
           normalizedTitleHash: articleCandidate.normalizedTitleHash,
           providerArticleId: articleCandidate.providerArticleId || null,

@@ -338,4 +338,57 @@ describe("public site data", () => {
       url: "https://cdn.example.com/story-video.mp4",
     });
   });
+
+  it("creates placeholder primary media when a published story has no usable image", async () => {
+    const imagelessPost = createPublishedPost({
+      featuredImage: null,
+      sourceArticle: {
+        imageUrl: null,
+      },
+      translations: [
+        {
+          contentHtml: "<p>Imageless story body.</p>",
+          contentMd: "Imageless story body.",
+          locale: "en",
+          seoRecord: null,
+          sourceAttribution: "Source: Example Source - https://example.com/story",
+          structuredContentJson: {
+            sections: [],
+          },
+          summary: "Imageless story summary",
+          title: "Imageless story",
+        },
+      ],
+    });
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(1),
+        findFirst: vi.fn().mockResolvedValue(imagelessPost),
+        findMany: vi.fn().mockResolvedValue([imagelessPost]),
+      },
+    };
+    const { getPublishedNewsIndexData, getPublishedStoryPageData } = await import("./index");
+
+    const [listingData, storyPageData] = await Promise.all([
+      getPublishedNewsIndexData({ locale: "en" }, prisma),
+      getPublishedStoryPageData(
+        {
+          locale: "en",
+          slug: "breaking-story",
+        },
+        prisma,
+      ),
+    ]);
+
+    expect(listingData.items[0].image).toBeNull();
+    expect(listingData.items[0].primaryMedia).toMatchObject({
+      kind: "image",
+    });
+    expect(listingData.items[0].primaryMedia.url).toMatch(/^data:image\/svg\+xml;charset=UTF-8,/);
+    expect(storyPageData.article.image).toBeNull();
+    expect(storyPageData.article.primaryMedia).toMatchObject({
+      kind: "image",
+    });
+    expect(storyPageData.article.primaryMedia.url).toMatch(/^data:image\/svg\+xml;charset=UTF-8,/);
+  });
 });
