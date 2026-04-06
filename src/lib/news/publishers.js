@@ -1,3 +1,4 @@
+import { env } from "@/lib/env/server";
 import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
@@ -32,6 +33,125 @@ export class DestinationPublishError extends NewsPubError {
 
 function normalizeBaseUrl(value = defaultGraphApiBaseUrl) {
   return `${trimText(value).replace(/\/+$/, "")}/`;
+}
+
+function isRootRelativeUrl(value) {
+  return value.startsWith("/") && !value.startsWith("//");
+}
+
+function normalizePublishUrl(value) {
+  const normalizedValue = trimText(value);
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  try {
+    if (isRootRelativeUrl(normalizedValue)) {
+      return new URL(normalizedValue, env.app.url).toString();
+    }
+
+    return new URL(normalizedValue).toString();
+  } catch {
+    return normalizedValue;
+  }
+}
+
+function isPrivateIpv4Hostname(hostname) {
+  const octets = hostname.split(".").map((part) => Number.parseInt(part, 10));
+
+  if (
+    octets.length !== 4 ||
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+  ) {
+    return false;
+  }
+
+  return (
+    octets[0] === 0 ||
+    octets[0] === 10 ||
+    octets[0] === 127 ||
+    (octets[0] === 169 && octets[1] === 254) ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
+
+function isPrivateIpv6Hostname(hostname) {
+  const normalizedHostname = hostname.toLowerCase();
+
+  return (
+    normalizedHostname === "::1" ||
+    normalizedHostname.startsWith("fc") ||
+    normalizedHostname.startsWith("fd") ||
+    normalizedHostname.startsWith("fe80:")
+  );
+}
+
+function resolveMetaPublishUrl(value) {
+  const normalizedUrl = normalizePublishUrl(value);
+
+  if (!normalizedUrl) {
+    return {
+      hostname: null,
+      issue: "missing",
+      normalizedUrl: null,
+    };
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    if (
+      hostname === "localhost" ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local") ||
+      isPrivateIpv4Hostname(hostname) ||
+      isPrivateIpv6Hostname(hostname)
+    ) {
+      return {
+        hostname,
+        issue: "not_public",
+        normalizedUrl: parsedUrl.toString(),
+      };
+    }
+
+    return {
+      hostname,
+      issue: null,
+      normalizedUrl: parsedUrl.toString(),
+    };
+  } catch {
+    return {
+      hostname: null,
+      issue: "invalid",
+      normalizedUrl,
+    };
+  }
+}
+
+function createMetaPublicUrlError(platformLabel, fieldLabel, resolution) {
+  const resolvedUrl = trimText(resolution?.normalizedUrl);
+  const host = trimText(resolution?.hostname);
+  const isNotPublic = resolution?.issue === "not_public";
+  const message = isNotPublic
+    ? `${platformLabel} publishing requires a publicly reachable ${fieldLabel}. Resolved host "${host || "unknown"}" is not public. Set NEXT_PUBLIC_APP_URL to a public domain or tunnel before publishing.`
+    : `${platformLabel} publishing requires a valid public ${fieldLabel}.`;
+
+  return new DestinationPublishError(message, {
+    responseJson: {
+      error: "destination_publish_public_url_required",
+      field: fieldLabel,
+      host: host || null,
+      issue: resolution?.issue || "invalid",
+      platform: platformLabel.toUpperCase(),
+      resolvedUrl: resolvedUrl || null,
+    },
+    retryable: false,
+    status: "destination_publish_public_url_required",
+    statusCode: 400,
+  });
 }
 
 function joinPublishText(parts, maxLength = 2200) {
@@ -214,6 +334,8 @@ async function publishFacebookDestination(destination, payload) {
 
   const runtimeConnection = resolveDestinationRuntimeConnection(destination);
   const targetId = runtimeConnection.accountId;
+  const canonicalUrlResolution = resolveMetaPublishUrl(payload.canonicalUrl);
+  const mediaUrlResolution = resolveMetaPublishUrl(payload.mediaUrl);
 
   if (!targetId) {
     throw new DestinationPublishError("Facebook destinations require an external account or page ID.", {
@@ -226,17 +348,26 @@ async function publishFacebookDestination(destination, payload) {
     });
   }
 
+  if (canonicalUrlResolution.issue) {
+    throw createMetaPublicUrlError("Facebook", "canonical story URL", canonicalUrlResolution);
+  }
+
   const accessToken = requireRuntimeAccessToken(runtimeConnection);
   const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
-  const message = buildFacebookMessage(payload);
+  const normalizedPayload = {
+    ...payload,
+    canonicalUrl: canonicalUrlResolution.normalizedUrl,
+    mediaUrl: mediaUrlResolution.issue ? null : mediaUrlResolution.normalizedUrl,
+  };
+  const message = buildFacebookMessage(normalizedPayload);
 
-  if (payload.mediaUrl && destination.kind === "FACEBOOK_PAGE") {
+  if (normalizedPayload.mediaUrl && destination.kind === "FACEBOOK_PAGE") {
     try {
       const photoPayload = await postGraphForm(runtimeConnection, `${targetId}/photos`, {
         access_token: accessToken,
         caption: message,
         published: "true",
-        url: payload.mediaUrl,
+        url: normalizedPayload.mediaUrl,
       });
 
       return {
@@ -249,13 +380,13 @@ async function publishFacebookDestination(destination, payload) {
         },
       };
     } catch (error) {
-      if (!(error instanceof DestinationPublishError) || !payload.canonicalUrl) {
+      if (!(error instanceof DestinationPublishError) || !normalizedPayload.canonicalUrl) {
         throw error;
       }
 
       const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
         access_token: accessToken,
-        link: payload.canonicalUrl,
+        link: normalizedPayload.canonicalUrl,
         message,
       });
 
@@ -275,7 +406,7 @@ async function publishFacebookDestination(destination, payload) {
 
   const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
     access_token: accessToken,
-    link: payload.canonicalUrl,
+    link: normalizedPayload.canonicalUrl,
     message,
   });
 
@@ -319,6 +450,12 @@ async function publishInstagramDestination(destination, payload) {
     );
   }
 
+  const mediaUrlResolution = resolveMetaPublishUrl(payload.mediaUrl);
+
+  if (mediaUrlResolution.issue) {
+    throw createMetaPublicUrlError("Instagram", "media URL", mediaUrlResolution);
+  }
+
   const runtimeConnection = resolveDestinationRuntimeConnection(destination);
   const targetId = runtimeConnection.accountId;
 
@@ -356,7 +493,7 @@ async function publishInstagramDestination(destination, payload) {
   const creationPayload = await postGraphForm(runtimeConnection, `${targetId}/media`, {
     access_token: accessToken,
     caption,
-    image_url: payload.mediaUrl,
+    image_url: mediaUrlResolution.normalizedUrl,
   });
   const publishPayload = await postGraphForm(runtimeConnection, `${targetId}/media_publish`, {
     access_token: accessToken,

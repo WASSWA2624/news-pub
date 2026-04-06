@@ -62,6 +62,49 @@ describe("news publishers", () => {
     });
   });
 
+  it("converts relative facebook media paths into absolute app urls before publishing", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { publishExternalDestination } = await import("./publishers");
+    const encryptedToken = encryptSecretValue("facebook-token");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "123456", name: "Example Page" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "photo_1", post_id: "page_post_1" }),
+        }),
+    );
+
+    await publishExternalDestination({
+      destination: {
+        encryptedTokenCiphertext: encryptedToken.ciphertext,
+        encryptedTokenIv: encryptedToken.iv,
+        encryptedTokenTag: encryptedToken.tag,
+        externalAccountId: "123456",
+        kind: "FACEBOOK_PAGE",
+        platform: "FACEBOOK",
+        settingsJson: {},
+      },
+      payload: {
+        canonicalUrl: "https://example.com/en/news/breaking-story",
+        mediaUrl: "/uploads/media/story.jpg",
+        sourceReference: "Source: Example Source - https://example.com/story",
+        summary: "Breaking story summary",
+        title: "Breaking story",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1][1].body.get("url")).toBe("https://example.com/uploads/media/story.jpg");
+  });
+
   it("falls back to the facebook feed endpoint when photo publication fails", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { publishExternalDestination } = await import("./publishers");
@@ -225,6 +268,54 @@ describe("news publishers", () => {
         targetId: "123456789012345",
       }),
     });
+  });
+
+  it("rejects facebook publishing when the canonical story url is not publicly reachable", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { publishExternalDestination } = await import("./publishers");
+    const encryptedToken = encryptSecretValue("facebook-token");
+    const fetchMock = vi.fn();
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      publishExternalDestination({
+        destination: {
+          encryptedTokenCiphertext: encryptedToken.ciphertext,
+          encryptedTokenIv: encryptedToken.iv,
+          encryptedTokenTag: encryptedToken.tag,
+          externalAccountId: "123456789012345",
+          kind: "FACEBOOK_PAGE",
+          platform: "FACEBOOK",
+          settingsJson: {},
+        },
+        payload: {
+          canonicalUrl: "http://localhost:3000/en/news/breaking-story",
+          mediaUrl: "/uploads/media/story.jpg",
+          sourceReference: "Source: Example Source - https://example.com/story",
+          summary: "Breaking story summary",
+          title: "Breaking story",
+        },
+      }),
+    ).rejects.toMatchObject({
+      responseJson: expect.objectContaining({
+        error: "destination_publish_public_url_required",
+        field: "canonical story URL",
+        issue: "not_public",
+      }),
+      status: "destination_publish_public_url_required",
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects facebook profile destinations before attempting to publish", async () => {
