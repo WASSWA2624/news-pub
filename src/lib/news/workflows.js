@@ -20,6 +20,7 @@ import {
 import { revalidatePublishedPostPaths } from "@/lib/revalidation";
 import { env } from "@/lib/env/server";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { isDestinationRuntimeReady } from "@/lib/news/destination-runtime";
 import { DestinationPublishError, publishExternalDestination } from "@/lib/news/publishers";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
@@ -468,6 +469,167 @@ function buildTemplateContext({ articleMatch, post, stream, template, translatio
   };
 }
 
+function getRecentAttemptPayload(payloadJson) {
+  return payloadJson && typeof payloadJson === "object" && !Array.isArray(payloadJson) ? payloadJson : {};
+}
+
+function getSocialPayloadFingerprint(payload = {}) {
+  return createContentHash(
+    payload.platform,
+    payload.destinationKind,
+    payload.title,
+    payload.summary,
+    payload.canonicalUrl,
+    payload.hashtags,
+  );
+}
+
+function getHashtagTokens(value) {
+  return trimText(value)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.startsWith("#"));
+}
+
+function limitHashtagString(value, maxCount) {
+  return getHashtagTokens(value).slice(0, maxCount).join(" ");
+}
+
+export async function applySocialPublishingGuardrails({ db, destination, payload }) {
+  if (!["FACEBOOK", "INSTAGRAM"].includes(destination?.platform)) {
+    return {
+      adjustments: {},
+      payload,
+    };
+  }
+
+  const now = new Date();
+  const socialGuardrails = env.meta.socialGuardrails;
+  const duplicateWindowStart = new Date(
+    now.getTime() - socialGuardrails.duplicateCooldownHours * 60 * 60 * 1000,
+  );
+  const recentWindowStart = new Date(
+    now.getTime() - Math.max(24, socialGuardrails.duplicateCooldownHours) * 60 * 60 * 1000,
+  );
+  const recentSucceededAttempts = await db.publishAttempt.findMany({
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      payloadJson: true,
+      publishedAt: true,
+    },
+    where: {
+      destinationId: destination.id,
+      publishedAt: {
+        gte: recentWindowStart,
+      },
+      status: "SUCCEEDED",
+    },
+  });
+  const nextPayload = {
+    ...payload,
+  };
+  const issues = [];
+  const adjustments = {};
+  const currentFingerprint = getSocialPayloadFingerprint(nextPayload);
+  const currentCanonicalUrl = trimText(nextPayload.canonicalUrl);
+  const latestSucceededAttempt = recentSucceededAttempts[0] || null;
+  const maxPostsPer24Hours =
+    destination.platform === "FACEBOOK"
+      ? socialGuardrails.facebookMaxPostsPer24Hours
+      : socialGuardrails.instagramMaxPostsPer24Hours;
+  const publishedLast24Hours = recentSucceededAttempts.filter((attempt) => {
+    if (!(attempt.publishedAt instanceof Date)) {
+      return false;
+    }
+
+    return attempt.publishedAt >= new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  }).length;
+
+  if (latestSucceededAttempt?.publishedAt instanceof Date) {
+    const nextAllowedPublishAt = new Date(
+      latestSucceededAttempt.publishedAt.getTime() + socialGuardrails.minPostIntervalMinutes * 60 * 1000,
+    );
+
+    if (nextAllowedPublishAt > now) {
+      issues.push({
+        code: "posting_interval_too_short",
+        message: `Wait until ${nextAllowedPublishAt.toISOString()} before publishing to this destination again.`,
+      });
+    }
+  }
+
+  if (publishedLast24Hours >= maxPostsPer24Hours) {
+    issues.push({
+      code: "destination_daily_cap_reached",
+      message: `This destination already reached the internal cap of ${maxPostsPer24Hours} posts in the last 24 hours.`,
+    });
+  }
+
+  if (destination.platform === "INSTAGRAM") {
+    const limitedHashtags = limitHashtagString(
+      nextPayload.hashtags,
+      socialGuardrails.instagramMaxHashtags,
+    );
+
+    if (limitedHashtags !== trimText(nextPayload.hashtags)) {
+      nextPayload.hashtags = limitedHashtags;
+      adjustments.instagramHashtagsTrimmedTo = socialGuardrails.instagramMaxHashtags;
+    }
+  }
+
+  if (!trimText(nextPayload.sourceReference)) {
+    issues.push({
+      code: "source_reference_missing",
+      message: "Source attribution is required before publishing to Meta destinations.",
+    });
+  }
+
+  for (const attempt of recentSucceededAttempts) {
+    if (!(attempt.publishedAt instanceof Date) || attempt.publishedAt < duplicateWindowStart) {
+      continue;
+    }
+
+    const recentPayload = getRecentAttemptPayload(attempt.payloadJson);
+
+    if (getSocialPayloadFingerprint(recentPayload) === currentFingerprint) {
+      issues.push({
+        code: "duplicate_social_payload",
+        message: "An identical social post was already published recently for this destination.",
+      });
+      break;
+    }
+
+    if (currentCanonicalUrl && trimText(recentPayload.canonicalUrl) === currentCanonicalUrl) {
+      issues.push({
+        code: "duplicate_canonical_story",
+        message: "This destination already published the same canonical story within the duplicate cooldown window.",
+      });
+      break;
+    }
+  }
+
+  if (issues.length) {
+    throw new DestinationPublishError("Meta publishing guardrails blocked this post.", {
+      responseJson: {
+        adjustments,
+        error: "destination_policy_guardrail_blocked",
+        issues,
+        maxPostsPer24Hours,
+        publishedLast24Hours,
+      },
+      retryable: false,
+      status: "destination_policy_guardrail_blocked",
+      statusCode: 400,
+    });
+  }
+
+  return {
+    adjustments,
+    payload: nextPayload,
+  };
+}
+
 async function executePublishAttempt(db, attemptId) {
   const attempt = await db.publishAttempt.findUnique({
     include: {
@@ -537,7 +699,7 @@ async function executePublishAttempt(db, attemptId) {
     template,
     translation,
   });
-  const payload = {
+  let payload = {
     body: renderTemplateString(template?.bodyTemplate, context),
     canonicalUrl: context.canonicalUrl,
     destinationKind: destination.kind,
@@ -562,7 +724,7 @@ async function executePublishAttempt(db, attemptId) {
 
   const needsToken = destination.platform !== "WEBSITE";
 
-  if (needsToken && (!destination.encryptedTokenCiphertext || destination.connectionStatus !== "CONNECTED")) {
+  if (needsToken && !isDestinationRuntimeReady(destination)) {
     const failedAttempt = await db.publishAttempt.update({
       where: {
         id: attempt.id,
@@ -603,6 +765,30 @@ async function executePublishAttempt(db, attemptId) {
   let publishResult;
 
   try {
+    if (destination.platform !== "WEBSITE") {
+      const guardrailResult = await applySocialPublishingGuardrails({
+        db,
+        destination,
+        payload,
+      });
+
+      payload = guardrailResult.payload;
+
+      if (Object.keys(guardrailResult.adjustments).length) {
+        await db.publishAttempt.update({
+          where: {
+            id: attempt.id,
+          },
+          data: {
+            payloadJson: {
+              ...payload,
+              guardrailAdjustments: guardrailResult.adjustments,
+            },
+          },
+        });
+      }
+    }
+
     if (attempt.platform === "WEBSITE") {
       const remoteId = `${destination.platform.toLowerCase()}_${createContentHash(
         attempt.id,

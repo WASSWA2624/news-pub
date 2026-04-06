@@ -1,4 +1,8 @@
-import { decryptSecretValue } from "@/lib/security/secrets";
+import {
+  getMetaAppAccessToken,
+  getMetaAppSecretProof,
+  resolveDestinationRuntimeConnection,
+} from "@/lib/news/destination-runtime";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
@@ -42,48 +46,6 @@ function joinPublishText(parts, maxLength = 2200) {
     .slice(0, maxLength);
 }
 
-function getDestinationAccessToken(destination) {
-  const token = decryptSecretValue({
-    ciphertext: destination?.encryptedTokenCiphertext,
-    iv: destination?.encryptedTokenIv,
-    tag: destination?.encryptedTokenTag,
-  });
-
-  if (!token) {
-    throw new DestinationPublishError("Destination token is missing or unreadable.", {
-      responseJson: {
-        error: "destination_token_missing",
-      },
-      retryable: false,
-      status: "destination_token_missing",
-      statusCode: 400,
-    });
-  }
-
-  return token;
-}
-
-function getDestinationExternalId(destination, settingsKeys = []) {
-  const settings = destination?.settingsJson && typeof destination.settingsJson === "object"
-    ? destination.settingsJson
-    : {};
-  const externalId = trimText(destination?.externalAccountId);
-
-  if (externalId) {
-    return externalId;
-  }
-
-  for (const key of settingsKeys) {
-    const value = trimText(settings?.[key]);
-
-    if (value) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
 function isRetryableGraphFailure(response, payload) {
   const statusCode = response?.status || 0;
   const graphError = payload?.error || null;
@@ -112,8 +74,50 @@ async function parseJsonResponse(response) {
   }
 }
 
-async function postGraphForm(destination, path, values) {
-  const baseUrl = normalizeBaseUrl(destination?.settingsJson?.graphApiBaseUrl || defaultGraphApiBaseUrl);
+async function getGraphJson(runtimeConnection, path, values) {
+  const baseUrl = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
+  const url = new URL(path.replace(/^\/+/, ""), baseUrl);
+
+  Object.entries(values || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    url.searchParams.set(key, `${value}`);
+  });
+
+  const accessToken = trimText(values?.access_token);
+  const appSecretProof = getMetaAppSecretProof(accessToken);
+
+  if (appSecretProof) {
+    url.searchParams.set("appsecret_proof", appSecretProof);
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      accept: "application/json",
+    },
+    method: "GET",
+  });
+  const payload = await parseJsonResponse(response);
+
+  if (!response.ok || payload?.error) {
+    throw new DestinationPublishError(
+      payload?.error?.message || `Destination publish failed with status ${response.status}.`,
+      {
+        responseJson: payload,
+        retryable: isRetryableGraphFailure(response, payload),
+        status: "destination_publish_failed",
+        statusCode: response.status || 502,
+      },
+    );
+  }
+
+  return payload || {};
+}
+
+async function postGraphForm(runtimeConnection, path, values) {
+  const baseUrl = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
   const body = new URLSearchParams();
 
   Object.entries(values || {}).forEach(([key, value]) => {
@@ -124,9 +128,17 @@ async function postGraphForm(destination, path, values) {
     body.set(key, `${value}`);
   });
 
+  const accessToken = trimText(values?.access_token);
+  const appSecretProof = getMetaAppSecretProof(accessToken);
+
+  if (appSecretProof) {
+    body.set("appsecret_proof", appSecretProof);
+  }
+
   const response = await fetch(new URL(path.replace(/^\/+/, ""), baseUrl), {
     body,
     headers: {
+      accept: "application/json",
       "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
     },
     method: "POST",
@@ -146,6 +158,63 @@ async function postGraphForm(destination, path, values) {
   }
 
   return payload || {};
+}
+
+function requireRuntimeAccessToken(runtimeConnection) {
+  if (!runtimeConnection?.accessToken) {
+    throw new DestinationPublishError("Destination token is missing or unreadable.", {
+      responseJson: {
+        error: "destination_token_missing",
+      },
+      retryable: false,
+      status: "destination_token_missing",
+      statusCode: 400,
+    });
+  }
+
+  return runtimeConnection.accessToken;
+}
+
+async function validateMetaAccessToken(runtimeConnection, accessToken) {
+  const appAccessToken = getMetaAppAccessToken();
+
+  if (!appAccessToken) {
+    return null;
+  }
+
+  const payload = await getGraphJson(runtimeConnection, "debug_token", {
+    access_token: appAccessToken,
+    input_token: accessToken,
+  });
+  const tokenData = payload?.data || null;
+
+  if (tokenData && tokenData.is_valid === false) {
+    throw new DestinationPublishError("Meta rejected the configured access token.", {
+      responseJson: {
+        error: "destination_token_invalid",
+        tokenData,
+      },
+      retryable: false,
+      status: "destination_token_invalid",
+      statusCode: 400,
+    });
+  }
+
+  return tokenData;
+}
+
+async function verifyFacebookDestination(runtimeConnection, accessToken) {
+  return getGraphJson(runtimeConnection, `${runtimeConnection.accountId}`, {
+    access_token: accessToken,
+    fields: "id,name",
+  });
+}
+
+async function verifyInstagramDestination(runtimeConnection, accessToken) {
+  return getGraphJson(runtimeConnection, `${runtimeConnection.accountId}`, {
+    access_token: accessToken,
+    fields: "id,username,account_type",
+  });
 }
 
 function buildFacebookMessage(payload) {
@@ -171,7 +240,8 @@ function buildInstagramCaption(payload) {
 }
 
 async function publishFacebookDestination(destination, payload) {
-  const targetId = getDestinationExternalId(destination, ["pageId", "profileId"]);
+  const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+  const targetId = runtimeConnection.accountId;
 
   if (!targetId) {
     throw new DestinationPublishError("Facebook destinations require an external account or page ID.", {
@@ -184,12 +254,14 @@ async function publishFacebookDestination(destination, payload) {
     });
   }
 
-  const accessToken = getDestinationAccessToken(destination);
+  const accessToken = requireRuntimeAccessToken(runtimeConnection);
+  const tokenMetadata = await validateMetaAccessToken(runtimeConnection, accessToken);
+  const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
   const message = buildFacebookMessage(payload);
 
   if (payload.mediaUrl && destination.kind === "FACEBOOK_PAGE") {
     try {
-      const photoPayload = await postGraphForm(destination, `${targetId}/photos`, {
+      const photoPayload = await postGraphForm(runtimeConnection, `${targetId}/photos`, {
         access_token: accessToken,
         caption: message,
         published: "true",
@@ -201,6 +273,8 @@ async function publishFacebookDestination(destination, payload) {
         remoteId: photoPayload.post_id || photoPayload.id || null,
         responseJson: {
           channel: "facebook_photo",
+          targetId: verifiedDestination?.id || targetId,
+          tokenMetadata,
           ...photoPayload,
         },
       };
@@ -209,7 +283,7 @@ async function publishFacebookDestination(destination, payload) {
         throw error;
       }
 
-      const feedPayload = await postGraphForm(destination, `${targetId}/feed`, {
+      const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
         access_token: accessToken,
         link: payload.canonicalUrl,
         message,
@@ -223,12 +297,14 @@ async function publishFacebookDestination(destination, payload) {
           fallbackReason: error.message,
           fallbackResponse: feedPayload,
           photoError: error.responseJson,
+          targetId: verifiedDestination?.id || targetId,
+          tokenMetadata,
         },
       };
     }
   }
 
-  const feedPayload = await postGraphForm(destination, `${targetId}/feed`, {
+  const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
     access_token: accessToken,
     link: payload.canonicalUrl,
     message,
@@ -239,6 +315,8 @@ async function publishFacebookDestination(destination, payload) {
     remoteId: feedPayload.id || null,
     responseJson: {
       channel: "facebook_feed",
+      targetId: verifiedDestination?.id || targetId,
+      tokenMetadata,
       ...feedPayload,
     },
   };
@@ -273,7 +351,8 @@ async function publishInstagramDestination(destination, payload) {
     );
   }
 
-  const targetId = getDestinationExternalId(destination, ["instagramUserId", "pageId"]);
+  const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+  const targetId = runtimeConnection.accountId;
 
   if (!targetId) {
     throw new DestinationPublishError("Instagram destinations require an external account ID.", {
@@ -286,14 +365,16 @@ async function publishInstagramDestination(destination, payload) {
     });
   }
 
-  const accessToken = getDestinationAccessToken(destination);
+  const accessToken = requireRuntimeAccessToken(runtimeConnection);
+  const tokenMetadata = await validateMetaAccessToken(runtimeConnection, accessToken);
+  const verifiedDestination = await verifyInstagramDestination(runtimeConnection, accessToken);
   const caption = buildInstagramCaption(payload);
-  const creationPayload = await postGraphForm(destination, `${targetId}/media`, {
+  const creationPayload = await postGraphForm(runtimeConnection, `${targetId}/media`, {
     access_token: accessToken,
     caption,
     image_url: payload.mediaUrl,
   });
-  const publishPayload = await postGraphForm(destination, `${targetId}/media_publish`, {
+  const publishPayload = await postGraphForm(runtimeConnection, `${targetId}/media_publish`, {
     access_token: accessToken,
     creation_id: creationPayload.id,
   });
@@ -305,6 +386,8 @@ async function publishInstagramDestination(destination, payload) {
       channel: "instagram_media_publish",
       creation: creationPayload,
       publish: publishPayload,
+      targetId: verifiedDestination?.id || targetId,
+      tokenMetadata,
     },
   };
 }

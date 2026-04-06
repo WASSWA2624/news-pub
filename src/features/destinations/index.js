@@ -1,4 +1,5 @@
 import { createAuditEventRecord } from "@/lib/analytics";
+import { isDestinationRuntimeReady, resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { decryptSecretValue, encryptSecretValue } from "@/lib/security/secrets";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
@@ -32,20 +33,27 @@ export async function getDestinationManagementSnapshot(prisma) {
   });
 
   return {
-    destinations: destinations.map((destination) => ({
-      ...destination,
-      hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
-      validationIssues: getDestinationValidationIssues(destination),
-      storedTokenPreview: destination.encryptedTokenCiphertext
-        ? decryptSecretValue({
-            ciphertext: destination.encryptedTokenCiphertext,
-            iv: destination.encryptedTokenIv,
-            tag: destination.encryptedTokenTag,
-          })?.slice(0, 0) ?? true
-        : false,
-    })),
+    destinations: destinations.map((destination) => {
+      const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+
+      return {
+        ...destination,
+        effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
+        hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
+        hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
+        usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
+        validationIssues: getDestinationValidationIssues(destination),
+        storedTokenPreview: destination.encryptedTokenCiphertext
+          ? decryptSecretValue({
+              ciphertext: destination.encryptedTokenCiphertext,
+              iv: destination.encryptedTokenIv,
+              tag: destination.encryptedTokenTag,
+            })?.slice(0, 0) ?? true
+          : false,
+      };
+    }),
     summary: {
-      connectedCount: destinations.filter((destination) => destination.connectionStatus === "CONNECTED").length,
+      connectedCount: destinations.filter((destination) => isDestinationRuntimeReady(destination)).length,
       errorCount: destinations.filter((destination) => destination.connectionStatus === "ERROR").length,
       totalCount: destinations.length,
     },

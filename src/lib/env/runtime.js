@@ -45,6 +45,36 @@ function booleanString(name) {
   });
 }
 
+function optionalIntegerString(name) {
+  return optionalString().transform((value, context) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (!/^\d+$/.test(value)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} must be a whole number.`,
+      });
+
+      return z.NEVER;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+
+    if (parsed <= 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} must be greater than 0.`,
+      });
+
+      return z.NEVER;
+    }
+
+    return parsed;
+  });
+}
+
 function csvString(name) {
   return requiredString(name).transform((value, context) => {
     const items = value
@@ -80,6 +110,36 @@ function optionalUrlString(name) {
       message: `${name} must be a valid http or https URL.`,
     },
   );
+}
+
+function optionalJsonObjectString(name) {
+  return optionalString().transform((value, context) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    try {
+      const parsed = JSON.parse(value);
+
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${name} must be a valid JSON object.`,
+        });
+
+        return z.NEVER;
+      }
+
+      return parsed;
+    } catch {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${name} must be a valid JSON object.`,
+      });
+
+      return z.NEVER;
+    }
+  });
 }
 
 function normalizeBaseUrl(value) {
@@ -146,6 +206,15 @@ const serverEnvSchema = sharedEnvSchema
     NEWSDATA_API_KEY: optionalString(),
     NEWSAPI_API_KEY: optionalString(),
     DESTINATION_TOKEN_ENCRYPTION_KEY: requiredString("DESTINATION_TOKEN_ENCRYPTION_KEY"),
+    META_APP_ID: optionalString(),
+    META_APP_SECRET: optionalString(),
+    META_GRAPH_API_BASE_URL: optionalUrlString("META_GRAPH_API_BASE_URL"),
+    META_DESTINATION_CREDENTIALS_JSON: optionalJsonObjectString("META_DESTINATION_CREDENTIALS_JSON"),
+    META_SOCIAL_MIN_POST_INTERVAL_MINUTES: optionalIntegerString("META_SOCIAL_MIN_POST_INTERVAL_MINUTES"),
+    META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: optionalIntegerString("META_SOCIAL_DUPLICATE_COOLDOWN_HOURS"),
+    META_FACEBOOK_MAX_POSTS_PER_24H: optionalIntegerString("META_FACEBOOK_MAX_POSTS_PER_24H"),
+    META_INSTAGRAM_MAX_POSTS_PER_24H: optionalIntegerString("META_INSTAGRAM_MAX_POSTS_PER_24H"),
+    META_INSTAGRAM_MAX_HASHTAGS: optionalIntegerString("META_INSTAGRAM_MAX_HASHTAGS"),
     MEDIA_DRIVER: requiredString("MEDIA_DRIVER"),
     LOCAL_MEDIA_BASE_PATH: optionalString(),
     LOCAL_MEDIA_BASE_URL: optionalString(),
@@ -172,6 +241,26 @@ const serverEnvSchema = sharedEnvSchema
         path: ["MEDIA_DRIVER"],
         message: `MEDIA_DRIVER must be one of: ${supportedMediaDrivers.join(", ")}.`,
       });
+    }
+
+    if (Boolean(env.META_APP_ID) !== Boolean(env.META_APP_SECRET)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["META_APP_ID"],
+        message: "META_APP_ID and META_APP_SECRET must be provided together.",
+      });
+    }
+
+    if (env.META_DESTINATION_CREDENTIALS_JSON) {
+      for (const [slug, value] of Object.entries(env.META_DESTINATION_CREDENTIALS_JSON)) {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["META_DESTINATION_CREDENTIALS_JSON", slug],
+            message: `META_DESTINATION_CREDENTIALS_JSON.${slug} must be an object.`,
+          });
+        }
+      }
     }
 
     if (env.MEDIA_DRIVER === "local") {
@@ -258,6 +347,21 @@ function mapServerEnv(parsedEnv) {
     },
     destinations: {
       encryptionKey: parsedEnv.DESTINATION_TOKEN_ENCRYPTION_KEY,
+    },
+    meta: {
+      app: {
+        id: parsedEnv.META_APP_ID || null,
+        secret: parsedEnv.META_APP_SECRET || null,
+      },
+      destinationCredentials: parsedEnv.META_DESTINATION_CREDENTIALS_JSON || {},
+      graphApiBaseUrl: parsedEnv.META_GRAPH_API_BASE_URL || "https://graph.facebook.com/v22.0",
+      socialGuardrails: {
+        facebookMaxPostsPer24Hours: parsedEnv.META_FACEBOOK_MAX_POSTS_PER_24H || 12,
+        instagramMaxHashtags: parsedEnv.META_INSTAGRAM_MAX_HASHTAGS || 8,
+        instagramMaxPostsPer24Hours: parsedEnv.META_INSTAGRAM_MAX_POSTS_PER_24H || 20,
+        minPostIntervalMinutes: parsedEnv.META_SOCIAL_MIN_POST_INTERVAL_MINUTES || 90,
+        duplicateCooldownHours: parsedEnv.META_SOCIAL_DUPLICATE_COOLDOWN_HOURS || 72,
+      },
     },
     media: {
       driver: parsedEnv.MEDIA_DRIVER,

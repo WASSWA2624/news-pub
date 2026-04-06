@@ -384,6 +384,21 @@ export default function DestinationFormCard({
         <SmallText>
           Store external identifiers and rotate tokens here without disturbing the destination identity above.
         </SmallText>
+        {destination?.usesRuntimeCredentials ? (
+          <NoticeBanner $tone="warning">
+            <NoticeTitle>Environment-backed Meta credentials detected</NoticeTitle>
+            <NoticeList>
+              <NoticeItem>
+                Runtime publishing for this destination currently resolves its token and account identifiers from
+                environment variables.
+              </NoticeItem>
+              <NoticeItem>
+                Stored form values remain available as a fallback, but the environment configuration takes precedence
+                until it is removed.
+              </NoticeItem>
+            </NoticeList>
+          </NoticeBanner>
+        ) : null}
         <DestinationFieldGrid>
           <Field>
             <FieldLabel>External account ID</FieldLabel>

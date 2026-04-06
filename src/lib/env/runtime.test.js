@@ -15,6 +15,21 @@ describe("environment runtime schema", () => {
     });
     expect(env.auth.session.maxAgeSeconds).toBe(3600);
     expect(env.destinations.encryptionKey).toBe("destination-secret");
+    expect(env.meta).toEqual({
+      app: {
+        id: null,
+        secret: null,
+      },
+      destinationCredentials: {},
+      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      socialGuardrails: {
+        duplicateCooldownHours: 72,
+        facebookMaxPostsPer24Hours: 12,
+        instagramMaxHashtags: 8,
+        instagramMaxPostsPer24Hours: 20,
+        minPostIntervalMinutes: 90,
+      },
+    });
     expect(env.media).toMatchObject({
       driver: "local",
       local: {
@@ -59,5 +74,55 @@ describe("environment runtime schema", () => {
     });
 
     expect(() => parseServerEnv(env)).toThrow(/S3_MEDIA_BUCKET is required when MEDIA_DRIVER=s3/);
+  });
+
+  it("parses optional Meta destination runtime credentials", () => {
+    const env = parseServerEnv(
+      createNewsPubTestEnv({
+        META_APP_ID: "1234567890",
+        META_APP_SECRET: "meta-secret",
+        META_DESTINATION_CREDENTIALS_JSON: JSON.stringify({
+          "facebook-page": {
+            accessToken: "page-token",
+            pageId: "123456789012345",
+          },
+        }),
+        META_FACEBOOK_MAX_POSTS_PER_24H: "10",
+        META_GRAPH_API_BASE_URL: "https://graph.facebook.com/v22.0",
+        META_INSTAGRAM_MAX_HASHTAGS: "6",
+        META_INSTAGRAM_MAX_POSTS_PER_24H: "18",
+        META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: "48",
+        META_SOCIAL_MIN_POST_INTERVAL_MINUTES: "120",
+      }),
+    );
+
+    expect(env.meta).toEqual({
+      app: {
+        id: "1234567890",
+        secret: "meta-secret",
+      },
+      destinationCredentials: {
+        "facebook-page": {
+          accessToken: "page-token",
+          pageId: "123456789012345",
+        },
+      },
+      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      socialGuardrails: {
+        duplicateCooldownHours: 48,
+        facebookMaxPostsPer24Hours: 10,
+        instagramMaxHashtags: 6,
+        instagramMaxPostsPer24Hours: 18,
+        minPostIntervalMinutes: 120,
+      },
+    });
+  });
+
+  it("requires Meta app id and secret together", () => {
+    const env = createNewsPubTestEnv({
+      META_APP_ID: "1234567890",
+    });
+
+    expect(() => parseServerEnv(env)).toThrow(/META_APP_ID and META_APP_SECRET must be provided together/);
   });
 });

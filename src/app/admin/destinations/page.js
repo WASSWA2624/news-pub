@@ -211,48 +211,55 @@ export default async function DestinationsPage() {
             </PlatformRail>
           </DirectoryHeader>
           <RecordStack>
-            {snapshot.destinations.map((destination) => (
-              <DestinationRecord key={destination.id}>
-                <RecordHeader>
-                  <RecordTitleBlock as={RecordLead}>
-                    <RecordTitle>{destination.name}</RecordTitle>
-                    <SmallText>{destination.accountHandle || destination.slug}</SmallText>
-                    <RouteRail>
-                      <RoutePill $tone="accent">{formatEnumLabel(destination.platform)}</RoutePill>
-                      <RoutePill>{formatEnumLabel(destination.kind)}</RoutePill>
-                      <RoutePill>{destination.slug}</RoutePill>
-                    </RouteRail>
-                  </RecordTitleBlock>
-                  <RecordMeta>
-                    <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
-                    <StatusBadge $tone={getTone(destination.connectionStatus)}>
-                      {destination.connectionStatus}
-                    </StatusBadge>
-                  </RecordMeta>
-                </RecordHeader>
-                <SmallText>
-                  Identity, routing, credentials, and operational notes open in a focused modal with room for longer configurations.
-                </SmallText>
-                <ButtonRow>
-                  <AdminFormModal
-                    description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
-                    size="full"
-                    title={`Edit ${destination.name}`}
-                    triggerIcon="edit"
-                    triggerLabel="Edit destination"
-                  >
-                    <DestinationFormCard
-                      action={saveDestinationAction}
-                      connectionStatusOptions={connectionStatusOptions}
-                      destination={destination}
-                      kindOptions={kindOptions}
-                      platformOptions={platformOptions}
-                      submitLabel="Save destination"
-                    />
-                  </AdminFormModal>
-                </ButtonRow>
-              </DestinationRecord>
-            ))}
+            {snapshot.destinations.map((destination) => {
+              const displayConnectionStatus =
+                destination.effectiveConnectionStatus || destination.connectionStatus;
+
+              return (
+                <DestinationRecord key={destination.id}>
+                  <RecordHeader>
+                    <RecordTitleBlock as={RecordLead}>
+                      <RecordTitle>{destination.name}</RecordTitle>
+                      <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                      <RouteRail>
+                        <RoutePill $tone="accent">{formatEnumLabel(destination.platform)}</RoutePill>
+                        <RoutePill>{formatEnumLabel(destination.kind)}</RoutePill>
+                        <RoutePill>{destination.slug}</RoutePill>
+                      </RouteRail>
+                    </RecordTitleBlock>
+                    <RecordMeta>
+                      <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
+                      <StatusBadge $tone={getTone(displayConnectionStatus)}>
+                        {displayConnectionStatus}
+                      </StatusBadge>
+                    </RecordMeta>
+                  </RecordHeader>
+                  <SmallText>
+                    {destination.usesRuntimeCredentials
+                      ? "Meta runtime credentials are currently sourced from environment variables for this destination."
+                      : "Identity, routing, credentials, and operational notes open in a focused modal with room for longer configurations."}
+                  </SmallText>
+                  <ButtonRow>
+                    <AdminFormModal
+                      description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
+                      size="full"
+                      title={`Edit ${destination.name}`}
+                      triggerIcon="edit"
+                      triggerLabel="Edit destination"
+                    >
+                      <DestinationFormCard
+                        action={saveDestinationAction}
+                        connectionStatusOptions={connectionStatusOptions}
+                        destination={destination}
+                        kindOptions={kindOptions}
+                        platformOptions={platformOptions}
+                        submitLabel="Save destination"
+                      />
+                    </AdminFormModal>
+                  </ButtonRow>
+                </DestinationRecord>
+              );
+            })}
           </RecordStack>
         </Card>
 
