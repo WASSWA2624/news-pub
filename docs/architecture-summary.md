@@ -88,7 +88,7 @@ Retained and reworked:
 
 Repurposed:
 
-- `src/components/layout/public-equipment-search.js` as the public story search entry point
+- `src/components/layout/public-story-search.js` as the public story search entry point
 - legacy admin screens into NewsPub provider, destination, stream, post, and reporting surfaces
 
 Removed or fully replaced:
@@ -97,4 +97,3 @@ Removed or fully replaced:
 - research queue modules
 - comments and moderation modules
 - equipment and manufacturer domain modules
-

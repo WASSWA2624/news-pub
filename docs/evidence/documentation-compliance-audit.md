@@ -18,7 +18,7 @@ Generated on 2026-04-05.
 - `src/features/media/index.js`
 - `src/components/layout/admin-shell.js`
 - `src/components/layout/site-shell.js`
-- `src/components/layout/public-equipment-search.js`
+- `src/components/layout/public-story-search.js`
 - `src/components/public/share-actions.js`
 
 ## Result
@@ -31,4 +31,3 @@ Generated on 2026-04-05.
 
 - Future route handlers and provider adapters should keep the same documentation standard when behavior changes.
 - If additional social destination kinds or provider-specific quirks are added, their invariants should be documented in the adapter layer rather than spread through the UI.
-

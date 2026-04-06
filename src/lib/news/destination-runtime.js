@@ -4,6 +4,13 @@ import { env } from "@/lib/env/server";
 import { trimText } from "@/lib/news/shared";
 import { decryptSecretValue } from "@/lib/security/secrets";
 
+/**
+ * Resolves NewsPub destination credentials into the runtime shape used by Meta publishers.
+ *
+ * Env-backed credentials override stored values so operators can rotate access
+ * without editing the dashboard, while persisted connection state still gates
+ * whether stored tokens are considered publish-ready.
+ */
 function normalizeSettings(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
@@ -28,6 +35,7 @@ function decryptDestinationToken(destination) {
   }
 }
 
+/** Returns any env-backed credential override configured for the destination slug. */
 export function getMetaDestinationEnvCredential(destination = {}) {
   if (!destination?.slug || !["FACEBOOK", "INSTAGRAM"].includes(destination?.platform)) {
     return null;
@@ -38,6 +46,7 @@ export function getMetaDestinationEnvCredential(destination = {}) {
   return credential && typeof credential === "object" && !Array.isArray(credential) ? credential : null;
 }
 
+/** Builds the effective runtime connection details for one destination. */
 export function resolveDestinationRuntimeConnection(destination = {}) {
   const envCredential = getMetaDestinationEnvCredential(destination) || {};
   const settings = normalizeSettings(destination?.settingsJson);
@@ -95,14 +104,17 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
   };
 }
 
+/** Reports whether a destination has enough credential material to attempt publication. */
 export function hasDestinationRuntimeCredentials(destination = {}) {
   return resolveDestinationRuntimeConnection(destination).hasRuntimeCredentials;
 }
 
+/** Reports whether a destination is currently ready for outbound publication. */
 export function isDestinationRuntimeReady(destination = {}) {
   return resolveDestinationRuntimeConnection(destination).isReadyToPublish;
 }
 
+/** Returns the Meta app access token used for token validation calls. */
 export function getMetaAppAccessToken() {
   if (!env.meta.app.id || !env.meta.app.secret) {
     return null;
@@ -111,6 +123,7 @@ export function getMetaAppAccessToken() {
   return `${env.meta.app.id}|${env.meta.app.secret}`;
 }
 
+/** Creates the Meta `appsecret_proof` value for the given user or page token. */
 export function getMetaAppSecretProof(accessToken) {
   const token = trimText(accessToken);
 

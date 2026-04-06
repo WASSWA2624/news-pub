@@ -1,3 +1,9 @@
+/**
+ * NewsPub configuration validation helpers for destinations, streams, and templates.
+ *
+ * These checks keep admin-managed platform combinations aligned before fetch or
+ * publish workflows depend on them.
+ */
 function normalizeEnumValue(value) {
   return `${value ?? ""}`.trim().toUpperCase();
 }
@@ -53,14 +59,17 @@ const autoPublishCapableDestinationKinds = new Set([
   "INSTAGRAM_BUSINESS",
 ]);
 
+/** Returns the canonical destination platform for a given destination kind. */
 export function getDestinationPlatformForKind(kind) {
   return destinationPlatformByKind[normalizeEnumValue(kind)] || null;
 }
 
+/** Lists the destination kinds that are valid for the provided platform. */
 export function getAllowedDestinationKinds(platform) {
   return destinationKindsByPlatform[normalizeEnumValue(platform)] || [];
 }
 
+/** Checks whether a destination kind can be used with the selected platform. */
 export function isDestinationKindCompatible(platform, kind) {
   const normalizedPlatform = normalizeEnumValue(platform);
   const normalizedKind = normalizeEnumValue(kind);
@@ -72,10 +81,12 @@ export function isDestinationKindCompatible(platform, kind) {
   return getDestinationPlatformForKind(normalizedKind) === normalizedPlatform;
 }
 
+/** Identifies destination kinds that can run in `AUTO_PUBLISH` mode. */
 export function isDestinationKindAutoPublishCapable(kind) {
   return autoPublishCapableDestinationKinds.has(normalizeEnumValue(kind));
 }
 
+/** Validates one destination record against the NewsPub platform matrix. */
 export function getDestinationValidationIssues(destination = {}) {
   const platform = normalizeEnumValue(destination.platform);
   const kind = normalizeEnumValue(destination.kind);
@@ -119,6 +130,7 @@ export function getDestinationValidationIssues(destination = {}) {
   return issues;
 }
 
+/** Validates stream settings that depend on the selected destination and template. */
 export function getStreamValidationIssues({ destination, mode, template } = {}) {
   const issues = [];
   const normalizedMode = normalizeEnumValue(mode);
@@ -172,6 +184,7 @@ export function getStreamValidationIssues({ destination, mode, template } = {}) 
   return issues;
 }
 
+/** Validates one destination template against any linked stream relationships. */
 export function getTemplateValidationIssues({ platform, streams = [] } = {}) {
   const issues = [];
   const normalizedPlatform = normalizeEnumValue(platform);
@@ -219,6 +232,7 @@ export function getTemplateValidationIssues({ platform, streams = [] } = {}) {
   return issues;
 }
 
+/** Aggregates configuration issues across the admin-managed NewsPub setup. */
 export function getConfigurationIssues({ destinations = [], streams = [], templates = [] } = {}) {
   const templateById = new Map((templates || []).map((template) => [template.id, template]));
   const destinationById = new Map((destinations || []).map((destination) => [destination.id, destination]));

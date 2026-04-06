@@ -427,7 +427,12 @@ async function publishInstagramDestination(destination, payload) {
   };
 }
 
-/** Publishes a prepared payload to the configured external destination adapter. */
+/**
+ * Publishes a prepared payload to the configured external destination adapter.
+ *
+ * Validation happens first so unsupported platform or destination combinations
+ * fail before any outbound Meta requests are attempted.
+ */
 export async function publishExternalDestination({ destination, payload }) {
   const validationIssues = getDestinationValidationIssues(destination);
 

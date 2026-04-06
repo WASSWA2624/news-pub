@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 
 import NewsPubLogo from "@/components/common/news-pub-logo";
-import PublicStorySearch from "@/components/layout/public-equipment-search";
+import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
 function normalizePathname(pathname) {

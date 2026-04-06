@@ -476,7 +476,7 @@ Repurpose:
 - `src/components/admin/post-inventory-screen.js` for review queue and published inventory
 - `src/components/admin/post-editor-screen.js` for canonical story review and publish control
 - `src/components/admin/analytics-dashboard-screen.js` for NewsPub operations and traffic reporting
-- `src/components/layout/public-equipment-search.js` as the public story search and autocomplete component
+- `src/components/layout/public-story-search.js` as the public story search and autocomplete component
 - `src/messages/en.json` and locale helpers for website copy and route metadata
 - `src/app/[locale]/*` page family for NewsPub public routes
 

@@ -52,10 +52,10 @@ const Button = styled.button`
 `;
 
 /**
- * Repurposed search bar component for public NewsPub story discovery.
+ * Public story-search entry point for published NewsPub coverage.
  *
- * The file path is intentionally retained from the reused scaffold described in
- * `app-write-up.md`, but the behavior is now fully story-search specific.
+ * The component keeps the shell-level search interaction focused on the public
+ * search route so locale-aware story discovery stays lightweight and predictable.
  */
 export default function PublicStorySearch({ searchCopy = {}, searchHref }) {
   const router = useRouter();

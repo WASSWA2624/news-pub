@@ -262,9 +262,6 @@ async function resolveTemplate(db, stream, categoryId = null) {
 
 async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
   const existingPost = await db.post.findFirst({
-    include: {
-      translations: true,
-    },
     where: {
       sourceArticleId: article.id,
     },
@@ -289,6 +286,12 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
   });
   const canonicalPath = buildLocalizedPath(stream.locale, publicRouteSegments.newsPost(canonicalSlug));
   const canonicalUrl = toAbsoluteUrl(canonicalPath);
+  const sourceAttribution = `Source: ${article.sourceName} - ${article.sourceUrl}`;
+  const seoKeywords = dedupeStrings([
+    article.sourceName,
+    ...categoryRecords.map((category) => category.name),
+    ...(article.tags || []),
+  ]);
   let featuredImageId = existingPost?.featuredImageId || null;
 
   if (article.imageUrl && !featuredImageId) {
@@ -346,7 +349,7 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
         },
       });
 
-  await db.postTranslation.upsert({
+  const translation = await db.postTranslation.upsert({
     where: {
       postId_locale: {
         locale: stream.locale,
@@ -356,7 +359,7 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
     update: {
       contentHtml: articleContent.contentHtml,
       contentMd: articleContent.contentMd,
-      sourceAttribution: `Source: ${article.sourceName} - ${article.sourceUrl}`,
+      sourceAttribution,
       structuredContentJson: articleContent.article,
       summary: article.summary || article.title,
       title: article.title,
@@ -366,19 +369,10 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
       contentMd: articleContent.contentMd,
       locale: stream.locale,
       postId: post.id,
-      sourceAttribution: `Source: ${article.sourceName} - ${article.sourceUrl}`,
+      sourceAttribution,
       structuredContentJson: articleContent.article,
       summary: article.summary || article.title,
       title: article.title,
-    },
-  });
-
-  const translation = await db.postTranslation.findUnique({
-    where: {
-      postId_locale: {
-        locale: stream.locale,
-        postId: post.id,
-      },
     },
   });
 
@@ -389,11 +383,7 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
     update: {
       authorsJson: ["NewsPub Editorial"],
       canonicalUrl,
-      keywordsJson: dedupeStrings([
-        article.sourceName,
-        ...categoryRecords.map((category) => category.name),
-        ...(article.tags || []),
-      ]),
+      keywordsJson: seoKeywords,
       metaDescription: article.summary || article.title,
       metaTitle: article.title,
       ogDescription: article.summary || article.title,
@@ -405,11 +395,7 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
     create: {
       authorsJson: ["NewsPub Editorial"],
       canonicalUrl,
-      keywordsJson: dedupeStrings([
-        article.sourceName,
-        ...categoryRecords.map((category) => category.name),
-        ...(article.tags || []),
-      ]),
+      keywordsJson: seoKeywords,
       metaDescription: article.summary || article.title,
       metaTitle: article.title,
       ogDescription: article.summary || article.title,
@@ -427,12 +413,12 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
     },
   });
 
-  for (const categoryId of categoryIds) {
-    await db.postCategory.create({
-      data: {
+  if (categoryIds.length) {
+    await db.postCategory.createMany({
+      data: categoryIds.map((categoryId) => ({
         categoryId,
         postId: post.id,
-      },
+      })),
     });
   }
 
@@ -1282,6 +1268,8 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         summary.heldCount += 1;
         continue;
       }
+
+      summary.queuedCount += 1;
 
       try {
         const publishResult = await publishArticleMatch(articleMatch.id, {}, db);
