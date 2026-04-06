@@ -4,27 +4,13 @@ import {
   AdminHero,
   AdminPage,
   AdminTitle,
-  Card,
-  CardHeader,
-  CardDescription,
-  CardTitle,
-  MetaPill,
-  RecordCard,
-  RecordHeader,
-  RecordMeta,
-  RecordStack,
-  RecordTitle,
-  RecordTitleBlock,
-  SectionGrid,
-  SmallText,
-  StatusBadge,
   SummaryCard,
   SummaryGrid,
   SummaryLabel,
   SummaryValue,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import StreamFormCard from "@/components/admin/stream-form-card";
+import StreamManagementScreen from "@/components/admin/stream-management-screen";
 import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -49,10 +35,6 @@ const statusOptions = statusValues.map((value) => ({
   label: formatEnumLabel(value),
   value,
 }));
-
-function getTone(status) {
-  return status === "ACTIVE" ? "success" : "warning";
-}
 
 export default async function StreamsPage() {
   const [messages, snapshot] = await Promise.all([
@@ -119,62 +101,17 @@ export default async function StreamsPage() {
         </SummaryCard>
       </SummaryGrid>
 
-      <SectionGrid $wide>
-        <Card>
-          <CardHeader>
-            <CardTitle>Configured streams</CardTitle>
-            <CardDescription>Keep each stream small, readable, and tunable from a phone without losing control.</CardDescription>
-          </CardHeader>
-          <RecordStack>
-            {snapshot.streams.map((stream) => (
-              <RecordCard key={stream.id}>
-                <RecordHeader>
-                  <RecordTitleBlock>
-                    <RecordTitle>{stream.name}</RecordTitle>
-                    <SmallText>
-                      {stream.destination?.name || "Unknown destination"} via {stream.activeProvider?.label || "Unknown provider"}
-                    </SmallText>
-                  </RecordTitleBlock>
-                  <RecordMeta>
-                    <MetaPill>{formatEnumLabel(stream.mode)}</MetaPill>
-                    <StatusBadge $tone={getTone(stream.status)}>{stream.status}</StatusBadge>
-                  </RecordMeta>
-                </RecordHeader>
-                <StreamFormCard
-                  action={saveStreamAction}
-                  categoryOptions={categoryOptions}
-                  destinationOptions={destinationOptions}
-                  modeOptions={modeOptions}
-                  providerOptions={providerOptions}
-                  runNowAction={runStreamNowAction}
-                  statusOptions={statusOptions}
-                  stream={stream}
-                  submitLabel="Save stream"
-                  templateOptions={templateOptions}
-                />
-              </RecordCard>
-            ))}
-          </RecordStack>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Add stream</CardTitle>
-            <CardDescription>
-              Streams define the destination-specific fetch window, filtering rules, mode, and cadence.
-            </CardDescription>
-          </CardHeader>
-          <StreamFormCard
-            action={saveStreamAction}
-            categoryOptions={categoryOptions}
-            destinationOptions={destinationOptions}
-            modeOptions={modeOptions}
-            providerOptions={providerOptions}
-            submitLabel="Create stream"
-            templateOptions={templateOptions}
-          />
-        </Card>
-      </SectionGrid>
+      <StreamManagementScreen
+        categoryOptions={categoryOptions}
+        destinationOptions={destinationOptions}
+        modeOptions={modeOptions}
+        providerOptions={providerOptions}
+        runNowAction={runStreamNowAction}
+        saveStreamAction={saveStreamAction}
+        statusOptions={statusOptions}
+        streams={snapshot.streams}
+        templateOptions={templateOptions}
+      />
     </AdminPage>
   );
 }

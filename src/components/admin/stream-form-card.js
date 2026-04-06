@@ -93,9 +93,9 @@ export default function StreamFormCard({
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
   const issues = getStreamValidationIssues({
-    destination: selectedDestination,
+    destination: selectedDestination || undefined,
     mode,
-    template: selectedTemplate?.value ? selectedTemplate : null,
+    template: selectedTemplate?.value ? selectedTemplate : undefined,
   });
   const resolvedTemplateOptions = buildTemplateOptions(templateOptions, selectedDestination);
   const resolvedModeOptions = buildModeOptions(modeOptions, selectedDestination);
