@@ -738,6 +738,7 @@ export default function SearchableSelect({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [dropdownLayout, setDropdownLayout] = useState(null);
+  const [portalTarget, setPortalTarget] = useState(null);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -881,6 +882,7 @@ export default function SearchableSelect({
     setQuery("");
     setActiveIndex(-1);
     setDropdownLayout(null);
+    setPortalTarget(null);
 
     if (restoreFocus) {
       window.requestAnimationFrame(() => {
@@ -895,6 +897,7 @@ export default function SearchableSelect({
     }
 
     const triggerRect = triggerRef.current?.getBoundingClientRect() || null;
+    const nextPortalTarget = triggerRef.current?.closest("[data-floating-root]") || document.body;
 
     setIsOpen(true);
     setQuery("");
@@ -909,6 +912,7 @@ export default function SearchableSelect({
 
       return getNextEnabledOptionIndex(normalizedOptions, -1, direction);
     });
+    setPortalTarget(nextPortalTarget);
     setDropdownLayout(resolveDropdownLayout(triggerRect));
     onOpen?.();
   }
@@ -1011,9 +1015,6 @@ export default function SearchableSelect({
   }
 
   const canPortal = typeof document !== "undefined";
-  const portalTarget = canPortal
-    ? rootRef.current?.closest("[data-floating-root]") || document.body
-    : null;
   const selectionSummary = multiple
     ? selectedOptions.length
       ? `${formatCountLabel(selectedOptions.length, "option")} selected`

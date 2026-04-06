@@ -1,9 +1,11 @@
 import {
+  ActionIcon,
   AdminDescription,
   AdminEyebrow,
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonIcon,
   ButtonRow,
   Card,
   CardDescription,
@@ -17,15 +19,17 @@ import {
   FormSectionTitle,
   Input,
   LinkButton,
-  PrimaryButton,
   SectionGrid,
   SidebarStack,
   SmallText,
   StatusBadge,
+  PrimaryButton,
+  SecondaryButton,
   Textarea,
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getPostEditorSnapshot } from "@/features/posts";
@@ -87,6 +91,7 @@ export default async function PostEditorPage({ params }) {
     label: category.name,
     value: category.id,
   }));
+  const postEditorFormId = `post-editor-form-${snapshot.post.id}`;
 
   return (
     <AdminPage>
@@ -99,109 +104,139 @@ export default async function PostEditorPage({ params }) {
       <SectionGrid $wide>
         <Card>
           <CardTitle>Canonical story editor</CardTitle>
-          <form action={updatePostEditorAction}>
-            <input name="locale" type="hidden" value={translation?.locale || defaultLocale} />
-            <input name="postId" type="hidden" value={snapshot.post.id} />
-            <FormSection>
-              <FormSectionTitle>Editorial settings</FormSectionTitle>
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>Slug</FieldLabel>
-                  <Input defaultValue={snapshot.post.slug} name="slug" required />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Status</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Story status"
-                    defaultValue={snapshot.post.status}
-                    name="status"
-                    options={statusOptions}
-                    placeholder="Select a status"
-                  />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Editorial stage</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Editorial stage"
-                    defaultValue={snapshot.post.editorialStage}
-                    name="editorialStage"
-                    options={editorialStageOptions}
-                    placeholder="Select an editorial stage"
-                  />
-                </Field>
-                <Field as="div">
-                  <FieldLabel>Publish target match</FieldLabel>
-                  <SearchableSelect
-                    ariaLabel="Publish target match"
-                    defaultValue={defaultArticleMatch?.id || ""}
-                    name="articleMatchId"
-                    options={articleMatchOptions}
-                    placeholder="Select a destination match"
-                  />
-                </Field>
-              </FieldGrid>
-            </FormSection>
+          <CardDescription>
+            The editor now opens as a full workspace modal so long-form copy, publishing controls, and metadata stay organized across mobile and desktop.
+          </CardDescription>
+          <SmallText>
+            Close the modal whenever you need to cross-check story status, source details, or publish history on the underlying page.
+          </SmallText>
+          <ButtonRow>
+            <AdminFormModal
+              autoOpen
+              description="Update editorial settings, story copy, categories, and publishing actions in a full-size modal editor."
+              size="full"
+              title={`Edit ${translation?.title || snapshot.post.slug}`}
+              triggerFullWidth
+              triggerIcon="edit"
+              triggerLabel="Open editor"
+              triggerTone="primary"
+            >
+              <form action={updatePostEditorAction} id={postEditorFormId}>
+                <input name="locale" type="hidden" value={translation?.locale || defaultLocale} />
+                <input name="postId" type="hidden" value={snapshot.post.id} />
+                <FormSection>
+                  <FormSectionTitle>Editorial settings</FormSectionTitle>
+                  <FieldGrid>
+                    <Field>
+                      <FieldLabel>Slug</FieldLabel>
+                      <Input defaultValue={snapshot.post.slug} name="slug" required />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Status</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Story status"
+                        defaultValue={snapshot.post.status}
+                        name="status"
+                        options={statusOptions}
+                        placeholder="Select a status"
+                      />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Editorial stage</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Editorial stage"
+                        defaultValue={snapshot.post.editorialStage}
+                        name="editorialStage"
+                        options={editorialStageOptions}
+                        placeholder="Select an editorial stage"
+                      />
+                    </Field>
+                    <Field as="div">
+                      <FieldLabel>Publish target match</FieldLabel>
+                      <SearchableSelect
+                        ariaLabel="Publish target match"
+                        defaultValue={defaultArticleMatch?.id || ""}
+                        name="articleMatchId"
+                        options={articleMatchOptions}
+                        placeholder="Select a destination match"
+                      />
+                    </Field>
+                  </FieldGrid>
+                </FormSection>
 
-            <FormSection>
-              <FormSectionTitle>Story copy</FormSectionTitle>
-              <Field>
-                <FieldLabel>Title</FieldLabel>
-                <Input defaultValue={translation?.title || ""} name="title" required />
-              </Field>
-              <Field>
-                <FieldLabel>Summary</FieldLabel>
-                <Textarea defaultValue={translation?.summary || snapshot.post.excerpt} name="summary" />
-              </Field>
-              <Field>
-                <FieldLabel>Body markdown</FieldLabel>
-                <Textarea
-                  defaultValue={translation?.contentMd || ""}
-                  name="contentMd"
-                  style={{ minHeight: "280px" }}
-                />
-              </Field>
-            </FormSection>
+                <FormSection>
+                  <FormSectionTitle>Story copy</FormSectionTitle>
+                  <Field>
+                    <FieldLabel>Title</FieldLabel>
+                    <Input defaultValue={translation?.title || ""} name="title" required />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Summary</FieldLabel>
+                    <Textarea defaultValue={translation?.summary || snapshot.post.excerpt} name="summary" />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Body markdown</FieldLabel>
+                    <Textarea
+                      defaultValue={translation?.contentMd || ""}
+                      name="contentMd"
+                      style={{ minHeight: "280px" }}
+                    />
+                  </Field>
+                </FormSection>
 
-            <FormSection>
-              <FormSectionTitle>Publishing</FormSectionTitle>
-              <Field as="div">
-                <FieldLabel>Categories</FieldLabel>
-                <SearchableSelect
-                  ariaLabel="Story categories"
-                  defaultValue={snapshot.post.categories.map((category) => category.id)}
-                  name="categoryIds"
-                  multiple
-                  options={categoryOptions}
-                  placeholder="Select one or more categories"
-                />
-              </Field>
-              <Field>
-                <FieldLabel>Schedule publish time</FieldLabel>
-                <Input name="publishAt" type="datetime-local" />
-              </Field>
-              <ButtonRow>
-                <PrimaryButton name="intent" type="submit" value="save">
-                  Save story
-                </PrimaryButton>
-                <PrimaryButton name="intent" type="submit" value="publish">
-                  Publish now
-                </PrimaryButton>
-                <PrimaryButton name="intent" type="submit" value="schedule">
-                  Schedule publish
-                </PrimaryButton>
-                <ConfirmSubmitButton
-                  confirmLabel="Archive story"
-                  description="The story will be moved to an archived state. Use this when it should no longer remain active in the editorial flow."
-                  submitName="intent"
-                  submitValue="archive"
-                  title="Archive this story?"
-                  tone="danger"
-                >
-                  Archive story
-                </ConfirmSubmitButton>
-              </ButtonRow>
-            </FormSection>
-          </form>
+                <FormSection>
+                  <FormSectionTitle>Publishing</FormSectionTitle>
+                  <Field as="div">
+                    <FieldLabel>Categories</FieldLabel>
+                    <SearchableSelect
+                      ariaLabel="Story categories"
+                      defaultValue={snapshot.post.categories.map((category) => category.id)}
+                      name="categoryIds"
+                      multiple
+                      options={categoryOptions}
+                      placeholder="Select one or more categories"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Schedule publish time</FieldLabel>
+                    <Input name="publishAt" type="datetime-local" />
+                  </Field>
+                </FormSection>
+                <AdminModalFooterActions>
+                  <SecondaryButton form={postEditorFormId} name="intent" type="submit" value="save">
+                    <ButtonIcon>
+                      <ActionIcon name="save" />
+                    </ButtonIcon>
+                    Save story
+                  </SecondaryButton>
+                  <SecondaryButton form={postEditorFormId} name="intent" type="submit" value="schedule">
+                    <ButtonIcon>
+                      <ActionIcon name="schedule" />
+                    </ButtonIcon>
+                    Schedule publish
+                  </SecondaryButton>
+                  <PrimaryButton form={postEditorFormId} name="intent" type="submit" value="publish">
+                    <ButtonIcon>
+                      <ActionIcon name="publish" />
+                    </ButtonIcon>
+                    Publish now
+                  </PrimaryButton>
+                  <ConfirmSubmitButton
+                    confirmLabel="Archive story"
+                    description="The story will be moved to an archived state. Use this when it should no longer remain active in the editorial flow."
+                    formId={postEditorFormId}
+                    icon="archive"
+                    submitName="intent"
+                    submitValue="archive"
+                    title="Archive this story?"
+                    tone="danger"
+                  >
+                    Archive story
+                  </ConfirmSubmitButton>
+                </AdminModalFooterActions>
+              </form>
+            </AdminFormModal>
+          </ButtonRow>
         </Card>
 
         <SidebarStack>

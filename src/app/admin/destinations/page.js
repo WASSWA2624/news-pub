@@ -238,6 +238,7 @@ export default async function DestinationsPage() {
                     description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
                     size="full"
                     title={`Edit ${destination.name}`}
+                    triggerIcon="edit"
                     triggerLabel="Edit destination"
                   >
                     <DestinationFormCard
@@ -271,6 +272,7 @@ export default async function DestinationsPage() {
               size="full"
               title="Create destination"
               triggerFullWidth
+              triggerIcon="plus"
               triggerLabel="New destination"
               triggerTone="primary"
             >

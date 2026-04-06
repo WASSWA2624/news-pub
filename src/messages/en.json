@@ -5,7 +5,7 @@
   },
   "site": {
     "title": "NewsPub",
-    "tagline": "Reuse-first news ingestion, review, scheduling, and publishing.",
+    "tagline": "",
     "footer": "NewsPub turns source-attributed news into website and social publishing workflows.",
     "searchBar": {
       "label": "Story search",

@@ -17,22 +17,7 @@ const DEFAULT_LOCALES = Object.freeze([
   { code: "en", isDefault: true, name: "English" },
 ]);
 
-const DEFAULT_CATEGORIES = Object.freeze([
-  {
-    description: "Breaking international and regional developments curated for broad distribution.",
-    name: "World",
-    slug: "world",
-  },
-  {
-    description: "Company, finance, markets, and commercial policy coverage.",
-    name: "Business",
-    slug: "business",
-  },
-  {
-    description: "Technology, digital platforms, science, and innovation reporting.",
-    name: "Technology",
-    slug: "technology",
-  },
+const LEGACY_COMPAT_CATEGORIES = Object.freeze([
   {
     description: "Governance, regulation, public policy, and institutional affairs.",
     name: "Policy",
@@ -335,8 +320,17 @@ async function seedAdminUser(tx) {
   });
 }
 
-async function seedCategories(tx) {
-  for (const category of DEFAULT_CATEGORIES) {
+async function getDefaultCategories() {
+  const { getSupportedCategoryPresetRecords } = await import("../src/lib/news/category-presets.js");
+
+  return Object.freeze([
+    ...getSupportedCategoryPresetRecords(),
+    ...LEGACY_COMPAT_CATEGORIES,
+  ]);
+}
+
+async function seedCategories(tx, categories) {
+  for (const category of categories) {
     await tx.category.upsert({
       where: { slug: category.slug },
       update: category,
@@ -493,11 +487,12 @@ async function seedStreams(tx) {
 
 async function main() {
   console.log("Seeding NewsPub baseline data...");
+  const defaultCategories = await getDefaultCategories();
 
   await prisma.$transaction(async (tx) => {
     await seedLocales(tx);
     await seedAdminUser(tx);
-    await seedCategories(tx);
+    await seedCategories(tx, defaultCategories);
     await seedProviders(tx);
     await seedDestinations(tx);
     await seedTemplates(tx);

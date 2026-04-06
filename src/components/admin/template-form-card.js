@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import styled from "styled-components";
 
 import {
+  ActionIcon,
   ButtonRow,
+  ButtonIcon,
   Field,
   FieldGrid,
   FieldLabel,
@@ -20,6 +22,7 @@ import {
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getTemplateValidationIssues } from "@/lib/validation/configuration";
 
@@ -186,10 +189,6 @@ const TemplateFooter = styled.div`
   justify-content: space-between;
 `;
 
-const FooterActions = styled(ButtonRow)`
-  justify-content: flex-end;
-`;
-
 const visibleTokenCards = [
   {
     description: "Story headline as it exists before destination-specific formatting.",
@@ -239,6 +238,7 @@ export default function TemplateFormCard({
   template = null,
 }) {
   const [platform, setPlatform] = useState(`${template?.platform || "WEBSITE"}`);
+  const formId = useId();
   const linkedPlatforms = [
     ...new Set(
       (template?.streams || [])
@@ -261,7 +261,7 @@ export default function TemplateFormCard({
   }
 
   return (
-    <TemplateForm action={action} onSubmit={handleSubmit}>
+    <TemplateForm action={action} id={formId} onSubmit={handleSubmit}>
       {template ? <input name="id" type="hidden" value={template.id} /> : null}
       <RuleBanner>
         <RuleHeader>
@@ -409,17 +409,20 @@ export default function TemplateFormCard({
               Default for this platform
             </CheckboxPill>
           </div>
-          <FooterActions>
-            <PrimaryButton disabled={issues.length > 0} type="submit">
-              {submitLabel}
-            </PrimaryButton>
-          </FooterActions>
         </TemplateFooter>
 
         <SmallText>
           Linked streams: {(template?.streams || []).map((stream) => stream.name).join(", ") || "None"}
         </SmallText>
       </ContentGrid>
+      <AdminModalFooterActions>
+        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
+          <ButtonIcon>
+            <ActionIcon name={template ? "save" : "plus"} />
+          </ButtonIcon>
+          {submitLabel}
+        </PrimaryButton>
+      </AdminModalFooterActions>
     </TemplateForm>
   );
 }

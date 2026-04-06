@@ -3,6 +3,13 @@
 import { useEffect, useId, useRef } from "react";
 import styled from "styled-components";
 
+import {
+  ActionIcon,
+  ButtonIcon,
+  DangerButton as BaseDangerButton,
+  SecondaryButton as BaseSecondaryButton,
+} from "@/components/admin/news-admin-ui";
+
 const TriggerButton = styled.button`
   align-items: center;
   background: ${({ $tone }) =>
@@ -16,6 +23,7 @@ const TriggerButton = styled.button`
   display: inline-flex;
   font-size: 0.88rem;
   font-weight: 800;
+  gap: 0.42rem;
   justify-content: center;
   min-height: 40px;
   padding: 0.66rem 0.95rem;
@@ -97,32 +105,12 @@ const DialogButtonRow = styled.div`
   }
 `;
 
-const SecondaryButton = styled.button`
-  align-items: center;
-  background: rgba(16, 32, 51, 0.05);
-  border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 999px;
-  color: #22344f;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.88rem;
-  font-weight: 800;
-  justify-content: center;
+const SecondaryButton = styled(BaseSecondaryButton)`
   min-height: 40px;
   padding: 0.66rem 0.95rem;
 `;
 
-const ConfirmButton = styled.button`
-  align-items: center;
-  background: linear-gradient(135deg, #b42318 0%, #922f24 100%);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  color: white;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.88rem;
-  font-weight: 800;
-  justify-content: center;
+const ConfirmButton = styled(BaseDangerButton)`
   min-height: 40px;
   padding: 0.66rem 0.95rem;
 `;
@@ -134,7 +122,9 @@ export default function ConfirmSubmitButton({
   confirmLabel = "Confirm",
   description,
   disabled = false,
+  formId,
   formNoValidate = false,
+  icon,
   submitName,
   submitValue,
   title = "Are you sure?",
@@ -144,6 +134,7 @@ export default function ConfirmSubmitButton({
   const submitButtonRef = useRef(null);
   const titleId = useId();
   const descriptionId = useId();
+  const resolvedIcon = icon || (tone === "danger" ? "delete" : "save");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -220,9 +211,13 @@ export default function ConfirmSubmitButton({
         onClick={openDialog}
         type="button"
       >
+        <ButtonIcon>
+          <ActionIcon name={resolvedIcon} />
+        </ButtonIcon>
         {children}
       </TriggerButton>
       <HiddenSubmitButton
+        form={formId}
         formNoValidate={formNoValidate}
         name={submitName}
         ref={submitButtonRef}
@@ -244,9 +239,15 @@ export default function ConfirmSubmitButton({
           {description ? <DialogDescription id={descriptionId}>{description}</DialogDescription> : null}
           <DialogButtonRow>
             <SecondaryButton onClick={closeDialog} type="button">
+              <ButtonIcon>
+                <ActionIcon name="close" />
+              </ButtonIcon>
               {cancelLabel}
             </SecondaryButton>
             <ConfirmButton onClick={handleConfirm} type="button">
+              <ButtonIcon>
+                <ActionIcon name={resolvedIcon} />
+              </ButtonIcon>
               {confirmLabel}
             </ConfirmButton>
           </DialogButtonRow>

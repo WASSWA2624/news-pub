@@ -10,24 +10,26 @@ import { sharedEnv } from "@/lib/env/shared";
  */
 const Panel = styled.section`
   background:
-    linear-gradient(180deg, rgba(var(--theme-bg-rgb), 0.98), rgba(var(--theme-surface-rgb), 0.95)),
-    radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.1), transparent 56%);
+    linear-gradient(180deg, rgba(var(--theme-bg-rgb), 0.99), rgba(var(--theme-surface-rgb), 0.97)),
+    radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.11), transparent 54%),
+    radial-gradient(circle at bottom left, rgba(var(--theme-accent-rgb), 0.08), transparent 42%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.72);
-  border-radius: 0;
+  border-radius: 18px;
   box-shadow:
-    0 24px 54px rgba(var(--theme-primary-rgb), 0.12),
+    0 18px 38px rgba(var(--theme-primary-rgb), 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
   overflow: hidden;
-  padding: clamp(0.95rem, 2.4vw, 1.18rem);
+  padding: clamp(1rem, 2.5vw, 1.22rem);
   position: relative;
 
   ${({ $compact }) =>
     $compact &&
     css`
-      gap: 0.72rem;
-      padding: 0.82rem 0.85rem 0.88rem;
+      border-radius: 16px;
+      gap: 0.8rem;
+      padding: 0.88rem 0.92rem 0.96rem;
     `}
 
   &::before {
@@ -37,11 +39,12 @@ const Panel = styled.section`
       rgba(var(--theme-accent-rgb), 0.42)
     );
     content: "";
-    height: 3px;
-    left: 0;
+    height: 4px;
+    left: 1rem;
     position: absolute;
-    right: 0;
-    top: 0;
+    right: 1rem;
+    top: 1rem;
+    border-radius: 999px;
   }
 `;
 
@@ -96,40 +99,34 @@ const SectionDescription = styled.p`
 
 const ShareButtonRow = styled.div`
   display: grid;
-  gap: 0.58rem;
-
-  @media (min-width: 460px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  gap: 0.72rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 
   ${({ $compact }) =>
     $compact &&
     css`
-      gap: 0.46rem;
-
-      @media (min-width: 560px) {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
+      gap: 0.52rem;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
     `}
 `;
 
 const shareTileStyles = css`
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(249, 251, 255, 0.92)),
-    linear-gradient(90deg, ${({ $surfaceStrong }) => $surfaceStrong}, transparent 42%),
-    radial-gradient(circle at top right, ${({ $surface }) => $surface}, transparent 58%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.94)),
+    linear-gradient(90deg, ${({ $surfaceStrong }) => $surfaceStrong}, transparent 48%),
+    radial-gradient(circle at top right, ${({ $surface }) => $surface}, transparent 62%);
   border: 1px solid ${({ $border }) => $border || "rgba(16, 32, 51, 0.1)"};
-  border-radius: 0;
+  border-radius: 16px;
   box-shadow:
-    0 10px 22px rgba(19, 34, 58, 0.05),
+    0 10px 24px rgba(19, 34, 58, 0.045),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   color: var(--theme-text);
   display: inline-flex;
   font-weight: 800;
   justify-content: flex-start;
-  min-height: 74px;
-  padding: 0.72rem 0.8rem;
+  min-height: 78px;
+  padding: 0.78rem 0.85rem;
   position: relative;
   text-align: left;
   transition:
@@ -140,9 +137,9 @@ const shareTileStyles = css`
   &:hover {
     border-color: ${({ $hoverBorder, $border }) => $hoverBorder || $border};
     box-shadow:
-      0 14px 30px rgba(19, 34, 58, 0.08),
+      0 16px 34px rgba(19, 34, 58, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.76);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   &:focus-visible {
@@ -153,8 +150,9 @@ const shareTileStyles = css`
   ${({ $compact }) =>
     $compact &&
     css`
-      min-height: 56px;
-      padding: 0.52rem 0.58rem;
+      border-radius: 14px;
+      min-height: 58px;
+      padding: 0.56rem 0.62rem;
     `}
 `;
 
@@ -170,15 +168,14 @@ const ShareButton = styled.button`
 const ShareTileContent = styled.span`
   align-items: center;
   display: grid;
-  gap: 0.72rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.64rem;
+  grid-template-columns: auto minmax(0, 1fr);
   width: 100%;
 
   ${({ $compact }) =>
     $compact &&
     css`
       gap: 0.46rem;
-      grid-template-columns: auto minmax(0, 1fr);
     `}
 `;
 
@@ -186,20 +183,21 @@ const ShareIconBadge = styled.span`
   align-items: center;
   background: ${({ $surface }) => $surface};
   border: 1px solid ${({ $border }) => $border};
-  border-radius: 0;
+  border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
   color: ${({ $accent }) => $accent};
   display: inline-flex;
   flex: 0 0 auto;
-  height: 2.55rem;
+  height: 2.75rem;
   justify-content: center;
-  width: 2.55rem;
+  width: 2.75rem;
 
   ${({ $compact }) =>
     $compact &&
     css`
-      height: 2rem;
-      width: 2rem;
+      border-radius: 12px;
+      height: 2.15rem;
+      width: 2.15rem;
     `}
 `;
 
@@ -211,16 +209,17 @@ const ShareTextGroup = styled.span`
 
 const ShareLabel = styled.span`
   color: var(--theme-text);
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
 
   ${({ $compact }) =>
     $compact &&
     css`
-      font-size: 0.9rem;
-      line-height: 1.04;
+      font-size: 0.86rem;
+      line-height: 1.08;
     `}
 `;
 
@@ -230,22 +229,6 @@ const ShareMeta = styled.span`
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.24;
-
-  ${({ $compact }) =>
-    $compact &&
-    css`
-      display: none;
-    `}
-`;
-
-const ShareArrow = styled.span`
-  align-items: center;
-  color: rgba(var(--theme-primary-rgb), 0.54);
-  display: inline-flex;
-  font-size: 1rem;
-  font-weight: 700;
-  justify-content: center;
-  line-height: 1;
 
   ${({ $compact }) =>
     $compact &&
@@ -506,7 +489,6 @@ export default function ShareActions({
                 <ShareLabel $compact={isCompact}>{link.label}</ShareLabel>
                 <ShareMeta $compact={isCompact}>{link.meta}</ShareMeta>
               </ShareTextGroup>
-              <ShareArrow $compact={isCompact} aria-hidden="true">{"->"}</ShareArrow>
             </ShareTileContent>
           </ShareLink>
         ))}
@@ -537,9 +519,6 @@ export default function ShareActions({
                 {copied ? "Ready to paste" : "Keep URL handy"}
               </ShareMeta>
             </ShareTextGroup>
-            <ShareArrow $compact={isCompact} aria-hidden="true">
-              {copied ? "OK" : "->"}
-            </ShareArrow>
           </ShareTileContent>
         </ShareButton>
       </ShareButtonRow>

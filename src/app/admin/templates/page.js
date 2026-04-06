@@ -350,6 +350,7 @@ export default async function TemplatesPage() {
                     description="Adjust template precedence, platform compatibility, and content blocks in a scrollable full-size editor."
                     size="full"
                     title={`Edit ${template.name}`}
+                    triggerIcon="edit"
                     triggerLabel="Edit template"
                   >
                     <TemplateFormCard
@@ -382,6 +383,7 @@ export default async function TemplatesPage() {
               size="full"
               title="Create template"
               triggerFullWidth
+              triggerIcon="plus"
               triggerLabel="New template"
               triggerTone="primary"
             >

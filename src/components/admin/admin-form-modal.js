@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import styled, { css } from "styled-components";
 
-import { PrimaryButton, SecondaryButton } from "@/components/admin/news-admin-ui";
+import {
+  ActionIcon,
+  ButtonIcon,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/admin/news-admin-ui";
+
+const FooterPortalContext = createContext(null);
 
 const modalSizeStyles = {
   compact: css`
@@ -142,17 +157,70 @@ const Body = styled.div`
 `;
 
 const Footer = styled.div`
-  align-items: center;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.98)),
     radial-gradient(circle at top left, rgba(15, 111, 141, 0.06), transparent 42%);
   border-top: 1px solid rgba(16, 32, 51, 0.08);
-  display: flex;
-  justify-content: flex-end;
   padding: clamp(0.85rem, 2vw, 1rem) clamp(0.95rem, 2vw, 1.2rem);
+`;
 
-  @media (max-width: 520px) {
+const FooterRow = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+
+  @media (max-width: 640px) {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+`;
+
+const FooterCancelGroup = styled.div`
+  display: flex;
+  flex: 0 0 auto;
+
+  @media (max-width: 640px) {
+    width: 100%;
+
     > button {
+      width: 100%;
+    }
+  }
+`;
+
+const FooterActionsMount = styled.div`
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+`;
+
+const FooterActionGroup = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+
+  > form {
+    display: inline-flex;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+
+    > button,
+    > a,
+    > form {
+      width: 100%;
+    }
+
+    > form > button {
       width: 100%;
     }
   }
@@ -170,15 +238,18 @@ export default function AdminFormModal({
   autoOpen = false,
   cancelLabel = "Cancel",
   children,
+  className,
   description,
   size = "wide",
   title,
   triggerFullWidth = false,
+  triggerIcon,
   triggerLabel = "Open form",
   triggerTone = "secondary",
 }) {
   const dialogRef = useRef(null);
   const didAutoOpenRef = useRef(false);
+  const [footerPortalTarget, setFooterPortalTarget] = useState(null);
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
@@ -194,8 +265,6 @@ export default function AdminFormModal({
       if (!dialog.open) {
         dialog.showModal();
       }
-
-      return;
     }
   }
 
@@ -231,9 +300,15 @@ export default function AdminFormModal({
     <>
       <TriggerButton
         $fullWidth={triggerFullWidth}
+        className={className}
         onClick={openDialog}
         type="button"
       >
+        {triggerIcon ? (
+          <ButtonIcon>
+            <ActionIcon name={triggerIcon} />
+          </ButtonIcon>
+        ) : null}
         {triggerLabel}
       </TriggerButton>
       <Dialog
@@ -248,24 +323,44 @@ export default function AdminFormModal({
         }}
         ref={dialogRef}
       >
-        <Surface $size={size}>
-          <Header>
-            <HeaderCopy>
-              <Title id={titleId}>{title}</Title>
-              {description ? <Description id={descriptionId}>{description}</Description> : null}
-            </HeaderCopy>
-            <CloseButton aria-label="Close modal" onClick={closeDialog} type="button">
-              ×
-            </CloseButton>
-          </Header>
-          <Body>{children}</Body>
-          <Footer>
-            <SecondaryButton onClick={closeDialog} type="button">
-              {cancelLabel}
-            </SecondaryButton>
-          </Footer>
-        </Surface>
+        <FooterPortalContext.Provider value={footerPortalTarget}>
+          <Surface $size={size}>
+            <Header>
+              <HeaderCopy>
+                <Title id={titleId}>{title}</Title>
+                {description ? <Description id={descriptionId}>{description}</Description> : null}
+              </HeaderCopy>
+              <CloseButton aria-label="Close modal" onClick={closeDialog} type="button">
+                X
+              </CloseButton>
+            </Header>
+            <Body>{children}</Body>
+            <Footer>
+              <FooterRow>
+                <FooterCancelGroup>
+                  <SecondaryButton onClick={closeDialog} type="button">
+                    <ButtonIcon>
+                      <ActionIcon name="close" />
+                    </ButtonIcon>
+                    {cancelLabel}
+                  </SecondaryButton>
+                </FooterCancelGroup>
+                <FooterActionsMount ref={setFooterPortalTarget} />
+              </FooterRow>
+            </Footer>
+          </Surface>
+        </FooterPortalContext.Provider>
       </Dialog>
     </>
   );
+}
+
+export function AdminModalFooterActions({ children }) {
+  const target = useContext(FooterPortalContext);
+
+  if (!target) {
+    return null;
+  }
+
+  return createPortal(<FooterActionGroup>{children}</FooterActionGroup>, target);
 }

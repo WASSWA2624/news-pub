@@ -1,9 +1,11 @@
 import {
+  ActionIcon,
   AdminDescription,
   AdminEyebrow,
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonIcon,
   Card,
   CardHeader,
   CardDescription,
@@ -23,7 +25,7 @@ import {
   SummaryValue,
   Textarea,
 } from "@/components/admin/news-admin-ui";
-import AdminFormModal from "@/components/admin/admin-form-modal";
+import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import { getCategoryManagementSnapshot } from "@/features/categories";
 import { defaultLocale } from "@/features/i18n/config";
@@ -39,13 +41,119 @@ const CategoryForm = styled.form`
 const ActionCluster = styled.div`
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.45rem;
+
+  > form {
+    display: inline-flex;
+  }
+
+  @media (max-width: 980px) {
+    flex-wrap: wrap;
+  }
 `;
 
-function CategoryEditorForm({ category = null, submitLabel }) {
+const CategoriesTable = styled(DataTable)`
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+
+  thead th {
+    border-bottom: 1px solid rgba(16, 32, 51, 0.08);
+    padding-bottom: 0.7rem;
+  }
+
+  tbody td {
+    background:
+      linear-gradient(180deg, rgba(249, 251, 255, 0.98), rgba(255, 255, 255, 0.96)),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 42%);
+    border-bottom: none;
+    border-top: 1px solid rgba(16, 32, 51, 0.07);
+    padding: 0.72rem 0.7rem;
+    vertical-align: middle;
+  }
+
+  tbody tr td:first-child {
+    border-bottom-left-radius: 18px;
+    border-left: 1px solid rgba(16, 32, 51, 0.08);
+    border-top-left-radius: 18px;
+    padding-left: 1rem;
+  }
+
+  tbody tr td:last-child {
+    border-bottom-right-radius: 18px;
+    border-right: 1px solid rgba(16, 32, 51, 0.08);
+    border-top-right-radius: 18px;
+    padding-right: 1rem;
+  }
+
+  tbody tr {
+    transition: transform 160ms ease;
+  }
+
+  tbody tr:hover td {
+    background:
+      linear-gradient(180deg, rgba(245, 249, 255, 1), rgba(255, 255, 255, 0.98)),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 44%);
+    box-shadow: 0 16px 30px rgba(16, 32, 51, 0.05);
+  }
+
+  @media (max-width: 719px) {
+    border-spacing: 0;
+
+    tbody td {
+      background: transparent;
+      border-top: none;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    tbody tr td:first-child,
+    tbody tr td:last-child {
+      border-left: none;
+      border-radius: 0;
+      border-right: none;
+      padding: 0;
+    }
+
+    tbody tr:hover td {
+      background: transparent;
+      box-shadow: none;
+    }
+  }
+`;
+
+const NameCell = styled.div`
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+`;
+
+const CategoryName = styled.strong`
+  color: #162744;
+  font-size: 1rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+`;
+
+const CountValue = styled.span`
+  color: #162744;
+  display: inline-flex;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1;
+`;
+
+const TableActionModal = styled(AdminFormModal)`
+  min-width: 4.8rem;
+`;
+
+const TableDeleteButton = styled(ConfirmSubmitButton)`
+  min-width: 5.2rem;
+`;
+
+function CategoryEditorForm({ category = null, formId, submitLabel }) {
   return (
-    <CategoryForm action={saveCategoryAction}>
+    <CategoryForm action={saveCategoryAction} id={formId}>
       {category ? <input name="id" type="hidden" value={category.id} /> : null}
       <FieldGrid>
         <Field>
@@ -54,14 +162,27 @@ function CategoryEditorForm({ category = null, submitLabel }) {
         </Field>
         <Field>
           <FieldLabel>Slug</FieldLabel>
-          <Input defaultValue={category?.slug || ""} name="slug" />
+          <Input
+            defaultValue={category?.slug || ""}
+            name="slug"
+            placeholder="Auto-suggested from the category name"
+            spellCheck={false}
+          />
+          <SmallText>Leave blank to use the cleaned SEO-friendly slug suggestion.</SmallText>
         </Field>
       </FieldGrid>
       <Field>
         <FieldLabel>Description</FieldLabel>
         <Textarea defaultValue={category?.description || ""} name="description" />
       </Field>
-      <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
+      <AdminModalFooterActions>
+        <PrimaryButton form={formId} type="submit">
+          <ButtonIcon>
+            <ActionIcon name={category ? "save" : "plus"} />
+          </ButtonIcon>
+          {submitLabel}
+        </PrimaryButton>
+      </AdminModalFooterActions>
     </CategoryForm>
   );
 }
@@ -103,7 +224,7 @@ export default async function CategoriesPage() {
             <CardDescription>Review taxonomy usage before removing a category from the editorial system.</CardDescription>
           </CardHeader>
           <DataTableWrap>
-            <DataTable>
+            <CategoriesTable>
               <thead>
                 <tr>
                   <th>Name</th>
@@ -117,38 +238,49 @@ export default async function CategoriesPage() {
                 {snapshot.categories.map((category) => (
                   <tr key={category.id}>
                     <td data-label="Name">
-                      <strong>{category.name}</strong>
-                      <SmallText>{category.description || "No description"}</SmallText>
+                      <NameCell>
+                        <CategoryName>{category.name}</CategoryName>
+                        <SmallText>{category.description || "No description provided yet."}</SmallText>
+                      </NameCell>
                     </td>
                     <td data-label="Slug">{category.slug}</td>
-                    <td data-label="Posts">{category.postCount}</td>
-                    <td data-label="Streams">{category.streamCount}</td>
+                    <td data-label="Posts">
+                      <CountValue>{category.postCount}</CountValue>
+                    </td>
+                    <td data-label="Streams">
+                      <CountValue>{category.streamCount}</CountValue>
+                    </td>
                     <td data-label="Actions">
                       <ActionCluster>
-                        <AdminFormModal
+                        <TableActionModal
                           description="Update the category name, slug, and description without leaving the taxonomy table."
                           size="compact"
                           title={`Edit ${category.name}`}
+                          triggerIcon="edit"
                           triggerLabel="Edit"
                         >
-                          <CategoryEditorForm category={category} submitLabel="Save category" />
-                        </AdminFormModal>
+                          <CategoryEditorForm
+                            category={category}
+                            formId={`category-form-${category.id}`}
+                            submitLabel="Save category"
+                          />
+                        </TableActionModal>
                         <form action={deleteCategoryAction}>
                           <input name="id" type="hidden" value={category.id} />
-                          <ConfirmSubmitButton
+                          <TableDeleteButton
                             confirmLabel="Delete category"
                             description={`This will permanently remove ${category.name}. Make sure it is no longer needed by stories or streams.`}
                             title="Delete this category?"
                           >
                             Delete
-                          </ConfirmSubmitButton>
+                          </TableDeleteButton>
                         </form>
                       </ActionCluster>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </DataTable>
+            </CategoriesTable>
           </DataTableWrap>
         </Card>
 
@@ -158,17 +290,19 @@ export default async function CategoriesPage() {
             <CardDescription>Categories drive stream filters, landing pages, and website discovery.</CardDescription>
           </CardHeader>
           <SmallText>
-            Open a compact modal to add a new taxonomy entry while keeping the category inventory visible.
+            Supported categories from the configured provider docs are preloaded automatically, and new entries get a
+            cleaned SEO slug when you leave the slug field blank.
           </SmallText>
           <AdminFormModal
             description="Create a category with a clean compact form that fits the taxonomy workflow."
             size="compact"
             title="Create category"
             triggerFullWidth
+            triggerIcon="plus"
             triggerLabel="New category"
             triggerTone="primary"
           >
-            <CategoryEditorForm submitLabel="Save category" />
+            <CategoryEditorForm formId="category-form-create" submitLabel="Create category" />
           </AdminFormModal>
         </Card>
       </SectionGrid>

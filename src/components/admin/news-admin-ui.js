@@ -416,6 +416,19 @@ export const ButtonRow = styled.div`
   }
 `;
 
+export const ButtonIcon = styled.span`
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+
+  svg {
+    display: block;
+    height: 0.95rem;
+    width: 0.95rem;
+  }
+`;
+
 const buttonStyles = `
   align-items: center;
   border-radius: 999px;
@@ -423,6 +436,7 @@ const buttonStyles = `
   display: inline-flex;
   font-size: 0.8rem;
   font-weight: 800;
+  gap: 0.42rem;
   justify-content: center;
   min-height: 34px;
   padding: 0.52rem 0.8rem;
@@ -585,6 +599,109 @@ export const SmallText = styled.p`
   line-height: 1.4;
   margin: 0;
 `;
+
+const IconSvg = styled.svg`
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+`;
+
+export function ActionIcon({ name }) {
+  if (name === "play") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M8 6l10 6-10 6Z" fill="currentColor" stroke="currentColor" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "publish") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M22 2L11 13" />
+        <path d="M22 2l-7 20-4-9-9-4Z" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "schedule") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 8v5l3 2" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "archive") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 5h16v4H4Z" />
+        <path d="M6 9h12v10H6Z" />
+        <path d="M10 13h4" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "upload") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 17V5" />
+        <path d="m8 9 4-4 4 4" />
+        <path d="M5 19h14" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "delete") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M3 6h18" />
+        <path d="M8 6V4h8v2" />
+        <path d="M19 6l-1 14H6L5 6" />
+        <path d="M10 10v6" />
+        <path d="M14 10v6" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "close") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M6 6l12 12" />
+        <path d="M18 6 6 18" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "edit") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+      </IconSvg>
+    );
+  }
+
+  if (name === "plus") {
+    return (
+      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 5v14" />
+        <path d="M5 12h14" />
+      </IconSvg>
+    );
+  }
+
+  return (
+    <IconSvg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M5 4h11l3 3v13H5Z" />
+      <path d="M9 4v6h6V4" />
+      <path d="M9 20v-6h6v6" />
+    </IconSvg>
+  );
+}
 
 export function formatDateTime(value) {
   if (!value) {

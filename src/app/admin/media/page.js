@@ -1,9 +1,11 @@
 import {
+  ActionIcon,
   AdminDescription,
   AdminEyebrow,
   AdminHero,
   AdminPage,
   AdminTitle,
+  ButtonIcon,
   Card,
   CardHeader,
   CardDescription,
@@ -24,7 +26,7 @@ import {
   SummaryValue,
   Textarea,
 } from "@/components/admin/news-admin-ui";
-import AdminFormModal from "@/components/admin/admin-form-modal";
+import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import { getMediaLibrarySnapshot } from "@/features/media";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -78,10 +80,11 @@ export default async function MediaPage() {
             size="wide"
             title="Upload media asset"
             triggerFullWidth
+            triggerIcon="upload"
             triggerLabel="Upload asset"
             triggerTone="primary"
           >
-            <UploadForm action={uploadMediaAction}>
+            <UploadForm action={uploadMediaAction} id="media-upload-form">
               <FieldGrid>
                 <Field>
                   <FieldLabel>File</FieldLabel>
@@ -104,7 +107,14 @@ export default async function MediaPage() {
                 <FieldLabel>Caption</FieldLabel>
                 <Textarea name="caption" />
               </Field>
-              <PrimaryButton type="submit">Upload asset</PrimaryButton>
+              <AdminModalFooterActions>
+                <PrimaryButton form="media-upload-form" type="submit">
+                  <ButtonIcon>
+                    <ActionIcon name="upload" />
+                  </ButtonIcon>
+                  Upload asset
+                </PrimaryButton>
+              </AdminModalFooterActions>
             </UploadForm>
           </AdminFormModal>
         </Card>

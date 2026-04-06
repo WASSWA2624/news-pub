@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import styled from "styled-components";
 
 import {
+  ActionIcon,
   ButtonRow,
+  ButtonIcon,
   CheckboxChip,
   CheckboxRow,
   Field,
@@ -22,6 +24,7 @@ import {
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import SearchableSelect from "@/components/common/searchable-select";
 import {
   getAllowedDestinationKinds,
@@ -149,8 +152,23 @@ const FooterSurface = styled.div`
   gap: 0.65rem;
 `;
 
-const FooterActions = styled(ButtonRow)`
-  justify-content: flex-end;
+const FieldHelp = styled.div`
+  display: grid;
+  gap: 0.38rem;
+`;
+
+const ExampleBlock = styled.pre`
+  background: rgba(245, 248, 252, 0.96);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 12px;
+  color: #1b2d49;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.73rem;
+  line-height: 1.48;
+  margin: 0;
+  overflow-x: auto;
+  padding: 0.7rem 0.78rem;
+  white-space: pre-wrap;
 `;
 
 const StatusHint = styled.div`
@@ -209,9 +227,41 @@ export default function DestinationFormCard({
   const [platform, setPlatform] = useState(`${destination?.platform || "WEBSITE"}`);
   const [kind, setKind] = useState(`${destination?.kind || "WEBSITE"}`);
   const [connectionStatus, setConnectionStatus] = useState(`${destination?.connectionStatus || "DISCONNECTED"}`);
+  const formId = useId();
   const issues = getDestinationValidationIssues({ kind, platform });
   const allowedKinds = getAllowedDestinationKinds(platform).map((value) => formatEnumLabel(value));
   const resolvedKindOptions = buildKindOptions(kindOptions, platform);
+  const connectionErrorExample = "Graph API returned 190: Invalid OAuth 2.0 Access Token on 2026-04-06. Reconnect with a fresh page token.";
+  const settingsJsonExamplesByKind = {
+    FACEBOOK_PAGE: {
+      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      pageId: "123456789012345",
+    },
+    FACEBOOK_PROFILE: {
+      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      profileId: "me",
+    },
+    INSTAGRAM_BUSINESS: {
+      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      instagramUserId: "17841400000000000",
+    },
+    INSTAGRAM_PERSONAL: {
+      instagramUserId: "17841400000000000",
+    },
+    WEBSITE: {},
+  };
+  const settingsJsonExampleObject = settingsJsonExamplesByKind[kind] || settingsJsonExamplesByKind[platform] || {};
+  const settingsJsonExample = JSON.stringify(settingsJsonExampleObject, null, 2);
+  const settingsJsonExamples = {
+    FACEBOOK_PAGE:
+      '`{"pageId":"123456789012345"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","pageId":"123456789012345"}`',
+    FACEBOOK_PROFILE:
+      '`{"profileId":"me"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","profileId":"me"}`',
+    INSTAGRAM_BUSINESS:
+      '`{"instagramUserId":"17841400000000000"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","instagramUserId":"17841400000000000"}`',
+    INSTAGRAM_PERSONAL: '`{"instagramUserId":"17841400000000000"}`',
+    WEBSITE: "`{}`",
+  };
 
   function handleSubmit(event) {
     if (!issues.length) {
@@ -222,7 +272,7 @@ export default function DestinationFormCard({
   }
 
   return (
-    <DestinationForm action={action} onSubmit={handleSubmit}>
+    <DestinationForm action={action} id={formId} onSubmit={handleSubmit}>
       <SetupBanner>
         <SetupHeader>
           <SetupEyebrow>{destination ? "Destination profile" : "New destination"}</SetupEyebrow>
@@ -360,23 +410,43 @@ export default function DestinationFormCard({
         <FormSectionTitle>Operational notes</FormSectionTitle>
         <Field>
           <FieldLabel>Connection error</FieldLabel>
-          <Textarea defaultValue={destination?.connectionError || ""} name="connectionError" />
+          <Textarea
+            defaultValue={destination?.connectionError || ""}
+            name="connectionError"
+            placeholder={connectionErrorExample}
+          />
+          <FieldHelp>
+            <SmallText>
+              Use plain text to capture the last known failure, what it means, and the next operator action.
+              Leave blank when the destination is healthy or the issue has been resolved.
+            </SmallText>
+            <SmallText>
+              Example values: `Missing page access token. Paste a new token and retry.` or `Instagram publish rejected: media URL was unreachable.`
+            </SmallText>
+          </FieldHelp>
         </Field>
         <Field>
           <FieldLabel>Settings JSON</FieldLabel>
           <Textarea
             defaultValue={JSON.stringify(destination?.settingsJson || {}, null, 2)}
             name="settingsJson"
+            placeholder={settingsJsonExample}
           />
+          <FieldHelp>
+            <SmallText>
+              Enter a valid JSON object for optional platform-specific settings. Use `{}` when no extra
+              configuration is needed.
+            </SmallText>
+            <SmallText>
+              Supported examples for {formatEnumLabel(kind)}: {settingsJsonExamples[kind] || "`{}`"}.
+              Use `graphApiBaseUrl` only when you need to override the default Facebook Graph API base URL.
+            </SmallText>
+            <ExampleBlock>{settingsJsonExample}</ExampleBlock>
+          </FieldHelp>
         </Field>
       </SectionSurface>
 
       <FooterSurface>
-        <FooterActions>
-          <PrimaryButton disabled={issues.length > 0} type="submit">
-            {submitLabel}
-          </PrimaryButton>
-        </FooterActions>
         {destination ? (
           <SmallText>
             Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
@@ -387,6 +457,14 @@ export default function DestinationFormCard({
           </SmallText>
         )}
       </FooterSurface>
+      <AdminModalFooterActions>
+        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
+          <ButtonIcon>
+            <ActionIcon name={destination ? "save" : "plus"} />
+          </ButtonIcon>
+          {submitLabel}
+        </PrimaryButton>
+      </AdminModalFooterActions>
     </DestinationForm>
   );
 }

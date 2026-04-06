@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import {
+  ActionIcon,
   ButtonRow,
+  ButtonIcon,
   CheckboxChip,
   CheckboxRow,
   Field,
@@ -18,6 +20,7 @@ import {
   SmallText,
   Textarea,
 } from "@/components/admin/news-admin-ui";
+import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getProviderRequestDefaultValues, listProviderDefinitions } from "@/lib/news/provider-definitions";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
@@ -57,6 +60,7 @@ export default function ProviderFormCard({
   const [providerKey, setProviderKey] = useState(provider?.providerKey || providerDefinitions[0]?.key || "");
   const [metadataResetKey, setMetadataResetKey] = useState(0);
   const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
+  const formId = useId();
   const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
   const isExistingProviderSelection = provider?.providerKey === providerKey;
   const nextLabel = isExistingProviderSelection ? provider?.label || selectedDefinition?.label || "" : selectedDefinition?.label || "";
@@ -69,7 +73,7 @@ export default function ProviderFormCard({
     : selectedDefinition?.defaultRequestDefaults || {};
 
   return (
-    <ProviderForm action={action}>
+    <ProviderForm action={action} id={formId}>
       <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
         <Field as="div">
           <FieldLabel>Provider Key</FieldLabel>
@@ -153,10 +157,15 @@ export default function ProviderFormCard({
             <input defaultChecked={provider?.isDefault ?? false} name="isDefault" type="checkbox" /> Default
           </CheckboxChip>
         </CheckboxRow>
-        <ButtonRow>
-          <PrimaryButton type="submit">Save provider</PrimaryButton>
-        </ButtonRow>
       </FormSection>
+      <AdminModalFooterActions>
+        <PrimaryButton form={formId} type="submit">
+          <ButtonIcon>
+            <ActionIcon name="save" />
+          </ButtonIcon>
+          Save provider
+        </PrimaryButton>
+      </AdminModalFooterActions>
     </ProviderForm>
   );
 }

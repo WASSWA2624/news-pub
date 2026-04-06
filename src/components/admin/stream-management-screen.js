@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import styled from "styled-components";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
+import styled, { keyframes } from "styled-components";
 
 import {
   ButtonRow,
@@ -10,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
   MetaPill,
+  PrimaryButton,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -76,7 +79,6 @@ const TargetingTitle = styled.h2`
   letter-spacing: -0.045em;
   line-height: 1.1;
   margin: 0;
-  max-width: 16ch;
 `;
 
 const ActionRow = styled.div`
@@ -148,8 +150,252 @@ const PrimaryActionButton = styled.button`
   }
 `;
 
-const RunActionForm = styled.form`
+const RunActionForm = styled.div`
   display: inline-flex;
+`;
+
+const pulseBar = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+`;
+
+const ProgressOverlay = styled.div`
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(11, 17, 28, 0.56), rgba(11, 17, 28, 0.7)),
+    radial-gradient(circle at top, rgba(15, 111, 141, 0.16), transparent 42%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1400;
+`;
+
+const ProgressSurface = styled.section`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.996), rgba(246, 250, 255, 0.99)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 34%);
+  border: 1px solid rgba(16, 32, 51, 0.09);
+  border-radius: clamp(20px, 3vw, 28px);
+  box-shadow:
+    0 32px 72px rgba(11, 18, 30, 0.24),
+    0 12px 28px rgba(16, 32, 51, 0.1);
+  display: grid;
+  gap: 1rem;
+  max-height: min(88dvh, 52rem);
+  overflow: hidden;
+  padding: clamp(1rem, 2vw, 1.25rem);
+  width: min(94vw, 44rem);
+`;
+
+const ProgressHeader = styled.div`
+  display: grid;
+  gap: 0.35rem;
+`;
+
+const ProgressEyebrow = styled.span`
+  color: #0f5f79;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+`;
+
+const ProgressTitle = styled.h3`
+  color: #162744;
+  font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin: 0;
+`;
+
+const ProgressDescription = styled.p`
+  color: rgba(72, 85, 108, 0.94);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  margin: 0;
+`;
+
+const ProgressTrackFrame = styled.div`
+  display: grid;
+  gap: 0.45rem;
+`;
+
+const ProgressMetaRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: space-between;
+`;
+
+const ProgressMetaText = styled.span`
+  color: #22344f;
+  font-size: 0.76rem;
+  font-weight: 800;
+`;
+
+const ProgressTrack = styled.div`
+  background: rgba(36, 75, 115, 0.1);
+  border-radius: 999px;
+  height: 0.78rem;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  animation: ${({ $animated }) => ($animated ? pulseBar : "none")} 1.4s linear infinite;
+  background:
+    linear-gradient(90deg, rgba(15, 111, 141, 0.96), rgba(224, 165, 58, 0.88), rgba(15, 111, 141, 0.96));
+  background-size: 200% 100%;
+  border-radius: inherit;
+  height: 100%;
+  transition: width 220ms ease;
+  width: ${({ $progress }) => `${$progress}%`};
+`;
+
+const ProgressSummaryGrid = styled.div`
+  display: grid;
+  gap: 0.6rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+`;
+
+const ProgressSummaryCard = styled.div`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.92)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 52%);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem 0.8rem;
+`;
+
+const ProgressSummaryValue = styled.strong`
+  color: #132949;
+  font-size: 1.08rem;
+  letter-spacing: -0.03em;
+`;
+
+const ProgressSummaryLabel = styled.span`
+  color: rgba(73, 87, 112, 0.82);
+  font-size: 0.74rem;
+  line-height: 1.4;
+`;
+
+const ProgressList = styled.div`
+  display: grid;
+  gap: 0.55rem;
+  max-height: min(34dvh, 18rem);
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(36, 75, 115, 0.26);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+`;
+
+const ProgressItem = styled.article`
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.95)),
+    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 44%);
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === "running"
+        ? "rgba(15, 111, 141, 0.2)"
+        : $tone === "failed"
+          ? "rgba(179, 46, 46, 0.18)"
+          : "rgba(16, 32, 51, 0.08)"};
+  border-radius: 16px;
+  box-shadow: ${({ $tone }) =>
+    $tone === "running" ? "0 14px 28px rgba(15, 96, 121, 0.08)" : "0 10px 20px rgba(18, 34, 58, 0.04)"};
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+`;
+
+const ProgressItemHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  justify-content: space-between;
+`;
+
+const ProgressItemTitleBlock = styled.div`
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+`;
+
+const ProgressItemTitle = styled.strong`
+  color: #172844;
+  font-size: 0.88rem;
+  letter-spacing: -0.02em;
+`;
+
+const ProgressItemMeta = styled.span`
+  color: rgba(73, 87, 112, 0.82);
+  font-size: 0.72rem;
+  line-height: 1.4;
+`;
+
+const ProgressItemStatus = styled.span`
+  align-items: center;
+  background: ${({ $tone }) =>
+    $tone === "running"
+      ? "rgba(15, 111, 141, 0.12)"
+      : $tone === "success"
+        ? "rgba(39, 111, 74, 0.12)"
+        : $tone === "failed"
+          ? "rgba(179, 46, 46, 0.12)"
+          : "rgba(36, 75, 115, 0.08)"};
+  border: 1px solid ${({ $tone }) =>
+    $tone === "running"
+      ? "rgba(15, 111, 141, 0.16)"
+      : $tone === "success"
+        ? "rgba(39, 111, 74, 0.16)"
+        : $tone === "failed"
+          ? "rgba(179, 46, 46, 0.16)"
+          : "rgba(36, 75, 115, 0.12)"};
+  border-radius: 999px;
+  color: ${({ $tone }) =>
+    $tone === "running" ? "#0d5f79" : $tone === "success" ? "#276f4a" : $tone === "failed" ? "#9f2626" : "#244b73"};
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 800;
+  min-height: 24px;
+  padding: 0 0.55rem;
+  text-transform: uppercase;
+`;
+
+const ProgressItemText = styled.p`
+  color: rgba(72, 85, 108, 0.94);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin: 0;
+`;
+
+const ProgressFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const ScopeHeader = styled.div`
@@ -349,21 +595,268 @@ function getTone(status) {
   return status === "ACTIVE" ? "success" : "warning";
 }
 
+function getRunProgress(streamCount, completedCount, isRunning) {
+  if (!streamCount) {
+    return 0;
+  }
+
+  if (!isRunning) {
+    return 100;
+  }
+
+  return Math.min(((completedCount + 0.45) / streamCount) * 100, 96);
+}
+
+function summarizeRunCounts(results) {
+  return results.reduce(
+    (summary, result) => {
+      if (!result.run) {
+        summary.failedRuns += 1;
+        return summary;
+      }
+
+      summary.completedRuns += 1;
+      summary.fetchedCount += Number(result.run.fetchedCount || 0);
+      summary.publishedCount += Number(result.run.publishedCount || 0);
+      summary.heldCount += Number(result.run.heldCount || 0);
+      summary.skippedCount += Number(result.run.skippedCount || 0);
+      summary.duplicateCount += Number(result.run.duplicateCount || 0);
+      summary.failedPublishCount += Number(result.run.failedCount || 0);
+
+      return summary;
+    },
+    {
+      completedRuns: 0,
+      duplicateCount: 0,
+      failedPublishCount: 0,
+      failedRuns: 0,
+      fetchedCount: 0,
+      heldCount: 0,
+      publishedCount: 0,
+      skippedCount: 0,
+    },
+  );
+}
+
+function describeCompletedRun(run) {
+  const fragments = [];
+
+  if (Number(run.fetchedCount || 0) > 0) {
+    fragments.push(`${run.fetchedCount} fetched`);
+  }
+
+  if (Number(run.publishedCount || 0) > 0) {
+    fragments.push(`${run.publishedCount} published`);
+  }
+
+  if (Number(run.heldCount || 0) > 0) {
+    fragments.push(`${run.heldCount} held for review`);
+  }
+
+  if (Number(run.skippedCount || 0) > 0) {
+    fragments.push(`${run.skippedCount} skipped`);
+  }
+
+  if (Number(run.duplicateCount || 0) > 0) {
+    fragments.push(`${run.duplicateCount} duplicates`);
+  }
+
+  if (Number(run.failedCount || 0) > 0) {
+    fragments.push(`${run.failedCount} publish failures`);
+  }
+
+  if (!fragments.length) {
+    return "No new articles were processed during this run.";
+  }
+
+  return fragments.join(", ");
+}
+
+function getResultTone(result, activeStreamId) {
+  if (result.error) {
+    return "failed";
+  }
+
+  if (result.stream.id === activeStreamId) {
+    return "running";
+  }
+
+  if (result.run) {
+    return "success";
+  }
+
+  return "idle";
+}
+
+function getResultLabel(result, activeStreamId) {
+  if (result.error) {
+    return "Failed";
+  }
+
+  if (result.stream.id === activeStreamId) {
+    return "Running";
+  }
+
+  if (result.run) {
+    return "Done";
+  }
+
+  return "Queued";
+}
+
+function RunProgressModal({ runState, onClose }) {
+  useEffect(() => {
+    if (!runState || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [runState]);
+
+  if (!runState || typeof document === "undefined") {
+    return null;
+  }
+
+  const isRunning = runState.phase === "running";
+  const progress = getRunProgress(runState.totalCount, runState.completedCount, isRunning);
+  const resultSummary = summarizeRunCounts(runState.results);
+  const modalTitle = isRunning
+    ? runState.totalCount === 1
+      ? `Running ${runState.streams[0]?.name || "stream"}`
+      : "Running selected streams"
+    : resultSummary.failedRuns
+      ? resultSummary.completedRuns
+        ? "Stream run completed with issues"
+        : "Stream run failed"
+      : "Stream run completed";
+  const modalDescription = isRunning
+    ? runState.totalCount === 1
+      ? "Please keep this window open while NewsPub fetches, filters, and publishes eligible stories."
+      : "NewsPub is running each selected stream in sequence. This report will unlock when every run finishes."
+    : resultSummary.failedRuns
+      ? "Some streams could not finish. Review the brief report below before closing."
+      : "Every requested stream finished. Review the brief report below, then close the modal when you are ready.";
+
+  return createPortal(
+    <ProgressOverlay>
+      <ProgressSurface aria-busy={isRunning} aria-modal="true" role="dialog">
+        <ProgressHeader>
+          <ProgressEyebrow>{isRunning ? "Stream progress" : "Run report"}</ProgressEyebrow>
+          <ProgressTitle>{modalTitle}</ProgressTitle>
+          <ProgressDescription>{modalDescription}</ProgressDescription>
+        </ProgressHeader>
+
+        <ProgressTrackFrame>
+          <ProgressMetaRow>
+            <ProgressMetaText>
+              {isRunning
+                ? `Completed ${runState.completedCount} of ${runState.totalCount} stream${runState.totalCount === 1 ? "" : "s"}`
+                : `${runState.results.length} stream${runState.results.length === 1 ? "" : "s"} processed`}
+            </ProgressMetaText>
+            <ProgressMetaText>{Math.round(progress)}%</ProgressMetaText>
+          </ProgressMetaRow>
+          <ProgressTrack aria-hidden="true">
+            <ProgressFill $animated={isRunning} $progress={progress} />
+          </ProgressTrack>
+          {isRunning && runState.activeStreamName ? (
+            <ProgressDescription>
+              Working on <strong>{runState.activeStreamName}</strong>.
+            </ProgressDescription>
+          ) : null}
+        </ProgressTrackFrame>
+
+        {!isRunning ? (
+          <ProgressSummaryGrid>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.completedRuns}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Completed runs</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.failedRuns}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Failed runs</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.publishedCount}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Published stories</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.heldCount}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Held for review</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.skippedCount + resultSummary.duplicateCount}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Skipped or duplicate</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+            <ProgressSummaryCard>
+              <ProgressSummaryValue>{resultSummary.failedPublishCount}</ProgressSummaryValue>
+              <ProgressSummaryLabel>Publish failures</ProgressSummaryLabel>
+            </ProgressSummaryCard>
+          </ProgressSummaryGrid>
+        ) : null}
+
+        <ProgressList>
+          {runState.streams.map((stream) => {
+            const result = runState.results.find((entry) => entry.stream.id === stream.id) || {
+              stream,
+            };
+            const tone = getResultTone(result, runState.activeStreamId);
+
+            return (
+              <ProgressItem $tone={tone} key={stream.id}>
+                <ProgressItemHeader>
+                  <ProgressItemTitleBlock>
+                    <ProgressItemTitle>{stream.name}</ProgressItemTitle>
+                    <ProgressItemMeta>
+                      {stream.destinationName || "Unknown destination"} via {stream.providerLabel || "Unknown provider"}
+                    </ProgressItemMeta>
+                  </ProgressItemTitleBlock>
+                  <ProgressItemStatus $tone={tone === "idle" ? "idle" : tone}>
+                    {getResultLabel(result, runState.activeStreamId)}
+                  </ProgressItemStatus>
+                </ProgressItemHeader>
+                <ProgressItemText>
+                  {result.error
+                    ? result.error
+                    : result.run
+                      ? describeCompletedRun(result.run)
+                      : "Waiting for this stream to start."}
+                </ProgressItemText>
+              </ProgressItem>
+            );
+          })}
+        </ProgressList>
+
+        <ProgressFooter>
+          <PrimaryButton disabled={isRunning} onClick={onClose} type="button">
+            Close report
+          </PrimaryButton>
+        </ProgressFooter>
+      </ProgressSurface>
+    </ProgressOverlay>,
+    document.body,
+  );
+}
+
 export default function StreamManagementScreen({
   categoryOptions,
   destinationOptions,
   modeOptions,
   providerOptions,
-  runSelectedStreamsAction,
-  runNowAction,
   saveStreamAction,
   statusOptions,
   streams,
   templateOptions,
 }) {
+  const router = useRouter();
   const [selectedPlatforms, setSelectedPlatforms] = useState(() =>
     [...new Set(destinationOptions.map((destination) => destination.platform).filter(Boolean))].sort(),
   );
+  const [runState, setRunState] = useState(null);
   const platformSummaries = useMemo(() => {
     const platformMap = new Map();
 
@@ -442,6 +935,112 @@ export default function StreamManagementScreen({
   const scopeDescription = selectedPlatforms.length
     ? `Create or review streams for ${selectedLabel}. Each destination keeps using its own saved platform settings.`
     : "Select at least one target platform to create or review streams.";
+  const isRunInProgress = runState?.phase === "running";
+
+  function closeRunReport() {
+    if (isRunInProgress) {
+      return;
+    }
+
+    setRunState(null);
+    router.refresh();
+  }
+
+  async function executeStreamRun(stream) {
+    const response = await fetch("/api/streams/run", {
+      body: JSON.stringify({
+        streamId: stream.id,
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
+    });
+    let payload = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(payload?.message || `Could not run ${stream.name}.`);
+    }
+
+    return payload?.data?.run || null;
+  }
+
+  async function handleRunStreams(streamBatch) {
+    if (!streamBatch.length || isRunInProgress) {
+      return;
+    }
+
+    setRunState({
+      activeStreamId: streamBatch[0].id,
+      activeStreamName: streamBatch[0].name,
+      completedCount: 0,
+      phase: "running",
+      results: [],
+      streams: streamBatch.map((stream) => ({
+        destinationName: stream.destination?.name || "Unknown destination",
+        id: stream.id,
+        name: stream.name,
+        providerLabel: stream.activeProvider?.label || "Unknown provider",
+      })),
+      totalCount: streamBatch.length,
+    });
+
+    const results = [];
+
+    for (const stream of streamBatch) {
+      setRunState((currentState) => ({
+        ...currentState,
+        activeStreamId: stream.id,
+        activeStreamName: stream.name,
+      }));
+
+      try {
+        const run = await executeStreamRun(stream);
+        results.push({
+          run,
+          stream,
+        });
+      } catch (error) {
+        results.push({
+          error: error instanceof Error ? error.message : "Stream execution failed.",
+          stream,
+        });
+      }
+
+      setRunState((currentState) => ({
+        ...currentState,
+        completedCount: results.length,
+        results: [...results],
+      }));
+    }
+
+    setRunState((currentState) => ({
+      ...currentState,
+      activeStreamId: null,
+      activeStreamName: null,
+      completedCount: results.length,
+      phase: "complete",
+      results,
+    }));
+  }
+
+  function handleRunSelected() {
+    void handleRunStreams(runnableStreams);
+  }
+
+  function handleRunNow(stream) {
+    if (!stream) {
+      return;
+    }
+
+    void handleRunStreams([stream]);
+  }
 
   return (
     <>
@@ -464,11 +1063,12 @@ export default function StreamManagementScreen({
                 </SummaryPill>
               </TargetSummary>
               <ScopeActions>
-                <RunActionForm action={runSelectedStreamsAction}>
-                  {runnableStreams.map((stream) => (
-                    <input key={stream.id} name="streamIds" type="hidden" value={stream.id} />
-                  ))}
-                  <PrimaryActionButton disabled={!runnableStreams.length} type="submit">
+                <RunActionForm>
+                  <PrimaryActionButton
+                    disabled={!runnableStreams.length || isRunInProgress}
+                    onClick={handleRunSelected}
+                    type="button"
+                  >
                     Run selected
                     <ScopeCount $active>{runnableStreams.length}</ScopeCount>
                   </PrimaryActionButton>
@@ -569,6 +1169,7 @@ export default function StreamManagementScreen({
                       description="Edit stream cadence, destination targeting, provider filters, and publish mode in a scrollable full-size workspace."
                       size="full"
                       title={`Edit ${stream.name}`}
+                      triggerIcon="edit"
                       triggerLabel="Edit stream"
                     >
                       <StreamFormCard
@@ -576,8 +1177,9 @@ export default function StreamManagementScreen({
                         categoryOptions={categoryOptions}
                         destinationOptions={filteredDestinationOptions}
                         modeOptions={modeOptions}
+                        onRunNow={handleRunNow}
                         providerOptions={providerOptions}
-                        runNowAction={runNowAction}
+                        runInProgress={isRunInProgress}
                         statusOptions={statusOptions}
                         stream={stream}
                         submitLabel="Save stream"
@@ -628,6 +1230,7 @@ export default function StreamManagementScreen({
                     size="full"
                     title="Create stream"
                     triggerFullWidth
+                    triggerIcon="plus"
                     triggerLabel="New stream"
                     triggerTone="primary"
                   >
@@ -653,6 +1256,8 @@ export default function StreamManagementScreen({
           </StickyScrollArea>
         </StickyCard>
       </StreamsGrid>
+
+      <RunProgressModal onClose={closeRunReport} runState={runState} />
     </>
   );
 }

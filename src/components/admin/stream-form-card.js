@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import styled from "styled-components";
 
 import {
+  ActionIcon,
   ButtonRow,
+  ButtonIcon,
   Field,
   FieldGrid,
   FieldLabel,
@@ -21,6 +23,7 @@ import {
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import SearchableSelect from "@/components/common/searchable-select";
@@ -75,8 +78,9 @@ export default function StreamFormCard({
   categoryOptions = [],
   destinationOptions = [],
   modeOptions = [],
+  onRunNow,
   providerOptions = [],
-  runNowAction,
+  runInProgress = false,
   statusOptions = [],
   stream = null,
   submitLabel,
@@ -89,6 +93,7 @@ export default function StreamFormCard({
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
+  const formId = useId();
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
@@ -109,7 +114,7 @@ export default function StreamFormCard({
   }
 
   return (
-    <form action={action} onSubmit={handleSubmit}>
+    <form action={action} id={formId} onSubmit={handleSubmit}>
       {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
       <FormSection>
         <FormSectionTitle>Core setup</FormSectionTitle>
@@ -298,21 +303,6 @@ export default function StreamFormCard({
           selectedValues={stream?.streamCategories?.map((category) => category.id) || []}
           title="Categories"
         />
-        <ButtonRow>
-          <PrimaryButton disabled={issues.length > 0} type="submit">
-            {submitLabel}
-          </PrimaryButton>
-          {stream ? (
-            <SecondaryButton
-              disabled={issues.length > 0}
-              formAction={runNowAction}
-              formNoValidate
-              type="submit"
-            >
-              Run now
-            </SecondaryButton>
-          ) : null}
-        </ButtonRow>
         {stream ? (
           <SmallText>
             Destination: {stream.destination?.name || "Unknown"} | Provider: {stream.activeProvider?.label || "Unknown"}
@@ -323,6 +313,26 @@ export default function StreamFormCard({
           </SmallText>
         )}
       </FormSection>
+      <AdminModalFooterActions>
+        {stream ? (
+          <SecondaryButton
+            disabled={issues.length > 0 || runInProgress}
+            onClick={() => onRunNow?.(stream)}
+            type="button"
+          >
+            <ButtonIcon>
+              <ActionIcon name="play" />
+            </ButtonIcon>
+            Run now
+          </SecondaryButton>
+        ) : null}
+        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
+          <ButtonIcon>
+            <ActionIcon name={stream ? "save" : "plus"} />
+          </ButtonIcon>
+          {submitLabel}
+        </PrimaryButton>
+      </AdminModalFooterActions>
     </form>
   );
 }

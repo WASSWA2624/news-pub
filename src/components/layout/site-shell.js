@@ -177,6 +177,7 @@ export default function SiteShell({ children, locale, messages }) {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
   const searchBarCopy = messages.site.searchBar || {};
+  const headerTagline = typeof messages.site.tagline === "string" ? messages.site.tagline.trim() : "";
   const legalNavigation = messages.site.legalNavigation || {};
   const homeHref = buildLocalizedPath(locale, publicRouteSegments.home);
   const newsHref = buildLocalizedPath(locale, publicRouteSegments.news);
@@ -200,7 +201,7 @@ export default function SiteShell({ children, locale, messages }) {
               <NewsPubLogo size={40} />
               <BrandTitle>{messages.site.title}</BrandTitle>
             </BrandLink>
-            <HeaderTagline>{messages.site.tagline}</HeaderTagline>
+            {headerTagline ? <HeaderTagline>{headerTagline}</HeaderTagline> : null}
           </HeaderMeta>
 
           <Navigation aria-label="Public navigation">

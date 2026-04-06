@@ -95,6 +95,7 @@ export default async function ProvidersPage() {
                     description="Review provider metadata, request defaults, and availability settings without crowding the dashboard grid."
                     size="full"
                     title={`Edit ${provider.label}`}
+                    triggerIcon="edit"
                     triggerLabel="Edit provider"
                   >
                     <ProviderFormCard action={saveProviderAction} provider={provider} />
