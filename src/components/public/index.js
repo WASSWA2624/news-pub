@@ -46,44 +46,48 @@ const Hero = styled.section`
     radial-gradient(circle at 85% 20%, rgba(251, 195, 61, 0.14), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.94));
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow:
-    0 24px 52px rgba(16, 32, 51, 0.08),
+    0 10px 22px rgba(16, 32, 51, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   display: grid;
-  gap: 0.8rem;
-  padding: clamp(1.2rem, 3vw, 2rem);
+  gap: 0.3rem;
+  padding: clamp(0.7rem, 1.8vw, 0.9rem);
 `;
 
 const Eyebrow = styled.p`
   color: rgba(14, 88, 121, 0.8);
-  font-size: 0.76rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   margin: 0;
   text-transform: uppercase;
 `;
 
 const Title = styled.h1`
   color: #182742;
-  font-size: clamp(2.3rem, 6vw, 4rem);
-  letter-spacing: -0.05em;
-  line-height: 0.98;
+  font-size: clamp(1.15rem, 2.7vw, 1.6rem);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0;
-  max-width: 14ch;
+  max-width: none;
+
+  @media (max-width: 720px) {
+    max-width: 18ch;
+  }
 `;
 
 const Description = styled.p`
   color: rgba(71, 84, 108, 0.95);
-  font-size: clamp(1rem, 2.4vw, 1.12rem);
-  line-height: 1.7;
+  font-size: clamp(0.74rem, 1.4vw, 0.82rem);
+  line-height: 1.4;
   margin: 0;
-  max-width: 58ch;
+  max-width: 72ch;
 `;
 
 const SummaryGrid = styled.div`
   display: grid;
-  gap: 0.9rem;
+  gap: 0.4rem;
 
   @media (min-width: 760px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -93,20 +97,20 @@ const SummaryGrid = styled.div`
 const SummaryCard = styled.article`
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+  border-radius: 10px;
   display: grid;
-  gap: 0.2rem;
-  padding: 0.9rem 1rem;
+  gap: 0.08rem;
+  padding: 0.42rem 0.55rem;
 `;
 
 const SummaryValue = styled.strong`
   color: #132949;
-  font-size: 1.35rem;
+  font-size: 0.82rem;
 `;
 
 const SummaryLabel = styled.span`
   color: rgba(74, 88, 113, 0.82);
-  font-size: 0.9rem;
+  font-size: 0.66rem;
 `;
 
 const ContentGrid = styled.div`
@@ -146,15 +150,18 @@ const StoryCard = styled.article`
     linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(246, 249, 255, 0.94)),
     radial-gradient(circle at top right, rgba(11, 107, 139, 0.08), transparent 48%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
-  gap: 0.8rem;
+  gap: ${({ $hasMedia }) => ($hasMedia ? "0.8rem" : "0.35rem")};
   overflow: hidden;
 `;
 
 const StoryImageWrap = styled.div`
   background: linear-gradient(180deg, rgba(17, 43, 67, 0.04), rgba(17, 43, 67, 0.08));
+  aspect-ratio: 16 / 9;
   min-height: 210px;
+  overflow: hidden;
+  position: relative;
 `;
 
 const StoryImage = styled.img`
@@ -164,15 +171,38 @@ const StoryImage = styled.img`
   width: 100%;
 `;
 
+const StoryVideo = styled.video`
+  background: #091525;
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+`;
+
+const StoryEmbed = styled.iframe`
+  background: #091525;
+  border: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+`;
+
+const StoryMediaCaption = styled.p`
+  color: rgba(72, 85, 110, 0.84);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 0;
+`;
+
 const StoryBody = styled.div`
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem 1rem 1.05rem;
+  gap: ${({ $compact }) => ($compact ? "0.55rem" : "0.75rem")};
+  padding: ${({ $compact }) => ($compact ? "0.8rem 0.9rem 0.9rem" : "1rem 1rem 1.05rem")};
 `;
 
 const StoryTitleLink = styled(Link)`
   color: #152744;
-  font-size: 1.18rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.15;
@@ -180,7 +210,8 @@ const StoryTitleLink = styled(Link)`
 
 const StorySummary = styled.p`
   color: rgba(72, 85, 110, 0.95);
-  line-height: 1.62;
+  font-size: 0.92rem;
+  line-height: 1.52;
   margin: 0;
 `;
 
@@ -192,7 +223,7 @@ const MetaRow = styled.div`
 
 const MetaBadge = styled.span`
   color: rgba(53, 71, 99, 0.9);
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   font-weight: 700;
 `;
 
@@ -207,9 +238,9 @@ const ChipLink = styled(Link)`
   border: 1px solid rgba(15, 103, 133, 0.12);
   border-radius: 999px;
   color: #0d6685;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.36rem 0.7rem;
+  padding: 0.28rem 0.58rem;
 `;
 
 const SidebarList = styled.div`
@@ -290,11 +321,11 @@ const StoryHero = styled(Hero)`
 
 const StoryTitle = styled.h1`
   color: #172744;
-  font-size: clamp(2.3rem, 6vw, 4.4rem);
+  font-size: clamp(1.95rem, 4.8vw, 3.4rem);
   letter-spacing: -0.055em;
-  line-height: 0.96;
+  line-height: 0.98;
   margin: 0;
-  max-width: 16ch;
+  max-width: 18ch;
 `;
 
 const StoryLead = styled.p`
@@ -313,6 +344,11 @@ const StoryMeta = styled.div`
 
 const StoryImagePanel = styled.div`
   overflow: hidden;
+`;
+
+const StoryMediaGallery = styled.div`
+  display: grid;
+  gap: 0.9rem;
 `;
 
 const StoryContent = styled.div`
@@ -362,6 +398,48 @@ const SectionBody = styled.div`
   }
 `;
 
+function getMediaIdentity(media) {
+  return `${media?.kind || "unknown"}:${media?.embedUrl || media?.url || media?.sourceUrl || ""}`;
+}
+
+function renderStoryMedia(media, { eager = false, showCaption = true } = {}) {
+  if (!media?.kind) {
+    return null;
+  }
+
+  return (
+    <>
+      <StoryImageWrap>
+        {media.kind === "video" ? (
+          <StoryVideo
+            controls
+            playsInline
+            poster={media.posterUrl || undefined}
+            preload="metadata"
+            src={media.url}
+          />
+        ) : media.kind === "embed" ? (
+          <StoryEmbed
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            loading={eager ? "eager" : "lazy"}
+            referrerPolicy="strict-origin-when-cross-origin"
+            src={media.embedUrl}
+            title={media.title || media.alt || "Embedded video"}
+          />
+        ) : (
+          <StoryImage
+            alt={media.alt || media.caption || "Story media"}
+            loading={eager ? "eager" : "lazy"}
+            src={media.url}
+          />
+        )}
+      </StoryImageWrap>
+      {showCaption && media.caption ? <StoryMediaCaption>{media.caption}</StoryMediaCaption> : null}
+    </>
+  );
+}
+
 function StoryList({ emptyLabel, items = [], locale }) {
   if (!items.length) {
     return <EmptyState>{emptyLabel}</EmptyState>;
@@ -369,32 +447,32 @@ function StoryList({ emptyLabel, items = [], locale }) {
 
   return (
     <StoryGrid>
-      {items.map((item) => (
-        <StoryCard key={item.id}>
-          {item.image?.url ? (
-            <StoryImageWrap>
-              <StoryImage alt={item.image.alt} src={item.image.url} />
-            </StoryImageWrap>
-          ) : null}
-          <StoryBody>
-            <MetaRow>
-              {item.publishedAt ? <MetaBadge>{formatDateLabel(locale, item.publishedAt)}</MetaBadge> : null}
-              <MetaBadge>{item.sourceName}</MetaBadge>
-            </MetaRow>
-            <StoryTitleLink href={item.path}>{item.title}</StoryTitleLink>
-            <StorySummary>{item.summary}</StorySummary>
-            {item.categories?.length ? (
-              <ChipRow>
-                {item.categories.map((category) => (
-                  <ChipLink href={category.path} key={category.slug}>
-                    {category.name}
-                  </ChipLink>
-                ))}
-              </ChipRow>
-            ) : null}
-          </StoryBody>
-        </StoryCard>
-      ))}
+      {items.map((item) => {
+        const primaryMedia = item.primaryMedia || (item.image?.url ? { ...item.image, kind: "image" } : null);
+
+        return (
+          <StoryCard $hasMedia={Boolean(primaryMedia)} key={item.id}>
+            {primaryMedia ? renderStoryMedia(primaryMedia) : null}
+            <StoryBody $compact={!primaryMedia}>
+              <MetaRow>
+                {item.publishedAt ? <MetaBadge>{formatDateLabel(locale, item.publishedAt)}</MetaBadge> : null}
+                <MetaBadge>{item.sourceName}</MetaBadge>
+              </MetaRow>
+              <StoryTitleLink href={item.path}>{item.title}</StoryTitleLink>
+              <StorySummary>{item.summary}</StorySummary>
+              {item.categories?.length ? (
+                <ChipRow>
+                  {item.categories.map((category) => (
+                    <ChipLink href={category.path} key={category.slug}>
+                      {category.name}
+                    </ChipLink>
+                  ))}
+                </ChipRow>
+              ) : null}
+            </StoryBody>
+          </StoryCard>
+        );
+      })}
     </StoryGrid>
   );
 }
@@ -406,7 +484,7 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
     <PageMain>
       <PublicViewTracker eventType="WEBSITE_VIEW" locale={locale} />
       <Hero>
-        <Eyebrow>{pageContent.eyebrow || "Latest coverage"}</Eyebrow>
+        {pageContent.eyebrow ? <Eyebrow>{pageContent.eyebrow}</Eyebrow> : null}
         <Title>{pageContent.title}</Title>
         <Description>{pageContent.description}</Description>
         <SummaryGrid>
@@ -551,6 +629,10 @@ export function PublicCollectionPage({
 export function PublicStoryPage({ locale, messages, pageData }) {
   const common = messages.common || {};
   const article = pageData.article;
+  const primaryMedia = article.primaryMedia || (article.image?.url ? { ...article.image, kind: "image" } : null);
+  const additionalMedia = (article.media || []).filter(
+    (media) => getMediaIdentity(media) !== getMediaIdentity(primaryMedia),
+  );
 
   return (
     <PageMain>
@@ -581,11 +663,22 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
       <ContentGrid>
         <div style={{ display: "grid", gap: "1.1rem" }}>
-          {article.image?.url ? (
+          {primaryMedia ? (
             <Panel>
-              <StoryImagePanel>
-                <StoryImage alt={article.image.alt} src={article.image.url} />
-              </StoryImagePanel>
+              <StoryImagePanel>{renderStoryMedia(primaryMedia, { eager: true })}</StoryImagePanel>
+            </Panel>
+          ) : null}
+
+          {additionalMedia.length ? (
+            <Panel>
+              <SectionTitle>Media</SectionTitle>
+              <StoryMediaGallery>
+                {additionalMedia.map((media) => (
+                  <StoryImagePanel key={getMediaIdentity(media)}>
+                    {renderStoryMedia(media)}
+                  </StoryImagePanel>
+                ))}
+              </StoryMediaGallery>
             </Panel>
           ) : null}
 

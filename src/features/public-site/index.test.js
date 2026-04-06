@@ -219,4 +219,123 @@ describe("public site data", () => {
       title: "Related story",
     });
   });
+
+  it("maps source media from structured content and source-image fallbacks", async () => {
+    const prisma = {
+      post: {
+        findFirst: vi.fn().mockResolvedValue(createPublishedPost({
+          featuredImage: null,
+          sourceArticle: {
+            imageUrl: "https://cdn.example.com/source-fallback.jpg",
+          },
+          translations: [
+            {
+              contentHtml: "<p>Story body with media.</p>",
+              contentMd: "Story body with media.",
+              locale: "en",
+              seoRecord: null,
+              sourceAttribution: "Source: Example Source - https://example.com/story",
+              structuredContentJson: {
+                sections: [
+                  {
+                    images: [
+                      {
+                        alt: "Gallery image",
+                        sourceUrl: "https://cdn.example.com/gallery-image.jpg",
+                      },
+                    ],
+                    kind: "image_gallery",
+                    title: "Gallery",
+                    videos: [
+                      {
+                        mimeType: "video/mp4",
+                        posterUrl: "https://cdn.example.com/video-poster.jpg",
+                        sourceUrl: "https://cdn.example.com/story-video.mp4",
+                        title: "Story video",
+                      },
+                    ],
+                  },
+                ],
+              },
+              summary: "Breaking story summary",
+              title: "Breaking story",
+            },
+          ],
+        })),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const { getPublishedStoryPageData, getPublishedNewsIndexData } = await import("./index");
+
+    const storyPageData = await getPublishedStoryPageData(
+      {
+        locale: "en",
+        slug: "breaking-story",
+      },
+      prisma,
+    );
+    const listingData = await getPublishedNewsIndexData({ locale: "en" }, {
+      post: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([
+          createPublishedPost({
+            featuredImage: null,
+            sourceArticle: {
+              imageUrl: "https://cdn.example.com/source-fallback.jpg",
+            },
+            translations: [
+              {
+                contentHtml: "<p>Story body with media.</p>",
+                contentMd: "Story body with media.",
+                locale: "en",
+                seoRecord: null,
+                sourceAttribution: "Source: Example Source - https://example.com/story",
+                structuredContentJson: {
+                  sections: [
+                    {
+                      kind: "image_gallery",
+                      title: "Gallery",
+                      videos: [
+                        {
+                          mimeType: "video/mp4",
+                          sourceUrl: "https://cdn.example.com/story-video.mp4",
+                          title: "Story video",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                summary: "Breaking story summary",
+                title: "Breaking story",
+              },
+            ],
+          }),
+        ]),
+      },
+    });
+
+    expect(storyPageData.article.image).toMatchObject({
+      url: "https://cdn.example.com/source-fallback.jpg",
+    });
+    expect(storyPageData.article.media).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "image",
+          url: "https://cdn.example.com/gallery-image.jpg",
+        }),
+        expect.objectContaining({
+          kind: "video",
+          url: "https://cdn.example.com/story-video.mp4",
+        }),
+      ]),
+    );
+    expect(storyPageData.article.primaryMedia).toMatchObject({
+      kind: "image",
+      url: "https://cdn.example.com/gallery-image.jpg",
+    });
+    expect(listingData.items[0].primaryMedia).toMatchObject({
+      kind: "video",
+      url: "https://cdn.example.com/story-video.mp4",
+    });
+  });
 });

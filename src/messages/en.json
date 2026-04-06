@@ -41,14 +41,14 @@
       "updatedLabel": "Updated"
     },
     "home": {
-      "eyebrow": "Release 1",
-      "title": "Published stories from configured news streams.",
-      "description": "NewsPub fetches broadly, filters locally, keeps canonical render artifacts editable, and publishes approved stories to the website and connected destinations.",
-      "featuredTitle": "Featured story",
-      "latestTitle": "Latest stories",
-      "discoveryTitle": "Top categories",
+      "eyebrow": "Latest coverage",
+      "title": "Source-based news, published clearly.",
+      "description": "Browse approved stories curated from trusted sources and organized for fast reading.",
+      "featuredTitle": "Featured",
+      "latestTitle": "Latest",
+      "discoveryTitle": "Categories",
       "metaTitle": "NewsPub home",
-      "metaDescription": "Browse the latest published NewsPub stories, categories, and search-driven discovery pages."
+      "metaDescription": "Browse approved NewsPub stories, categories, and recent coverage."
     },
     "news": {
       "eyebrow": "Published library",

@@ -1,6 +1,7 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
+import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
 /**
@@ -32,7 +33,7 @@ function mapImage(asset, fallbackAlt = "Story image") {
     return null;
   }
 
-  const url = asset.publicUrl || asset.sourceUrl || null;
+  const url = sanitizeMediaUrl(asset.publicUrl || asset.sourceUrl || "");
 
   return url
     ? {
@@ -43,6 +44,241 @@ function mapImage(asset, fallbackAlt = "Story image") {
         width: asset.width || null,
       }
     : null;
+}
+
+const imageExtensions = new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"]);
+const videoExtensions = new Set([".m4v", ".mov", ".mp4", ".ogg", ".ogv", ".webm"]);
+
+function getUrlPathname(url) {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function getUrlExtension(url) {
+  const pathname = getUrlPathname(url);
+  const lastDotIndex = pathname.lastIndexOf(".");
+
+  return lastDotIndex >= 0 ? pathname.slice(lastDotIndex) : "";
+}
+
+function isVideoLikeValue(value) {
+  return trimText(value).toLowerCase().includes("video");
+}
+
+function isImageLikeValue(value) {
+  return trimText(value).toLowerCase().includes("image");
+}
+
+function resolveYouTubeEmbedUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const videoId = parsedUrl.pathname.split("/").filter(Boolean)[0];
+
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (parsedUrl.pathname === "/watch") {
+        const videoId = parsedUrl.searchParams.get("v");
+
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      }
+
+      if (parsedUrl.pathname.startsWith("/embed/")) {
+        return parsedUrl.toString();
+      }
+
+      const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+
+      if ((pathParts[0] === "shorts" || pathParts[0] === "live") && pathParts[1]) {
+        return `https://www.youtube.com/embed/${pathParts[1]}`;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function resolveVimeoEmbedUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
+
+    if (host !== "vimeo.com" && host !== "player.vimeo.com") {
+      return null;
+    }
+
+    if (host === "player.vimeo.com" && parsedUrl.pathname.startsWith("/video/")) {
+      return parsedUrl.toString();
+    }
+
+    const videoId = parsedUrl.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part));
+
+    return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveEmbeddableVideoUrl(url) {
+  return sanitizeExternalUrl(resolveYouTubeEmbedUrl(url) || resolveVimeoEmbedUrl(url) || "");
+}
+
+function inferMediaKind({ kind, mimeType, type, url }) {
+  const normalizedMimeType = trimText(mimeType).toLowerCase();
+
+  if (isVideoLikeValue(kind) || isVideoLikeValue(type) || normalizedMimeType.startsWith("video/")) {
+    return "video";
+  }
+
+  if (isImageLikeValue(kind) || isImageLikeValue(type) || normalizedMimeType.startsWith("image/")) {
+    return "image";
+  }
+
+  const extension = getUrlExtension(url);
+
+  if (videoExtensions.has(extension)) {
+    return "video";
+  }
+
+  if (imageExtensions.has(extension)) {
+    return "image";
+  }
+
+  if (resolveEmbeddableVideoUrl(url)) {
+    return "embed";
+  }
+
+  return "image";
+}
+
+function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
+  const safeUrl = sanitizeMediaUrl(url);
+
+  return safeUrl
+    ? {
+        alt: metadata.alt || metadata.caption || fallbackAlt,
+        caption: metadata.caption || null,
+        height: metadata.height || null,
+        url: safeUrl,
+        width: metadata.width || null,
+      }
+    : null;
+}
+
+function mapMediaItem(rawItem, fallbackAlt = "Story media") {
+  const sourceUrl =
+    rawItem?.url
+    || rawItem?.src
+    || rawItem?.sourceUrl
+    || rawItem?.publicUrl
+    || rawItem?.videoUrl
+    || "";
+  const mediaKind = inferMediaKind({
+    kind: rawItem?.kind,
+    mimeType: rawItem?.mimeType,
+    type: rawItem?.type,
+    url: sourceUrl,
+  });
+
+  if (mediaKind === "embed") {
+    const embedUrl = resolveEmbeddableVideoUrl(sourceUrl);
+
+    return embedUrl
+      ? {
+          alt: rawItem?.alt || rawItem?.title || fallbackAlt,
+          caption: rawItem?.caption || rawItem?.description || null,
+          embedUrl,
+          kind: "embed",
+          posterUrl: sanitizeMediaUrl(rawItem?.posterUrl || rawItem?.poster || rawItem?.thumbnailUrl || ""),
+          sourceUrl: sanitizeExternalUrl(sourceUrl),
+          title: rawItem?.title || null,
+        }
+      : null;
+  }
+
+  if (mediaKind === "video") {
+    const safeUrl = sanitizeMediaUrl(sourceUrl);
+
+    return safeUrl
+      ? {
+          alt: rawItem?.alt || rawItem?.title || fallbackAlt,
+          caption: rawItem?.caption || rawItem?.description || null,
+          kind: "video",
+          mimeType: rawItem?.mimeType || null,
+          posterUrl: sanitizeMediaUrl(rawItem?.posterUrl || rawItem?.poster || rawItem?.thumbnailUrl || ""),
+          sourceUrl: safeUrl,
+          title: rawItem?.title || null,
+          url: safeUrl,
+        }
+      : null;
+  }
+
+  const image = mapRemoteImage(sourceUrl, fallbackAlt, rawItem);
+
+  return image
+    ? {
+        ...image,
+        kind: "image",
+        sourceUrl: image.url,
+      }
+    : null;
+}
+
+function appendUniqueMedia(items, media) {
+  if (!media?.kind) {
+    return items;
+  }
+
+  const mediaKey = `${media.kind}:${media.embedUrl || media.url || media.sourceUrl || ""}`;
+
+  if (!mediaKey || items.some((item) => `${item.kind}:${item.embedUrl || item.url || item.sourceUrl || ""}` === mediaKey)) {
+    return items;
+  }
+
+  items.push(media);
+
+  return items;
+}
+
+function extractStructuredMedia(structuredContentJson, fallbackAlt = "Story media") {
+  if (!structuredContentJson || typeof structuredContentJson !== "object") {
+    return [];
+  }
+
+  const media = [];
+
+  for (const section of Array.isArray(structuredContentJson.sections) ? structuredContentJson.sections : []) {
+    const sectionAlt = trimText(section?.title) || fallbackAlt;
+    const imageCandidates = Array.isArray(section?.images) ? section.images : [];
+    const videoCandidates = [
+      ...(Array.isArray(section?.videos) ? section.videos : []),
+      ...(section?.video ? [section.video] : []),
+    ];
+    const mixedCandidates = Array.isArray(section?.media)
+      ? section.media
+      : section?.media && typeof section.media === "object"
+        ? [section.media]
+        : [];
+
+    if (section?.kind === "image" || section?.kind === "video") {
+      appendUniqueMedia(media, mapMediaItem(section, sectionAlt));
+    }
+
+    for (const candidate of [...imageCandidates, ...videoCandidates, ...mixedCandidates]) {
+      appendUniqueMedia(media, mapMediaItem(candidate, sectionAlt));
+    }
+  }
+
+  return media;
 }
 
 function mapCategory(category, locale) {
@@ -57,7 +293,12 @@ function mapCategory(category, locale) {
 
 function mapPostCard(post, locale = defaultLocale) {
   const translation = pickTranslation(post.translations || [], locale);
-  const image = mapImage(post.featuredImage, translation?.title || post.slug);
+  const fallbackAlt = translation?.title || post.slug;
+  const image = mapImage(post.featuredImage, fallbackAlt)
+    || mapRemoteImage(post.sourceArticle?.imageUrl, fallbackAlt);
+  const media = extractStructuredMedia(translation?.structuredContentJson, fallbackAlt);
+  const primaryMedia = media[0]
+    || (image ? { ...image, kind: "image", sourceUrl: image.url } : null);
 
   return {
     categories: (post.categories || []).map(({ category }) => mapCategory(category, translation?.locale || locale)),
@@ -65,6 +306,7 @@ function mapPostCard(post, locale = defaultLocale) {
     image,
     locale: translation?.locale || locale,
     path: buildLocalizedPath(translation?.locale || locale, publicRouteSegments.newsPost(post.slug)),
+    primaryMedia,
     providerKey: post.providerKey,
     publishedAt: serializeDate(post.publishedAt),
     slug: post.slug,
@@ -100,6 +342,11 @@ const publicPostInclude = Object.freeze({
     where: {
       platform: "WEBSITE",
       status: "SUCCEEDED",
+    },
+  },
+  sourceArticle: {
+    select: {
+      imageUrl: true,
     },
   },
   translations: {
@@ -413,7 +660,11 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
       ],
     }),
   });
-  const image = mapImage(post.featuredImage, translation.title);
+  const image = mapImage(post.featuredImage, translation.title)
+    || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
+  const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
+  const primaryMedia = media[0]
+    || (image ? { ...image, kind: "image", sourceUrl: image.url } : null);
   const article = {
     canonicalUrl:
       translation.seoRecord?.canonicalUrl ||
@@ -423,6 +674,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     contentMd: translation.contentMd,
     id: post.id,
     image,
+    media,
     keywords: Array.isArray(translation.seoRecord?.keywordsJson)
       ? translation.seoRecord.keywordsJson
       : [],
@@ -430,6 +682,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     metaDescription: translation.seoRecord?.metaDescription || translation.summary,
     metaTitle: translation.seoRecord?.metaTitle || translation.title,
     path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
+    primaryMedia,
     providerKey: post.providerKey,
     publishedAt: serializeDate(post.publishedAt),
     seoImage:
