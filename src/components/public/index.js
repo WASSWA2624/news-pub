@@ -2,6 +2,7 @@ import Link from "next/link";
 import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
+import SearchableSelect from "@/components/common/searchable-select";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
 import ShareActions from "@/components/public/share-actions";
@@ -655,12 +656,14 @@ const SearchInput = styled.input`
   }
 `;
 
-const SearchSelect = styled.select`
-  background: white;
-  border: 1px solid rgba(16, 32, 51, 0.12);
-  border-radius: 12px;
-  min-height: 42px;
-  padding: 0.62rem 0.76rem;
+const SearchSelect = styled(SearchableSelect)`
+  width: 100%;
+
+  button {
+    border-radius: 12px;
+    min-height: 42px;
+    padding: 0.52rem 0.7rem;
+  }
 `;
 
 const ActionButton = styled.button`
@@ -1731,6 +1734,13 @@ export function PublicCollectionPage({
   const common = messages.common || {};
   const countryOptions = Array.isArray(searchFilters.countries) ? searchFilters.countries : [];
   const searchPath = buildLocalizedPath(locale, publicRouteSegments.search);
+  const countryFilterOptions = [
+    {
+      label: common.allCountriesOption || "All countries",
+      value: "all",
+    },
+    ...countryOptions,
+  ];
 
   return (
     <PageMain>
@@ -1769,15 +1779,12 @@ export function PublicCollectionPage({
             <SearchSelect
               aria-label={common.countryFilterLabel || "Filter by country"}
               defaultValue={collectionCountry}
+              key={`country-filter-${collectionCountry}`}
               name="country"
-            >
-              <option value="all">{common.allCountriesOption || "All countries"}</option>
-              {countryOptions.map((country) => (
-                <option key={country.value} value={country.value}>
-                  {country.flagEmoji ? `${country.flagEmoji} ` : ""}{country.label}
-                </option>
-              ))}
-            </SearchSelect>
+              options={countryFilterOptions}
+              placeholder={common.countryFilterLabel || "Filter by country"}
+              searchPlaceholder={common.countryFilterLabel || "Filter by country"}
+            />
             <ActionButton type="submit">
               <AppIcon name="search" size={14} />
               {common.searchAction || "Search"}

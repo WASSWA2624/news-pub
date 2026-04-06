@@ -1,4 +1,5 @@
 import { sharedEnv } from "@/lib/env/shared";
+import { formatLanguageFlagEmoji, formatLanguageFlagImageUrl } from "@/lib/languages";
 
 export const localeRegistry = {
   en: {
@@ -52,6 +53,8 @@ function compareLocaleDefinitions(left, right) {
 function createLocaleMetadata(code, definition) {
   return {
     code,
+    flagEmoji: formatLanguageFlagEmoji(code),
+    flagImageUrl: formatLanguageFlagImageUrl(code),
     isActive: isSupportedLocale(code),
     isDefault: code === defaultLocale,
     label: definition.label,

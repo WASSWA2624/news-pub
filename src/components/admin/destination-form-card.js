@@ -1,12 +1,12 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import {
   ActionIcon,
-  ButtonRow,
   ButtonIcon,
+  ButtonRow,
   CheckboxChip,
   CheckboxRow,
   Field,
@@ -20,6 +20,7 @@ import {
   NoticeList,
   NoticeTitle,
   PrimaryButton,
+  SecondaryButton,
   SmallText,
   Textarea,
   formatEnumLabel,
@@ -31,6 +32,56 @@ import {
   getDestinationPlatformForKind,
   getDestinationValidationIssues,
 } from "@/lib/validation/configuration";
+
+function trimText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeSettings(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function toPositiveInteger(value, fallbackValue = null) {
+  const parsedValue = Number.parseInt(`${value ?? ""}`, 10);
+
+  if (Number.isInteger(parsedValue) && parsedValue > 0) {
+    return parsedValue;
+  }
+
+  return fallbackValue;
+}
+
+function safeParseJsonObject(value) {
+  const normalizedValue = trimText(value);
+
+  if (!normalizedValue) {
+    return {
+      error: "",
+      value: {},
+    };
+  }
+
+  try {
+    const parsedValue = JSON.parse(normalizedValue);
+
+    if (!parsedValue || typeof parsedValue !== "object" || Array.isArray(parsedValue)) {
+      return {
+        error: "Advanced settings must be a valid JSON object.",
+        value: {},
+      };
+    }
+
+    return {
+      error: "",
+      value: parsedValue,
+    };
+  } catch {
+    return {
+      error: "Advanced settings must be valid JSON before saving.",
+      value: {},
+    };
+  }
+}
 
 function buildKindOptions(kindOptions, platform) {
   return kindOptions.map((option) => {
@@ -47,114 +98,342 @@ function buildKindOptions(kindOptions, platform) {
   });
 }
 
-const DestinationFieldGrid = styled(FieldGrid)`
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-`;
+function encodeDiscoveryValue(sourceKey, targetId) {
+  const normalizedSourceKey = trimText(sourceKey);
+  const normalizedTargetId = trimText(targetId);
+
+  if (!normalizedSourceKey || !normalizedTargetId) {
+    return "";
+  }
+
+  return `${normalizedSourceKey}|${normalizedTargetId}`;
+}
+
+function decodeDiscoveryValue(value) {
+  const normalizedValue = trimText(value);
+  const separatorIndex = normalizedValue.indexOf("|");
+
+  if (separatorIndex <= 0) {
+    return {
+      sourceKey: "",
+      targetId: "",
+    };
+  }
+
+  return {
+    sourceKey: normalizedValue.slice(0, separatorIndex),
+    targetId: normalizedValue.slice(separatorIndex + 1),
+  };
+}
+
+function removeKnownMetaSettings(settingsJson) {
+  const nextSettings = {
+    ...normalizeSettings(settingsJson),
+  };
+
+  ["graphApiBaseUrl", "instagramUserId", "pageId", "profileId", "socialGuardrails", "useDestinationCredentialOverrides"].forEach((key) => {
+    delete nextSettings[key];
+  });
+
+  return nextSettings;
+}
+
+function buildInitialSocialGuardrails(settingsJson, defaults) {
+  const settings = normalizeSettings(settingsJson);
+  const overrides = normalizeSettings(settings.socialGuardrails);
+
+  return Object.entries(defaults || {}).reduce((result, [key, fallbackValue]) => {
+    result[key] = `${toPositiveInteger(overrides[key], fallbackValue) || fallbackValue}`;
+    return result;
+  }, {});
+}
+
+function normalizeMetaCredentialDefaults(metaConfig, slug) {
+  const normalizedSlug = trimText(slug);
+  const credentialDefaults = metaConfig?.credentialDefaultsBySlug?.[normalizedSlug];
+
+  if (!credentialDefaults || typeof credentialDefaults !== "object" || Array.isArray(credentialDefaults)) {
+    return null;
+  }
+
+  return {
+    externalAccountId: trimText(credentialDefaults.externalAccountId),
+    graphApiBaseUrl: trimText(credentialDefaults.graphApiBaseUrl),
+    hasAccessToken: Boolean(credentialDefaults.hasAccessToken),
+    instagramUserId: trimText(credentialDefaults.instagramUserId),
+    pageId: trimText(credentialDefaults.pageId),
+    profileId: trimText(credentialDefaults.profileId),
+    sourceLabel: trimText(credentialDefaults.sourceLabel),
+  };
+}
+
+function hasMetaCredentialDefaults(credentialDefaults) {
+  return Boolean(
+    credentialDefaults
+      && (
+        credentialDefaults.hasAccessToken
+        || credentialDefaults.externalAccountId
+        || credentialDefaults.graphApiBaseUrl
+        || credentialDefaults.instagramUserId
+        || credentialDefaults.pageId
+        || credentialDefaults.profileId
+      ),
+  );
+}
+
+function getPrimaryAccountIdForKind(kind, values = {}) {
+  const normalizedKind = trimText(kind).toUpperCase();
+  const normalizedExternalAccountId = trimText(values.externalAccountId);
+
+  if (normalizedExternalAccountId) {
+    return normalizedExternalAccountId;
+  }
+
+  if (normalizedKind === "FACEBOOK_PAGE") {
+    return trimText(values.pageId);
+  }
+
+  if (normalizedKind === "FACEBOOK_PROFILE") {
+    return trimText(values.profileId);
+  }
+
+  if (["INSTAGRAM_BUSINESS", "INSTAGRAM_PERSONAL"].includes(normalizedKind)) {
+    return trimText(values.instagramUserId);
+  }
+
+  return "";
+}
+
+function buildEffectiveCredentialState({
+  destination = null,
+  kind = "",
+  metaConfig = {},
+  slug = "",
+} = {}) {
+  const settingsJson = normalizeSettings(destination?.settingsJson);
+  const credentialDefaults = normalizeMetaCredentialDefaults(metaConfig, slug);
+  const hasCredentialDefaults = hasMetaCredentialDefaults(credentialDefaults);
+  const useDestinationCredentialOverrides = settingsJson.useDestinationCredentialOverrides === true || !hasCredentialDefaults;
+  const sourceValues = useDestinationCredentialOverrides
+    ? {
+        externalAccountId: trimText(destination?.externalAccountId),
+        graphApiBaseUrl: trimText(settingsJson.graphApiBaseUrl),
+        instagramUserId: trimText(settingsJson.instagramUserId),
+        pageId: trimText(settingsJson.pageId),
+        profileId: trimText(settingsJson.profileId),
+      }
+    : {
+        externalAccountId: credentialDefaults?.externalAccountId || "",
+        graphApiBaseUrl: credentialDefaults?.graphApiBaseUrl || "",
+        instagramUserId: credentialDefaults?.instagramUserId || "",
+        pageId: credentialDefaults?.pageId || "",
+        profileId: credentialDefaults?.profileId || "",
+      };
+
+  return {
+    credentialDefaults,
+    externalAccountId:
+      getPrimaryAccountIdForKind(kind, sourceValues)
+      || trimText(sourceValues.externalAccountId),
+    graphApiBaseUrl:
+      trimText(sourceValues.graphApiBaseUrl)
+      || metaConfig?.defaultGraphApiBaseUrl
+      || "https://graph.facebook.com/v22.0",
+    hasCredentialDefaults,
+    instagramUserId: trimText(sourceValues.instagramUserId),
+    pageId: trimText(sourceValues.pageId),
+    profileId: trimText(sourceValues.profileId),
+    useDestinationCredentialOverrides,
+  };
+}
+
+function buildMetaCredentialDefaultsPreview(credentialDefaults) {
+  if (!hasMetaCredentialDefaults(credentialDefaults)) {
+    return "{}";
+  }
+
+  return JSON.stringify(
+    {
+      accessToken: credentialDefaults.hasAccessToken ? "[Configured in environment]" : null,
+      externalAccountId: credentialDefaults.externalAccountId || null,
+      graphApiBaseUrl: credentialDefaults.graphApiBaseUrl || null,
+      instagramUserId: credentialDefaults.instagramUserId || null,
+      pageId: credentialDefaults.pageId || null,
+      profileId: credentialDefaults.profileId || null,
+    },
+    null,
+    2,
+  );
+}
+
+function buildDestinationSettingsPayload({
+  advancedSettings = {},
+  defaults = {},
+  graphApiBaseUrl = "",
+  instagramUserId = "",
+  kind = "",
+  pageId = "",
+  profileId = "",
+  socialGuardrails = {},
+  useDestinationCredentialOverrides = false,
+} = {}) {
+  const nextSettings = {
+    ...normalizeSettings(advancedSettings),
+  };
+  const normalizedKind = trimText(kind).toUpperCase();
+  const normalizedGraphApiBaseUrl = trimText(graphApiBaseUrl);
+  const normalizedPageId = trimText(pageId);
+  const normalizedProfileId = trimText(profileId);
+  const normalizedInstagramUserId = trimText(instagramUserId);
+  const nextSocialGuardrails = Object.entries(defaults).reduce((result, [key, fallbackValue]) => {
+    const nextValue = toPositiveInteger(socialGuardrails[key]);
+
+    if (nextValue && nextValue !== fallbackValue && key !== "defaultGraphApiBaseUrl") {
+      result[key] = nextValue;
+    }
+
+    return result;
+  }, {});
+
+  if (normalizedGraphApiBaseUrl && normalizedGraphApiBaseUrl !== trimText(defaults.defaultGraphApiBaseUrl)) {
+    nextSettings.graphApiBaseUrl = normalizedGraphApiBaseUrl;
+  }
+
+  if (Object.keys(nextSocialGuardrails).length) {
+    nextSettings.socialGuardrails = nextSocialGuardrails;
+  }
+
+  if (useDestinationCredentialOverrides) {
+    nextSettings.useDestinationCredentialOverrides = true;
+  }
+
+  if (normalizedKind === "FACEBOOK_PAGE" && normalizedPageId) {
+    nextSettings.pageId = normalizedPageId;
+  }
+
+  if (normalizedKind === "FACEBOOK_PROFILE" && normalizedProfileId) {
+    nextSettings.profileId = normalizedProfileId;
+  }
+
+  if (["INSTAGRAM_BUSINESS", "INSTAGRAM_PERSONAL"].includes(normalizedKind) && normalizedInstagramUserId) {
+    nextSettings.instagramUserId = normalizedInstagramUserId;
+  }
+
+  if (normalizedKind === "INSTAGRAM_BUSINESS" && normalizedPageId) {
+    nextSettings.pageId = normalizedPageId;
+  }
+
+  return nextSettings;
+}
+
+function formatAccountHandle(username, fallbackValue = "") {
+  const normalizedUsername = trimText(username);
+
+  if (normalizedUsername) {
+    return normalizedUsername.startsWith("@") ? normalizedUsername : `@${normalizedUsername}`;
+  }
+
+  return trimText(fallbackValue);
+}
+
+function buildFacebookPageOptions(discoverySnapshot) {
+  return (discoverySnapshot?.pages || []).map((page) => ({
+    badge: page.username || page.sourceLabel || "page",
+    description: [
+      page.tasks?.length ? `Tasks: ${page.tasks.join(", ")}.` : "Meta did not report publish tasks for this page.",
+      page.instagramAccounts?.length
+        ? `Linked Instagram: ${page.instagramAccounts
+            .map((instagramAccount) => {
+              const username = trimText(instagramAccount.username);
+
+              return username ? `@${username}` : instagramAccount.id;
+            })
+            .join(", ")}.`
+        : "No linked Instagram account reported.",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    label: page.name || page.username || page.id,
+    pageId: page.id,
+    sourceKey: page.sourceKey,
+    username: page.username,
+    value: encodeDiscoveryValue(page.sourceKey, page.id),
+  }));
+}
+
+function buildInstagramAccountOptions(discoverySnapshot) {
+  return (discoverySnapshot?.instagramAccounts || []).map((instagramAccount) => ({
+    badge: instagramAccount.accountType || instagramAccount.sourceLabel || "instagram",
+    connectedPageId: instagramAccount.connectedPageId || "",
+    description: [
+      instagramAccount.accountType ? `Account type: ${formatEnumLabel(instagramAccount.accountType)}.` : "",
+      instagramAccount.connectedPageName ? `Connected page: ${instagramAccount.connectedPageName}.` : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    label: instagramAccount.username ? `@${instagramAccount.username}` : instagramAccount.id,
+    sourceKey: instagramAccount.sourceKey,
+    username: instagramAccount.username,
+    value: encodeDiscoveryValue(instagramAccount.sourceKey, instagramAccount.id),
+  }));
+}
+
+const socialGuardrailFieldDefinitions = Object.freeze([
+  {
+    envField: "META_SOCIAL_MIN_POST_INTERVAL_MINUTES",
+    key: "minPostIntervalMinutes",
+    label: "Minimum post interval",
+    suffix: "minutes",
+  },
+  {
+    envField: "META_SOCIAL_DUPLICATE_COOLDOWN_HOURS",
+    key: "duplicateCooldownHours",
+    label: "Duplicate cooldown",
+    suffix: "hours",
+  },
+  {
+    envField: "META_FACEBOOK_MAX_POSTS_PER_24H",
+    key: "facebookMaxPostsPer24Hours",
+    label: "Facebook daily cap",
+    suffix: "posts",
+  },
+  {
+    envField: "META_INSTAGRAM_MAX_POSTS_PER_24H",
+    key: "instagramMaxPostsPer24Hours",
+    label: "Instagram daily cap",
+    suffix: "posts",
+  },
+  {
+    envField: "META_INSTAGRAM_MAX_HASHTAGS",
+    key: "instagramMaxHashtags",
+    label: "Instagram hashtag limit",
+    suffix: "hashtags",
+  },
+]);
 
 const DestinationForm = styled.form`
   display: grid;
   gap: 0.95rem;
 `;
 
-const SetupBanner = styled.div`
-  background:
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 52%),
-    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.96));
+const SectionSurface = styled.div`
+  background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 16px;
   display: grid;
-  gap: 0.72rem;
+  gap: 0.7rem;
   padding: 0.9rem;
 `;
 
-const SetupHeader = styled.div`
-  display: grid;
-  gap: 0.16rem;
-`;
-
-const SetupEyebrow = styled.span`
-  color: #0f5f79;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-`;
-
-const SetupTitle = styled.strong`
-  color: #162744;
-  font-size: 0.94rem;
-  letter-spacing: -0.02em;
-`;
-
-const SetupGrid = styled.div`
-  display: grid;
-  gap: 0.5rem;
-
-  @media (min-width: 760px) {
+const WideGrid = styled(FieldGrid)`
+  @media (min-width: 1180px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 `;
 
-const SetupCard = styled.div`
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: 12px;
-  display: grid;
-  gap: 0.18rem;
-  padding: 0.72rem;
-`;
-
-const SetupStep = styled.span`
-  color: rgba(73, 87, 112, 0.82);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-`;
-
-const SetupCardTitle = styled.strong`
-  color: #182742;
-  font-size: 0.81rem;
-`;
-
-const SetupCardText = styled.p`
-  color: rgba(72, 85, 108, 0.9);
-  font-size: 0.75rem;
-  line-height: 1.42;
-  margin: 0;
-`;
-
-const IdentityGrid = styled(DestinationFieldGrid)`
-  @media (min-width: 1180px) {
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(320px, 1fr);
-  }
-`;
-
-const RoutingGrid = styled(DestinationFieldGrid)`
-  @media (min-width: 1180px) {
-    grid-template-columns: minmax(300px, 1.15fr) minmax(260px, 1fr) minmax(0, 1fr);
-  }
-`;
-
-const SectionSurface = styled.div`
-  background:
-    linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(255, 255, 255, 0.96)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 54%);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.9rem;
-`;
-
-const FooterSurface = styled.div`
-  display: grid;
-  gap: 0.65rem;
-`;
-
 const FieldHelp = styled.div`
   display: grid;
-  gap: 0.38rem;
+  gap: 0.35rem;
 `;
 
 const ExampleBlock = styled.pre`
@@ -221,50 +500,335 @@ export default function DestinationFormCard({
   connectionStatusOptions = [],
   destination = null,
   kindOptions = [],
+  metaConfig = {
+    appId: null,
+    credentialDefaultsBySlug: {},
+    defaultGraphApiBaseUrl: "https://graph.facebook.com/v22.0",
+    hasAppCredentials: false,
+    socialGuardrails: {},
+  },
   platformOptions = [],
   submitLabel,
 }) {
+  const initialSettings = useMemo(() => {
+    const settingsJson = normalizeSettings(destination?.settingsJson);
+    const initialSlug = `${destination?.slug || ""}`;
+    const initialKind = `${destination?.kind || "WEBSITE"}`;
+    const initialCredentialState = buildEffectiveCredentialState({
+      destination,
+      kind: initialKind,
+      metaConfig,
+      slug: initialSlug,
+    });
+
+    return {
+      advancedSettingsJson: JSON.stringify(removeKnownMetaSettings(settingsJson), null, 2),
+      credentialDefaults: initialCredentialState.credentialDefaults,
+      externalAccountId: initialCredentialState.externalAccountId,
+      graphApiBaseUrl: initialCredentialState.graphApiBaseUrl,
+      hasCredentialDefaults: initialCredentialState.hasCredentialDefaults,
+      instagramUserId: initialCredentialState.instagramUserId,
+      pageId: initialCredentialState.pageId,
+      profileId: initialCredentialState.profileId,
+      socialGuardrails: buildInitialSocialGuardrails(settingsJson, metaConfig?.socialGuardrails || {}),
+      useDestinationCredentialOverrides: initialCredentialState.useDestinationCredentialOverrides,
+    };
+  }, [destination, metaConfig]);
+  const [slug, setSlug] = useState(`${destination?.slug || ""}`);
   const [platform, setPlatform] = useState(`${destination?.platform || "WEBSITE"}`);
   const [kind, setKind] = useState(`${destination?.kind || "WEBSITE"}`);
   const [connectionStatus, setConnectionStatus] = useState(`${destination?.connectionStatus || "DISCONNECTED"}`);
+  const [accountHandle, setAccountHandle] = useState(`${destination?.accountHandle || ""}`);
+  const [useDestinationCredentialOverrides, setUseDestinationCredentialOverrides] = useState(
+    initialSettings.useDestinationCredentialOverrides,
+  );
+  const [externalAccountId, setExternalAccountId] = useState(initialSettings.externalAccountId);
+  const [graphApiBaseUrl, setGraphApiBaseUrl] = useState(initialSettings.graphApiBaseUrl);
+  const [pageId, setPageId] = useState(initialSettings.pageId);
+  const [profileId, setProfileId] = useState(initialSettings.profileId);
+  const [instagramUserId, setInstagramUserId] = useState(initialSettings.instagramUserId);
+  const [tokenValue, setTokenValue] = useState("");
+  const [clearToken, setClearToken] = useState(false);
+  const [advancedSettingsJson, setAdvancedSettingsJson] = useState(initialSettings.advancedSettingsJson);
+  const [socialGuardrails, setSocialGuardrails] = useState(initialSettings.socialGuardrails);
+  const [selectedFacebookPage, setSelectedFacebookPage] = useState("");
+  const [selectedInstagramAccount, setSelectedInstagramAccount] = useState("");
+  const [metaDiscovery, setMetaDiscovery] = useState({
+    data: null,
+    error: "",
+    loaded: false,
+    loading: false,
+  });
   const formId = useId();
   const issues = getDestinationValidationIssues({ kind, platform });
   const allowedKinds = getAllowedDestinationKinds(platform).map((value) => formatEnumLabel(value));
   const resolvedKindOptions = buildKindOptions(kindOptions, platform);
-  const connectionErrorExample = "Graph API returned 190: Invalid OAuth 2.0 Access Token on 2026-04-06. Reconnect with a fresh page token.";
-  const settingsJsonExamplesByKind = {
-    FACEBOOK_PAGE: {
-      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
-      pageId: "123456789012345",
-    },
-    FACEBOOK_PROFILE: {
-      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
-      profileId: "me",
-    },
-    INSTAGRAM_BUSINESS: {
-      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
-      instagramUserId: "17841400000000000",
-    },
-    INSTAGRAM_PERSONAL: {
-      instagramUserId: "17841400000000000",
-    },
-    WEBSITE: {},
-  };
-  const settingsJsonExampleObject = settingsJsonExamplesByKind[kind] || settingsJsonExamplesByKind[platform] || {};
-  const settingsJsonExample = JSON.stringify(settingsJsonExampleObject, null, 2);
-  const settingsJsonExamples = {
-    FACEBOOK_PAGE:
-      '`{"pageId":"123456789012345"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","pageId":"123456789012345"}`',
-    FACEBOOK_PROFILE:
-      '`{"profileId":"me"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","profileId":"me"}`',
-    INSTAGRAM_BUSINESS:
-      '`{"instagramUserId":"17841400000000000"}` or `{"graphApiBaseUrl":"https://graph.facebook.com/v22.0","instagramUserId":"17841400000000000"}`',
-    INSTAGRAM_PERSONAL: '`{"instagramUserId":"17841400000000000"}`',
-    WEBSITE: "`{}`",
-  };
+  const parsedAdvancedSettings = useMemo(() => safeParseJsonObject(advancedSettingsJson), [advancedSettingsJson]);
+  const metaDefaults = useMemo(
+    () => ({
+      ...metaConfig?.socialGuardrails,
+      defaultGraphApiBaseUrl: metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0",
+    }),
+    [metaConfig],
+  );
+  const credentialDefaults = useMemo(() => normalizeMetaCredentialDefaults(metaConfig, slug), [metaConfig, slug]);
+  const hasCredentialDefaults = useMemo(() => hasMetaCredentialDefaults(credentialDefaults), [credentialDefaults]);
+  const shouldPersistCredentialOverrides = useDestinationCredentialOverrides || !hasCredentialDefaults;
+  const shouldPersistCredentialOverrideFlag = useDestinationCredentialOverrides && hasCredentialDefaults;
+  const credentialInputsDisabled = hasCredentialDefaults && !useDestinationCredentialOverrides;
+  const submittedExternalAccountId = shouldPersistCredentialOverrides ? trimText(externalAccountId) : "";
+  const submittedGraphApiBaseUrl = shouldPersistCredentialOverrides ? graphApiBaseUrl : "";
+  const submittedInstagramUserId = shouldPersistCredentialOverrides ? instagramUserId : "";
+  const submittedPageId = shouldPersistCredentialOverrides ? pageId : "";
+  const submittedProfileId = shouldPersistCredentialOverrides ? profileId : "";
+  const credentialDefaultsPreview = useMemo(
+    () => buildMetaCredentialDefaultsPreview(credentialDefaults),
+    [credentialDefaults],
+  );
+  const isMetaPlatform = platform === "FACEBOOK" || platform === "INSTAGRAM";
+  const shouldShowFacebookDiscovery = kind === "FACEBOOK_PAGE";
+  const shouldShowInstagramDiscovery = kind === "INSTAGRAM_BUSINESS";
+  const settingsJsonValue = useMemo(
+    () =>
+      JSON.stringify(
+        buildDestinationSettingsPayload({
+          advancedSettings: parsedAdvancedSettings.value,
+          defaults: metaDefaults,
+          graphApiBaseUrl: submittedGraphApiBaseUrl,
+          instagramUserId: submittedInstagramUserId,
+          kind,
+          pageId: submittedPageId,
+          profileId: submittedProfileId,
+          socialGuardrails,
+          useDestinationCredentialOverrides: shouldPersistCredentialOverrideFlag,
+        }),
+      ),
+    [
+      kind,
+      metaDefaults,
+      parsedAdvancedSettings.value,
+      shouldPersistCredentialOverrideFlag,
+      socialGuardrails,
+      submittedGraphApiBaseUrl,
+      submittedInstagramUserId,
+      submittedPageId,
+      submittedProfileId,
+    ],
+  );
+  const socialGuardrailErrors = useMemo(
+    () =>
+      socialGuardrailFieldDefinitions
+        .filter((field) => !toPositiveInteger(socialGuardrails[field.key]))
+        .map((field) => `${field.label} must be greater than 0.`),
+    [socialGuardrails],
+  );
+  const facebookPageOptions = useMemo(() => buildFacebookPageOptions(metaDiscovery.data), [metaDiscovery.data]);
+  const instagramAccountOptions = useMemo(() => buildInstagramAccountOptions(metaDiscovery.data), [metaDiscovery.data]);
+  const activeFacebookSelection = useMemo(() => decodeDiscoveryValue(selectedFacebookPage), [selectedFacebookPage]);
+  const activeInstagramSelection = useMemo(() => decodeDiscoveryValue(selectedInstagramAccount), [selectedInstagramAccount]);
+  const activeDiscoverySelection = useMemo(() => {
+    if (kind === "FACEBOOK_PAGE") {
+      return {
+        sourceKey: activeFacebookSelection.sourceKey,
+        targetId: activeFacebookSelection.targetId,
+        targetType: activeFacebookSelection.targetId ? "FACEBOOK_PAGE" : "",
+      };
+    }
+
+    if (kind === "INSTAGRAM_BUSINESS") {
+      return {
+        sourceKey: activeInstagramSelection.sourceKey,
+        targetId: activeInstagramSelection.targetId,
+        targetType: activeInstagramSelection.targetId ? "INSTAGRAM_ACCOUNT" : "",
+      };
+    }
+
+    return {
+      sourceKey: "",
+      targetId: "",
+      targetType: "",
+    };
+  }, [activeFacebookSelection.sourceKey, activeFacebookSelection.targetId, activeInstagramSelection.sourceKey, activeInstagramSelection.targetId, kind]);
+  const hasFormErrors = issues.length > 0 || Boolean(parsedAdvancedSettings.error) || socialGuardrailErrors.length > 0;
+
+  function activateCredentialOverrides() {
+    if (hasCredentialDefaults && !useDestinationCredentialOverrides) {
+      setUseDestinationCredentialOverrides(true);
+    }
+
+    if (clearToken) {
+      setClearToken(false);
+    }
+  }
+
+  function resetCredentialOverridesToDefaults() {
+    if (!hasCredentialDefaults) {
+      return;
+    }
+
+    setUseDestinationCredentialOverrides(false);
+    setTokenValue("");
+    setClearToken(true);
+    setSelectedFacebookPage("");
+    setSelectedInstagramAccount("");
+  }
+
+  useEffect(() => {
+    if (!destination) {
+      return;
+    }
+
+    if (hasCredentialDefaults) {
+      return;
+    }
+
+    setUseDestinationCredentialOverrides(true);
+  }, [destination, hasCredentialDefaults]);
+
+  useEffect(() => {
+    if (destination || !hasCredentialDefaults) {
+      return;
+    }
+
+    const hasManualCredentialState = Boolean(
+      trimText(externalAccountId)
+        || trimText(instagramUserId)
+        || trimText(pageId)
+        || trimText(profileId)
+        || trimText(selectedFacebookPage)
+        || trimText(selectedInstagramAccount)
+        || trimText(tokenValue),
+    );
+
+    if (!hasManualCredentialState) {
+      setUseDestinationCredentialOverrides(false);
+    }
+  }, [
+    destination,
+    externalAccountId,
+    hasCredentialDefaults,
+    instagramUserId,
+    pageId,
+    profileId,
+    selectedFacebookPage,
+    selectedInstagramAccount,
+    tokenValue,
+  ]);
+
+  useEffect(() => {
+    if (!hasCredentialDefaults || useDestinationCredentialOverrides) {
+      return;
+    }
+
+    setExternalAccountId(getPrimaryAccountIdForKind(kind, credentialDefaults));
+    setGraphApiBaseUrl(credentialDefaults?.graphApiBaseUrl || metaConfig?.defaultGraphApiBaseUrl || "");
+    setInstagramUserId(credentialDefaults?.instagramUserId || "");
+    setPageId(credentialDefaults?.pageId || "");
+    setProfileId(credentialDefaults?.profileId || "");
+  }, [
+    credentialDefaults,
+    hasCredentialDefaults,
+    kind,
+    metaConfig?.defaultGraphApiBaseUrl,
+    useDestinationCredentialOverrides,
+  ]);
+
+  async function refreshMetaDiscovery() {
+    setMetaDiscovery((currentState) => ({
+      ...currentState,
+      error: "",
+      loading: true,
+    }));
+
+    try {
+      const response = await fetch("/api/destinations/meta-discovery", {
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          trimText(payload?.message)
+          || `Connected Meta assets could not be loaded (${response.status}).`,
+        );
+      }
+
+      setMetaDiscovery({
+        data: payload.data || null,
+        error: "",
+        loaded: true,
+        loading: false,
+      });
+    } catch (error) {
+      setMetaDiscovery({
+        data: null,
+        error:
+          trimText(error?.message)
+          || "Connected Meta assets could not be loaded right now.",
+        loaded: true,
+        loading: false,
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!isMetaPlatform || metaDiscovery.loaded || metaDiscovery.loading) {
+      return;
+    }
+
+    void refreshMetaDiscovery();
+  }, [isMetaPlatform, metaDiscovery.loaded, metaDiscovery.loading]);
+
+  useEffect(() => {
+    if (!shouldShowFacebookDiscovery || selectedFacebookPage || !facebookPageOptions.length) {
+      return;
+    }
+
+    const matchedOption = facebookPageOptions.find((option) => option.pageId === trimText(pageId));
+    const fallbackOption = !trimText(pageId) && facebookPageOptions.length === 1 ? facebookPageOptions[0] : null;
+    const nextOption = matchedOption || fallbackOption;
+
+    if (!nextOption) {
+      return;
+    }
+
+    setSelectedFacebookPage(nextOption.value);
+
+    if (!trimText(pageId)) {
+      setPageId(nextOption.pageId);
+      setExternalAccountId(nextOption.pageId);
+      setAccountHandle(formatAccountHandle(nextOption.username, nextOption.label));
+    }
+  }, [facebookPageOptions, pageId, selectedFacebookPage, shouldShowFacebookDiscovery]);
+
+  useEffect(() => {
+    if (!shouldShowInstagramDiscovery || selectedInstagramAccount || !instagramAccountOptions.length) {
+      return;
+    }
+
+    const matchedOption = instagramAccountOptions.find((option) => decodeDiscoveryValue(option.value).targetId === trimText(instagramUserId));
+    const fallbackOption =
+      !trimText(instagramUserId) && instagramAccountOptions.length === 1 ? instagramAccountOptions[0] : null;
+    const nextOption = matchedOption || fallbackOption;
+
+    if (!nextOption) {
+      return;
+    }
+
+    const selection = decodeDiscoveryValue(nextOption.value);
+
+    setSelectedInstagramAccount(nextOption.value);
+
+    if (!trimText(instagramUserId)) {
+      setInstagramUserId(selection.targetId);
+      setExternalAccountId(selection.targetId);
+      setPageId(nextOption.connectedPageId || "");
+      setAccountHandle(formatAccountHandle(nextOption.username, nextOption.label));
+    }
+  }, [instagramAccountOptions, instagramUserId, selectedInstagramAccount, shouldShowInstagramDiscovery]);
 
   function handleSubmit(event) {
-    if (!issues.length) {
+    if (!hasFormErrors) {
       return;
     }
 
@@ -273,55 +837,52 @@ export default function DestinationFormCard({
 
   return (
     <DestinationForm action={action} id={formId} onSubmit={handleSubmit}>
-      <SetupBanner>
-        <SetupHeader>
-          <SetupEyebrow>{destination ? "Destination profile" : "New destination"}</SetupEyebrow>
-          <SetupTitle>
-            {destination
-              ? "Keep identity, routing, and connection state aligned in one place."
-              : "Create the endpoint first, then layer credentials and operational metadata."}
-          </SetupTitle>
-        </SetupHeader>
-        <SetupGrid>
-          <SetupCard>
-            <SetupStep>Step 01</SetupStep>
-            <SetupCardTitle>Identity</SetupCardTitle>
-            <SetupCardText>Name and slug should stay short, readable, and stable for editors.</SetupCardText>
-          </SetupCard>
-          <SetupCard>
-            <SetupStep>Step 02</SetupStep>
-            <SetupCardTitle>Routing</SetupCardTitle>
-            <SetupCardText>Platform and kind must agree so streams can resolve the correct publishing path.</SetupCardText>
-          </SetupCard>
-          <SetupCard>
-            <SetupStep>Step 03</SetupStep>
-            <SetupCardTitle>Connection</SetupCardTitle>
-            <SetupCardText>Status, token updates, and notes help operators understand what is ready to publish.</SetupCardText>
-          </SetupCard>
-        </SetupGrid>
-      </SetupBanner>
+      <input name="externalAccountId" type="hidden" value={submittedExternalAccountId} />
+      <input name="graphApiBaseUrl" type="hidden" value={submittedGraphApiBaseUrl} />
+      <input name="instagramUserId" type="hidden" value={submittedInstagramUserId} />
+      <input
+        name="metaDiscoverySourceKey"
+        type="hidden"
+        value={shouldPersistCredentialOverrides ? activeDiscoverySelection.sourceKey : ""}
+      />
+      <input
+        name="metaDiscoveryTargetId"
+        type="hidden"
+        value={shouldPersistCredentialOverrides ? activeDiscoverySelection.targetId : ""}
+      />
+      <input
+        name="metaDiscoveryTargetType"
+        type="hidden"
+        value={shouldPersistCredentialOverrides ? activeDiscoverySelection.targetType : ""}
+      />
+      <input name="pageId" type="hidden" value={submittedPageId} />
+      <input name="profileId" type="hidden" value={submittedProfileId} />
+      <input name="settingsJson" type="hidden" value={settingsJsonValue} />
+      {socialGuardrailFieldDefinitions.map((field) => (
+        <input key={field.key} name={`socialGuardrail.${field.key}`} type="hidden" value={socialGuardrails[field.key] || ""} />
+      ))}
 
       <SectionSurface>
         <FormSectionTitle>Identity</FormSectionTitle>
-        <IdentityGrid>
+        <WideGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
             <Input defaultValue={destination?.name || ""} name="name" required />
           </Field>
           <Field>
             <FieldLabel>Slug</FieldLabel>
-            <Input defaultValue={destination?.slug || ""} name="slug" required />
+            <Input name="slug" onChange={(event) => setSlug(event.target.value)} required value={slug} />
           </Field>
           <Field>
             <FieldLabel>Account handle</FieldLabel>
-            <Input defaultValue={destination?.accountHandle || ""} name="accountHandle" />
+            <Input name="accountHandle" onChange={(event) => setAccountHandle(event.target.value)} value={accountHandle} />
           </Field>
-        </IdentityGrid>
+        </WideGrid>
       </SectionSurface>
 
       <SectionSurface>
         <FormSectionTitle>Routing and status</FormSectionTitle>
-        <RoutingGrid>
+        <WideGrid>
           <Field as="div">
             <FieldLabel>Platform</FieldLabel>
             <SearchableSelect
@@ -363,63 +924,386 @@ export default function DestinationFormCard({
               <StatusChip $tone={getStatusTone(connectionStatus)}>{formatEnumLabel(connectionStatus)}</StatusChip>
             </StatusHint>
           </Field>
-        </RoutingGrid>
+        </WideGrid>
       </SectionSurface>
 
       {issues.length ? (
-        <FormSection>
-          <NoticeBanner $tone="danger">
-            <NoticeTitle>Incompatible destination configuration</NoticeTitle>
-            <NoticeList>
-              {issues.map((issue) => (
-                <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
-              ))}
-            </NoticeList>
-          </NoticeBanner>
-        </FormSection>
+        <NoticeBanner $tone="danger">
+          <NoticeTitle>Incompatible destination configuration</NoticeTitle>
+          <NoticeList>
+            {issues.map((issue) => (
+              <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
+            ))}
+          </NoticeList>
+        </NoticeBanner>
       ) : null}
 
       <SectionSurface>
         <FormSectionTitle>Connection details</FormSectionTitle>
         <SmallText>
-          Store external identifiers and rotate tokens here without disturbing the destination identity above.
+          Connect supported Meta pages or accounts here, then choose whether this destination should keep using the env-backed Meta bundle or store its own override values.
         </SmallText>
-        {destination?.usesRuntimeCredentials ? (
-          <NoticeBanner $tone="warning">
-            <NoticeTitle>Environment-backed Meta credentials detected</NoticeTitle>
-            <NoticeList>
-              <NoticeItem>
-                Runtime publishing for this destination currently resolves its token and account identifiers from
-                environment variables.
-              </NoticeItem>
-              <NoticeItem>
-                Stored form values remain available as a fallback, but the environment configuration takes precedence
-                until it is removed.
-              </NoticeItem>
-            </NoticeList>
-          </NoticeBanner>
+        {isMetaPlatform ? (
+          <>
+            <ButtonRow>
+              <SecondaryButton onClick={() => void refreshMetaDiscovery()} type="button">
+                <ButtonIcon>
+                  <ActionIcon name="refresh" />
+                </ButtonIcon>
+                Refresh connected assets
+              </SecondaryButton>
+              {hasCredentialDefaults ? (
+                <SecondaryButton onClick={resetCredentialOverridesToDefaults} type="button">
+                  Reset to env defaults
+                </SecondaryButton>
+              ) : null}
+            </ButtonRow>
+            <SmallText>
+              {metaDiscovery.loading
+                ? "Loading connected and allowed Meta pages and accounts..."
+                : metaDiscovery.data
+                  ? `${metaDiscovery.data.pages.length} allowed Facebook page${metaDiscovery.data.pages.length === 1 ? "" : "s"} and ${metaDiscovery.data.instagramAccounts.length} Instagram account${metaDiscovery.data.instagramAccounts.length === 1 ? "" : "s"} discovered.`
+                  : metaConfig?.appId
+                    ? `Meta app ${metaConfig.appId} is configured. Fetch connected and allowed assets to prefill supported destinations automatically.`
+                    : "Configure Meta app credentials, a discovery token source, and any optional page allowlist to prefill connected assets automatically."}
+            </SmallText>
+            {metaDiscovery.error ? (
+              <NoticeBanner $tone="danger">
+                <NoticeTitle>Meta discovery failed</NoticeTitle>
+                <SmallText>{metaDiscovery.error}</SmallText>
+              </NoticeBanner>
+            ) : null}
+            {metaDiscovery.data?.errors?.length ? (
+              <NoticeBanner $tone="warning">
+                <NoticeTitle>Meta discovery notices</NoticeTitle>
+                <NoticeList>
+                  {metaDiscovery.data.errors.map((error) => (
+                    <NoticeItem key={`${error.sourceKey || "global"}-${error.message}`}>
+                      {error.sourceLabel ? `${error.sourceLabel}: ` : ""}
+                      {error.message}
+                    </NoticeItem>
+                  ))}
+                </NoticeList>
+              </NoticeBanner>
+            ) : null}
+            {hasCredentialDefaults ? (
+              <NoticeBanner $tone="warning">
+                <NoticeTitle>
+                  {useDestinationCredentialOverrides
+                    ? "Destination-specific Meta credential overrides are active"
+                    : "Environment defaults are active for this destination"}
+                </NoticeTitle>
+                <FieldHelp>
+                  <SmallText>
+                    {useDestinationCredentialOverrides
+                      ? `This destination is overriding the env-backed Meta bundle for slug "${slug || destination?.slug || "new-destination"}".`
+                      : `This destination is currently using META_DESTINATION_CREDENTIALS_JSON defaults for slug "${slug || destination?.slug || "new-destination"}".`}
+                  </SmallText>
+                  <SmallText>
+                    {credentialDefaults?.sourceLabel
+                      ? `Credential source: ${credentialDefaults.sourceLabel}.`
+                      : "The env-backed credential bundle is resolved from META_DESTINATION_CREDENTIALS_JSON."}
+                  </SmallText>
+                  <ExampleBlock>{credentialDefaultsPreview}</ExampleBlock>
+                </FieldHelp>
+              </NoticeBanner>
+            ) : null}
+            {hasCredentialDefaults ? (
+              <CheckboxRow>
+                <CheckboxChip>
+                  <input
+                    checked={useDestinationCredentialOverrides}
+                    onChange={(event) => {
+                      setUseDestinationCredentialOverrides(event.target.checked);
+
+                      if (event.target.checked) {
+                        setClearToken(false);
+                      } else {
+                        setTokenValue("");
+                        setClearToken(true);
+                        setSelectedFacebookPage("");
+                        setSelectedInstagramAccount("");
+                      }
+                    }}
+                    type="checkbox"
+                  />{" "}
+                  Override env-backed Meta credentials for this destination
+                </CheckboxChip>
+              </CheckboxRow>
+            ) : (
+              <SmallText>
+                No env-backed Meta credential bundle matches this destination slug yet, so values entered below are stored directly with the destination.
+              </SmallText>
+            )}
+          </>
         ) : null}
-        <DestinationFieldGrid>
+        {shouldShowFacebookDiscovery ? (
+          <Field as="div">
+            <FieldLabel>Connected Facebook page</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Connected Facebook page"
+              emptyMessage="No allowed Facebook pages were discovered from the configured Meta credential sources."
+              loading={metaDiscovery.loading}
+              loadingMessage="Loading connected Facebook pages..."
+              onChange={(value) => {
+                const selectedOption = facebookPageOptions.find((option) => option.value === value) || null;
+
+                activateCredentialOverrides();
+                setSelectedFacebookPage(value);
+
+                if (!selectedOption) {
+                  return;
+                }
+
+                setPageId(selectedOption.pageId);
+                setExternalAccountId(selectedOption.pageId);
+                setAccountHandle(formatAccountHandle(selectedOption.username, selectedOption.label));
+              }}
+              options={facebookPageOptions}
+              placeholder="Select a connected Facebook page"
+              value={selectedFacebookPage}
+            />
+          </Field>
+        ) : null}
+        {shouldShowInstagramDiscovery ? (
+          <Field as="div">
+            <FieldLabel>Connected Instagram account</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Connected Instagram account"
+              emptyMessage="No Instagram business or creator accounts were discovered from the configured Meta credential sources."
+              loading={metaDiscovery.loading}
+              loadingMessage="Loading connected Instagram accounts..."
+              onChange={(value) => {
+                const selectedOption = instagramAccountOptions.find((option) => option.value === value) || null;
+                const selection = decodeDiscoveryValue(value);
+
+                activateCredentialOverrides();
+                setSelectedInstagramAccount(value);
+
+                if (!selectedOption) {
+                  return;
+                }
+
+                setInstagramUserId(selection.targetId);
+                setExternalAccountId(selection.targetId);
+                setPageId(selectedOption.connectedPageId || "");
+                setAccountHandle(formatAccountHandle(selectedOption.username, selectedOption.label));
+              }}
+              options={instagramAccountOptions}
+              placeholder="Select a connected Instagram account"
+              value={selectedInstagramAccount}
+            />
+          </Field>
+        ) : null}
+        <WideGrid>
           <Field>
             <FieldLabel>External account ID</FieldLabel>
-            <Input defaultValue={destination?.externalAccountId || ""} name="externalAccountId" />
+            <Input
+              disabled={credentialInputsDisabled}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+
+                activateCredentialOverrides();
+                setExternalAccountId(nextValue);
+
+                if (kind === "FACEBOOK_PAGE") {
+                  setPageId(nextValue);
+
+                  if (trimText(nextValue) !== activeFacebookSelection.targetId) {
+                    setSelectedFacebookPage("");
+                  }
+                }
+
+                if (kind === "FACEBOOK_PROFILE") {
+                  setProfileId(nextValue);
+                }
+
+                if (kind === "INSTAGRAM_BUSINESS") {
+                  setInstagramUserId(nextValue);
+
+                  if (trimText(nextValue) !== activeInstagramSelection.targetId) {
+                    setSelectedInstagramAccount("");
+                    setPageId("");
+                  }
+                }
+
+                if (kind === "INSTAGRAM_PERSONAL") {
+                  setInstagramUserId(nextValue);
+                }
+              }}
+              value={externalAccountId}
+            />
+            <SmallText>
+              {hasCredentialDefaults && !useDestinationCredentialOverrides
+                ? "Currently inherited from META_DESTINATION_CREDENTIALS_JSON."
+                : "The primary publish target ID used by the runtime publisher."}
+            </SmallText>
+          </Field>
+          {kind === "FACEBOOK_PAGE" || kind === "INSTAGRAM_BUSINESS" ? (
+            <Field>
+              <FieldLabel>Facebook page ID</FieldLabel>
+              <Input
+                disabled={credentialInputsDisabled}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+
+                  activateCredentialOverrides();
+                  setPageId(nextValue);
+
+                  if (kind === "FACEBOOK_PAGE") {
+                    setExternalAccountId(nextValue);
+                  }
+
+                  if (trimText(nextValue) !== activeFacebookSelection.targetId) {
+                    setSelectedFacebookPage("");
+                  }
+                }}
+                value={pageId}
+              />
+              <SmallText>
+                {kind === "INSTAGRAM_BUSINESS"
+                  ? "Optional linked Facebook page ID for the connected Instagram business account."
+                  : "The Facebook page ID published to by this destination."}
+              </SmallText>
+            </Field>
+          ) : null}
+          {kind === "FACEBOOK_PROFILE" ? (
+            <Field>
+              <FieldLabel>Facebook profile ID</FieldLabel>
+              <Input
+                disabled={credentialInputsDisabled}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+
+                  activateCredentialOverrides();
+                  setProfileId(nextValue);
+                  setExternalAccountId(nextValue);
+                }}
+                value={profileId}
+              />
+            </Field>
+          ) : null}
+          {["INSTAGRAM_BUSINESS", "INSTAGRAM_PERSONAL"].includes(kind) ? (
+            <Field>
+              <FieldLabel>Instagram user ID</FieldLabel>
+              <Input
+                disabled={credentialInputsDisabled}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+
+                  activateCredentialOverrides();
+                  setInstagramUserId(nextValue);
+                  setExternalAccountId(nextValue);
+
+                  if (trimText(nextValue) !== activeInstagramSelection.targetId) {
+                    setSelectedInstagramAccount("");
+                  }
+                }}
+                value={instagramUserId}
+              />
+            </Field>
+          ) : null}
+          <Field>
+            <FieldLabel>Graph API base URL</FieldLabel>
+            <Input
+              disabled={credentialInputsDisabled}
+              onChange={(event) => {
+                activateCredentialOverrides();
+                setGraphApiBaseUrl(event.target.value);
+              }}
+              placeholder={metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0"}
+              value={graphApiBaseUrl}
+            />
+            <SmallText>
+              Defaults to {metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0"} when no override is stored.
+            </SmallText>
           </Field>
           <Field>
             <FieldLabel>Update token</FieldLabel>
             <Input
+              disabled={credentialInputsDisabled}
               name="token"
+              onChange={(event) => {
+                activateCredentialOverrides();
+                setTokenValue(event.target.value);
+              }}
               placeholder={
-                destination?.tokenHint ? `Stored token ending ${destination.tokenHint}` : "Paste a new token"
+                credentialInputsDisabled && credentialDefaults?.hasAccessToken
+                  ? "Using access token from META_DESTINATION_CREDENTIALS_JSON"
+                  : destination?.tokenHint
+                    ? `Stored token ending ${destination.tokenHint}`
+                    : "Paste a new token"
               }
+              value={tokenValue}
             />
+            <SmallText>
+              Env access tokens stay server-side. Paste a token here only when this destination should keep its own override.
+            </SmallText>
           </Field>
-        </DestinationFieldGrid>
+        </WideGrid>
         <CheckboxRow>
           <CheckboxChip>
-            <input name="clearToken" type="checkbox" /> Clear stored token
+            <input
+              checked={clearToken}
+              name="clearToken"
+              onChange={(event) => {
+                setClearToken(event.target.checked);
+
+                if (event.target.checked) {
+                  setTokenValue("");
+                }
+              }}
+              type="checkbox"
+            />{" "}
+            Clear stored destination token
           </CheckboxChip>
         </CheckboxRow>
       </SectionSurface>
+
+      {isMetaPlatform ? (
+        <SectionSurface>
+          <FormSectionTitle>Publishing guardrails</FormSectionTitle>
+          <ButtonRow>
+            <SecondaryButton
+              onClick={() => setSocialGuardrails(buildInitialSocialGuardrails({}, metaConfig?.socialGuardrails || {}))}
+              type="button"
+            >
+              Reset to defaults
+            </SecondaryButton>
+          </ButtonRow>
+          <WideGrid>
+            {socialGuardrailFieldDefinitions.map((field) => (
+              <Field key={field.key}>
+                <FieldLabel>{field.label}</FieldLabel>
+                <Input
+                  min="1"
+                  onChange={(event) =>
+                    setSocialGuardrails((currentValues) => ({
+                      ...currentValues,
+                      [field.key]: event.target.value,
+                    }))
+                  }
+                  type="number"
+                  value={socialGuardrails[field.key] || ""}
+                />
+                <SmallText>
+                  Default: {metaConfig?.socialGuardrails?.[field.key]} {field.suffix}. Backed by {field.envField}.
+                </SmallText>
+              </Field>
+            ))}
+          </WideGrid>
+          {socialGuardrailErrors.length ? (
+            <NoticeBanner $tone="danger">
+              <NoticeTitle>Guardrail values need attention</NoticeTitle>
+              <NoticeList>
+                {socialGuardrailErrors.map((error) => (
+                  <NoticeItem key={error}>{error}</NoticeItem>
+                ))}
+              </NoticeList>
+            </NoticeBanner>
+          ) : null}
+        </SectionSurface>
+      ) : null}
 
       <SectionSurface>
         <FormSectionTitle>Operational notes</FormSectionTitle>
@@ -428,52 +1312,49 @@ export default function DestinationFormCard({
           <Textarea
             defaultValue={destination?.connectionError || ""}
             name="connectionError"
-            placeholder={connectionErrorExample}
+            placeholder="Graph API returned 190: Invalid OAuth 2.0 Access Token on 2026-04-06. Reconnect with a fresh token."
           />
           <FieldHelp>
-            <SmallText>
-              Use plain text to capture the last known failure, what it means, and the next operator action.
-              Leave blank when the destination is healthy or the issue has been resolved.
-            </SmallText>
-            <SmallText>
-              Example values: `Missing page access token. Paste a new token and retry.` or `Instagram publish rejected: media URL was unreachable.`
-            </SmallText>
-          </FieldHelp>
-        </Field>
-        <Field>
-          <FieldLabel>Settings JSON</FieldLabel>
-          <Textarea
-            defaultValue={JSON.stringify(destination?.settingsJson || {}, null, 2)}
-            name="settingsJson"
-            placeholder={settingsJsonExample}
-          />
-          <FieldHelp>
-            <SmallText>
-              Enter a valid JSON object for optional platform-specific settings. Use `{}` when no extra
-              configuration is needed.
-            </SmallText>
-            <SmallText>
-              Supported examples for {formatEnumLabel(kind)}: {settingsJsonExamples[kind] || "`{}`"}.
-              Use `graphApiBaseUrl` only when you need to override the default Facebook Graph API base URL.
-            </SmallText>
-            <ExampleBlock>{settingsJsonExample}</ExampleBlock>
+            <SmallText>Leave blank when the destination is healthy or the issue has been resolved.</SmallText>
           </FieldHelp>
         </Field>
       </SectionSurface>
 
-      <FooterSurface>
+      <SectionSurface>
+        <FormSectionTitle>Advanced settings</FormSectionTitle>
+        <Field>
+          <FieldLabel>Additional settings JSON</FieldLabel>
+          <Textarea onChange={(event) => setAdvancedSettingsJson(event.target.value)} placeholder="{}" value={advancedSettingsJson} />
+          <FieldHelp>
+            <SmallText>
+              Only add extra platform-specific keys here. Graph API base URL, discovered IDs, and guardrail overrides are managed above.
+            </SmallText>
+            {parsedAdvancedSettings.error ? (
+              <NoticeBanner $tone="danger">
+                <NoticeTitle>Advanced settings are invalid</NoticeTitle>
+                <SmallText>{parsedAdvancedSettings.error}</SmallText>
+              </NoticeBanner>
+            ) : null}
+            <SmallText>Saved settings preview</SmallText>
+            <ExampleBlock>{JSON.stringify(JSON.parse(settingsJsonValue || "{}"), null, 2)}</ExampleBlock>
+          </FieldHelp>
+        </Field>
+      </SectionSurface>
+
+      <FormSection>
         {destination ? (
           <SmallText>
             Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
           </SmallText>
         ) : (
           <SmallText>
-            New destinations can be fully configured here, including token storage and operational metadata.
+            New destinations can be configured here with connected Meta assets, token storage, and per-destination publishing guardrails.
           </SmallText>
         )}
-      </FooterSurface>
+      </FormSection>
+
       <AdminModalFooterActions>
-        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
+        <PrimaryButton disabled={hasFormErrors} form={formId} type="submit">
           <ButtonIcon>
             <ActionIcon name={destination ? "save" : "plus"} />
           </ButtonIcon>

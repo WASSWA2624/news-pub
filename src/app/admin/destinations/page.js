@@ -28,6 +28,7 @@ import {
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import DestinationFormCard from "@/components/admin/destination-form-card";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
+import { getMetaDestinationFormConfig } from "@/features/destinations/meta-config";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import styled from "styled-components";
@@ -166,6 +167,7 @@ function getTone(status) {
 }
 
 export default async function DestinationsPage() {
+  const metaConfig = getMetaDestinationFormConfig();
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
     getDestinationManagementSnapshot(),
@@ -232,6 +234,7 @@ export default async function DestinationsPage() {
                   <ButtonRow>
                     <AdminFormModal
                       description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
+                      mountOnOpen
                       size="full"
                       title={`Edit ${destination.name}`}
                       triggerIcon="edit"
@@ -242,6 +245,7 @@ export default async function DestinationsPage() {
                         connectionStatusOptions={connectionStatusOptions}
                         destination={destination}
                         kindOptions={kindOptions}
+                        metaConfig={metaConfig}
                         platformOptions={platformOptions}
                         submitLabel="Save destination"
                       />
@@ -266,6 +270,7 @@ export default async function DestinationsPage() {
           <ButtonRow>
             <AdminFormModal
               description="Create a new destination with identity, routing, status, and credential details in a single responsive workspace."
+              mountOnOpen
               size="full"
               title="Create destination"
               triggerFullWidth
@@ -277,6 +282,7 @@ export default async function DestinationsPage() {
                 action={saveDestinationAction}
                 connectionStatusOptions={connectionStatusOptions}
                 kindOptions={kindOptions}
+                metaConfig={metaConfig}
                 platformOptions={platformOptions}
                 submitLabel="Create destination"
               />

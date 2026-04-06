@@ -9,7 +9,7 @@ import { uploadMediaAsset } from "@/features/media";
 import { saveTemplateRecord } from "@/features/templates";
 import { getSettingsSnapshot } from "@/features/settings";
 import { saveProviderRecord } from "@/features/providers";
-import { updatePostEditorialRecord } from "@/features/posts";
+import { createManualPostRecord, updatePostEditorialRecord } from "@/features/posts";
 import { saveStreamRecord } from "@/features/streams";
 import { requireAdminPageSession } from "@/lib/auth";
 import {
@@ -126,9 +126,23 @@ export async function saveDestinationAction(formData) {
       connectionError: formData.get("connectionError"),
       connectionStatus: formData.get("connectionStatus"),
       externalAccountId: formData.get("externalAccountId"),
+      graphApiBaseUrl: formData.get("graphApiBaseUrl"),
+      instagramUserId: formData.get("instagramUserId"),
       kind: formData.get("kind"),
+      metaDiscoverySourceKey: formData.get("metaDiscoverySourceKey"),
+      metaDiscoveryTargetId: formData.get("metaDiscoveryTargetId"),
+      metaDiscoveryTargetType: formData.get("metaDiscoveryTargetType"),
       name: formData.get("name"),
+      pageId: formData.get("pageId"),
       platform: formData.get("platform"),
+      profileId: formData.get("profileId"),
+      socialGuardrails: {
+        duplicateCooldownHours: formData.get("socialGuardrail.duplicateCooldownHours"),
+        facebookMaxPostsPer24Hours: formData.get("socialGuardrail.facebookMaxPostsPer24Hours"),
+        instagramMaxHashtags: formData.get("socialGuardrail.instagramMaxHashtags"),
+        instagramMaxPostsPer24Hours: formData.get("socialGuardrail.instagramMaxPostsPer24Hours"),
+        minPostIntervalMinutes: formData.get("socialGuardrail.minPostIntervalMinutes"),
+      },
       settingsJson: parseJsonField(formData, "settingsJson", {}),
       slug: formData.get("slug"),
       token: formData.get("token"),
@@ -284,6 +298,36 @@ export async function saveTemplateAction(formData) {
   );
 
   redirectToPath("/admin/templates");
+}
+
+export async function createManualPostAction(formData) {
+  const auth = await requireAdminPageSession("/admin/posts/new");
+  const intent = trimText(formData.get("intent")).toLowerCase();
+  const record = await createManualPostRecord(
+    {
+      action: intent,
+      categoryIds: formData.getAll("categoryIds").map((value) => trimText(value)),
+      contentMd: formData.get("contentMd"),
+      publishAt: formData.get("publishAt"),
+      slug: formData.get("slug"),
+      sourceName: formData.get("sourceName"),
+      sourceUrl: formData.get("sourceUrl"),
+      status:
+        intent === "publish"
+          ? "PUBLISHED"
+          : intent === "schedule"
+            ? "SCHEDULED"
+            : "DRAFT",
+      streamId: formData.get("streamId"),
+      summary: formData.get("summary"),
+      title: formData.get("title"),
+    },
+    {
+      actorId: getActorId(auth),
+    },
+  );
+
+  redirectToPath(`/admin/posts/${record.postId}`);
 }
 
 export async function updatePostEditorAction(formData) {

@@ -35,4 +35,133 @@ describe("destination feature validation", () => {
       status: "destination_validation_failed",
     });
   });
+
+  it("persists a discovered Meta page selection as destination settings and an encrypted token", async () => {
+    process.env.META_APP_ID = "1234567890";
+    process.env.META_APP_SECRET = "meta-secret";
+    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
+      "meta-account": {
+        accessToken: "env-user-token",
+      },
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { is_valid: true } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              data: [
+                {
+                  access_token: "page-access-token",
+                  id: "page_1",
+                  name: "Example Page",
+                  tasks: ["CREATE_CONTENT"],
+                  username: "example.page",
+                },
+              ],
+            }),
+        }),
+    );
+
+    const { decryptSecretValue } = await import("@/lib/security/secrets");
+    const { saveDestinationRecord } = await import("./index");
+    const upsert = vi.fn(async ({ create }) => ({
+      id: "destination_1",
+      ...create,
+    }));
+
+    const record = await saveDestinationRecord(
+      {
+        connectionStatus: "CONNECTED",
+        kind: "FACEBOOK_PAGE",
+        metaDiscoverySourceKey: "env:meta-account",
+        metaDiscoveryTargetId: "page_1",
+        metaDiscoveryTargetType: "FACEBOOK_PAGE",
+        name: "Example destination",
+        platform: "FACEBOOK",
+        settingsJson: {},
+        slug: "example-destination",
+      },
+      {},
+      {
+        auditEvent: {
+          create: vi.fn(),
+        },
+        destination: {
+          upsert,
+        },
+      },
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(record.externalAccountId).toBe("page_1");
+    expect(record.settingsJson).toMatchObject({
+      pageId: "page_1",
+    });
+    expect(record.tokenHint).toBe("oken");
+    expect(
+      decryptSecretValue({
+        ciphertext: record.encryptedTokenCiphertext,
+        iv: record.encryptedTokenIv,
+        tag: record.encryptedTokenTag,
+      }),
+    ).toBe("page-access-token");
+  });
+
+  it("persists destination-specific Meta credential overrides when requested", async () => {
+    const { decryptSecretValue } = await import("@/lib/security/secrets");
+    const { saveDestinationRecord } = await import("./index");
+    const upsert = vi.fn(async ({ create }) => ({
+      id: "destination_2",
+      ...create,
+    }));
+
+    const record = await saveDestinationRecord(
+      {
+        connectionStatus: "CONNECTED",
+        externalAccountId: "override-page-id",
+        kind: "FACEBOOK_PAGE",
+        name: "Override destination",
+        pageId: "override-page-id",
+        platform: "FACEBOOK",
+        settingsJson: {
+          useDestinationCredentialOverrides: true,
+        },
+        slug: "override-destination",
+        token: "override-token",
+      },
+      {},
+      {
+        auditEvent: {
+          create: vi.fn(),
+        },
+        destination: {
+          upsert,
+        },
+      },
+    );
+
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(record.externalAccountId).toBe("override-page-id");
+    expect(record.settingsJson).toMatchObject({
+      pageId: "override-page-id",
+      useDestinationCredentialOverrides: true,
+    });
+    expect(
+      decryptSecretValue({
+        ciphertext: record.encryptedTokenCiphertext,
+        iv: record.encryptedTokenIv,
+        tag: record.encryptedTokenTag,
+      }),
+    ).toBe("override-token");
+  });
 });

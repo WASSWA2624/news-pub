@@ -240,6 +240,7 @@ export default function AdminFormModal({
   children,
   className,
   description,
+  mountOnOpen = false,
   size = "wide",
   title,
   triggerFullWidth = false,
@@ -250,11 +251,13 @@ export default function AdminFormModal({
   const dialogRef = useRef(null);
   const didAutoOpenRef = useRef(false);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
+  const [isOpen, setIsOpen] = useState(autoOpen);
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
 
   function closeDialog() {
+    setIsOpen(false);
     dialogRef.current?.close();
   }
 
@@ -266,6 +269,8 @@ export default function AdminFormModal({
         dialog.showModal();
       }
     }
+
+    setIsOpen(true);
   }
 
   useEffect(() => {
@@ -293,7 +298,11 @@ export default function AdminFormModal({
     }
 
     didAutoOpenRef.current = true;
-    openDialog();
+    const dialog = dialogRef.current;
+
+    if (typeof dialog?.showModal === "function" && !dialog.open) {
+      dialog.showModal();
+    }
   }, [autoOpen]);
 
   return (
@@ -316,6 +325,7 @@ export default function AdminFormModal({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={titleId}
         data-floating-root
+        onClose={() => setIsOpen(false)}
         onClick={(event) => {
           if (event.target === dialogRef.current) {
             closeDialog();
@@ -334,7 +344,7 @@ export default function AdminFormModal({
                 X
               </CloseButton>
             </Header>
-            <Body>{children}</Body>
+            <Body>{!mountOnOpen || isOpen ? children : null}</Body>
             <Footer>
               <FooterRow>
                 <FooterCancelGroup>

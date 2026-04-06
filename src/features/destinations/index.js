@@ -3,6 +3,13 @@ import { isDestinationRuntimeReady, resolveDestinationRuntimeConnection } from "
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { decryptSecretValue, encryptSecretValue } from "@/lib/security/secrets";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
+import {
+  getDestinationSocialGuardrailOverrideFields,
+  getDestinationSocialGuardrails,
+  resolveMetaDiscoverySelection,
+  buildDestinationSettingsPayload,
+  usesDestinationCredentialOverrides,
+} from "./meta-config";
 
 function createTokenHint(value) {
   const normalizedValue = trimText(value);
@@ -38,9 +45,12 @@ export async function getDestinationManagementSnapshot(prisma) {
 
       return {
         ...destination,
+        effectiveSocialGuardrails: getDestinationSocialGuardrails(destination),
         effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
         hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
+        socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
         hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
+        usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
         usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
         validationIssues: getDestinationValidationIssues(destination),
         storedTokenPreview: destination.encryptedTokenCiphertext
@@ -86,44 +96,69 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
     });
   }
 
+  const resolvedSelection = await resolveMetaDiscoverySelection({
+    sourceKey: input.metaDiscoverySourceKey,
+    targetId: input.metaDiscoveryTargetId,
+    targetType: input.metaDiscoveryTargetType,
+  });
+  const inputSettingsJson =
+    input.settingsJson && typeof input.settingsJson === "object" && !Array.isArray(input.settingsJson)
+      ? input.settingsJson
+      : {};
+  const nextSettingsJson = buildDestinationSettingsPayload({
+    advancedSettings: inputSettingsJson,
+    graphApiBaseUrl: input.graphApiBaseUrl,
+    instagramUserId: input.instagramUserId || resolvedSelection?.settingsJsonPatch?.instagramUserId,
+    kind,
+    pageId: input.pageId || resolvedSelection?.settingsJsonPatch?.pageId,
+    profileId: input.profileId,
+    socialGuardrails: input.socialGuardrails,
+    useDestinationCredentialOverrides: inputSettingsJson.useDestinationCredentialOverrides === true,
+  });
   const nextToken = trimText(input.token);
-  const encryptedToken = nextToken ? encryptSecretValue(nextToken) : null;
+  const discoveredToken = !nextToken && !input.clearToken ? trimText(resolvedSelection?.accessToken) : "";
+  const tokenToEncrypt = nextToken || discoveredToken;
+  const encryptedToken = tokenToEncrypt ? encryptSecretValue(tokenToEncrypt) : null;
+  const nextExternalAccountId =
+    trimText(input.externalAccountId) || trimText(resolvedSelection?.externalAccountId) || null;
+  const nextAccountHandle =
+    trimText(input.accountHandle) || trimText(resolvedSelection?.accountHandle) || null;
+  const shouldPersistToken = Boolean(nextToken || discoveredToken || input.clearToken);
   const destination = await db.destination.upsert({
     where: {
       slug,
     },
     update: {
-      accountHandle: trimText(input.accountHandle) || null,
+      accountHandle: nextAccountHandle,
       connectionError: trimText(input.connectionError) || null,
       connectionStatus: trimText(input.connectionStatus) || "DISCONNECTED",
-      encryptedTokenCiphertext:
-        nextToken || input.clearToken ? encryptedToken?.ciphertext || null : undefined,
-      encryptedTokenIv: nextToken || input.clearToken ? encryptedToken?.iv || null : undefined,
-      encryptedTokenTag: nextToken || input.clearToken ? encryptedToken?.tag || null : undefined,
-      externalAccountId: trimText(input.externalAccountId) || null,
+      encryptedTokenCiphertext: shouldPersistToken ? encryptedToken?.ciphertext || null : undefined,
+      encryptedTokenIv: shouldPersistToken ? encryptedToken?.iv || null : undefined,
+      encryptedTokenTag: shouldPersistToken ? encryptedToken?.tag || null : undefined,
+      externalAccountId: nextExternalAccountId,
       kind,
       lastConnectedAt:
         trimText(input.connectionStatus) === "CONNECTED" ? new Date() : input.lastConnectedAt || null,
       name,
       platform,
-      settingsJson: input.settingsJson || {},
-      tokenHint: nextToken ? createTokenHint(nextToken) : input.clearToken ? null : undefined,
+      settingsJson: nextSettingsJson,
+      tokenHint: tokenToEncrypt ? createTokenHint(tokenToEncrypt) : input.clearToken ? null : undefined,
     },
     create: {
-      accountHandle: trimText(input.accountHandle) || null,
+      accountHandle: nextAccountHandle,
       connectionError: trimText(input.connectionError) || null,
       connectionStatus: trimText(input.connectionStatus) || "DISCONNECTED",
       encryptedTokenCiphertext: encryptedToken?.ciphertext || null,
       encryptedTokenIv: encryptedToken?.iv || null,
       encryptedTokenTag: encryptedToken?.tag || null,
-      externalAccountId: trimText(input.externalAccountId) || null,
+      externalAccountId: nextExternalAccountId,
       kind,
       lastConnectedAt: trimText(input.connectionStatus) === "CONNECTED" ? new Date() : null,
       name,
       platform,
-      settingsJson: input.settingsJson || {},
+      settingsJson: nextSettingsJson,
       slug,
-      tokenHint: createTokenHint(nextToken),
+      tokenHint: createTokenHint(tokenToEncrypt),
     },
   });
 
@@ -137,6 +172,8 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
         connectionStatus: destination.connectionStatus,
         kind: destination.kind,
         platform: destination.platform,
+        socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
+        usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
       },
     },
     db,

@@ -18,6 +18,7 @@ export function createNewsPubTestEnv(overrides = {}) {
     META_APP_ID: "",
     META_APP_SECRET: "",
     META_GRAPH_API_BASE_URL: "",
+    META_ALLOWED_PAGE_IDS: "",
     META_DESTINATION_CREDENTIALS_JSON: "",
     META_SOCIAL_MIN_POST_INTERVAL_MINUTES: "",
     META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: "",

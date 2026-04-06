@@ -733,6 +733,7 @@ const StateMessage = styled.div`
 
 export default function SearchableSelect({
   ariaLabel,
+  className,
   defaultValue = "",
   disabled = false,
   emptyMessage = "No options found.",
@@ -1143,7 +1144,7 @@ export default function SearchableSelect({
     : null;
 
   return (
-    <SelectRoot ref={rootRef}>
+    <SelectRoot className={className} ref={rootRef}>
       {name
         ? multiple
           ? resolvedValue.map((entry) => (

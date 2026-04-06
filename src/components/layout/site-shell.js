@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
@@ -50,26 +50,63 @@ const Shell = styled.div`
 
 const Header = styled.header`
   background:
-    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(var(--theme-bg-rgb), 0.96)),
-    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.06), transparent 32%);
+    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.12), transparent 30%),
+    linear-gradient(
+      180deg,
+      rgba(var(--theme-surface-rgb), 0.995) 0%,
+      rgba(var(--theme-surface-rgb), 0.985) 58%,
+      rgba(var(--theme-bg-rgb), 0.95) 100%
+    );
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(var(--theme-border-rgb), 0.88);
-  box-shadow: 0 14px 42px rgba(var(--theme-primary-rgb), 0.07);
+  border-bottom: 1px solid rgba(var(--theme-primary-rgb), 0.18);
+  box-shadow:
+    0 18px 42px rgba(var(--theme-primary-rgb), 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  isolation: isolate;
   position: sticky;
   top: 0;
   z-index: 30;
+
+  &::after {
+    background: linear-gradient(
+      90deg,
+      rgba(var(--theme-accent-rgb), 0),
+      rgba(var(--theme-primary-rgb), 0.28),
+      rgba(var(--theme-accent-rgb), 0)
+    );
+    bottom: 0;
+    content: "";
+    height: 3px;
+    left: 0;
+    opacity: 0.95;
+    position: absolute;
+    right: 0;
+  }
 `;
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.6rem;
+  gap: 0.48rem;
   margin: 0 auto;
   max-width: var(--theme-shell-max-width);
-  padding: clamp(0.56rem, 1.4vw, 0.72rem) clamp(0.7rem, 1.8vw, 0.88rem);
+  padding: clamp(0.42rem, 1.4vw, 0.72rem) clamp(0.62rem, 1.8vw, 0.88rem);
 
   @media (min-width: 980px) {
     align-items: center;
+    gap: 0.6rem;
     grid-template-columns: auto minmax(0, 1fr) minmax(18rem, 24rem);
+  }
+`;
+
+const BrandLogo = styled(NewsPubLogo)`
+  flex: 0 0 auto;
+  height: 34px;
+  width: 34px;
+
+  @media (min-width: 640px) {
+    height: 40px;
+    width: 40px;
   }
 `;
 
@@ -77,36 +114,129 @@ const BrandLink = styled(Link)`
   align-items: center;
   color: ${({ theme }) => theme?.colors?.text ?? "var(--theme-text)"};
   display: inline-flex;
-  gap: 0.48rem;
+  gap: 0.42rem;
+  min-width: 0;
 `;
 
 const BrandTitle = styled.span`
-  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  font-size: clamp(1.1rem, 4.2vw, 1.9rem);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const HeaderMeta = styled.div`
   display: grid;
-  gap: 0.22rem;
+  gap: 0.16rem;
+  min-width: 0;
+
+  @media (max-width: 979px) {
+    align-items: center;
+    background:
+      linear-gradient(135deg, rgba(var(--theme-surface-rgb), 0.99), rgba(255, 255, 255, 0.97)),
+      radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.14), transparent 52%);
+    border: 1px solid rgba(var(--theme-primary-rgb), 0.14);
+    border-radius: 24px;
+    box-shadow:
+      0 16px 30px rgba(var(--theme-primary-rgb), 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    display: flex;
+    gap: 0.72rem;
+    justify-content: space-between;
+    padding: 0.44rem 0.54rem;
+  }
 `;
 
 const HeaderTagline = styled.p`
   color: ${({ theme }) => theme?.colors?.muted ?? "var(--theme-muted)"};
+  font-size: 0.92rem;
+  line-height: 1.4;
   margin: 0;
   max-width: 64ch;
+
+  @media (max-width: 979px) {
+    display: none;
+  }
+`;
+
+const MobileActionGroup = styled.div`
+  display: inline-flex;
+  gap: 0.42rem;
+
+  @media (min-width: 980px) {
+    display: none;
+  }
+`;
+
+const MobileActionButton = styled.button`
+  align-items: center;
+  background: ${({ $tone }) => (
+    $tone === "solid"
+      ? "linear-gradient(135deg, rgba(var(--theme-primary-rgb), 0.96), rgba(var(--theme-story-accent-rgb), 0.92))"
+      : "linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(255, 255, 255, 0.96))"
+  )};
+  border: 1px solid ${({ $tone }) => (
+    $tone === "solid"
+      ? "rgba(var(--theme-primary-rgb), 0.24)"
+      : "rgba(var(--theme-border-rgb), 0.85)"
+  )};
+  border-radius: 16px;
+  box-shadow: ${({ $tone }) => (
+    $tone === "solid"
+      ? "0 16px 30px rgba(var(--theme-primary-rgb), 0.24)"
+      : "0 10px 22px rgba(var(--theme-primary-rgb), 0.1)"
+  )};
+  color: ${({ $tone }) => ($tone === "solid" ? "white" : "var(--theme-text)")};
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.55rem;
+  justify-content: center;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+  width: 2.55rem;
+
+  &:hover {
+    border-color: rgba(var(--theme-primary-rgb), 0.32);
+    box-shadow: ${({ $tone }) => (
+      $tone === "solid"
+        ? "0 18px 34px rgba(var(--theme-primary-rgb), 0.28)"
+        : "0 14px 26px rgba(var(--theme-primary-rgb), 0.14)"
+    )};
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.14);
+    outline: none;
+  }
+
+  svg {
+    display: block;
+    height: 1.02rem;
+    width: 1.02rem;
+  }
 `;
 
 const Navigation = styled.nav`
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.62rem;
+  gap: 0.42rem 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.08rem;
+  padding-bottom: 0.02rem;
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 979px) {
     display: none;
   }
 
@@ -121,16 +251,17 @@ const NavigationLink = styled(Link)`
   align-items: center;
   color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
   display: inline-flex;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
-  gap: 0.34rem;
+  gap: 0.28rem;
   line-height: 1.2;
-  min-height: 2rem;
+  min-height: 1.7rem;
+  white-space: nowrap;
 
   svg {
     display: block;
-    height: 0.92rem;
-    width: 0.92rem;
+    height: 0.88rem;
+    width: 0.88rem;
   }
 `;
 
@@ -148,12 +279,13 @@ const DropdownSummary = styled.summary`
   color: ${({ $active, $open }) => ($open || $active ? "var(--theme-primary)" : "var(--theme-text)")};
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: ${({ $active, $open }) => ($open || $active ? 800 : 700)};
-  gap: 0.32rem;
+  gap: 0.28rem;
   list-style: none;
-  padding: 0.28rem 0.62rem;
+  padding: 0.22rem 0.52rem;
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
 
   &:hover {
     background: rgba(var(--theme-primary-rgb), 0.12);
@@ -171,8 +303,8 @@ const DropdownSummary = styled.summary`
 
   svg {
     display: block;
-    height: 0.92rem;
-    width: 0.92rem;
+    height: 0.88rem;
+    width: 0.88rem;
   }
 `;
 
@@ -264,6 +396,344 @@ const CountryFlag = styled.img`
 const SearchWrap = styled.div`
   max-width: 100%;
   width: 100%;
+
+  @media (max-width: 979px) {
+    display: none;
+  }
+`;
+
+const mobileDialogVariants = Object.freeze({
+  menu: css`
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: 0.55rem 0 0.55rem 0.55rem;
+  `,
+  search: css`
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0.85rem;
+  `,
+});
+
+const MobileDialog = styled.dialog`
+  background: transparent;
+  border: none;
+  height: 100dvh;
+  inset: 0;
+  margin: 0;
+  max-height: 100dvh;
+  max-width: 100vw;
+  position: fixed;
+  width: 100vw;
+  ${({ $variant }) => mobileDialogVariants[$variant] || mobileDialogVariants.search}
+
+  &[open] {
+    display: flex;
+  }
+
+  &::backdrop {
+    backdrop-filter: blur(12px);
+    background:
+      linear-gradient(180deg, rgba(10, 16, 25, 0.46), rgba(10, 16, 25, 0.68)),
+      radial-gradient(circle at top, rgba(var(--theme-primary-rgb), 0.16), transparent 36%);
+  }
+
+  @media (min-width: 980px) {
+    display: none;
+  }
+`;
+
+const MobileDialogHeader = styled.div`
+  align-items: start;
+  border-bottom: 1px solid rgba(var(--theme-border-rgb), 0.82);
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.95rem 0.95rem 0.88rem;
+`;
+
+const MobileDialogCopy = styled.div`
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+`;
+
+const MobileDialogEyebrow = styled.span`
+  color: rgba(var(--theme-primary-rgb), 0.9);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+`;
+
+const MobileDialogTitle = styled.h2`
+  color: var(--theme-text);
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+`;
+
+const MobileDialogDescription = styled.p`
+  color: rgba(var(--theme-text-rgb), 0.68);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+`;
+
+const MobileDialogCloseButton = styled.button`
+  align-items: center;
+  background: rgba(var(--theme-primary-rgb), 0.05);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.84);
+  border-radius: 999px;
+  color: var(--theme-text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.2rem;
+  justify-content: center;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+  width: 2.2rem;
+
+  &:hover {
+    background: rgba(var(--theme-primary-rgb), 0.1);
+    border-color: rgba(var(--theme-primary-rgb), 0.26);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.14);
+    outline: none;
+  }
+`;
+
+const MobileDialogBody = styled.div`
+  display: grid;
+  gap: 0.85rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.95rem;
+  scrollbar-color: rgba(var(--theme-primary-rgb), 0.24) transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--theme-primary-rgb), 0.24);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+  }
+`;
+
+const MobileMenuSurface = styled.section`
+  background:
+    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.985)),
+    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.82);
+  border-radius: 28px 0 0 28px;
+  box-shadow:
+    -18px 0 42px rgba(9, 17, 28, 0.12),
+    0 32px 84px rgba(9, 17, 28, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100dvh - 1.1rem);
+  margin-left: auto;
+  overflow: hidden;
+  width: min(23.5rem, calc(100vw - 0.55rem));
+`;
+
+const MobileSearchSurface = styled.section`
+  background:
+    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.988)),
+    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.82);
+  border-radius: 28px;
+  box-shadow:
+    0 24px 64px rgba(9, 17, 28, 0.22),
+    0 8px 18px rgba(var(--theme-primary-rgb), 0.08);
+  display: grid;
+  margin-top: min(12vh, 5rem);
+  overflow: hidden;
+  width: min(30rem, calc(100vw - 1.7rem));
+`;
+
+const MobileQuickGrid = styled.div`
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+`;
+
+const MobileQuickLink = styled(Link)`
+  align-items: center;
+  background: ${({ $active }) => (
+    $active ? "rgba(var(--theme-primary-rgb), 0.12)" : "rgba(var(--theme-primary-rgb), 0.04)"
+  )};
+  border: 1px solid ${({ $active }) => (
+    $active ? "rgba(var(--theme-primary-rgb), 0.24)" : "rgba(var(--theme-border-rgb), 0.78)"
+  )};
+  border-radius: 18px;
+  color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 800;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.72rem 0.8rem;
+  text-align: center;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    background: rgba(var(--theme-primary-rgb), 0.1);
+    border-color: rgba(var(--theme-primary-rgb), 0.28);
+    transform: translateY(-1px);
+  }
+`;
+
+const MobileSectionStack = styled.div`
+  display: grid;
+  gap: 0.7rem;
+`;
+
+const MobileDisclosure = styled.details`
+  background: rgba(var(--theme-surface-rgb), 0.78);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.8);
+  border-radius: 20px;
+  overflow: hidden;
+`;
+
+const MobileDisclosureSummary = styled.summary`
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  list-style: none;
+  padding: 0.84rem 0.92rem;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+`;
+
+const MobileDisclosureLead = styled.span`
+  align-items: center;
+  color: var(--theme-text);
+  display: inline-flex;
+  font-size: 0.94rem;
+  font-weight: 800;
+  gap: 0.48rem;
+  min-width: 0;
+`;
+
+const MobileDisclosureMeta = styled.span`
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.48rem;
+`;
+
+const MobileCountPill = styled.span`
+  background: rgba(var(--theme-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--theme-primary-rgb), 0.14);
+  border-radius: 999px;
+  color: rgba(var(--theme-primary-rgb), 0.92);
+  display: inline-flex;
+  font-size: 0.73rem;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.16rem 0.42rem;
+`;
+
+const MobileDisclosureChevron = styled.span`
+  color: rgba(var(--theme-text-rgb), 0.7);
+  display: inline-flex;
+  transition: transform 0.18s ease;
+
+  ${MobileDisclosure}[open] & {
+    transform: rotate(180deg);
+  }
+`;
+
+const MobileDisclosureBody = styled.div`
+  border-top: 1px solid rgba(var(--theme-border-rgb), 0.74);
+  padding: 0.38rem 0.5rem 0.5rem;
+`;
+
+const MobileList = styled.div`
+  display: grid;
+  gap: 0.32rem;
+  max-height: min(34vh, 280px);
+  overflow-y: auto;
+`;
+
+const MobileListLink = styled(Link)`
+  align-items: center;
+  background: rgba(var(--theme-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.74);
+  border-radius: 16px;
+  color: var(--theme-text);
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  justify-content: space-between;
+  min-height: 2.9rem;
+  padding: 0.68rem 0.74rem;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    background: rgba(var(--theme-primary-rgb), 0.08);
+    border-color: rgba(var(--theme-primary-rgb), 0.24);
+    transform: translateY(-1px);
+  }
+`;
+
+const MobileListLabel = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  min-width: 0;
+`;
+
+const MobileListText = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const MobileMenuFooter = styled.div`
+  border-top: 1px solid rgba(var(--theme-border-rgb), 0.8);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.88rem 0.95rem 0.95rem;
+`;
+
+const MobileFooterLink = styled(Link)`
+  align-items: center;
+  background: rgba(var(--theme-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.78);
+  border-radius: 999px;
+  color: var(--theme-text);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 0.38rem;
+  min-height: 2.2rem;
+  padding: 0 0.74rem;
 `;
 
 const Content = styled.div`
@@ -350,15 +820,22 @@ function SiteShellFrame({
   countryQuery = "",
   locale,
   messages,
+  searchQuery = "",
 }) {
   const pathname = usePathname();
   const categoryDropdownRef = useRef(null);
   const countryDropdownRef = useRef(null);
+  const mobileMenuDialogRef = useRef(null);
+  const mobileSearchDialogRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [openDropdownRouteKey, setOpenDropdownRouteKey] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const currentYear = new Date().getFullYear();
   const searchBarCopy = messages.site.searchBar || {};
   const headerTagline = typeof messages.site.tagline === "string" ? messages.site.tagline.trim() : "";
+  const normalizedSearchQuery =
+    typeof searchQuery === "string" ? searchQuery.trim() : "";
   const legalNavigation = messages.site.legalNavigation || {};
   const homeHref = buildLocalizedPath(locale, publicRouteSegments.home);
   const newsHref = buildLocalizedPath(locale, publicRouteSegments.news);
@@ -379,17 +856,24 @@ function SiteShellFrame({
     { href: searchHref, icon: publicNavigationIcons.search, key: "search", label: messages.site.navigation.search },
     { href: aboutHref, icon: publicNavigationIcons.about, key: "about", label: messages.site.navigation.about },
   ];
+  const mobilePrimaryLinks = primaryLinks.filter((item) => item.key !== "search");
+  const searchDialogTitle =
+    messages.public?.search?.title ||
+    searchBarCopy.label ||
+    messages.site.navigation.search ||
+    "Search";
+  const searchDialogDescription =
+    searchBarCopy.placeholder ||
+    messages.public?.search?.description ||
+    "Search published stories";
 
   useEffect(() => {
     function handlePointerDown(event) {
       const target = event.target;
+      const clickedInsideCategory = categoryDropdownRef.current?.contains(target);
+      const clickedInsideCountry = countryDropdownRef.current?.contains(target);
 
-      if (
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(target) &&
-        countryDropdownRef.current &&
-        !countryDropdownRef.current.contains(target)
-      ) {
+      if (!clickedInsideCategory && !clickedInsideCountry) {
         setOpenDropdown(null);
       }
     }
@@ -409,11 +893,124 @@ function SiteShellFrame({
     };
   }, []);
 
+  useEffect(() => {
+    const dialog = mobileMenuDialogRef.current;
+
+    if (!dialog) {
+      return undefined;
+    }
+
+    function handleCancel(event) {
+      event.preventDefault();
+      setIsMobileMenuOpen(false);
+    }
+
+    dialog.addEventListener("cancel", handleCancel);
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+    };
+  }, []);
+
+  useEffect(() => {
+    const dialog = mobileSearchDialogRef.current;
+
+    if (!dialog) {
+      return undefined;
+    }
+
+    function handleCancel(event) {
+      event.preventDefault();
+      setIsMobileSearchOpen(false);
+    }
+
+    dialog.addEventListener("cancel", handleCancel);
+
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+    };
+  }, []);
+
+  useEffect(() => {
+    const dialog = mobileMenuDialogRef.current;
+
+    if (!dialog || typeof dialog.showModal !== "function") {
+      return;
+    }
+
+    if (isMobileMenuOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+
+      return;
+    }
+
+    if (dialog.open) {
+      dialog.close();
+    }
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const dialog = mobileSearchDialogRef.current;
+
+    if (!dialog || typeof dialog.showModal !== "function") {
+      return;
+    }
+
+    if (isMobileSearchOpen) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+
+      return;
+    }
+
+    if (dialog.open) {
+      dialog.close();
+    }
+  }, [isMobileSearchOpen]);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 980) {
+        setIsMobileMenuOpen(false);
+        setIsMobileSearchOpen(false);
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   function handleDropdownToggle(kind) {
     const nextIsOpen = openDropdown === kind && openDropdownRouteKey === routeStateKey ? null : kind;
 
     setOpenDropdown(nextIsOpen);
     setOpenDropdownRouteKey(routeStateKey);
+  }
+
+  function closeMobileMenu() {
+    setIsMobileMenuOpen(false);
+  }
+
+  function closeMobileSearch() {
+    setIsMobileSearchOpen(false);
+  }
+
+  function openMobileMenu() {
+    setOpenDropdown(null);
+    setIsMobileSearchOpen(false);
+    setIsMobileMenuOpen(true);
+  }
+
+  function openMobileSearch() {
+    setOpenDropdown(null);
+    setIsMobileMenuOpen(false);
+    setIsMobileSearchOpen(true);
   }
 
   return (
@@ -422,10 +1019,31 @@ function SiteShellFrame({
         <HeaderInner>
           <HeaderMeta>
             <BrandLink href={homeHref}>
-              <NewsPubLogo size={40} />
+              <BrandLogo size={40} title="" />
               <BrandTitle>{messages.site.title}</BrandTitle>
             </BrandLink>
             {headerTagline ? <HeaderTagline>{headerTagline}</HeaderTagline> : null}
+            <MobileActionGroup>
+              <MobileActionButton
+                aria-expanded={isMobileSearchOpen}
+                aria-haspopup="dialog"
+                aria-label={messages.site.navigation.search || "Search"}
+                onClick={openMobileSearch}
+                type="button"
+              >
+                <AppIcon name="search" size={18} />
+              </MobileActionButton>
+              <MobileActionButton
+                $tone="solid"
+                aria-expanded={isMobileMenuOpen}
+                aria-haspopup="dialog"
+                aria-label="Open menu"
+                onClick={openMobileMenu}
+                type="button"
+              >
+                <AppIcon name="menu" size={18} />
+              </MobileActionButton>
+            </MobileActionGroup>
           </HeaderMeta>
 
           <Navigation aria-label="Public navigation">
@@ -513,12 +1131,200 @@ function SiteShellFrame({
 
           <SearchWrap>
             <PublicStorySearch
+              initialQuery={normalizedSearchQuery}
+              key={`desktop-search-${normalizedSearchQuery || "empty"}`}
               locale={locale}
               searchCopy={searchBarCopy}
               searchHref={searchHref}
             />
           </SearchWrap>
         </HeaderInner>
+
+        <MobileDialog
+          aria-label="Mobile navigation menu"
+          onClick={(event) => {
+            if (event.target === mobileMenuDialogRef.current) {
+              closeMobileMenu();
+            }
+          }}
+          ref={mobileMenuDialogRef}
+          $variant="menu"
+        >
+          <MobileMenuSurface>
+            <MobileDialogHeader>
+              <MobileDialogCopy>
+                <MobileDialogEyebrow>{messages.site.navigation.news || "News"}</MobileDialogEyebrow>
+                <MobileDialogTitle>{messages.site.title}</MobileDialogTitle>
+              </MobileDialogCopy>
+              <MobileDialogCloseButton
+                aria-label="Close menu"
+                onClick={closeMobileMenu}
+                type="button"
+              >
+                <AppIcon name="x" size={16} />
+              </MobileDialogCloseButton>
+            </MobileDialogHeader>
+
+            <MobileDialogBody>
+              <MobileQuickGrid>
+                {mobilePrimaryLinks.map((item) => (
+                  <MobileQuickLink
+                    href={item.href}
+                    key={item.key}
+                    onClick={closeMobileMenu}
+                    $active={isNavigationActive(pathname, item.href)}
+                  >
+                    <AppIcon name={item.icon} size={15} />
+                    {item.label}
+                  </MobileQuickLink>
+                ))}
+              </MobileQuickGrid>
+
+              <MobileSectionStack>
+                {categoryLinks.length ? (
+                  <MobileDisclosure open={isCategoryActive || undefined}>
+                    <MobileDisclosureSummary>
+                      <MobileDisclosureLead>
+                        <AppIcon name="tag" size={15} />
+                        {messages.site.navigation.categories || "Categories"}
+                      </MobileDisclosureLead>
+                      <MobileDisclosureMeta>
+                        <MobileCountPill>{categoryLinks.length}</MobileCountPill>
+                        <MobileDisclosureChevron aria-hidden="true">
+                          <AppIcon name="chevron-down" size={14} />
+                        </MobileDisclosureChevron>
+                      </MobileDisclosureMeta>
+                    </MobileDisclosureSummary>
+                    <MobileDisclosureBody>
+                      <MobileList>
+                        {categoryLinks.map((category) => (
+                          <MobileListLink
+                            href={category.path}
+                            key={category.slug}
+                            onClick={closeMobileMenu}
+                          >
+                            <MobileListLabel>
+                              {category.logoEmoji ? (
+                                <span aria-hidden="true">{category.logoEmoji}</span>
+                              ) : (
+                                <AppIcon name="news" size={14} />
+                              )}
+                              <MobileListText>{category.name}</MobileListText>
+                            </MobileListLabel>
+                            <DropdownCount>{category.count}</DropdownCount>
+                          </MobileListLink>
+                        ))}
+                      </MobileList>
+                    </MobileDisclosureBody>
+                  </MobileDisclosure>
+                ) : null}
+
+                {countryLinks.length ? (
+                  <MobileDisclosure open={isCountryActive || undefined}>
+                    <MobileDisclosureSummary>
+                      <MobileDisclosureLead>
+                        <AppIcon name="globe" size={15} />
+                        {messages.site.navigation.countriesRegions || "Countries/Regions"}
+                      </MobileDisclosureLead>
+                      <MobileDisclosureMeta>
+                        <MobileCountPill>{countryLinks.length}</MobileCountPill>
+                        <MobileDisclosureChevron aria-hidden="true">
+                          <AppIcon name="chevron-down" size={14} />
+                        </MobileDisclosureChevron>
+                      </MobileDisclosureMeta>
+                    </MobileDisclosureSummary>
+                    <MobileDisclosureBody>
+                      <MobileList>
+                        {countryLinks.map((country) => (
+                          <MobileListLink
+                            href={country.path}
+                            key={country.value}
+                            onClick={closeMobileMenu}
+                          >
+                            <MobileListLabel>
+                              {country.flagImageUrl ? (
+                                <CountryFlag
+                                  alt=""
+                                  aria-hidden="true"
+                                  height="14"
+                                  loading="lazy"
+                                  src={country.flagImageUrl}
+                                  width="20"
+                                />
+                              ) : country.flagEmoji ? (
+                                <span aria-hidden="true">{country.flagEmoji}</span>
+                              ) : (
+                                <AppIcon name="globe" size={14} />
+                              )}
+                              <MobileListText>{country.label}</MobileListText>
+                            </MobileListLabel>
+                            <DropdownCount>{country.count}</DropdownCount>
+                          </MobileListLink>
+                        ))}
+                      </MobileList>
+                    </MobileDisclosureBody>
+                  </MobileDisclosure>
+                ) : null}
+              </MobileSectionStack>
+            </MobileDialogBody>
+
+            <MobileMenuFooter>
+              <MobileFooterLink href={searchHref} onClick={closeMobileMenu}>
+                <AppIcon name="search" size={14} />
+                {messages.site.navigation.search || "Search"}
+              </MobileFooterLink>
+              <MobileFooterLink href={privacyHref} onClick={closeMobileMenu}>
+                <AppIcon name="lock" size={14} />
+                {legalNavigation.privacy || "Privacy"}
+              </MobileFooterLink>
+              <MobileFooterLink href={disclaimerHref} onClick={closeMobileMenu}>
+                <AppIcon name="shield" size={14} />
+                {legalNavigation.disclaimer || "Disclaimer"}
+              </MobileFooterLink>
+            </MobileMenuFooter>
+          </MobileMenuSurface>
+        </MobileDialog>
+
+        <MobileDialog
+          aria-label="Search stories"
+          onClick={(event) => {
+            if (event.target === mobileSearchDialogRef.current) {
+              closeMobileSearch();
+            }
+          }}
+          ref={mobileSearchDialogRef}
+          $variant="search"
+        >
+          <MobileSearchSurface>
+            <MobileDialogHeader>
+              <MobileDialogCopy>
+                <MobileDialogEyebrow>{messages.site.navigation.search || "Search"}</MobileDialogEyebrow>
+                <MobileDialogTitle>{searchDialogTitle}</MobileDialogTitle>
+                <MobileDialogDescription>{searchDialogDescription}</MobileDialogDescription>
+              </MobileDialogCopy>
+              <MobileDialogCloseButton
+                aria-label="Close search"
+                onClick={closeMobileSearch}
+                type="button"
+              >
+                <AppIcon name="x" size={16} />
+              </MobileDialogCloseButton>
+            </MobileDialogHeader>
+
+            <MobileDialogBody>
+              <PublicStorySearch
+                autoFocus
+                condenseSubmit={false}
+                initialQuery={normalizedSearchQuery}
+                key={`mobile-search-${normalizedSearchQuery || "empty"}`}
+                locale={locale}
+                onSubmitComplete={closeMobileSearch}
+                searchCopy={searchBarCopy}
+                searchHref={searchHref}
+              />
+            </MobileDialogBody>
+          </MobileSearchSurface>
+        </MobileDialog>
       </Header>
 
       <Content>{children}</Content>
@@ -594,8 +1400,16 @@ function SiteShellContent(props) {
   const searchParams = useSearchParams();
   const countryQuery =
     typeof searchParams?.get("country") === "string" ? searchParams.get("country").trim() : "";
+  const searchQuery =
+    typeof searchParams?.get("q") === "string" ? searchParams.get("q").trim() : "";
 
-  return <SiteShellFrame {...props} countryQuery={countryQuery} />;
+  return (
+    <SiteShellFrame
+      {...props}
+      countryQuery={countryQuery}
+      searchQuery={searchQuery}
+    />
+  );
 }
 
 /**
@@ -603,7 +1417,7 @@ function SiteShellContent(props) {
  */
 export default function SiteShell(props) {
   return (
-    <Suspense fallback={<SiteShellFrame {...props} countryQuery="" />}>
+    <Suspense fallback={<SiteShellFrame {...props} countryQuery="" searchQuery="" />}>
       <SiteShellContent {...props} />
     </Suspense>
   );

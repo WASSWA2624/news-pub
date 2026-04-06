@@ -4,6 +4,7 @@
  */
 
 import { formatCountryFlagEmoji, formatCountryFlagImageUrl } from "@/lib/countries";
+import { formatLanguageFlagEmoji, formatLanguageFlagImageUrl } from "@/lib/languages";
 
 export const MULTI_VALUE_EMPTY_SENTINEL = "__newspub_empty__";
 
@@ -66,6 +67,16 @@ function createCountryOption(value, label, extra = {}) {
   });
 }
 
+function createLanguageOption(value, label, extra = {}) {
+  const normalizedValue = normalizeKey(value);
+
+  return createOption(normalizedValue, label, {
+    flagEmoji: formatLanguageFlagEmoji(normalizedValue),
+    flagImageUrl: formatLanguageFlagImageUrl(normalizedValue),
+    ...extra,
+  });
+}
+
 function buildValueOptions(values = [], labelOverrides = {}) {
   return Object.freeze(
     values.map((value) =>
@@ -88,7 +99,7 @@ function buildCountryOptions(rows = []) {
 function buildLanguageOptions(rows = []) {
   return Object.freeze(
     rows.map(([value, label]) =>
-      createOption(normalizeKey(value), formatCatalogLabel(label)),
+      createLanguageOption(value, formatCatalogLabel(label)),
     ),
   );
 }
@@ -96,7 +107,7 @@ function buildLanguageOptions(rows = []) {
 function buildLanguageOptionsFromNewsData(rows = []) {
   return Object.freeze(
     rows.map(([label, value]) =>
-      createOption(normalizeKey(value), formatCatalogLabel(label)),
+      createLanguageOption(value, formatCatalogLabel(label)),
     ),
   );
 }

@@ -1,8 +1,15 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { createAuditEventRecord } from "@/lib/analytics";
-import { buildStoryStructuredArticle, NewsPubError, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
+import {
+  buildStoryStructuredArticle,
+  createContentHash,
+  NewsPubError,
+  pickTranslation,
+  resolvePrismaClient,
+} from "@/lib/news/shared";
 import { createSlug } from "@/lib/normalization";
+import { getStreamValidationIssues } from "@/lib/validation/configuration";
 import { publishArticleMatch } from "@/lib/news/workflows";
 
 /**
@@ -17,6 +24,7 @@ export const editorialStageOrder = Object.freeze([
 
 export const postInventoryScopeValues = Object.freeze(["review", "published", "all"]);
 export const postStatusValues = Object.freeze(["DRAFT", "SCHEDULED", "PUBLISHED", "ARCHIVED"]);
+const manualProviderKey = "manual";
 
 function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
@@ -131,6 +139,19 @@ function mapCategory(category, locale = defaultLocale) {
     name: category.name,
     path: buildLocalizedPath(locale, publicRouteSegments.category(category.slug)),
     slug: category.slug,
+  };
+}
+
+function mapManualPublishingStream(stream) {
+  return {
+    destinationName: stream.destination?.name || "Website",
+    id: stream.id,
+    locale: stream.locale,
+    mode: stream.mode,
+    name: stream.name,
+    status: stream.status,
+    templateName: stream.defaultTemplate?.name || null,
+    validationIssues: stream.validationIssues || [],
   };
 }
 
@@ -553,6 +574,99 @@ function selectPublishableArticleMatch(post, articleMatchId = null) {
   );
 }
 
+async function listWebsitePublishingStreams(db) {
+  const streams = await db.publishingStream.findMany({
+    include: {
+      activeProvider: {
+        select: {
+          id: true,
+          providerKey: true,
+        },
+      },
+      defaultTemplate: {
+        select: {
+          id: true,
+          name: true,
+          platform: true,
+        },
+      },
+      destination: {
+        select: {
+          id: true,
+          kind: true,
+          name: true,
+          platform: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: [{ status: "asc" }, { name: "asc" }],
+  });
+
+  return streams
+    .filter((stream) => stream.destination?.platform === "WEBSITE" && stream.destination?.kind === "WEBSITE")
+    .map((stream) => ({
+      ...stream,
+      validationIssues: getStreamValidationIssues({
+        destination: stream.destination,
+        mode: stream.mode,
+        template: stream.defaultTemplate,
+      }),
+    }));
+}
+
+async function resolveManualPostWebsiteStream(db, streamId = null) {
+  const websiteStreams = await listWebsitePublishingStreams(db);
+
+  if (!websiteStreams.length) {
+    throw new NewsPubError("Create a website stream before creating manual stories.", {
+      status: "manual_post_stream_not_found",
+      statusCode: 400,
+    });
+  }
+
+  const selectedStream = streamId
+    ? websiteStreams.find((stream) => stream.id === streamId) || null
+    : websiteStreams.find((stream) => !stream.validationIssues.length && stream.status === "ACTIVE")
+      || websiteStreams.find((stream) => !stream.validationIssues.length)
+      || null;
+
+  if (!selectedStream) {
+    throw new NewsPubError("No publish-ready website stream is available for manual stories.", {
+      status: "manual_post_stream_not_ready",
+      statusCode: 400,
+    });
+  }
+
+  if (selectedStream.validationIssues.length) {
+    throw new NewsPubError(selectedStream.validationIssues[0].message, {
+      status: "manual_post_stream_not_ready",
+      statusCode: 400,
+    });
+  }
+
+  return selectedStream;
+}
+
+function parsePublishAt(value) {
+  const rawValue = trimText(value);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const publishAt = new Date(rawValue);
+
+  if (Number.isNaN(publishAt.getTime())) {
+    throw new NewsPubError("Publish time must be a valid date.", {
+      status: "manual_post_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  return publishAt;
+}
+
 export async function getPostInventorySnapshot(options = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const scope = normalizeScope(options.scope);
@@ -604,6 +718,33 @@ export async function getPostInventorySnapshot(options = {}, prisma) {
       scheduledCount,
       totalCount: reviewCount + publishedCount + archivedCount,
     },
+  };
+}
+
+export async function getManualPostCreationSnapshot({ locale = defaultLocale } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const [categories, websiteStreams] = await Promise.all([
+    db.category.findMany({
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    }),
+    listWebsitePublishingStreams(db),
+  ]);
+  const availableStreams = websiteStreams.filter((stream) => !stream.validationIssues.length);
+  const defaultStream =
+    availableStreams.find((stream) => stream.status === "ACTIVE") || availableStreams[0] || null;
+
+  return {
+    categories: categories.map((category) => mapCategory(category, locale)),
+    defaultStreamId: defaultStream?.id || null,
+    locale,
+    websiteStreams: websiteStreams.map(mapManualPublishingStream),
   };
 }
 
@@ -707,6 +848,140 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
     },
     selectedTranslation: mapEditorTranslation(activeTranslation),
     statusValues: postStatusValues,
+  };
+}
+
+export async function createManualPostRecord(input = {}, { actorId = null } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const action = trimText(input.action).toLowerCase();
+  const requestedStatus = trimText(input.status).toUpperCase();
+  const shouldSchedule = requestedStatus === "SCHEDULED" || action === "schedule";
+  const shouldPublish = requestedStatus === "PUBLISHED" || shouldSchedule || action === "publish";
+  const stream = await resolveManualPostWebsiteStream(db, trimText(input.streamId) || null);
+  const locale = trimText(input.locale).toLowerCase() || trimText(stream.locale).toLowerCase() || defaultLocale;
+  const title = trimText(input.title);
+  const sourceName = trimText(input.sourceName);
+  const sourceUrl = trimText(input.sourceUrl);
+  const summary = trimText(input.summary) || title;
+  const contentMd = trimText(input.contentMd) || summary || title;
+  const publishAt = parsePublishAt(input.publishAt);
+  const nextCategoryIds = Array.isArray(input.categoryIds)
+    ? dedupeStrings(input.categoryIds).filter(Boolean)
+    : [];
+
+  if (!title || !sourceName || !sourceUrl) {
+    throw new NewsPubError("Title, source name, and source URL are required for manual stories.", {
+      status: "manual_post_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  if (shouldSchedule && (!publishAt || publishAt <= new Date())) {
+    throw new NewsPubError("Choose a future publish time to schedule the story.", {
+      status: "manual_post_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const slug = await createUniquePostSlug(db, input.slug || title);
+  const createdAt = new Date();
+  const fingerprint = createContentHash(
+    "manual_post",
+    slug,
+    sourceUrl,
+    actorId || "",
+    createdAt.toISOString(),
+  );
+  const sourceArticle = await db.fetchedArticle.create({
+    data: {
+      body: contentMd,
+      dedupeFingerprint: fingerprint,
+      imageUrl: null,
+      language: locale,
+      normalizedTitleHash: createContentHash(title),
+      providerArticleId: `manual-${fingerprint.slice(0, 24)}`,
+      providerCategoriesJson: [],
+      providerConfigId: stream.activeProvider.id,
+      providerCountriesJson: [],
+      providerRegionsJson: [],
+      publishedAt: createdAt,
+      rawPayloadJson: {
+        createdBy: actorId,
+        manualEntry: true,
+        streamId: stream.id,
+      },
+      sourceName,
+      sourceUrl,
+      sourceUrlHash: createContentHash(sourceUrl),
+      summary,
+      tagsJson: [],
+      title,
+    },
+  });
+  const post = await db.post.create({
+    data: {
+      authorId: actorId || null,
+      excerpt: summary,
+      providerKey: manualProviderKey,
+      slug,
+      sourceArticleId: sourceArticle.id,
+      sourceName,
+      sourceUrl,
+      status: "DRAFT",
+    },
+  });
+
+  await syncPostCategories(db, post.id, nextCategoryIds);
+  await rebuildTranslationArtifacts(
+    db,
+    {
+      ...post,
+      translations: [],
+    },
+    locale,
+    nextCategoryIds,
+    {
+      contentMd,
+      summary,
+      title,
+    },
+  );
+
+  const articleMatch = await db.articleMatch.create({
+    data: {
+      canonicalPostId: post.id,
+      destinationId: stream.destinationId,
+      fetchedArticleId: sourceArticle.id,
+      holdReasonsJson: shouldPublish ? [] : ["manual_story_pending_editorial_review"],
+      overrideNotes: "Created manually from the admin story form.",
+      status: shouldPublish ? "ELIGIBLE" : "HELD_FOR_REVIEW",
+      streamId: stream.id,
+    },
+  });
+
+  await createAuditEventRecord(
+    {
+      action: "MANUAL_POST_CREATED",
+      actorId,
+      entityId: post.id,
+      entityType: "post",
+      payloadJson: {
+        destinationId: stream.destinationId,
+        locale,
+        sourceArticleId: sourceArticle.id,
+        streamId: stream.id,
+      },
+    },
+    db,
+  );
+
+  if (shouldPublish) {
+    await publishArticleMatch(articleMatch.id, publishAt ? { publishAt } : {}, db);
+  }
+
+  return {
+    locale,
+    postId: post.id,
   };
 }
 

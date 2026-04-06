@@ -33,7 +33,9 @@ const aliasMap = Object.freeze({
   lock: "lock",
   login: "log-in",
   logout: "log-out",
+  hamburger: "menu",
   media: "image",
+  menu: "menu",
   news: "news",
   privacy: "lock",
   providers: "server",
@@ -287,6 +289,14 @@ function renderIcon(name) {
           <circle cx="6.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
           <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
           <circle cx="17.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+        </>
+      );
+    case "menu":
+      return (
+        <>
+          <path d="M4 7h16" />
+          <path d="M4 12h16" />
+          <path d="M4 17h16" />
         </>
       );
     case "news":

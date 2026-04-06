@@ -114,4 +114,39 @@ describe("destination runtime resolution", () => {
       usesEnvCredentials: false,
     });
   });
+
+  it("lets destination credential overrides win over env defaults when explicitly enabled", async () => {
+    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
+      "facebook-page": {
+        accessToken: "env-token",
+        pageId: "123456789012345",
+      },
+    });
+
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
+    const encryptedToken = encryptSecretValue("override-token");
+
+    const resolved = resolveDestinationRuntimeConnection({
+      connectionStatus: "CONNECTED",
+      encryptedTokenCiphertext: encryptedToken.ciphertext,
+      encryptedTokenIv: encryptedToken.iv,
+      encryptedTokenTag: encryptedToken.tag,
+      externalAccountId: "override-page-id",
+      platform: "FACEBOOK",
+      settingsJson: {
+        pageId: "override-page-id",
+        useDestinationCredentialOverrides: true,
+      },
+      slug: "facebook-page",
+    });
+
+    expect(resolved).toMatchObject({
+      accessToken: "override-token",
+      accountId: "override-page-id",
+      pageId: "override-page-id",
+      usesDestinationCredentialOverrides: true,
+      usesEnvCredentials: false,
+    });
+  });
 });

@@ -2,18 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
 
 const Form = styled.form`
   display: grid;
-  gap: 0.32rem;
+  gap: 0.28rem;
   grid-template-columns: minmax(0, 1fr) auto;
 
-  @media (max-width: 640px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  ${({ $condenseSubmit }) => (
+    $condenseSubmit
+      ? css`
+          @media (max-width: 520px) {
+            grid-template-columns: minmax(0, 1fr) 2.5rem;
+          }
+        `
+      : ""
+  )}
 `;
 
 const InputWrap = styled.label`
@@ -25,9 +31,9 @@ const InputWrap = styled.label`
   border-radius: var(--theme-radius-md);
   box-shadow: 0 8px 20px rgba(var(--theme-primary-rgb), 0.06);
   display: flex;
-  gap: 0.52rem;
-  min-height: 38px;
-  padding: 0 0.78rem;
+  gap: 0.44rem;
+  min-height: 36px;
+  padding: 0 0.72rem;
 
   &:focus-within {
     border-color: var(--theme-primary);
@@ -76,13 +82,19 @@ const Button = styled.button`
   font-weight: 700;
   gap: 0.38rem;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 0.84rem;
+  min-height: 36px;
+  padding: 0 0.78rem;
 
-  @media (max-width: 640px) {
-    min-height: 40px;
-    width: 100%;
-  }
+  ${({ $condenseSubmit }) => (
+    $condenseSubmit
+      ? css`
+          @media (max-width: 520px) {
+            min-width: 2.5rem;
+            padding: 0;
+          }
+        `
+      : ""
+  )}
 
   svg {
     display: block;
@@ -91,15 +103,42 @@ const Button = styled.button`
   }
 `;
 
+const ButtonText = styled.span`
+  ${({ $condenseSubmit }) => (
+    $condenseSubmit
+      ? css`
+          @media (max-width: 520px) {
+            display: none;
+          }
+        `
+      : ""
+  )}
+`;
+
 /**
  * Public story-search entry point for published NewsPub coverage.
  *
  * The component keeps the shell-level search interaction focused on the public
  * search route so locale-aware story discovery stays lightweight and predictable.
  */
-export default function PublicStorySearch({ searchCopy = {}, searchHref }) {
+export default function PublicStorySearch({
+  autoFocus = false,
+  condenseSubmit = true,
+  initialQuery = "",
+  onSubmitComplete,
+  searchCopy = {},
+  searchHref,
+}) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(
+    typeof initialQuery === "string" ? initialQuery : ""
+  );
+
+  function finishSubmit() {
+    if (typeof onSubmitComplete === "function") {
+      onSubmitComplete();
+    }
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -108,28 +147,42 @@ export default function PublicStorySearch({ searchCopy = {}, searchHref }) {
 
     if (!trimmedQuery) {
       router.push(searchHref);
+      finishSubmit();
       return;
     }
 
     router.push(`${searchHref}?q=${encodeURIComponent(trimmedQuery)}`);
+    finishSubmit();
   }
 
   return (
-    <Form action={searchHref} method="get" onSubmit={handleSubmit}>
+    <Form
+      action={searchHref}
+      method="get"
+      onSubmit={handleSubmit}
+      $condenseSubmit={condenseSubmit}
+    >
       <InputWrap>
         <InputIcon aria-hidden="true">
           <AppIcon name="search" size={15} />
         </InputIcon>
         <Input
           aria-label={searchCopy.label || "Search published news"}
+          autoFocus={autoFocus}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={searchCopy.placeholder || "Search published stories"}
           value={query}
         />
       </InputWrap>
-      <Button type="submit">
+      <Button
+        aria-label={searchCopy.submitAction || "Search"}
+        type="submit"
+        $condenseSubmit={condenseSubmit}
+      >
         <AppIcon name="search" size={14} />
-        {searchCopy.submitAction || "Search"}
+        <ButtonText $condenseSubmit={condenseSubmit}>
+          {searchCopy.submitAction || "Search"}
+        </ButtonText>
       </Button>
     </Form>
   );

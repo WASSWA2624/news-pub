@@ -75,6 +75,19 @@ function optionalIntegerString(name) {
   });
 }
 
+function optionalCsvString(name) {
+  return optionalString().transform((value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  });
+}
+
 function csvString(name) {
   return requiredString(name).transform((value, context) => {
     const items = value
@@ -209,6 +222,7 @@ const serverEnvSchema = sharedEnvSchema
     META_APP_ID: optionalString(),
     META_APP_SECRET: optionalString(),
     META_GRAPH_API_BASE_URL: optionalUrlString("META_GRAPH_API_BASE_URL"),
+    META_ALLOWED_PAGE_IDS: optionalCsvString("META_ALLOWED_PAGE_IDS"),
     META_DESTINATION_CREDENTIALS_JSON: optionalJsonObjectString("META_DESTINATION_CREDENTIALS_JSON"),
     META_SOCIAL_MIN_POST_INTERVAL_MINUTES: optionalIntegerString("META_SOCIAL_MIN_POST_INTERVAL_MINUTES"),
     META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: optionalIntegerString("META_SOCIAL_DUPLICATE_COOLDOWN_HOURS"),
@@ -349,6 +363,7 @@ function mapServerEnv(parsedEnv) {
       encryptionKey: parsedEnv.DESTINATION_TOKEN_ENCRYPTION_KEY,
     },
     meta: {
+      allowedPageIds: parsedEnv.META_ALLOWED_PAGE_IDS || [],
       app: {
         id: parsedEnv.META_APP_ID || null,
         secret: parsedEnv.META_APP_SECRET || null,

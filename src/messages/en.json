@@ -201,6 +201,10 @@
       "title": "Story Editor",
       "description": "Review the canonical story, edit render content, and publish or schedule linked matches."
     },
+    "manualPost": {
+      "title": "Manual Story",
+      "description": "Create a website story directly from editorial copy without running a provider fetch."
+    },
     "media": {
       "title": "Media Library",
       "description": "Uploaded and ingested media assets used by NewsPub stories."

@@ -7,6 +7,7 @@ import {
   AdminPage,
   AdminSectionTitle,
   ButtonIcon,
+  ButtonRow,
   Card,
   CardHeader,
   DataTable,
@@ -50,6 +51,14 @@ export default async function ReviewQueuePage({ searchParams }) {
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
         <AdminHeroHeading description={copy.description} icon="review" title={copy.title} />
+        <ButtonRow>
+          <LinkButton href="/admin/posts/new">
+            <ButtonIcon>
+              <ActionIcon name="edit" />
+            </ButtonIcon>
+            Create manual story
+          </LinkButton>
+        </ButtonRow>
       </AdminHero>
 
       <SummaryGrid>

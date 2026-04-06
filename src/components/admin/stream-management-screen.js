@@ -429,10 +429,53 @@ const ScopeHeader = styled.div`
   padding: 0.72rem;
 `;
 
-const ScopeRail = styled.div`
+const ScopeGroupGrid = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const ScopeGroupCard = styled.section`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 252, 255, 0.82)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.04), transparent 56%);
+  border: 1px solid rgba(16, 32, 51, 0.06);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.72rem;
+`;
+
+const ScopeGroupHeader = styled.div`
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: space-between;
+`;
+
+const ScopeGroupTitleBlock = styled.div`
+  display: grid;
+  gap: 0.16rem;
+`;
+
+const ScopeGroupTitle = styled.strong`
+  color: #162744;
+  font-size: 0.84rem;
+`;
+
+const ScopeGroupMeta = styled.span`
+  color: rgba(72, 85, 108, 0.88);
+  font-size: 0.72rem;
+  line-height: 1.4;
+`;
+
+const ScopeRail = styled.div`
+  display: grid;
   gap: 0.45rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 `;
 
 const ScopeActions = styled.div`
@@ -456,11 +499,12 @@ const ScopeActionButton = styled.button`
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 999px;
   color: #22344f;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
   font-size: 0.72rem;
   font-weight: 800;
   min-height: 34px;
+  opacity: ${({ disabled }) => (disabled ? 0.52 : 1)};
   padding: 0 0.76rem;
   transition:
     background 160ms ease,
@@ -469,8 +513,9 @@ const ScopeActionButton = styled.button`
     transform 160ms ease;
 
   &:hover {
-    border-color: rgba(15, 111, 141, 0.18);
-    transform: translateY(-1px);
+    border-color: ${({ disabled }) =>
+      disabled ? "rgba(16, 32, 51, 0.08)" : "rgba(15, 111, 141, 0.18)"};
+    transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
   }
 `;
 
@@ -486,31 +531,59 @@ const ScopeCheckbox = styled.label`
     $active ? "0 12px 24px rgba(15, 96, 121, 0.16)" : "0 8px 18px rgba(18, 34, 58, 0.04)"};
   color: ${({ $active }) => ($active ? "white" : "#22344f")};
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   font-size: 0.8rem;
   font-weight: 800;
   gap: 0.55rem;
   min-height: 44px;
-  padding: 0 0.95rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.78rem 0.95rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
-
-  @media (max-width: 639px) {
-    width: 100%;
-  }
+  width: 100%;
 
   &:hover {
     transform: translateY(-1px);
   }
 
   input {
-    accent-color: white;
+    accent-color: ${({ $active }) => ($active ? "white" : "#0d5f79")};
+    flex: 0 0 auto;
     margin: 0;
     transform: scale(1.08);
   }
+`;
+
+const ScopeCheckboxLeading = styled.span`
+  align-items: flex-start;
+  display: flex;
+  gap: 0.65rem;
+  min-width: 0;
+`;
+
+const ScopeCheckboxBody = styled.span`
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+`;
+
+const ScopeCheckboxLabel = styled.span`
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ScopeCheckboxMeta = styled.span`
+  color: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.82)" : "rgba(72, 85, 108, 0.88)")};
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.4;
 `;
 
 const ScopeCount = styled.span`
@@ -522,6 +595,7 @@ const ScopeCount = styled.span`
   border-radius: 999px;
   color: inherit;
   display: inline-flex;
+  flex: 0 0 auto;
   font-size: 0.68rem;
   font-weight: 800;
   min-height: 24px;
@@ -723,6 +797,31 @@ function getResultLabel(result, activeStreamId) {
   return "Queued";
 }
 
+const preferredDestinationGroupOrder = Object.freeze(["WEBSITE", "FACEBOOK", "INSTAGRAM"]);
+
+function compareDestinationGroupKeys(left, right) {
+  const normalizedLeft = `${left || ""}`.trim().toUpperCase();
+  const normalizedRight = `${right || ""}`.trim().toUpperCase();
+  const leftIndex = preferredDestinationGroupOrder.indexOf(normalizedLeft);
+  const rightIndex = preferredDestinationGroupOrder.indexOf(normalizedRight);
+
+  if (leftIndex !== -1 || rightIndex !== -1) {
+    if (leftIndex === -1) {
+      return 1;
+    }
+
+    if (rightIndex === -1) {
+      return -1;
+    }
+
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex;
+    }
+  }
+
+  return normalizedLeft.localeCompare(normalizedRight);
+}
+
 function RunProgressModal({ runState, onClose }) {
   useEffect(() => {
     if (!runState || typeof document === "undefined") {
@@ -872,68 +971,143 @@ export default function StreamManagementScreen({
   templateOptions,
 }) {
   const router = useRouter();
-  const [selectedPlatforms, setSelectedPlatforms] = useState(() =>
-    [...new Set(destinationOptions.map((destination) => destination.platform).filter(Boolean))].sort(),
+  const [selectedDestinationIds, setSelectedDestinationIds] = useState(() =>
+    destinationOptions.map((destination) => destination.value).filter(Boolean),
   );
   const [runState, setRunState] = useState(null);
-  const platformSummaries = useMemo(() => {
-    const platformMap = new Map();
-
-    for (const destination of destinationOptions) {
-      if (!platformMap.has(destination.platform)) {
-        platformMap.set(destination.platform, {
-          destinationCount: 0,
-          platform: destination.platform,
-          streamCount: 0,
-        });
-      }
-
-      platformMap.get(destination.platform).destinationCount += 1;
-    }
+  const streamCountsByDestination = useMemo(() => {
+    const counts = new Map();
 
     for (const stream of streams) {
-      const platform = stream.destination?.platform;
+      const destinationId = stream.destination?.id;
 
-      if (!platform) {
+      if (!destinationId) {
         continue;
       }
 
-      if (!platformMap.has(platform)) {
-        platformMap.set(platform, {
-          destinationCount: 0,
+      counts.set(destinationId, (counts.get(destinationId) || 0) + 1);
+    }
+
+    return counts;
+  }, [streams]);
+
+  const destinationGroups = useMemo(() => {
+    const groupMap = new Map();
+    const sortedDestinations = [...destinationOptions]
+      .filter((destination) => destination.value)
+      .sort((left, right) => {
+        const platformComparison = compareDestinationGroupKeys(left.platform, right.platform);
+
+        if (platformComparison !== 0) {
+          return platformComparison;
+        }
+
+        return (left.label || "").localeCompare(right.label || "");
+      });
+
+    for (const destination of sortedDestinations) {
+      const platform = destination.platform || "OTHER";
+
+      if (!groupMap.has(platform)) {
+        groupMap.set(platform, {
+          destinations: [],
           platform,
-          streamCount: 0,
+          totalStreamCount: 0,
         });
       }
 
-      platformMap.get(platform).streamCount += 1;
+      const streamCount = streamCountsByDestination.get(destination.value) || 0;
+
+      groupMap.get(platform).destinations.push({
+        ...destination,
+        streamCount,
+      });
+      groupMap.get(platform).totalStreamCount += streamCount;
     }
 
-    return [...platformMap.values()].sort((left, right) => left.platform.localeCompare(right.platform));
-  }, [destinationOptions, streams]);
+    return [...groupMap.values()].sort((left, right) =>
+      compareDestinationGroupKeys(left.platform, right.platform),
+    );
+  }, [destinationOptions, streamCountsByDestination]);
 
-  const allPlatforms = useMemo(
-    () => platformSummaries.map((platform) => platform.platform),
-    [platformSummaries],
+  const allDestinationIds = useMemo(
+    () => destinationGroups.flatMap((group) => group.destinations.map((destination) => destination.value)),
+    [destinationGroups],
   );
 
-  const selectedPlatformSet = useMemo(() => new Set(selectedPlatforms), [selectedPlatforms]);
+  const destinationOrder = useMemo(
+    () => new Map(allDestinationIds.map((destinationId, index) => [destinationId, index])),
+    [allDestinationIds],
+  );
 
-  function togglePlatform(platform) {
-    setSelectedPlatforms((currentPlatforms) =>
-      currentPlatforms.includes(platform)
-        ? currentPlatforms.filter((value) => value !== platform)
-        : [...currentPlatforms, platform].sort(),
-    );
+  const normalizedSelectedDestinationIds = useMemo(
+    () => selectedDestinationIds.filter((destinationId) => destinationOrder.has(destinationId)),
+    [destinationOrder, selectedDestinationIds],
+  );
+
+  function sortDestinationIds(destinationIds) {
+    return [...destinationIds]
+      .filter((destinationId) => destinationOrder.has(destinationId))
+      .sort(
+      (left, right) =>
+        (destinationOrder.get(left) ?? Number.MAX_SAFE_INTEGER)
+        - (destinationOrder.get(right) ?? Number.MAX_SAFE_INTEGER),
+      );
+  }
+
+  const selectedDestinationSet = useMemo(
+    () => new Set(normalizedSelectedDestinationIds),
+    [normalizedSelectedDestinationIds],
+  );
+
+  function toggleDestination(destinationId) {
+    setSelectedDestinationIds((currentIds) => {
+      const validIds = currentIds.filter((value) => destinationOrder.has(value));
+
+      return validIds.includes(destinationId)
+        ? validIds.filter((value) => value !== destinationId)
+        : sortDestinationIds([...validIds, destinationId]);
+    });
+  }
+
+  function selectAllDestinations() {
+    setSelectedDestinationIds(allDestinationIds);
+  }
+
+  function deselectAllDestinations() {
+    setSelectedDestinationIds([]);
+  }
+
+  function selectDestinationGroup(destinationIds) {
+    setSelectedDestinationIds((currentIds) => {
+      const validIds = currentIds.filter((destinationId) => destinationOrder.has(destinationId));
+
+      return sortDestinationIds([...new Set([...validIds, ...destinationIds])]);
+    });
+  }
+
+  function deselectDestinationGroup(destinationIds) {
+    const destinationIdSet = new Set(destinationIds);
+
+    setSelectedDestinationIds((currentIds) => {
+      const validIds = currentIds.filter((destinationId) => destinationOrder.has(destinationId));
+
+      return validIds.filter((destinationId) => !destinationIdSet.has(destinationId));
+    });
   }
 
   const filteredDestinationOptions = useMemo(() => {
-    return destinationOptions.filter((destination) => selectedPlatformSet.has(destination.platform));
-  }, [destinationOptions, selectedPlatformSet]);
+    return destinationOptions.filter((destination) => selectedDestinationSet.has(destination.value));
+  }, [destinationOptions, selectedDestinationSet]);
+
+  const selectedPlatformSet = useMemo(
+    () => new Set(filteredDestinationOptions.map((destination) => destination.platform).filter(Boolean)),
+    [filteredDestinationOptions],
+  );
 
   const filteredStreams = useMemo(() => {
-    return streams.filter((stream) => selectedPlatformSet.has(stream.destination?.platform));
-  }, [selectedPlatformSet, streams]);
+    return streams.filter((stream) => selectedDestinationSet.has(stream.destination?.id));
+  }, [selectedDestinationSet, streams]);
 
   const runnableStreams = useMemo(() => {
     return filteredStreams.filter((stream) => stream.status === "ACTIVE");
@@ -945,15 +1119,23 @@ export default function StreamManagementScreen({
     );
   }, [selectedPlatformSet, templateOptions]);
 
-  const selectedLabel =
-    selectedPlatforms.length === allPlatforms.length
-      ? "all configured platforms"
-      : selectedPlatforms.length
-        ? selectedPlatforms.map((platform) => formatEnumLabel(platform)).join(", ")
-        : "no platforms";
-  const scopeDescription = selectedPlatforms.length
-    ? `Create or review streams for ${selectedLabel}. Each destination keeps using its own saved platform settings.`
-    : "Select at least one target platform to create or review streams.";
+  const selectedDestinationCount = filteredDestinationOptions.length;
+  const selectedDestinationGroupCount = destinationGroups.filter((group) =>
+    group.destinations.some((destination) => selectedDestinationSet.has(destination.value)),
+  ).length;
+  const selectedDestination = selectedDestinationCount === 1 ? filteredDestinationOptions[0] : null;
+  const hasConfiguredDestinations = allDestinationIds.length > 0;
+  const allDestinationsSelected =
+    hasConfiguredDestinations && selectedDestinationCount === allDestinationIds.length;
+  const scopeDescription = !hasConfiguredDestinations
+    ? "Add a destination first to create or review streams."
+    : !selectedDestinationCount
+      ? "Select at least one target destination to create or review streams."
+      : allDestinationsSelected
+        ? "Create or review streams for all configured destinations. Each destination keeps using its own saved publishing settings."
+        : selectedDestination
+          ? `Create or review streams for ${selectedDestination.label}. Each destination keeps using its own saved publishing settings.`
+          : `Create or review streams for ${selectedDestinationCount} selected destinations across ${selectedDestinationGroupCount} group${selectedDestinationGroupCount === 1 ? "" : "s"}. Each destination keeps using its own saved publishing settings.`;
   const isRunInProgress = runState?.phase === "running";
 
   function closeRunReport() {
@@ -1061,16 +1243,44 @@ export default function StreamManagementScreen({
     void handleRunStreams([stream]);
   }
 
+  const streamsSectionTitle = allDestinationsSelected
+    ? "Configured streams"
+    : selectedDestination
+      ? `${selectedDestination.label} streams`
+      : "Selected destination streams";
+  const streamsSectionDescription = selectedDestinationCount
+    ? "Keep each stream small, readable, and tunable from a phone without losing control."
+    : hasConfiguredDestinations
+      ? "Pick one or more destinations above to load matching streams."
+      : "Add a destination first to load matching streams.";
+  const addStreamTitle = allDestinationsSelected
+    ? "Add stream"
+    : selectedDestination
+      ? `Add ${selectedDestination.label} stream`
+      : "Add stream to selected destinations";
+  const addStreamDescription = allDestinationsSelected
+    ? "Streams define the destination-specific fetch window, filtering rules, mode, and cadence."
+    : selectedDestinationCount
+      ? "This form is narrowed to the checked destinations so one stream setup stays focused on the targets you selected."
+      : hasConfiguredDestinations
+        ? "Select one or more destinations above before creating a stream."
+        : "Add a destination first before creating a stream.";
+  const activeScopeText = selectedDestinationCount
+    ? `${filteredDestinationOptions.length} destination${filteredDestinationOptions.length === 1 ? " is" : "s are"} available across ${selectedDestinationGroupCount} selected group${selectedDestinationGroupCount === 1 ? "" : "s"}.`
+    : hasConfiguredDestinations
+      ? "No destinations are selected yet."
+      : "No destinations are configured yet.";
+
   return (
     <>
       <TargetingCard>
         <TargetingLayout>
           <TargetingCopy>
-            <TargetingEyebrow>Target platforms</TargetingEyebrow>
+            <TargetingEyebrow>Target destinations</TargetingEyebrow>
             <TargetingTitle>
               <TitleWithIcon>
                 <AppIcon name="streams" size={16} />
-                Choose the platforms you want this stream workflow to target.
+                Choose the destinations you want this stream workflow to target.
               </TitleWithIcon>
             </TargetingTitle>
             <SmallText>{scopeDescription}</SmallText>
@@ -1078,7 +1288,7 @@ export default function StreamManagementScreen({
               <TargetSummary>
                 <SummaryPill $tone="accent">
                   <AppIcon name="tag" size={14} />
-                  {selectedPlatforms.length} selected
+                  {selectedDestinationCount} selected
                 </SummaryPill>
                 <SummaryPill>
                   <AppIcon name="destinations" size={14} />
@@ -1106,50 +1316,109 @@ export default function StreamManagementScreen({
             <ScopeHeader>
               <ScopeActionsBar>
                 <ScopeActions>
-                  <ScopeActionButton onClick={() => setSelectedPlatforms(allPlatforms)} type="button">
+                  <ScopeActionButton
+                    disabled={!hasConfiguredDestinations || allDestinationsSelected}
+                    onClick={selectAllDestinations}
+                    type="button"
+                  >
                     Select all
                   </ScopeActionButton>
-                  <ScopeActionButton onClick={() => setSelectedPlatforms([])} type="button">
+                  <ScopeActionButton
+                    disabled={!selectedDestinationCount}
+                    onClick={deselectAllDestinations}
+                    type="button"
+                  >
                     Deselect all
                   </ScopeActionButton>
                 </ScopeActions>
                 <SmallText>
-                  {selectedPlatforms.length} of {allPlatforms.length} platforms selected
+                  {selectedDestinationCount} of {allDestinationIds.length} destinations selected
                 </SmallText>
               </ScopeActionsBar>
-              <ScopeRail>
-                {platformSummaries.map((platform) => {
-                  const isActive = selectedPlatformSet.has(platform.platform);
+              {destinationGroups.length ? (
+                <ScopeGroupGrid>
+                  {destinationGroups.map((group) => {
+                    const groupDestinationIds = group.destinations.map((destination) => destination.value);
+                    const selectedGroupCount = groupDestinationIds.filter((destinationId) =>
+                      selectedDestinationSet.has(destinationId),
+                    ).length;
 
-                  return (
-                    <ScopeCheckbox $active={isActive} key={platform.platform}>
-                      <input
-                        checked={isActive}
-                        onChange={() => togglePlatform(platform.platform)}
-                        type="checkbox"
-                      />
-                      {formatEnumLabel(platform.platform)}
-                      <ScopeCount $active={isActive}>{platform.streamCount}</ScopeCount>
-                    </ScopeCheckbox>
-                  );
-                })}
-              </ScopeRail>
+                    return (
+                      <ScopeGroupCard key={group.platform}>
+                        <ScopeGroupHeader>
+                          <ScopeGroupTitleBlock>
+                            <ScopeGroupTitle>
+                              {formatEnumLabel(group.platform)} destinations
+                            </ScopeGroupTitle>
+                            <ScopeGroupMeta>
+                              {selectedGroupCount} of {group.destinations.length} selected
+                              {" | "}
+                              {group.totalStreamCount} stream{group.totalStreamCount === 1 ? "" : "s"}
+                            </ScopeGroupMeta>
+                          </ScopeGroupTitleBlock>
+                          <ScopeActions>
+                            <ScopeActionButton
+                              disabled={selectedGroupCount === group.destinations.length}
+                              onClick={() => selectDestinationGroup(groupDestinationIds)}
+                              type="button"
+                            >
+                              Select all
+                            </ScopeActionButton>
+                            <ScopeActionButton
+                              disabled={!selectedGroupCount}
+                              onClick={() => deselectDestinationGroup(groupDestinationIds)}
+                              type="button"
+                            >
+                              Deselect all
+                            </ScopeActionButton>
+                          </ScopeActions>
+                        </ScopeGroupHeader>
+                        <ScopeRail>
+                          {group.destinations.map((destination) => {
+                            const isActive = selectedDestinationSet.has(destination.value);
+
+                            return (
+                              <ScopeCheckbox $active={isActive} key={destination.value}>
+                                <ScopeCheckboxLeading>
+                                  <input
+                                    checked={isActive}
+                                    onChange={() => toggleDestination(destination.value)}
+                                    type="checkbox"
+                                  />
+                                  <ScopeCheckboxBody>
+                                    <ScopeCheckboxLabel>{destination.label}</ScopeCheckboxLabel>
+                                    <ScopeCheckboxMeta $active={isActive}>
+                                      {formatEnumLabel(destination.kind)}
+                                      {destination.slug ? ` | ${destination.slug}` : ""}
+                                    </ScopeCheckboxMeta>
+                                  </ScopeCheckboxBody>
+                                </ScopeCheckboxLeading>
+                                <ScopeCount $active={isActive}>{destination.streamCount}</ScopeCount>
+                              </ScopeCheckbox>
+                            );
+                          })}
+                        </ScopeRail>
+                      </ScopeGroupCard>
+                    );
+                  })}
+                </ScopeGroupGrid>
+              ) : (
+                <SmallText>
+                  No destinations are configured yet. Add a website or social destination to start grouping streams here.
+                </SmallText>
+              )}
             </ScopeHeader>
           </TargetingCopy>
 
           <TargetingNotes>
             <NoteCard>
               <NoteLabel>Active scope</NoteLabel>
-              <NoteText>
-                {selectedPlatforms.length
-                  ? `${filteredDestinationOptions.length} destinations are available across ${selectedPlatforms.length} selected platform${selectedPlatforms.length === 1 ? "" : "s"}.`
-                  : "No platforms are selected yet."}
-              </NoteText>
+              <NoteText>{activeScopeText}</NoteText>
             </NoteCard>
             <NoteCard>
               <NoteLabel>How settings apply</NoteLabel>
               <NoteText>
-                Destination, template, and publishing behavior continue to use the platform-specific settings already saved for each target.
+                Destination, template, and publishing behavior continue to use the saved settings already attached to each selected website, Facebook, or Instagram target.
               </NoteText>
             </NoteCard>
           </TargetingNotes>
@@ -1162,18 +1431,10 @@ export default function StreamManagementScreen({
             <CardTitle>
               <TitleWithIcon>
                 <AppIcon name="streams" size={16} />
-                {selectedPlatforms.length === allPlatforms.length
-                  ? "Configured streams"
-                  : selectedPlatforms.length === 1
-                    ? `${formatEnumLabel(selectedPlatforms[0])} streams`
-                    : "Selected platform streams"}
+                {streamsSectionTitle}
               </TitleWithIcon>
             </CardTitle>
-            <CardDescription>
-              {selectedPlatforms.length
-                ? "Keep each stream small, readable, and tunable from a phone without losing control."
-                : "Pick one or more platforms above to load matching streams."}
-            </CardDescription>
+            <CardDescription>{streamsSectionDescription}</CardDescription>
           </CardHeader>
           <RecordStack>
             {filteredStreams.length ? (
@@ -1220,13 +1481,15 @@ export default function StreamManagementScreen({
                   </ButtonRow>
                 </RecordCard>
               ))
-            ) : selectedPlatforms.length ? (
+            ) : selectedDestinationCount ? (
               <SmallText>
-                No streams are configured for the selected platforms yet. Tick another platform or create one from the panel on the right.
+                No streams are configured for the selected destinations yet. Tick another destination or create one from the panel on the right.
               </SmallText>
             ) : (
               <SmallText>
-                No platforms are selected. Use the checkboxes above, or choose Select all to work across every configured target.
+                {hasConfiguredDestinations
+                  ? "No destinations are selected. Use the grouped checkboxes above, or choose Select all to work across every configured target."
+                  : "No destinations are configured yet. Add one from the Destinations area first."}
               </SmallText>
             )}
           </RecordStack>
@@ -1237,30 +1500,20 @@ export default function StreamManagementScreen({
             <CardTitle>
               <TitleWithIcon>
                 <AppIcon name="plus" size={16} />
-                {selectedPlatforms.length === allPlatforms.length
-                  ? "Add stream"
-                  : selectedPlatforms.length === 1
-                    ? `Add ${formatEnumLabel(selectedPlatforms[0])} stream`
-                    : "Add stream to selected platforms"}
+                {addStreamTitle}
               </TitleWithIcon>
             </CardTitle>
-            <CardDescription>
-              {selectedPlatforms.length === allPlatforms.length
-                ? "Streams define the destination-specific fetch window, filtering rules, mode, and cadence."
-                : selectedPlatforms.length
-                  ? "This form is narrowed to the checked platforms so one stream setup stays focused on the targets you selected."
-                  : "Select one or more platforms above before creating a stream."}
-            </CardDescription>
+            <CardDescription>{addStreamDescription}</CardDescription>
           </StickyHeader>
           <StickyScrollArea>
             {filteredDestinationOptions.length ? (
               <>
                 <SmallText>
-                  Launch a full-size stream composer scoped to the currently selected platforms and compatible templates.
+                  Launch a full-size stream composer scoped to the currently selected destinations and compatible templates.
                 </SmallText>
                 <ButtonRow>
                   <AdminFormModal
-                    description="Create a new stream using the currently selected platform scope, compatible destinations, providers, and templates."
+                    description="Create a new stream using the currently selected destination scope, compatible destinations, providers, and templates."
                     size="full"
                     title="Create stream"
                     triggerFullWidth
@@ -1282,9 +1535,9 @@ export default function StreamManagementScreen({
               </>
             ) : (
               <SmallText>
-                {selectedPlatforms.length
-                  ? `No destinations are configured for the selected platform${selectedPlatforms.length === 1 ? "" : "s"} yet. Add a destination first, then come back to create streams for it.`
-                  : "No platforms are selected yet. Choose at least one platform above before creating a stream."}
+                {hasConfiguredDestinations
+                  ? "No destinations are selected yet. Choose at least one destination above before creating a stream."
+                  : "No destinations are configured yet. Add a destination first, then come back to create streams for it."}
               </SmallText>
             )}
           </StickyScrollArea>

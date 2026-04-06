@@ -25,14 +25,13 @@ const FlagEmoji = styled.span`
 export default function OptionFlag({
   flagEmoji = "",
   flagImageUrl = "",
-  preferImage = false,
   size = "regular",
 }) {
   if (!flagEmoji && !flagImageUrl) {
     return null;
   }
 
-  const shouldShowImage = preferImage ? Boolean(flagImageUrl) : !flagEmoji && Boolean(flagImageUrl);
+  const shouldShowImage = Boolean(flagImageUrl);
 
   return (
     <FlagWrap aria-hidden="true">

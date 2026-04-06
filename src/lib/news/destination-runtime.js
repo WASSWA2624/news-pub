@@ -50,31 +50,40 @@ export function getMetaDestinationEnvCredential(destination = {}) {
 export function resolveDestinationRuntimeConnection(destination = {}) {
   const envCredential = getMetaDestinationEnvCredential(destination) || {};
   const settings = normalizeSettings(destination?.settingsJson);
+  const useDestinationCredentialOverrides = settings.useDestinationCredentialOverrides === true;
   const storedToken = decryptDestinationToken(destination);
   const envAccessToken = trimText(envCredential.accessToken) || null;
   const storedAccessToken = trimText(storedToken) || null;
+  const envGraphApiBaseUrl = trimText(envCredential.graphApiBaseUrl) || null;
   const envExternalAccountId = trimText(envCredential.externalAccountId) || null;
   const envPageId = trimText(envCredential.pageId) || null;
   const envProfileId = trimText(envCredential.profileId) || null;
   const envInstagramUserId = trimText(envCredential.instagramUserId) || null;
   const storedExternalAccountId = trimText(destination?.externalAccountId) || null;
+  const storedGraphApiBaseUrl = trimText(settings.graphApiBaseUrl) || null;
   const storedPageId = trimText(settings.pageId) || null;
   const storedProfileId = trimText(settings.profileId) || null;
   const storedInstagramUserId = trimText(settings.instagramUserId) || null;
-  const accessToken = envAccessToken || storedAccessToken || null;
+  const accessToken = useDestinationCredentialOverrides
+    ? storedAccessToken || envAccessToken || null
+    : envAccessToken || storedAccessToken || null;
   const envAccountId =
     envExternalAccountId || envPageId || envProfileId || envInstagramUserId || null;
   const storedAccountId =
     storedExternalAccountId || storedPageId || storedProfileId || storedInstagramUserId || null;
-  const accountId = envAccountId || storedAccountId || null;
-  const graphApiBaseUrl =
-    trimText(envCredential.graphApiBaseUrl)
-    || trimText(settings.graphApiBaseUrl)
+  const accountId = useDestinationCredentialOverrides
+    ? storedAccountId || envAccountId || null
+    : envAccountId || storedAccountId || null;
+  const graphApiBaseUrl = (
+    useDestinationCredentialOverrides
+      ? storedGraphApiBaseUrl || envGraphApiBaseUrl
+      : envGraphApiBaseUrl || storedGraphApiBaseUrl
+  )
     || trimText(env.meta.graphApiBaseUrl)
     || "https://graph.facebook.com/v22.0";
   const usesEnvCredentials = Boolean(
     envAccessToken || envExternalAccountId || envPageId || envProfileId || envInstagramUserId,
-  );
+  ) && !useDestinationCredentialOverrides;
   const hasCompleteEnvCredentials = Boolean(envAccessToken && envAccountId);
   const hasRuntimeCredentials =
     destination?.platform === "WEBSITE" ? true : Boolean(accessToken && accountId);
@@ -92,14 +101,21 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
     accessToken,
     accountId,
     effectiveConnectionStatus,
-    externalAccountId: envExternalAccountId || storedExternalAccountId,
+    externalAccountId: useDestinationCredentialOverrides
+      ? storedExternalAccountId || envExternalAccountId
+      : envExternalAccountId || storedExternalAccountId,
     graphApiBaseUrl,
     hasRuntimeCredentials,
     hasCompleteEnvCredentials,
-    instagramUserId: envInstagramUserId || storedInstagramUserId,
+    instagramUserId: useDestinationCredentialOverrides
+      ? storedInstagramUserId || envInstagramUserId
+      : envInstagramUserId || storedInstagramUserId,
     isReadyToPublish,
-    pageId: envPageId || storedPageId,
-    profileId: envProfileId || storedProfileId,
+    pageId: useDestinationCredentialOverrides ? storedPageId || envPageId : envPageId || storedPageId,
+    profileId: useDestinationCredentialOverrides
+      ? storedProfileId || envProfileId
+      : envProfileId || storedProfileId,
+    usesDestinationCredentialOverrides: useDestinationCredentialOverrides,
     usesEnvCredentials,
   };
 }

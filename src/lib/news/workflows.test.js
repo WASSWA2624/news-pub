@@ -140,4 +140,43 @@ describe("social publishing guardrails", () => {
       }),
     });
   });
+
+  it("honors destination-specific Meta guardrail overrides before falling back to env defaults", async () => {
+    const { applySocialPublishingGuardrails } = await import("./workflows");
+
+    await expect(
+      applySocialPublishingGuardrails({
+        db: {
+          publishAttempt: {
+            findMany: vi.fn().mockResolvedValue([]),
+          },
+        },
+        destination: {
+          id: "destination_1",
+          platform: "INSTAGRAM",
+          settingsJson: {
+            socialGuardrails: {
+              instagramMaxHashtags: 3,
+            },
+          },
+        },
+        payload: {
+          canonicalUrl: "https://example.com/en/news/visual-story",
+          destinationKind: "INSTAGRAM_BUSINESS",
+          hashtags: "#one #two #three #four #five",
+          platform: "INSTAGRAM",
+          sourceReference: "Source: Example Source - https://example.com/story",
+          summary: "Visual story summary",
+          title: "Visual story",
+        },
+      }),
+    ).resolves.toMatchObject({
+      adjustments: {
+        instagramHashtagsTrimmedTo: 3,
+      },
+      payload: expect.objectContaining({
+        hashtags: "#one #two #three",
+      }),
+    });
+  });
 });

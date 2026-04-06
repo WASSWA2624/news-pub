@@ -1,4 +1,5 @@
 import { createAuditEventRecord, recordObservabilityEvent } from "@/lib/analytics";
+import { getDestinationSocialGuardrails } from "@/features/destinations/meta-config";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { safeIngestRemoteMediaAsset } from "@/features/media";
 import { discoverRemoteImageUrl } from "@/lib/media";
@@ -490,7 +491,7 @@ export async function applySocialPublishingGuardrails({ db, destination, payload
   }
 
   const now = new Date();
-  const socialGuardrails = env.meta.socialGuardrails;
+  const socialGuardrails = getDestinationSocialGuardrails(destination);
   const duplicateWindowStart = new Date(
     now.getTime() - socialGuardrails.duplicateCooldownHours * 60 * 60 * 1000,
   );

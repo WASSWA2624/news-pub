@@ -16,6 +16,7 @@ describe("environment runtime schema", () => {
     expect(env.auth.session.maxAgeSeconds).toBe(3600);
     expect(env.destinations.encryptionKey).toBe("destination-secret");
     expect(env.meta).toEqual({
+      allowedPageIds: [],
       app: {
         id: null,
         secret: null,
@@ -81,6 +82,7 @@ describe("environment runtime schema", () => {
       createNewsPubTestEnv({
         META_APP_ID: "1234567890",
         META_APP_SECRET: "meta-secret",
+        META_ALLOWED_PAGE_IDS: "123456789012345,234567890123456",
         META_DESTINATION_CREDENTIALS_JSON: JSON.stringify({
           "facebook-page": {
             accessToken: "page-token",
@@ -97,6 +99,7 @@ describe("environment runtime schema", () => {
     );
 
     expect(env.meta).toEqual({
+      allowedPageIds: ["123456789012345", "234567890123456"],
       app: {
         id: "1234567890",
         secret: "meta-secret",
