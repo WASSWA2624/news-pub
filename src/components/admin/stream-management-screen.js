@@ -25,6 +25,7 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
+import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import AppIcon from "@/components/common/app-icon";
 import StreamFormCard from "@/components/admin/stream-form-card";
 
@@ -565,6 +566,40 @@ const ScopeCheckboxLeading = styled.span`
   min-width: 0;
 `;
 
+const ScopeDestinationBadge = styled.span`
+  align-items: center;
+  background: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "rgba(24, 119, 242, 0.14)"
+      : $platform === "INSTAGRAM"
+        ? "rgba(225, 48, 108, 0.14)"
+        : "rgba(15, 111, 141, 0.12)"};
+  border: 1px solid ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "rgba(24, 119, 242, 0.18)"
+      : $platform === "INSTAGRAM"
+        ? "rgba(225, 48, 108, 0.18)"
+        : "rgba(15, 111, 141, 0.16)"};
+  border-radius: 12px;
+  color: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "#1666d3"
+      : $platform === "INSTAGRAM"
+        ? "#b42357"
+        : "#0d5f79"};
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
+`;
+
 const ScopeCheckboxBody = styled.span`
   display: grid;
   gap: 0.14rem;
@@ -638,6 +673,74 @@ const StreamsGrid = styled(SectionGrid)`
   }
 `;
 
+const StreamRecord = styled(RecordCard)`
+  gap: 0.72rem;
+`;
+
+const StreamIdentityHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  min-width: 0;
+`;
+
+const StreamPlatformBadge = styled.span`
+  align-items: center;
+  background: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "linear-gradient(180deg, rgba(24, 119, 242, 0.16), rgba(24, 119, 242, 0.08))"
+      : $platform === "INSTAGRAM"
+        ? "linear-gradient(180deg, rgba(225, 48, 108, 0.16), rgba(225, 48, 108, 0.08))"
+        : "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))"};
+  border: 1px solid ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "rgba(24, 119, 242, 0.18)"
+      : $platform === "INSTAGRAM"
+        ? "rgba(225, 48, 108, 0.18)"
+        : "rgba(15, 111, 141, 0.18)"};
+  border-radius: 14px;
+  color: ${({ $platform }) =>
+    $platform === "FACEBOOK"
+      ? "#1666d3"
+      : $platform === "INSTAGRAM"
+        ? "#b42357"
+        : "#0d5f79"};
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+
+  svg {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
+`;
+
+const StreamIdentityCopy = styled.div`
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+`;
+
+const StreamInlineMeta = styled(SmallText)`
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+
+  svg {
+    flex: 0 0 auto;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
+`;
+
+const StreamActions = styled(ButtonRow)`
+  justify-content: flex-start;
+`;
+
 const StickyCard = styled(Card)`
   align-self: start;
   overflow: hidden;
@@ -686,6 +789,22 @@ const StickyScrollArea = styled.div`
 
 function getTone(status) {
   return status === "ACTIVE" ? "success" : "warning";
+}
+
+function getDestinationPlatformIcon(platform) {
+  if (platform === "FACEBOOK") {
+    return "facebook";
+  }
+
+  if (platform === "INSTAGRAM") {
+    return "instagram";
+  }
+
+  return "globe";
+}
+
+function getStreamDeleteDescription(stream) {
+  return `This will permanently remove ${stream.name} and also delete its fetch checkpoints, fetch history, article matches, publish attempts, and category assignments.`;
 }
 
 function getRunProgress(streamCount, completedCount, isRunning) {
@@ -962,6 +1081,7 @@ function RunProgressModal({ runState, onClose }) {
 
 export default function StreamManagementScreen({
   categoryOptions,
+  deleteStreamAction,
   destinationOptions,
   modeOptions,
   providerOptions,
@@ -1348,7 +1468,10 @@ export default function StreamManagementScreen({
                         <ScopeGroupHeader>
                           <ScopeGroupTitleBlock>
                             <ScopeGroupTitle>
-                              {formatEnumLabel(group.platform)} destinations
+                              <TitleWithIcon>
+                                <AppIcon name={getDestinationPlatformIcon(group.platform)} size={14} />
+                                {formatEnumLabel(group.platform)} destinations
+                              </TitleWithIcon>
                             </ScopeGroupTitle>
                             <ScopeGroupMeta>
                               {selectedGroupCount} of {group.destinations.length} selected
@@ -1385,6 +1508,12 @@ export default function StreamManagementScreen({
                                     onChange={() => toggleDestination(destination.value)}
                                     type="checkbox"
                                   />
+                                  <ScopeDestinationBadge $platform={destination.platform}>
+                                    <AppIcon
+                                      name={getDestinationPlatformIcon(destination.platform)}
+                                      size={14}
+                                    />
+                                  </ScopeDestinationBadge>
                                   <ScopeCheckboxBody>
                                     <ScopeCheckboxLabel>{destination.label}</ScopeCheckboxLabel>
                                     <ScopeCheckboxMeta $active={isActive}>
@@ -1439,24 +1568,55 @@ export default function StreamManagementScreen({
           <RecordStack>
             {filteredStreams.length ? (
               filteredStreams.map((stream) => (
-                <RecordCard key={stream.id}>
-                <RecordHeader>
-                  <RecordTitleBlock>
-                      <RecordTitle>{stream.name}</RecordTitle>
-                      <SmallText>
-                        {stream.destination?.name || "Unknown destination"} via {stream.activeProvider?.label || "Unknown provider"}
-                      </SmallText>
+                <StreamRecord key={stream.id}>
+                  <RecordHeader>
+                    <RecordTitleBlock>
+                      <StreamIdentityHeader>
+                        <StreamPlatformBadge $platform={stream.destination?.platform || "WEBSITE"}>
+                          <AppIcon
+                            name={getDestinationPlatformIcon(stream.destination?.platform || "WEBSITE")}
+                            size={16}
+                          />
+                        </StreamPlatformBadge>
+                        <StreamIdentityCopy>
+                          <RecordTitle>{stream.name}</RecordTitle>
+                          <StreamInlineMeta>
+                            <AppIcon
+                              name={getDestinationPlatformIcon(stream.destination?.platform || "WEBSITE")}
+                              size={12}
+                            />
+                            {stream.destination?.name || "Unknown destination"}
+                            <AppIcon name="server" size={12} />
+                            {stream.activeProvider?.label || "Unknown provider"}
+                          </StreamInlineMeta>
+                        </StreamIdentityCopy>
+                      </StreamIdentityHeader>
                     </RecordTitleBlock>
                     <RecordMeta>
-                      <MetaPill>{formatEnumLabel(stream.destination?.platform || "UNKNOWN")}</MetaPill>
+                      <MetaPill>
+                        <AppIcon
+                          name={getDestinationPlatformIcon(stream.destination?.platform || "UNKNOWN")}
+                          size={11}
+                        />{" "}
+                        {formatEnumLabel(stream.destination?.platform || "UNKNOWN")}
+                      </MetaPill>
+                      <MetaPill>
+                        <AppIcon name="server" size={11} /> {stream.activeProvider?.label || "Provider"}
+                      </MetaPill>
                       <MetaPill>{formatEnumLabel(stream.mode)}</MetaPill>
                       <StatusBadge $tone={getTone(stream.status)}>{stream.status}</StatusBadge>
                     </RecordMeta>
                   </RecordHeader>
+                  <StreamInlineMeta>
+                    <AppIcon name="layout" size={12} />
+                    Template: {stream.defaultTemplate?.name || "No explicit template"}
+                    <AppIcon name="clock" size={12} />
+                    Locale {stream.locale} | {stream.timezone}
+                  </StreamInlineMeta>
                   <SmallText>
                     Scheduling, targeting rules, provider filters, and template selection now open in a full-workspace modal.
                   </SmallText>
-                  <ButtonRow>
+                  <StreamActions>
                     <AdminFormModal
                       description="Edit stream cadence, destination targeting, provider filters, and publish mode in a scrollable full-size workspace."
                       size="full"
@@ -1478,8 +1638,18 @@ export default function StreamManagementScreen({
                         templateOptions={visibleTemplateOptions}
                       />
                     </AdminFormModal>
-                  </ButtonRow>
-                </RecordCard>
+                    <form action={deleteStreamAction}>
+                      <input name="id" type="hidden" value={stream.id} />
+                      <ConfirmSubmitButton
+                        confirmLabel="Delete stream"
+                        description={getStreamDeleteDescription(stream)}
+                        title="Delete this stream?"
+                      >
+                        Delete
+                      </ConfirmSubmitButton>
+                    </form>
+                  </StreamActions>
+                </StreamRecord>
               ))
             ) : selectedDestinationCount ? (
               <SmallText>

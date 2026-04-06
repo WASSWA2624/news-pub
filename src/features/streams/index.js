@@ -314,3 +314,49 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
 
   return stream;
 }
+
+export async function deleteStreamRecord(id, { actorId } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const existingStream = await db.publishingStream.findUnique({
+    select: {
+      activeProviderId: true,
+      destinationId: true,
+      id: true,
+      name: true,
+      slug: true,
+    },
+    where: {
+      id,
+    },
+  });
+
+  if (!existingStream) {
+    throw new NewsPubError("Stream not found.", {
+      status: "stream_validation_failed",
+      statusCode: 404,
+    });
+  }
+
+  const deletedStream = await db.publishingStream.delete({
+    where: {
+      id,
+    },
+  });
+
+  await createAuditEventRecord(
+    {
+      action: "STREAM_DELETED",
+      actorId,
+      entityId: deletedStream.id,
+      entityType: "publishing_stream",
+      payloadJson: {
+        destinationId: deletedStream.destinationId,
+        providerConfigId: deletedStream.activeProviderId,
+        slug: deletedStream.slug,
+      },
+    },
+    db,
+  );
+
+  return deletedStream;
+}

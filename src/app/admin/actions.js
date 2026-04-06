@@ -10,7 +10,7 @@ import { saveTemplateRecord } from "@/features/templates";
 import { getSettingsSnapshot } from "@/features/settings";
 import { saveProviderRecord } from "@/features/providers";
 import { createManualPostRecord, updatePostEditorialRecord } from "@/features/posts";
-import { saveStreamRecord } from "@/features/streams";
+import { deleteStreamRecord, saveStreamRecord } from "@/features/streams";
 import { requireAdminPageSession } from "@/lib/auth";
 import {
   MULTI_VALUE_EMPTY_SENTINEL,
@@ -210,6 +210,29 @@ export async function saveStreamAction(formData) {
       actorId: getActorId(auth),
     },
   );
+
+  redirectToPath("/admin/streams");
+}
+
+export async function deleteStreamAction(formData) {
+  const auth = await requireAdminPageSession("/admin/streams");
+  const streamId = trimText(formData.get("id"));
+
+  try {
+    if (streamId) {
+      await deleteStreamRecord(streamId, {
+        actorId: getActorId(auth),
+      });
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error && trimText(error.message)
+        ? trimText(error.message)
+        : "Stream deletion failed.";
+
+    revalidatePath("/admin/streams");
+    redirect(`/admin/streams?error=${encodeURIComponent(message)}`);
+  }
 
   redirectToPath("/admin/streams");
 }

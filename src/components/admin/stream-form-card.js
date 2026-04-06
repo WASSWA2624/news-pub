@@ -26,6 +26,7 @@ import {
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
+import AppIcon from "@/components/common/app-icon";
 import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
@@ -37,6 +38,40 @@ import {
 const StreamFieldGrid = styled(FieldGrid)`
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 `;
+
+const HelperRow = styled(SmallText)`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.38rem;
+
+  svg {
+    flex: 0 0 auto;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
+`;
+
+function trimFieldValue(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function createOptionalStreamSlug(value) {
+  const normalizedValue = normalizeDisplayText(value);
+
+  return normalizedValue ? createSlug(normalizedValue, "stream") : "";
+}
+
+function getDestinationPlatformIcon(platform) {
+  if (platform === "FACEBOOK") {
+    return "facebook";
+  }
+
+  if (platform === "INSTAGRAM") {
+    return "instagram";
+  }
+
+  return "globe";
+}
 
 function buildSuggestedStreamName(destination, provider) {
   const destinationLabel = normalizeDisplayText(destination?.label || destination?.name || "");
@@ -55,6 +90,15 @@ function buildSuggestedStreamName(destination, provider) {
   }
 
   return "";
+}
+
+function buildSuggestedStreamIdentity(destination, provider) {
+  const name = buildSuggestedStreamName(destination, provider);
+
+  return {
+    name,
+    slug: createOptionalStreamSlug(name),
+  };
 }
 
 function buildTemplateOptions(templateOptions, destination) {
@@ -112,12 +156,14 @@ export default function StreamFormCard({
     destinationOptions.find((option) => option.value === initialDestinationId) || null;
   const initialSelectedProvider =
     providerOptions.find((option) => option.value === initialActiveProviderId) || null;
-  const initialSuggestedName =
-    stream?.name || buildSuggestedStreamName(initialSelectedDestination, initialSelectedProvider);
-  const initialSuggestedSlug =
-    stream?.slug || (initialSuggestedName ? createSlug(initialSuggestedName, "stream") : "");
-  const [name, setName] = useState(initialSuggestedName);
-  const [slug, setSlug] = useState(initialSuggestedSlug);
+  const initialSuggestedIdentity = buildSuggestedStreamIdentity(
+    initialSelectedDestination,
+    initialSelectedProvider,
+  );
+  const initialName = stream?.name || initialSuggestedIdentity.name;
+  const initialSlug = stream?.slug || initialSuggestedIdentity.slug;
+  const [name, setName] = useState(initialName);
+  const [slug, setSlug] = useState(initialSlug);
   const [activeProviderId, setActiveProviderId] = useState(
     initialActiveProviderId,
   );
@@ -125,12 +171,20 @@ export default function StreamFormCard({
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
-  const [nameWasEdited, setNameWasEdited] = useState(Boolean(normalizeDisplayText(stream?.name || "")));
-  const [slugWasEdited, setSlugWasEdited] = useState(Boolean(normalizeDisplayText(stream?.slug || "")));
+  const [nameWasEdited, setNameWasEdited] = useState(
+    Boolean(
+      normalizeDisplayText(initialName)
+      && normalizeDisplayText(initialName) !== initialSuggestedIdentity.name,
+    ),
+  );
+  const [slugWasEdited, setSlugWasEdited] = useState(
+    Boolean(trimFieldValue(initialSlug) && trimFieldValue(initialSlug) !== initialSuggestedIdentity.slug),
+  );
   const formId = useId();
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
+  const suggestedIdentity = buildSuggestedStreamIdentity(selectedDestination, selectedProvider);
   const issues = getStreamValidationIssues({
     destination: selectedDestination || undefined,
     mode,
@@ -140,14 +194,17 @@ export default function StreamFormCard({
   const resolvedModeOptions = buildModeOptions(modeOptions, selectedDestination);
 
   const applyIdentitySuggestion = useCallback(
-    (destination, provider) => {
-      const suggestedName = buildSuggestedStreamName(destination, provider);
+    (nextSuggestedIdentity) => {
+      let nextSlugValue = "";
 
-      if ((!nameWasEdited || !normalizeDisplayText(name)) && suggestedName) {
-        setName(suggestedName);
+      if ((!nameWasEdited || !normalizeDisplayText(name)) && nextSuggestedIdentity.name) {
+        setName(nextSuggestedIdentity.name);
+        setNameWasEdited(false);
+        nextSlugValue = nextSuggestedIdentity.slug;
 
         if (!slugWasEdited || !normalizeDisplayText(slug)) {
-          setSlug(createSlug(suggestedName, "stream"));
+          setSlug(nextSlugValue);
+          setSlugWasEdited(false);
         }
       }
     },
@@ -174,12 +231,16 @@ export default function StreamFormCard({
               name="name"
               onChange={(event) => {
                 const nextValue = event.target.value;
+                const normalizedNextValue = normalizeDisplayText(nextValue);
 
                 setName(nextValue);
-                setNameWasEdited(true);
+                setNameWasEdited(
+                  Boolean(normalizedNextValue && normalizedNextValue !== suggestedIdentity.name),
+                );
 
                 if (!slugWasEdited) {
-                  setSlug(createSlug(nextValue, "stream"));
+                  setSlug(createOptionalStreamSlug(nextValue));
+                  setSlugWasEdited(false);
                 }
               }}
               required
@@ -191,12 +252,20 @@ export default function StreamFormCard({
             <Input
               name="slug"
               onChange={(event) => {
-                setSlug(event.target.value);
-                setSlugWasEdited(true);
+                const nextValue = event.target.value;
+
+                setSlug(nextValue);
+                setSlugWasEdited(
+                  Boolean(trimFieldValue(nextValue) && trimFieldValue(nextValue) !== suggestedIdentity.slug),
+                );
               }}
               required={Boolean(stream)}
               value={slug}
             />
+            <HelperRow>
+              <AppIcon name="sparkles" size={12} />
+              Name and slug stay suggested from the selected destination and provider until you customize them.
+            </HelperRow>
           </Field>
           <Field as="div">
             <FieldLabel>Destination</FieldLabel>
@@ -210,16 +279,17 @@ export default function StreamFormCard({
                   destinationOptions.find((option) => option.value === nextDestinationId) || null;
 
                 setDestinationId(nextDestinationId);
-                applyIdentitySuggestion(nextDestination, selectedProvider);
+                applyIdentitySuggestion(buildSuggestedStreamIdentity(nextDestination, selectedProvider));
               }}
               options={destinationOptions}
               placeholder="Select a destination"
               value={destinationId}
             />
             {selectedDestination ? (
-              <SmallText>
+              <HelperRow>
+                <AppIcon name={getDestinationPlatformIcon(selectedDestination.platform)} size={12} />
                 Platform: {formatEnumLabel(selectedDestination.platform)} | Kind: {formatEnumLabel(selectedDestination.kind)}
-              </SmallText>
+              </HelperRow>
             ) : null}
           </Field>
           <Field as="div">
@@ -233,16 +303,17 @@ export default function StreamFormCard({
                   providerOptions.find((option) => option.value === nextProviderId) || null;
 
                 setActiveProviderId(nextProviderId);
-                applyIdentitySuggestion(selectedDestination, nextProvider);
+                applyIdentitySuggestion(buildSuggestedStreamIdentity(selectedDestination, nextProvider));
               }}
               options={providerOptions}
               placeholder="Select a provider"
               value={activeProviderId}
             />
             {selectedProvider?.docsUrl ? (
-              <SmallText>
+              <HelperRow>
+                <AppIcon name="server" size={12} />
                 Official docs: <a href={selectedProvider.docsUrl} rel="noreferrer" target="_blank">{selectedProvider.docsUrl}</a>
-              </SmallText>
+              </HelperRow>
             ) : null}
           </Field>
           <Field as="div">
@@ -288,9 +359,10 @@ export default function StreamFormCard({
               value={defaultTemplateId}
             />
             {selectedDestination ? (
-              <SmallText>
+              <HelperRow>
+                <AppIcon name="layout" size={12} />
                 Compatible template platform: {formatEnumLabel(selectedDestination.platform)}
-              </SmallText>
+              </HelperRow>
             ) : null}
           </Field>
         </StreamFieldGrid>

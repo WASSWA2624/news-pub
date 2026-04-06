@@ -4,6 +4,8 @@ import {
   AdminHeroHeading,
   AdminMetricCard,
   AdminPage,
+  NoticeBanner,
+  NoticeTitle,
   SummaryGrid,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
@@ -12,7 +14,7 @@ import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { getProviderDefinition } from "@/lib/news/provider-definitions";
-import { saveStreamAction } from "../actions";
+import { deleteStreamAction, saveStreamAction } from "../actions";
 
 const modeValues = ["AUTO_PUBLISH", "REVIEW_REQUIRED"];
 const statusValues = ["ACTIVE", "PAUSED"];
@@ -33,12 +35,15 @@ const statusOptions = statusValues.map((value) => ({
   value,
 }));
 
-export default async function StreamsPage() {
+export default async function StreamsPage({ searchParams }) {
+  const resolvedSearchParams = await searchParams;
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
     getStreamManagementSnapshot(),
   ]);
   const copy = messages.admin.streams;
+  const pageError =
+    typeof resolvedSearchParams?.error === "string" ? resolvedSearchParams.error.trim() : "";
   const destinationOptions = snapshot.destinations.map((destination) => ({
     badge: destination.platform,
     description: `${destination.slug} | ${formatEnumLabel(destination.kind)}`,
@@ -83,6 +88,12 @@ export default async function StreamsPage() {
         <AdminHeroHeading description={copy.description} icon="streams" title={copy.title} />
       </AdminHero>
 
+      {pageError ? (
+        <NoticeBanner $tone="danger">
+          <NoticeTitle>{pageError}</NoticeTitle>
+        </NoticeBanner>
+      ) : null}
+
       <SummaryGrid>
         <AdminMetricCard icon="streams" label="Total streams" value={snapshot.summary.totalCount} />
         <AdminMetricCard icon="badge-check" label="Active streams" value={snapshot.summary.activeCount} />
@@ -91,6 +102,7 @@ export default async function StreamsPage() {
 
       <StreamManagementScreen
         categoryOptions={categoryOptions}
+        deleteStreamAction={deleteStreamAction}
         destinationOptions={destinationOptions}
         modeOptions={modeOptions}
         providerOptions={providerOptions}

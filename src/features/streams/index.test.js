@@ -34,6 +34,20 @@ function createPrismaStub(overrides = {}) {
       ...(overrides.providerFetchCheckpoint || {}),
     },
     publishingStream: {
+      delete: vi.fn().mockResolvedValue({
+        activeProviderId: "provider_1",
+        destinationId: "destination_1",
+        id: "stream_1",
+        name: "Website via Mediastack",
+        slug: "website-via-mediastack",
+      }),
+      findUnique: vi.fn().mockResolvedValue({
+        activeProviderId: "provider_1",
+        destinationId: "destination_1",
+        id: "stream_1",
+        name: "Website via Mediastack",
+        slug: "website-via-mediastack",
+      }),
       upsert: vi.fn().mockResolvedValue({
         activeProviderId: "provider_1",
         destinationId: "destination_1",
@@ -226,5 +240,78 @@ describe("stream feature validation", () => {
         },
       },
     });
+  });
+
+  it("deletes streams and records the audit event payload", async () => {
+    const analytics = await import("@/lib/analytics");
+    const { deleteStreamRecord } = await import("./index");
+    const prisma = createPrismaStub();
+
+    const record = await deleteStreamRecord(
+      "stream_1",
+      {
+        actorId: "admin_1",
+      },
+      prisma,
+    );
+
+    expect(prisma.publishingStream.findUnique).toHaveBeenCalledWith({
+      select: {
+        activeProviderId: true,
+        destinationId: true,
+        id: true,
+        name: true,
+        slug: true,
+      },
+      where: {
+        id: "stream_1",
+      },
+    });
+    expect(prisma.publishingStream.delete).toHaveBeenCalledWith({
+      where: {
+        id: "stream_1",
+      },
+    });
+    expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
+      {
+        action: "STREAM_DELETED",
+        actorId: "admin_1",
+        entityId: "stream_1",
+        entityType: "publishing_stream",
+        payloadJson: {
+          destinationId: "destination_1",
+          providerConfigId: "provider_1",
+          slug: "website-via-mediastack",
+        },
+      },
+      prisma,
+    );
+    expect(record).toMatchObject({
+      id: "stream_1",
+      slug: "website-via-mediastack",
+    });
+  });
+
+  it("rejects deleting a stream that does not exist", async () => {
+    const { deleteStreamRecord } = await import("./index");
+    const prisma = createPrismaStub({
+      publishingStream: {
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
+    });
+
+    await expect(
+      deleteStreamRecord(
+        "missing_stream",
+        {
+          actorId: "admin_1",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({
+      status: "stream_validation_failed",
+      statusCode: 404,
+    });
+    expect(prisma.publishingStream.delete).not.toHaveBeenCalled();
   });
 });
