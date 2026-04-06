@@ -32,7 +32,13 @@ function normalizeSearch(value) {
 }
 
 function normalizeCountry(value) {
-  return trimText(value).toLowerCase().slice(0, 8);
+  const normalizedValue = trimText(value).toLowerCase();
+
+  if (!normalizedValue || normalizedValue === "all") {
+    return "";
+  }
+
+  return normalizedValue.slice(0, 8);
 }
 
 function formatCountryLabel(countryCode, locale = defaultLocale) {
@@ -62,6 +68,16 @@ function formatCountryFlag(countryCode) {
   }
 
   return String.fromCodePoint(...normalizedCountry.split("").map((char) => 127397 + char.charCodeAt(0)));
+}
+
+function formatCountryFlagImageUrl(countryCode) {
+  const normalizedCountry = normalizeCountry(countryCode).toLowerCase();
+
+  if (!/^[a-z]{2}$/.test(normalizedCountry)) {
+    return "";
+  }
+
+  return `https://flagcdn.com/24x18/${normalizedCountry}.png`;
 }
 
 function getCategoryLogoEmoji(category = {}) {
@@ -563,6 +579,7 @@ async function getPublishedCountryCounts(db, locale) {
     .map(([value, count]) => ({
       count,
       flagEmoji: formatCountryFlag(value),
+      flagImageUrl: formatCountryFlagImageUrl(value),
       label: formatCountryLabel(value, locale),
       value,
     }))

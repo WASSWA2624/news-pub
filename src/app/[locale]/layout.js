@@ -48,6 +48,7 @@ export default async function LocaleLayout({ children, params }) {
   const countryLinks = (searchFilters?.countries || []).slice(0, 10).map((country) => ({
     count: country.count,
     flagEmoji: country.flagEmoji || "",
+    flagImageUrl: country.flagImageUrl || "",
     label: country.label,
     path: `${searchPath}?country=${encodeURIComponent(country.value)}`,
     value: country.value,

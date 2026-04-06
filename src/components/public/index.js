@@ -1482,8 +1482,8 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
 }
 
 export function PublicCollectionPage({
-  collectionCountry = "",
-  collectionSlug = "",
+  collectionCountry = "all",
+  collectionSlug = "all",
   collectionView = "",
   entity = null,
   locale,
@@ -1526,7 +1526,7 @@ export function PublicCollectionPage({
               defaultValue={collectionCountry}
               name="country"
             >
-              <option value="">{common.allCountriesOption || "All countries"}</option>
+              <option value="all">{common.allCountriesOption || "All countries"}</option>
               {countryOptions.map((country) => (
                 <option key={country.value} value={country.value}>
                   {country.flagEmoji ? `${country.flagEmoji} ` : ""}{country.label}

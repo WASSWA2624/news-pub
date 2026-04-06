@@ -12,14 +12,14 @@ export async function generateMetadata({ params, searchParams }) {
   const pageContent = messages?.public?.search || {};
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
   const query = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q.trim() : "";
-  const country = typeof resolvedSearchParams?.country === "string" ? resolvedSearchParams.country.trim() : "";
+  const country = typeof resolvedSearchParams?.country === "string" ? resolvedSearchParams.country.trim() : "all";
 
   return buildPageMetadata({
     description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
     locale,
     noindex: true,
     query: {
-      ...(country ? { country } : {}),
+      ...(country && country !== "all" ? { country } : {}),
       ...(Number.isFinite(page) && page > 1 ? { page } : {}),
       ...(query ? { q: query } : {}),
     },
@@ -42,7 +42,7 @@ export default async function SearchPage({ params, searchParams }) {
 
   return (
     <PublicCollectionPage
-      collectionCountry={pageData.country || ""}
+      collectionCountry={pageData.country || "all"}
       collectionView="search"
       locale={locale}
       messages={messages.public}

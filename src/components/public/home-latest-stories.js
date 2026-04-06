@@ -210,8 +210,8 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
 }
 
 export default function HomeLatestStories({
-  collectionCountry = "",
-  collectionSlug = "",
+  collectionCountry = "all",
+  collectionSlug = "all",
   collectionView = "",
   emptyLabel,
   initialHasMore = false,
@@ -244,9 +244,9 @@ export default function HomeLatestStories({
               locale,
               page: `${currentPage + 1}`,
               view: collectionView,
-              ...(collectionSlug ? { slug: collectionSlug } : {}),
+              ...(collectionSlug && collectionSlug !== "all" ? { slug: collectionSlug } : {}),
               ...(query ? { q: query } : {}),
-              ...(collectionCountry ? { country: collectionCountry } : {}),
+              ...(collectionCountry && collectionCountry !== "all" ? { country: collectionCountry } : {}),
             }
           : {
               locale,

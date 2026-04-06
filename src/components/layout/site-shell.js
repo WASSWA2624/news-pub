@@ -207,6 +207,15 @@ const DropdownLabel = styled.span`
   gap: 0.45rem;
 `;
 
+const CountryFlag = styled.img`
+  border: 1px solid rgba(var(--theme-border-rgb), 0.8);
+  border-radius: 2px;
+  display: inline-flex;
+  height: 14px;
+  object-fit: cover;
+  width: 20px;
+`;
+
 const SearchWrap = styled.div`
   max-width: 100%;
 `;
@@ -429,7 +438,18 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
                   {countryLinks.map((country) => (
                     <DropdownLink href={country.path} key={country.value}>
                       <DropdownLabel>
-                        {country.flagEmoji ? <span aria-hidden="true">{country.flagEmoji}</span> : null}
+                        {country.flagImageUrl ? (
+                          <CountryFlag
+                            alt=""
+                            aria-hidden="true"
+                            height="14"
+                            loading="lazy"
+                            src={country.flagImageUrl}
+                            width="20"
+                          />
+                        ) : country.flagEmoji ? (
+                          <span aria-hidden="true">{country.flagEmoji}</span>
+                        ) : null}
                         <span>{country.label}</span>
                       </DropdownLabel>
                       <DropdownCount>{country.count}</DropdownCount>
