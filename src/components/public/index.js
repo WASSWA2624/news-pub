@@ -31,6 +31,16 @@ function buildHref(pathname, searchParams = {}) {
   return query ? `${pathname}?${query}` : pathname;
 }
 
+function stripHtmlTags(value) {
+  return typeof value === "string" ? value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
+}
+
+function estimateReadingMinutes(value) {
+  const words = stripHtmlTags(value).split(" ").filter(Boolean).length;
+
+  return Math.max(1, Math.round(words / 190));
+}
+
 const PageMain = styled.main`
   display: grid;
   gap: clamp(1.2rem, 2.8vw, 1.8rem);
@@ -316,65 +326,352 @@ const ActionButton = styled.button`
 `;
 
 const StoryHero = styled(Hero)`
+  background:
+    radial-gradient(circle at top left, rgba(11, 107, 139, 0.18), transparent 30%),
+    radial-gradient(circle at 86% 20%, rgba(251, 195, 61, 0.16), transparent 26%),
+    linear-gradient(135deg, rgba(245, 249, 255, 0.98), rgba(255, 252, 245, 0.92));
+  border-radius: 28px;
+  gap: clamp(1rem, 2.6vw, 1.45rem);
+  overflow: hidden;
+  padding: clamp(1.1rem, 3vw, 1.55rem);
+  position: relative;
+
+  &::before {
+    background: linear-gradient(90deg, rgba(15, 103, 133, 0.18), rgba(15, 103, 133, 0));
+    content: "";
+    height: 1px;
+    left: clamp(1.1rem, 3vw, 1.55rem);
+    position: absolute;
+    right: clamp(1.1rem, 3vw, 1.55rem);
+    top: 4.2rem;
+  }
+`;
+
+const StoryHeroBar = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+`;
+
+const StoryBreadcrumbs = styled.nav`
+  align-items: center;
+  color: rgba(62, 78, 102, 0.88);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  gap: 0.45rem;
+`;
+
+const StoryBreadcrumbLink = styled(Link)`
+  color: #174b61;
+  font-weight: 700;
+`;
+
+const StoryBreadcrumbCurrent = styled.span`
+  color: rgba(62, 78, 102, 0.82);
+`;
+
+const StoryHeroLayout = styled.div`
+  display: grid;
+  gap: 1.1rem;
+  position: relative;
+  z-index: 1;
+
+  @media (min-width: 1040px) {
+    align-items: start;
+    gap: 1.4rem;
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 320px);
+  }
+`;
+
+const StoryHeroContent = styled.div`
+  display: grid;
   gap: 1rem;
+`;
+
+const StorySourceBadge = styled(Eyebrow)`
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 103, 133, 0.12);
+  border-radius: 999px;
+  display: inline-flex;
+  justify-self: start;
+  padding: 0.42rem 0.72rem;
 `;
 
 const StoryTitle = styled.h1`
   color: #172744;
-  font-size: clamp(1.95rem, 4.8vw, 3.4rem);
+  font-size: clamp(2.1rem, 4.6vw, 3.85rem);
   letter-spacing: -0.055em;
-  line-height: 0.98;
+  line-height: 0.95;
   margin: 0;
-  max-width: 18ch;
+  max-width: 14ch;
 `;
 
 const StoryLead = styled.p`
   color: rgba(69, 82, 106, 0.96);
-  font-size: clamp(1.05rem, 2.3vw, 1.18rem);
-  line-height: 1.72;
+  font-size: clamp(1.02rem, 2.05vw, 1.2rem);
+  line-height: 1.78;
   margin: 0;
-  max-width: 62ch;
+  max-width: 60ch;
 `;
 
-const StoryMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.95rem;
+const StoryMetaGrid = styled.div`
+  display: grid;
+  gap: 0.7rem;
+
+  @media (min-width: 620px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+`;
+
+const StoryMetaCard = styled.article`
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 0.18rem;
+  min-height: 88px;
+  padding: 0.85rem 0.95rem;
+`;
+
+const StoryMetaLabel = styled.span`
+  color: rgba(73, 88, 112, 0.85);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const StoryMetaValue = styled.span`
+  color: #172744;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+`;
+
+const StoryTagRow = styled(ChipRow)`
+  gap: 0.55rem;
+`;
+
+const StoryTag = styled(ChipLink)`
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(15, 103, 133, 0.14);
+  color: #125c76;
+  padding: 0.4rem 0.78rem;
+`;
+
+const StoryHeroAside = styled.aside`
+  background:
+    linear-gradient(180deg, rgba(18, 39, 68, 0.98), rgba(15, 36, 64, 0.94)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 42%);
+  border-radius: 24px;
+  box-shadow: 0 22px 44px rgba(17, 35, 61, 0.18);
+  color: rgba(234, 240, 248, 0.92);
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem 1.15rem 1.2rem;
+`;
+
+const StoryHeroAsideTitle = styled.h2`
+  color: white;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0;
+`;
+
+const StoryHeroAsideText = styled.p`
+  color: rgba(228, 235, 244, 0.84);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin: 0;
+`;
+
+const StoryFactList = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const StoryFact = styled.div`
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 0.18rem;
+  padding-top: 0.75rem;
+`;
+
+const StoryFactLabel = styled.span`
+  color: rgba(188, 202, 220, 0.74);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const StoryFactValue = styled.span`
+  color: white;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.42;
+`;
+
+const StoryLayout = styled.div`
+  display: grid;
+  gap: 1.2rem;
+
+  @media (min-width: 1040px) {
+    align-items: start;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+  }
+`;
+
+const StoryMainColumn = styled.div`
+  display: grid;
+  gap: 1.1rem;
+`;
+
+const StorySidebar = styled.aside`
+  display: grid;
+  gap: 1rem;
+
+  @media (min-width: 1040px) {
+    position: sticky;
+    top: 1rem;
+  }
 `;
 
 const StoryImagePanel = styled.div`
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(240, 245, 252, 0.94));
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 22px;
   overflow: hidden;
+  padding: 0.65rem;
+`;
+
+const StoryMediaPanel = styled(Panel)`
+  gap: 0.9rem;
+`;
+
+const StoryContentPanel = styled(Panel)`
+  gap: 1.1rem;
+  padding: clamp(1.15rem, 2.6vw, 1.55rem);
+`;
+
+const StorySectionKicker = styled.p`
+  color: rgba(15, 103, 133, 0.84);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
 `;
 
 const StoryMediaGallery = styled.div`
   display: grid;
   gap: 0.9rem;
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const StoryContentIntro = styled.div`
+  display: grid;
+  gap: 0.45rem;
+`;
+
+const StoryContentHeading = styled.h2`
+  color: #162845;
+  font-size: clamp(1.35rem, 2.8vw, 1.8rem);
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  margin: 0;
 `;
 
 const StoryContent = styled.div`
-  color: #22344f;
-  line-height: 1.8;
+  color: #263750;
+  font-size: clamp(1rem, 1.45vw, 1.08rem);
+  line-height: 1.9;
+  max-width: 70ch;
+  overflow: hidden;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > p:first-of-type::first-letter {
+    color: #132949;
+    float: left;
+    font-size: 3.5em;
+    font-weight: 800;
+    line-height: 0.84;
+    margin: 0.12em 0.12em 0 0;
+  }
 
   p {
-    margin: 0 0 1rem;
+    margin: 0 0 1.15rem;
   }
 
   h2,
   h3 {
     color: #142641;
-    letter-spacing: -0.03em;
-    margin: 1.5rem 0 0.75rem;
+    letter-spacing: -0.04em;
+    line-height: 1.12;
+    margin: 2rem 0 0.85rem;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  }
+
+  h3 {
+    font-size: clamp(1.12rem, 2vw, 1.32rem);
   }
 
   ul,
   ol {
-    margin: 0 0 1rem 1.2rem;
+    margin: 0 0 1.2rem 1.3rem;
     padding: 0;
+  }
+
+  li + li {
+    margin-top: 0.45rem;
+  }
+
+  blockquote {
+    background: linear-gradient(180deg, rgba(244, 248, 253, 0.98), rgba(251, 252, 255, 0.92));
+    border-left: 4px solid rgba(15, 103, 133, 0.7);
+    border-radius: 0 18px 18px 0;
+    color: #17304c;
+    margin: 1.35rem 0;
+    padding: 1rem 1.05rem;
   }
 
   a {
     color: #0c6987;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
   }
+`;
+
+const StorySourceLink = styled.a`
+  color: #152744;
+  display: grid;
+  gap: 0.22rem;
+`;
+
+const StorySourceUrl = styled.span`
+  color: rgba(72, 85, 110, 0.88);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 `;
 
 const LegalSection = styled.article`
@@ -633,45 +930,103 @@ export function PublicStoryPage({ locale, messages, pageData }) {
   const additionalMedia = (article.media || []).filter(
     (media) => getMediaIdentity(media) !== getMediaIdentity(primaryMedia),
   );
+  const publishedLabel = formatDateLabel(locale, article.publishedAt);
+  const updatedLabel = formatDateLabel(locale, article.updatedAt);
+  const readingMinutes = estimateReadingMinutes(article.contentHtml);
+  const newsPath = buildLocalizedPath(locale, publicRouteSegments.news);
 
   return (
     <PageMain>
       <PublicViewTracker eventType="POST_VIEW" locale={locale} postId={article.id} />
       <StoryHero>
-        <Eyebrow>{article.sourceName}</Eyebrow>
-        <StoryTitle>{article.title}</StoryTitle>
-        <StoryLead>{article.summary}</StoryLead>
-        <StoryMeta>
-          {article.publishedAt ? (
-            <MetaBadge>{common.publishedLabel || "Published"} {formatDateLabel(locale, article.publishedAt)}</MetaBadge>
-          ) : null}
-          {article.updatedAt ? (
-            <MetaBadge>{common.updatedLabel || "Updated"} {formatDateLabel(locale, article.updatedAt)}</MetaBadge>
-          ) : null}
-          <MetaBadge>{article.providerKey}</MetaBadge>
-        </StoryMeta>
-        {article.categories?.length ? (
-          <ChipRow>
-            {article.categories.map((category) => (
-              <ChipLink href={category.path} key={category.slug}>
-                {category.name}
-              </ChipLink>
-            ))}
-          </ChipRow>
-        ) : null}
+        <StoryHeroBar>
+          <StoryBreadcrumbs aria-label="Breadcrumb">
+            <StoryBreadcrumbLink href={buildLocalizedPath(locale, publicRouteSegments.home)}>
+              Home
+            </StoryBreadcrumbLink>
+            <span>/</span>
+            <StoryBreadcrumbLink href={newsPath}>
+              News
+            </StoryBreadcrumbLink>
+            <span>/</span>
+            <StoryBreadcrumbCurrent>{article.sourceName}</StoryBreadcrumbCurrent>
+          </StoryBreadcrumbs>
+        </StoryHeroBar>
+
+        <StoryHeroLayout>
+          <StoryHeroContent>
+            <StorySourceBadge>{article.sourceName}</StorySourceBadge>
+            <StoryTitle>{article.title}</StoryTitle>
+            <StoryLead>{article.summary}</StoryLead>
+
+            <StoryMetaGrid>
+              {publishedLabel ? (
+                <StoryMetaCard>
+                  <StoryMetaLabel>{common.publishedLabel || "Published"}</StoryMetaLabel>
+                  <StoryMetaValue>{publishedLabel}</StoryMetaValue>
+                </StoryMetaCard>
+              ) : null}
+              <StoryMetaCard>
+                <StoryMetaLabel>Reading time</StoryMetaLabel>
+                <StoryMetaValue>{readingMinutes} min read</StoryMetaValue>
+              </StoryMetaCard>
+              <StoryMetaCard>
+                <StoryMetaLabel>Publisher</StoryMetaLabel>
+                <StoryMetaValue>{article.providerKey || article.sourceName}</StoryMetaValue>
+              </StoryMetaCard>
+            </StoryMetaGrid>
+
+            {article.categories?.length ? (
+              <StoryTagRow>
+                {article.categories.map((category) => (
+                  <StoryTag href={category.path} key={category.slug}>
+                    {category.name}
+                  </StoryTag>
+                ))}
+              </StoryTagRow>
+            ) : null}
+          </StoryHeroContent>
+
+          <StoryHeroAside>
+            <div style={{ display: "grid", gap: "0.35rem" }}>
+              <StoryHeroAsideTitle>Story snapshot</StoryHeroAsideTitle>
+              <StoryHeroAsideText>
+                A cleaner read with source context, timing details, and quick navigation to related coverage.
+              </StoryHeroAsideText>
+            </div>
+
+            <StoryFactList>
+              <StoryFact>
+                <StoryFactLabel>Source</StoryFactLabel>
+                <StoryFactValue>{article.sourceName}</StoryFactValue>
+              </StoryFact>
+              {updatedLabel ? (
+                <StoryFact>
+                  <StoryFactLabel>{common.updatedLabel || "Updated"}</StoryFactLabel>
+                  <StoryFactValue>{updatedLabel}</StoryFactValue>
+                </StoryFact>
+              ) : null}
+              <StoryFact>
+                <StoryFactLabel>Categories</StoryFactLabel>
+                <StoryFactValue>{article.categories?.length || 0} topics</StoryFactValue>
+              </StoryFact>
+            </StoryFactList>
+          </StoryHeroAside>
+        </StoryHeroLayout>
       </StoryHero>
 
-      <ContentGrid>
-        <div style={{ display: "grid", gap: "1.1rem" }}>
+      <StoryLayout>
+        <StoryMainColumn>
           {primaryMedia ? (
-            <Panel>
+            <StoryMediaPanel>
               <StoryImagePanel>{renderStoryMedia(primaryMedia, { eager: true })}</StoryImagePanel>
-            </Panel>
+            </StoryMediaPanel>
           ) : null}
 
           {additionalMedia.length ? (
-            <Panel>
-              <SectionTitle>Media</SectionTitle>
+            <StoryMediaPanel>
+              <StorySectionKicker>Gallery</StorySectionKicker>
+              <SectionTitle>Additional media</SectionTitle>
               <StoryMediaGallery>
                 {additionalMedia.map((media) => (
                   <StoryImagePanel key={getMediaIdentity(media)}>
@@ -679,25 +1034,32 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                   </StoryImagePanel>
                 ))}
               </StoryMediaGallery>
-            </Panel>
+            </StoryMediaPanel>
           ) : null}
 
-          <Panel>
-            <SectionTitle>{article.title}</SectionTitle>
+          <StoryContentPanel>
+            <StoryContentIntro>
+              <StorySectionKicker>Article</StorySectionKicker>
+              <StoryContentHeading>{article.title}</StoryContentHeading>
+            </StoryContentIntro>
             <StoryContent dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
-          </Panel>
-        </div>
+          </StoryContentPanel>
+        </StoryMainColumn>
 
-        <div style={{ display: "grid", gap: "1rem" }}>
+        <StorySidebar>
           <Panel>
             <SectionTitle>{common.referencesHeading || "Source attribution"}</SectionTitle>
             <SidebarList>
-              <SidebarLink href={article.sourceUrl} target="_blank">
+              {article.sourceUrl ? (
+                <StorySourceLink href={article.sourceUrl} rel="noreferrer" target="_blank">
+                  <SidebarTitle>{article.sourceName}</SidebarTitle>
+                  <StorySourceUrl>{article.sourceUrl}</StorySourceUrl>
+                </StorySourceLink>
+              ) : (
                 <SidebarTitle>{article.sourceName}</SidebarTitle>
-                <SidebarMeta>{article.sourceUrl}</SidebarMeta>
-              </SidebarLink>
+              )}
             </SidebarList>
-            <EmptyState>{article.sourceAttribution}</EmptyState>
+            <EmptyState>{article.sourceAttribution || "Original source details for this article."}</EmptyState>
           </Panel>
 
           <ShareActions
@@ -726,8 +1088,8 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               )}
             </SidebarList>
           </Panel>
-        </div>
-      </ContentGrid>
+        </StorySidebar>
+      </StoryLayout>
     </PageMain>
   );
 }

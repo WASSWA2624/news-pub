@@ -9,6 +9,7 @@ import {
   Field,
   FieldLabel,
   Input,
+  SecondaryButton,
   SmallText,
 } from "@/components/admin/news-admin-ui";
 import { MULTI_VALUE_EMPTY_SENTINEL } from "@/lib/news/provider-definitions";
@@ -33,8 +34,31 @@ const SearchableCheckboxGrid = styled(CheckboxRow)`
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 `;
 
+const SearchableCheckboxActions = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: space-between;
+`;
+
+const SearchableCheckboxActionGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+`;
+
+const ActionButton = styled(SecondaryButton)`
+  min-height: 30px;
+  padding: 0.42rem 0.72rem;
+`;
+
 function normalizeText(value) {
   return `${value ?? ""}`.trim().toLowerCase();
+}
+
+function normalizeOptionValue(value) {
+  return `${value ?? ""}`;
 }
 
 export default function CheckboxSearchField({
@@ -46,9 +70,20 @@ export default function CheckboxSearchField({
   title,
 }) {
   const [query, setQuery] = useState("");
+  const [checkedValues, setCheckedValues] = useState(() =>
+    (selectedValues || []).map((value) => normalizeOptionValue(value)),
+  );
+  const orderedOptionValues = useMemo(
+    () =>
+      options
+        .map((option) => normalizeOptionValue(option.value))
+        .filter((value, index, values) => values.indexOf(value) === index),
+    [options],
+  );
+
   const selectedValueSet = useMemo(
-    () => new Set((selectedValues || []).map((value) => `${value ?? ""}`)),
-    [selectedValues],
+    () => new Set(checkedValues),
+    [checkedValues],
   );
   const filteredOptions = useMemo(() => {
     const normalizedQuery = normalizeText(query);
@@ -70,6 +105,49 @@ export default function CheckboxSearchField({
       return searchable.includes(normalizedQuery);
     });
   }, [options, query]);
+  const visibleOptionValues = useMemo(
+    () => filteredOptions.map((option) => normalizeOptionValue(option.value)),
+    [filteredOptions],
+  );
+  const visibleOptionValueSet = useMemo(
+    () => new Set(visibleOptionValues),
+    [visibleOptionValues],
+  );
+  const hasVisibleOptions = visibleOptionValues.length > 0;
+  const allVisibleSelected =
+    hasVisibleOptions && visibleOptionValues.every((value) => selectedValueSet.has(value));
+  const selectedCount = checkedValues.length;
+
+  function handleToggle(optionValue, isChecked) {
+    const normalizedValue = normalizeOptionValue(optionValue);
+
+    setCheckedValues((currentValues) => {
+      const nextValues = new Set(currentValues);
+
+      if (isChecked) {
+        nextValues.add(normalizedValue);
+      } else {
+        nextValues.delete(normalizedValue);
+      }
+
+      return orderedOptionValues.filter((value) => nextValues.has(value));
+    });
+  }
+
+  function handleSelectVisible() {
+    setCheckedValues((currentValues) => {
+      const nextValues = new Set(currentValues);
+      visibleOptionValues.forEach((value) => nextValues.add(value));
+
+      return orderedOptionValues.filter((value) => nextValues.has(value));
+    });
+  }
+
+  function handleDeselectVisible() {
+    setCheckedValues((currentValues) =>
+      currentValues.filter((value) => !visibleOptionValueSet.has(value)),
+    );
+  }
 
   return (
     <Field as="div">
@@ -83,13 +161,33 @@ export default function CheckboxSearchField({
           type="search"
           value={query}
         />
+        <SearchableCheckboxActions>
+          <SearchableCheckboxActionGroup>
+            <ActionButton
+              disabled={!hasVisibleOptions || allVisibleSelected}
+              onClick={handleSelectVisible}
+              type="button"
+            >
+              {query ? "Select shown" : "Select all"}
+            </ActionButton>
+            <ActionButton
+              disabled={!hasVisibleOptions || !visibleOptionValues.some((value) => selectedValueSet.has(value))}
+              onClick={handleDeselectVisible}
+              type="button"
+            >
+              {query ? "Deselect shown" : "Deselect all"}
+            </ActionButton>
+          </SearchableCheckboxActionGroup>
+          <SmallText>{selectedCount} selected</SmallText>
+        </SearchableCheckboxActions>
         <input name={name} type="hidden" value={MULTI_VALUE_EMPTY_SENTINEL} />
         <SearchableCheckboxList>
           <SearchableCheckboxGrid>
             {filteredOptions.map((option) => (
               <CheckboxChip key={`${name}-${option.value}`}>
                 <input
-                  defaultChecked={selectedValueSet.has(option.value)}
+                  checked={selectedValueSet.has(normalizeOptionValue(option.value))}
+                  onChange={(event) => handleToggle(option.value, event.target.checked)}
                   name={name}
                   type="checkbox"
                   value={option.value}

@@ -1214,7 +1214,7 @@ const providerDefinitionMap = Object.freeze({
   newsapi: {
     defaultRequestDefaults: {
       category: "general",
-      country: "us",
+      country: "",
       endpoint: "top-headlines",
     },
     docsUrl: "https://newsapi.org/docs",

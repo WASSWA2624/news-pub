@@ -28,7 +28,89 @@ import DestinationFormCard from "@/components/admin/destination-form-card";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import styled from "styled-components";
 import { saveDestinationAction } from "../actions";
+
+const DestinationGrid = styled(SectionGrid)`
+  @media (min-width: 1080px) {
+    grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.9fr);
+  }
+`;
+
+const DirectoryHeader = styled.div`
+  align-items: start;
+  display: grid;
+  gap: 0.75rem;
+
+  @media (min-width: 860px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+`;
+
+const PlatformRail = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+`;
+
+const PlatformChip = styled.span`
+  align-items: center;
+  background: rgba(15, 111, 141, 0.07);
+  border: 1px solid rgba(15, 111, 141, 0.12);
+  border-radius: 999px;
+  color: #0d5f79;
+  display: inline-flex;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  min-height: 28px;
+  padding: 0 0.7rem;
+  text-transform: uppercase;
+`;
+
+const DestinationRecord = styled(RecordCard)`
+  gap: 0.85rem;
+  padding: 0.9rem;
+`;
+
+const RecordLead = styled.div`
+  display: grid;
+  gap: 0.35rem;
+`;
+
+const RouteRail = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+`;
+
+const RoutePill = styled.span`
+  align-items: center;
+  background: ${({ $tone }) =>
+    $tone === "accent"
+      ? "rgba(15, 111, 141, 0.08)"
+      : "rgba(16, 32, 51, 0.05)"};
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === "accent"
+        ? "rgba(15, 111, 141, 0.14)"
+        : "rgba(16, 32, 51, 0.08)"};
+  border-radius: 999px;
+  color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
+  display: inline-flex;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  min-height: 24px;
+  padding: 0 0.55rem;
+  text-transform: uppercase;
+`;
+
+const StickyCard = styled(Card)`
+  align-self: start;
+  position: sticky;
+  top: 5.7rem;
+`;
 
 const platformValues = ["WEBSITE", "FACEBOOK", "INSTAGRAM"];
 const kindValues = [
@@ -111,19 +193,33 @@ export default async function DestinationsPage() {
         </SummaryCard>
       </SummaryGrid>
 
-      <SectionGrid>
+      <DestinationGrid $wide>
         <Card>
-          <CardHeader>
-            <CardTitle>Configured destinations</CardTitle>
-            <CardDescription>Keep each publishing target compact, connected, and easy to audit from mobile.</CardDescription>
-          </CardHeader>
+          <DirectoryHeader>
+            <CardHeader>
+              <CardTitle>Configured destinations</CardTitle>
+              <CardDescription>
+                Keep each publishing target compact, connected, and easier to audit with grouped identity, routing, and connection details.
+              </CardDescription>
+            </CardHeader>
+            <PlatformRail>
+              {platformValues.map((platform) => (
+                <PlatformChip key={platform}>{formatEnumLabel(platform)}</PlatformChip>
+              ))}
+            </PlatformRail>
+          </DirectoryHeader>
           <RecordStack>
             {snapshot.destinations.map((destination) => (
-              <RecordCard key={destination.id}>
+              <DestinationRecord key={destination.id}>
                 <RecordHeader>
-                  <RecordTitleBlock>
+                  <RecordTitleBlock as={RecordLead}>
                     <RecordTitle>{destination.name}</RecordTitle>
                     <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                    <RouteRail>
+                      <RoutePill $tone="accent">{formatEnumLabel(destination.platform)}</RoutePill>
+                      <RoutePill>{formatEnumLabel(destination.kind)}</RoutePill>
+                      <RoutePill>{destination.slug}</RoutePill>
+                    </RouteRail>
                   </RecordTitleBlock>
                   <RecordMeta>
                     <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
@@ -140,12 +236,12 @@ export default async function DestinationsPage() {
                   platformOptions={platformOptions}
                   submitLabel="Save destination"
                 />
-              </RecordCard>
+              </DestinationRecord>
             ))}
           </RecordStack>
         </Card>
 
-        <Card>
+        <StickyCard>
           <CardHeader>
             <CardTitle>Add destination</CardTitle>
             <CardDescription>
@@ -158,8 +254,8 @@ export default async function DestinationsPage() {
             platformOptions={platformOptions}
             submitLabel="Create destination"
           />
-        </Card>
-      </SectionGrid>
+        </StickyCard>
+      </DestinationGrid>
     </AdminPage>
   );
 }
