@@ -181,35 +181,45 @@ export async function deleteDestinationAction(formData) {
 export async function saveStreamAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
 
-  await saveStreamRecord(
-    {
-      activeProviderId: formData.get("activeProviderId"),
-      categoryIds: parseRepeatedField(formData, "categoryIds"),
-      countryAllowlistJson: parseRepeatedField(formData, "countryAllowlistJson"),
-      defaultTemplateId: formData.get("defaultTemplateId"),
-      description: formData.get("description"),
-      destinationId: formData.get("destinationId"),
-      duplicateWindowHours: formData.get("duplicateWindowHours"),
-      excludeKeywordsJson: formData.get("excludeKeywordsJson"),
-      includeKeywordsJson: formData.get("includeKeywordsJson"),
-      languageAllowlistJson: parseRepeatedField(formData, "languageAllowlistJson"),
-      locale: formData.get("locale"),
-      maxPostsPerRun: formData.get("maxPostsPerRun"),
-      mode: formData.get("mode"),
-      name: formData.get("name"),
-      providerFilters: parseScopedFields(formData, "providerFilter."),
-      retryBackoffMinutes: formData.get("retryBackoffMinutes"),
-      retryLimit: formData.get("retryLimit"),
-      scheduleExpression: formData.get("scheduleExpression"),
-      scheduleIntervalMinutes: formData.get("scheduleIntervalMinutes"),
-      slug: formData.get("slug"),
-      status: formData.get("status"),
-      timezone: formData.get("timezone"),
-    },
-    {
-      actorId: getActorId(auth),
-    },
-  );
+  try {
+    await saveStreamRecord(
+      {
+        activeProviderId: formData.get("activeProviderId"),
+        categoryIds: parseRepeatedField(formData, "categoryIds"),
+        countryAllowlistJson: parseRepeatedField(formData, "countryAllowlistJson"),
+        defaultTemplateId: formData.get("defaultTemplateId"),
+        description: formData.get("description"),
+        destinationId: formData.get("destinationId"),
+        duplicateWindowHours: formData.get("duplicateWindowHours"),
+        excludeKeywordsJson: formData.get("excludeKeywordsJson"),
+        includeKeywordsJson: formData.get("includeKeywordsJson"),
+        languageAllowlistJson: parseRepeatedField(formData, "languageAllowlistJson"),
+        locale: formData.get("locale"),
+        maxPostsPerRun: formData.get("maxPostsPerRun"),
+        mode: formData.get("mode"),
+        name: formData.get("name"),
+        providerFilters: parseScopedFields(formData, "providerFilter."),
+        retryBackoffMinutes: formData.get("retryBackoffMinutes"),
+        retryLimit: formData.get("retryLimit"),
+        scheduleExpression: formData.get("scheduleExpression"),
+        scheduleIntervalMinutes: formData.get("scheduleIntervalMinutes"),
+        slug: formData.get("slug"),
+        status: formData.get("status"),
+        timezone: formData.get("timezone"),
+      },
+      {
+        actorId: getActorId(auth),
+      },
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error && trimText(error.message)
+        ? trimText(error.message)
+        : "Stream save failed.";
+
+    revalidatePath("/admin/streams");
+    redirect(`/admin/streams?error=${encodeURIComponent(message)}`);
+  }
 
   redirectToPath("/admin/streams");
 }

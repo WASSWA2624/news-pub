@@ -242,6 +242,101 @@ describe("stream feature validation", () => {
     });
   });
 
+  it('rejects NewsAPI "Everything" streams without a query or domain filter', async () => {
+    const { saveStreamRecord } = await import("./index");
+    const prisma = createPrismaStub({
+      destination: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "destination_1",
+          kind: "WEBSITE",
+          name: "Website",
+          platform: "WEBSITE",
+          slug: "website",
+        }),
+      },
+      newsProviderConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "provider_1",
+          providerKey: "newsapi",
+          requestDefaultsJson: {
+            category: "general",
+            endpoint: "top-headlines",
+          },
+        }),
+      },
+    });
+
+    await expect(
+      saveStreamRecord(
+        {
+          activeProviderId: "provider_1",
+          destinationId: "destination_1",
+          locale: "en",
+          mode: "REVIEW_REQUIRED",
+          name: "NewsAPI everything stream",
+          providerFilters: {
+            domains: "",
+            endpoint: "everything",
+            q: "",
+          },
+        },
+        {},
+        prisma,
+      ),
+    ).rejects.toMatchObject({
+      status: "stream_validation_failed",
+    });
+
+    expect(prisma.publishingStream.upsert).not.toHaveBeenCalled();
+  });
+
+  it("moves provider-filter allowlists into the stream allowlist columns", async () => {
+    const { saveStreamRecord } = await import("./index");
+    const prisma = createPrismaStub({
+      newsProviderConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "provider_1",
+          providerKey: "newsapi",
+          requestDefaultsJson: {
+            category: "general",
+            endpoint: "top-headlines",
+          },
+        }),
+      },
+    });
+
+    await saveStreamRecord(
+      {
+        activeProviderId: "provider_1",
+        destinationId: "destination_1",
+        locale: "en",
+        mode: "REVIEW_REQUIRED",
+        name: "NewsAPI top headlines stream",
+        providerFilters: {
+          category: "sports",
+          countryAllowlistJson: "us",
+          endpoint: "top-headlines",
+        },
+      },
+      {},
+      prisma,
+    );
+
+    expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          countryAllowlistJson: ["us"],
+          settingsJson: {
+            providerFilters: {
+              category: "sports",
+              endpoint: "top-headlines",
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it("deletes streams and records the audit event payload", async () => {
     const analytics = await import("@/lib/analytics");
     const { deleteStreamRecord } = await import("./index");

@@ -52,6 +52,27 @@ describe("configuration validation", () => {
     ]);
   });
 
+  it('flags NewsAPI "Everything" streams that do not provide a query or domain scope', () => {
+    expect(
+      getStreamValidationIssues({
+        locale: "en",
+        providerDefaults: {
+          endpoint: "top-headlines",
+        },
+        providerFilters: {
+          domains: "",
+          endpoint: "everything",
+          q: "",
+        },
+        providerKey: "newsapi",
+      }),
+    ).toMatchObject([
+      {
+        code: "stream_provider_newsapi_everything_requires_scope",
+      },
+    ]);
+  });
+
   it("flags templates whose linked streams use different platforms", () => {
     expect(
       getTemplateValidationIssues({

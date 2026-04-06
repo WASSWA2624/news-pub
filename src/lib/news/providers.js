@@ -1,9 +1,7 @@
 import { env } from "@/lib/env/server";
 import {
-  getProviderRequestDefaultValues,
   listProviderDefinitions,
-  mergeProviderFieldValues,
-  sanitizeProviderFieldValues,
+  resolveStreamProviderRequestValues,
 } from "@/lib/news/provider-definitions";
 import { NewsPubError, createContentHash, dedupeStrings, normalizeDisplayText } from "@/lib/news/shared";
 
@@ -274,64 +272,13 @@ function getOfficialProviderCatalogEntry(providerKey) {
 }
 
 function resolveProviderRequestValues(providerKey, stream) {
-  const providerDefaults = sanitizeProviderFieldValues(
-    providerKey,
-    getProviderRequestDefaultValues(stream?.activeProvider),
-  );
-  const streamOverrides = sanitizeProviderFieldValues(
-    providerKey,
-    stream?.settingsJson?.providerFilters || {},
-    {
-      preserveEmpty: true,
-    },
-  );
-  const mergedValues = mergeProviderFieldValues(providerDefaults, streamOverrides);
-  const requestValues = sanitizeProviderFieldValues(providerKey, mergedValues);
-  const endpoint = getSingleValue(requestValues, "endpoint");
-  const languageAllowlist = normalizeList(stream?.languageAllowlistJson, { lowerCase: true });
-  const countryAllowlist = normalizeList(stream?.countryAllowlistJson, { lowerCase: true });
-
-  if (providerKey === "mediastack") {
-    if (countryAllowlist.length) {
-      requestValues.countries = countryAllowlist;
-    }
-
-    if (languageAllowlist.length) {
-      requestValues.languages = languageAllowlist;
-    } else if (!getMultiValue(requestValues, "languages").length && normalizeScalar(stream?.locale)) {
-      requestValues.languages = [normalizeLowerScalar(stream.locale)];
-    }
-  }
-
-  if (providerKey === "newsdata") {
-    if (countryAllowlist.length) {
-      requestValues.country = countryAllowlist;
-    }
-
-    if (languageAllowlist.length) {
-      requestValues.language = languageAllowlist;
-    } else if (!getMultiValue(requestValues, "language").length && normalizeScalar(stream?.locale)) {
-      requestValues.language = [normalizeLowerScalar(stream.locale)];
-    }
-  }
-
-  if (providerKey === "newsapi") {
-    const resolvedEndpoint = endpoint || "top-headlines";
-
-    if (resolvedEndpoint === "everything") {
-      if (languageAllowlist.length) {
-        requestValues.language = languageAllowlist[0];
-      } else if (!normalizeScalar(requestValues.language) && normalizeScalar(stream?.locale)) {
-        requestValues.language = normalizeLowerScalar(stream.locale);
-      }
-    }
-
-    if (resolvedEndpoint === "top-headlines" && countryAllowlist.length) {
-      requestValues.country = countryAllowlist[0];
-    }
-  }
-
-  return requestValues;
+  return resolveStreamProviderRequestValues(providerKey, {
+    countryAllowlistJson: stream?.countryAllowlistJson,
+    languageAllowlistJson: stream?.languageAllowlistJson,
+    locale: stream?.locale,
+    providerDefaults: stream?.activeProvider?.requestDefaultsJson,
+    providerFilters: stream?.settingsJson?.providerFilters || {},
+  });
 }
 
 function buildMediastackRequest({ credential, stream, requestValues }) {

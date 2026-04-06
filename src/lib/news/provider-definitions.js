@@ -1495,11 +1495,156 @@ export function mergeProviderFieldValues(defaults = {}, overrides = {}) {
   return merged;
 }
 
-export function getStreamProviderFormValues(stream = {}) {
+function createValidationIssue(code, message) {
   return {
-    ...(stream?.settingsJson?.providerFilters || {}),
-    countryAllowlistJson: readMultiValue(stream, "countryAllowlistJson"),
-    languageAllowlistJson: readMultiValue(stream, "languageAllowlistJson"),
+    code,
+    message,
+    severity: "error",
+  };
+}
+
+function normalizeAllowlistValues(values = []) {
+  return dedupeValues(values).map((value) => normalizeKey(value));
+}
+
+function resolveAllowlistValues(values = [], providerFilters = {}, key) {
+  const explicitValues = normalizeAllowlistValues(values);
+
+  if (explicitValues.length) {
+    return explicitValues;
+  }
+
+  return normalizeAllowlistValues(readMultiValue(providerFilters, key));
+}
+
+export function resolveStreamProviderRequestValues(
+  providerKey,
+  {
+    countryAllowlistJson = [],
+    languageAllowlistJson = [],
+    locale = "",
+    providerDefaults = {},
+    providerFilters = {},
+  } = {},
+) {
+  const normalizedProviderKey = normalizeKey(providerKey);
+  const providerDefaultValues = sanitizeProviderFieldValues(
+    normalizedProviderKey,
+    providerDefaults,
+  );
+  const streamOverrideValues = sanitizeProviderFieldValues(
+    normalizedProviderKey,
+    providerFilters,
+    {
+      preserveEmpty: true,
+    },
+  );
+  const mergedValues = mergeProviderFieldValues(providerDefaultValues, streamOverrideValues);
+  const requestValues = sanitizeProviderFieldValues(normalizedProviderKey, mergedValues);
+  const normalizedLanguageAllowlist = resolveAllowlistValues(
+    languageAllowlistJson,
+    providerFilters,
+    "languageAllowlistJson",
+  );
+  const normalizedCountryAllowlist = resolveAllowlistValues(
+    countryAllowlistJson,
+    providerFilters,
+    "countryAllowlistJson",
+  );
+
+  delete requestValues.countryAllowlistJson;
+  delete requestValues.languageAllowlistJson;
+
+  if (normalizedProviderKey === "mediastack") {
+    if (normalizedCountryAllowlist.length) {
+      requestValues.countries = normalizedCountryAllowlist;
+    }
+
+    if (normalizedLanguageAllowlist.length) {
+      requestValues.languages = normalizedLanguageAllowlist;
+    } else if (!readMultiValue(requestValues, "languages").length && normalizeText(locale)) {
+      requestValues.languages = [normalizeKey(locale)];
+    }
+  }
+
+  if (normalizedProviderKey === "newsdata") {
+    if (normalizedCountryAllowlist.length) {
+      requestValues.country = normalizedCountryAllowlist;
+    }
+
+    if (normalizedLanguageAllowlist.length) {
+      requestValues.language = normalizedLanguageAllowlist;
+    } else if (!readMultiValue(requestValues, "language").length && normalizeText(locale)) {
+      requestValues.language = [normalizeKey(locale)];
+    }
+  }
+
+  if (normalizedProviderKey === "newsapi") {
+    const endpoint = readSingleValue(requestValues, "endpoint") || "top-headlines";
+
+    if (endpoint === "everything") {
+      if (normalizedLanguageAllowlist.length) {
+        requestValues.language = normalizedLanguageAllowlist[0];
+      } else if (!normalizeText(requestValues.language) && normalizeText(locale)) {
+        requestValues.language = normalizeKey(locale);
+      }
+    }
+
+    if (endpoint === "top-headlines" && normalizedCountryAllowlist.length) {
+      requestValues.country = normalizedCountryAllowlist[0];
+    }
+  }
+
+  return requestValues;
+}
+
+export function getProviderRequestValidationIssues(providerKey, options = {}) {
+  const normalizedProviderKey = normalizeKey(providerKey);
+  const requestValues = resolveStreamProviderRequestValues(normalizedProviderKey, options);
+  const issues = [];
+
+  if (normalizedProviderKey === "newsapi") {
+    const endpoint = readSingleValue(requestValues, "endpoint") || "top-headlines";
+    const query = readSingleValue(requestValues, "q");
+    const country = readSingleValue(requestValues, "country");
+    const category = readSingleValue(requestValues, "category");
+    const domains = readSingleValue(requestValues, "domains");
+
+    if (endpoint === "everything" && !query && !domains) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_everything_requires_scope",
+          'NewsAPI "Everything" needs a keyword query or at least one domain. Add one of those filters or switch back to Top Headlines.',
+        ),
+      );
+    }
+
+    if (endpoint === "top-headlines" && !query && !country && !category) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_top_headlines_requires_scope",
+          'NewsAPI "Top Headlines" needs a keyword query, country, or category. Add one of those filters or update the provider defaults.',
+        ),
+      );
+    }
+  }
+
+  return issues;
+}
+
+export function getStreamProviderFormValues(stream = {}) {
+  const providerFilters = stream?.settingsJson?.providerFilters || {};
+  const savedCountryAllowlist = readMultiValue(stream, "countryAllowlistJson");
+  const savedLanguageAllowlist = readMultiValue(stream, "languageAllowlistJson");
+
+  return {
+    ...providerFilters,
+    countryAllowlistJson: savedCountryAllowlist.length
+      ? savedCountryAllowlist
+      : readMultiValue(providerFilters, "countryAllowlistJson"),
+    languageAllowlistJson: savedLanguageAllowlist.length
+      ? savedLanguageAllowlist
+      : readMultiValue(providerFilters, "languageAllowlistJson"),
   };
 }
 

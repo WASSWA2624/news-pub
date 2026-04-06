@@ -25,6 +25,7 @@ export async function getStreamManagementSnapshot(prisma) {
             id: true,
             label: true,
             providerKey: true,
+            requestDefaultsJson: true,
           },
         },
         categories: {
@@ -105,8 +106,14 @@ export async function getStreamManagementSnapshot(prisma) {
       excludeKeywordsJson: stream.excludeKeywordsJson || [],
       streamCategories: stream.categories.map((entry) => entry.category),
       validationIssues: getStreamValidationIssues({
+        countryAllowlistJson: stream.countryAllowlistJson,
         destination: stream.destination,
+        languageAllowlistJson: stream.languageAllowlistJson,
+        locale: stream.locale,
         mode: stream.mode,
+        providerDefaults: stream.activeProvider?.requestDefaultsJson,
+        providerFilters: stream.settingsJson?.providerFilters,
+        providerKey: stream.activeProvider?.providerKey,
         template: stream.defaultTemplate,
       }),
     })),
@@ -162,6 +169,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     select: {
       id: true,
       providerKey: true,
+      requestDefaultsJson: true,
     },
     where: {
       id: input.activeProviderId,
@@ -189,9 +197,39 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     });
   }
 
+  const providerFilters = sanitizeProviderFieldValues(
+    activeProvider.providerKey,
+    input.providerFilters,
+    {
+      preserveEmpty: true,
+    },
+  );
+  const explicitCountryAllowlist = normalizeKeywordList(input.countryAllowlistJson);
+  const explicitLanguageAllowlist = normalizeKeywordList(input.languageAllowlistJson);
+  const fallbackCountryAllowlist = normalizeKeywordList(providerFilters.countryAllowlistJson);
+  const fallbackLanguageAllowlist = normalizeKeywordList(providerFilters.languageAllowlistJson);
+  const countryAllowlistJson = (
+    explicitCountryAllowlist.length
+      ? explicitCountryAllowlist
+      : fallbackCountryAllowlist
+  ).map((value) => value.toLowerCase());
+  const languageAllowlistJson = (
+    explicitLanguageAllowlist.length
+      ? explicitLanguageAllowlist
+      : fallbackLanguageAllowlist
+  ).map((value) => value.toLowerCase());
+
+  delete providerFilters.countryAllowlistJson;
+  delete providerFilters.languageAllowlistJson;
   const validationIssues = getStreamValidationIssues({
+    countryAllowlistJson,
     destination,
+    languageAllowlistJson,
+    locale: trimText(input.locale),
     mode: trimText(input.mode) || "REVIEW_REQUIRED",
+    providerDefaults: activeProvider.requestDefaultsJson,
+    providerFilters,
+    providerKey: activeProvider.providerKey,
     template: defaultTemplate,
   });
 
@@ -201,16 +239,6 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       statusCode: 400,
     });
   }
-
-  const providerFilters = sanitizeProviderFieldValues(
-    activeProvider.providerKey,
-    input.providerFilters,
-    {
-      preserveEmpty: true,
-    },
-  );
-  const countryAllowlistJson = normalizeKeywordList(input.countryAllowlistJson).map((value) => value.toLowerCase());
-  const languageAllowlistJson = normalizeKeywordList(input.languageAllowlistJson).map((value) => value.toLowerCase());
 
   const stream = await db.publishingStream.upsert({
     where: {

@@ -1140,8 +1140,14 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
   }
 
   const streamValidationIssues = getStreamValidationIssues({
+    countryAllowlistJson: stream.countryAllowlistJson,
     destination: stream.destination,
+    languageAllowlistJson: stream.languageAllowlistJson,
+    locale: stream.locale,
     mode: stream.mode,
+    providerDefaults: stream.activeProvider?.requestDefaultsJson,
+    providerFilters: stream.settingsJson?.providerFilters,
+    providerKey: stream.activeProvider?.providerKey,
     template: stream.defaultTemplate,
   });
 

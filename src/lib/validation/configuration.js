@@ -4,6 +4,8 @@
  * These checks keep admin-managed platform combinations aligned before fetch or
  * publish workflows depend on them.
  */
+import { getProviderRequestValidationIssues } from "@/lib/news/provider-definitions";
+
 function normalizeEnumValue(value) {
   return `${value ?? ""}`.trim().toUpperCase();
 }
@@ -130,8 +132,18 @@ export function getDestinationValidationIssues(destination = {}) {
   return issues;
 }
 
-/** Validates stream settings that depend on the selected destination and template. */
-export function getStreamValidationIssues({ destination, mode, template } = {}) {
+/** Validates stream settings that depend on the selected destination, template, and provider filters. */
+export function getStreamValidationIssues({
+  countryAllowlistJson,
+  destination,
+  languageAllowlistJson,
+  locale,
+  mode,
+  providerDefaults,
+  providerFilters,
+  providerKey,
+  template,
+} = {}) {
   const issues = [];
   const normalizedMode = normalizeEnumValue(mode);
   const destinationIssues = getDestinationValidationIssues(destination);
@@ -179,6 +191,23 @@ export function getStreamValidationIssues({ destination, mode, template } = {}) 
         )} destinations cannot auto-publish. Switch the stream to Review Required or use a publish-capable destination.`,
       ),
     );
+  }
+
+  if (providerKey) {
+    for (const issue of getProviderRequestValidationIssues(providerKey, {
+      countryAllowlistJson,
+      languageAllowlistJson,
+      locale,
+      providerDefaults,
+      providerFilters,
+    })) {
+      issues.push(
+        createIssue(
+          `stream_${issue.code}`,
+          issue.message,
+        ),
+      );
+    }
   }
 
   return issues;
@@ -254,7 +283,17 @@ export function getConfigurationIssues({ destinations = [], streams = [], templa
     const destination = stream.destination || destinationById.get(stream.destinationId) || null;
     const template = stream.defaultTemplate || templateById.get(stream.defaultTemplateId) || null;
 
-    for (const issue of getStreamValidationIssues({ destination, mode: stream.mode, template })) {
+    for (const issue of getStreamValidationIssues({
+      countryAllowlistJson: stream.countryAllowlistJson,
+      destination,
+      languageAllowlistJson: stream.languageAllowlistJson,
+      locale: stream.locale,
+      mode: stream.mode,
+      providerDefaults: stream.activeProvider?.requestDefaultsJson,
+      providerFilters: stream.settingsJson?.providerFilters,
+      providerKey: stream.activeProvider?.providerKey,
+      template,
+    })) {
       issues.push({
         ...issue,
         entityId: stream.id,
