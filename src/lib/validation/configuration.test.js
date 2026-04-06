@@ -36,6 +36,22 @@ describe("configuration validation", () => {
     ]);
   });
 
+  it("flags auto-publish streams that target facebook profiles", () => {
+    expect(
+      getStreamValidationIssues({
+        destination: {
+          kind: "FACEBOOK_PROFILE",
+          platform: "FACEBOOK",
+        },
+        mode: "AUTO_PUBLISH",
+      }),
+    ).toMatchObject([
+      {
+        code: "stream_mode_destination_mismatch",
+      },
+    ]);
+  });
+
   it("flags templates whose linked streams use different platforms", () => {
     expect(
       getTemplateValidationIssues({

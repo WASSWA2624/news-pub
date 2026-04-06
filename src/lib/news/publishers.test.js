@@ -216,6 +216,7 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
+        externalAccountId: "stale-page-id",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
         settingsJson: {},
@@ -242,5 +243,87 @@ describe("news publishers", () => {
         targetId: "123456789012345",
       }),
     });
+  });
+
+  it("rejects facebook profile destinations before attempting to publish", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { publishExternalDestination } = await import("./publishers");
+    const encryptedToken = encryptSecretValue("facebook-token");
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      publishExternalDestination({
+        destination: {
+          encryptedTokenCiphertext: encryptedToken.ciphertext,
+          encryptedTokenIv: encryptedToken.iv,
+          encryptedTokenTag: encryptedToken.tag,
+          externalAccountId: "me",
+          kind: "FACEBOOK_PROFILE",
+          platform: "FACEBOOK",
+          settingsJson: {
+            profileId: "me",
+          },
+        },
+        payload: {
+          canonicalUrl: "https://example.com/en/news/breaking-story",
+          sourceReference: "Source: Example Source - https://example.com/story",
+          summary: "Breaking story summary",
+          title: "Breaking story",
+        },
+      }),
+    ).rejects.toMatchObject({
+      status: "facebook_profile_not_supported",
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects instagram destinations that are not professional accounts", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { publishExternalDestination } = await import("./publishers");
+    const encryptedToken = encryptSecretValue("instagram-token");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            account_type: "PERSONAL",
+            id: "789012",
+            username: "example.personal",
+          }),
+      }),
+    );
+
+    await expect(
+      publishExternalDestination({
+        destination: {
+          encryptedTokenCiphertext: encryptedToken.ciphertext,
+          encryptedTokenIv: encryptedToken.iv,
+          encryptedTokenTag: encryptedToken.tag,
+          externalAccountId: "789012",
+          kind: "INSTAGRAM_BUSINESS",
+          platform: "INSTAGRAM",
+          settingsJson: {},
+        },
+        payload: {
+          canonicalUrl: "https://example.com/en/news/breaking-story",
+          hashtags: "#breaking #technology",
+          mediaUrl: "https://cdn.example.com/story.jpg",
+          sourceReference: "Source: Example Source - https://example.com/story",
+          summary: "Breaking story summary",
+          title: "Breaking story",
+        },
+      }),
+    ).rejects.toMatchObject({
+      status: "instagram_professional_account_required",
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(`${fetch.mock.calls[0][0]}`).toContain("/789012");
   });
 });

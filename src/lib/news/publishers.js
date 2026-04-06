@@ -239,7 +239,25 @@ function buildInstagramCaption(payload) {
   );
 }
 
+function normalizeMetaAccountType(value) {
+  return trimText(value).toUpperCase();
+}
+
 async function publishFacebookDestination(destination, payload) {
+  if (destination.kind === "FACEBOOK_PROFILE") {
+    throw new DestinationPublishError(
+      "Facebook profile destinations cannot be published automatically. Use a Facebook page destination instead.",
+      {
+        responseJson: {
+          error: "facebook_profile_not_supported",
+        },
+        retryable: false,
+        status: "facebook_profile_not_supported",
+        statusCode: 400,
+      },
+    );
+  }
+
   const runtimeConnection = resolveDestinationRuntimeConnection(destination);
   const targetId = runtimeConnection.accountId;
 
@@ -368,6 +386,23 @@ async function publishInstagramDestination(destination, payload) {
   const accessToken = requireRuntimeAccessToken(runtimeConnection);
   const tokenMetadata = await validateMetaAccessToken(runtimeConnection, accessToken);
   const verifiedDestination = await verifyInstagramDestination(runtimeConnection, accessToken);
+  const accountType = normalizeMetaAccountType(verifiedDestination?.account_type);
+
+  if (!["BUSINESS", "CREATOR", "MEDIA_CREATOR"].includes(accountType)) {
+    throw new DestinationPublishError(
+      "Instagram publishing requires a Meta-verified professional account. Connect a business or creator account before retrying.",
+      {
+        responseJson: {
+          accountType: verifiedDestination?.account_type || null,
+          error: "instagram_professional_account_required",
+        },
+        retryable: false,
+        status: "instagram_professional_account_required",
+        statusCode: 400,
+      },
+    );
+  }
+
   const caption = buildInstagramCaption(payload);
   const creationPayload = await postGraphForm(runtimeConnection, `${targetId}/media`, {
     access_token: accessToken,

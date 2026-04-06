@@ -49,7 +49,6 @@ const destinationPlatformByKind = Object.freeze(
 
 const autoPublishCapableDestinationKinds = new Set([
   "WEBSITE",
-  "FACEBOOK_PROFILE",
   "FACEBOOK_PAGE",
   "INSTAGRAM_BUSINESS",
 ]);

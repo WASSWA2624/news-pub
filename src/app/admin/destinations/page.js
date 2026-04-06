@@ -125,7 +125,7 @@ const kindValues = [
 const connectionStatusValues = ["DISCONNECTED", "CONNECTED", "ERROR"];
 const kindDescriptions = Object.freeze({
   FACEBOOK_PAGE: "Use a Facebook page publishing destination.",
-  FACEBOOK_PROFILE: "Use a Facebook profile publishing destination.",
+  FACEBOOK_PROFILE: "Stored for reference, but not publish-capable automatically.",
   INSTAGRAM_BUSINESS: "Use a publish-capable Instagram business account.",
   INSTAGRAM_PERSONAL: "Stored for reference, but not publish-capable automatically.",
   WEBSITE: "Publish directly to the NewsPub website.",
