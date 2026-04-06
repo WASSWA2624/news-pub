@@ -989,6 +989,7 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
 export async function updatePostEditorialRecord(input = {}, { actorId = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const locale = trimText(input.locale).toLowerCase() || defaultLocale;
+  const action = trimText(input.action).toLowerCase();
   const post = await db.post.findUnique({
     include: {
       articleMatches: {
@@ -1024,14 +1025,19 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     : post.categories.map((entry) => entry.categoryId);
   const nextSlug = input.slug ? await createUniquePostSlug(db, input.slug, post.id) : post.slug;
   const requestedStatus = trimText(input.status).toUpperCase();
-  const publishAt =
-    input.publishAt && `${input.publishAt}`.trim()
-      ? new Date(input.publishAt)
-      : null;
+  const publishAt = parsePublishAt(input.publishAt);
+  const shouldSchedule = action === "schedule" || (!action && requestedStatus === "SCHEDULED");
   const shouldPublish =
-    requestedStatus === "PUBLISHED" ||
-    requestedStatus === "SCHEDULED" ||
-    trimText(input.action).toLowerCase() === "publish";
+    shouldSchedule ||
+    action === "publish" ||
+    (!action && requestedStatus === "PUBLISHED");
+
+  if (shouldSchedule && (!publishAt || publishAt <= new Date())) {
+    throw new NewsPubError("Choose a future publish time to schedule the story.", {
+      status: "manual_post_validation_failed",
+      statusCode: 400,
+    });
+  }
 
   await db.post.update({
     where: {

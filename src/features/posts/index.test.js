@@ -38,6 +38,7 @@ function createPrismaStub(overrides = {}) {
         sourceUrl: "https://example.com/source-story",
       }),
       findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue(null),
       ...(overrides.post || {}),
     },
     postCategory: {
@@ -86,6 +87,79 @@ function createPrismaStub(overrides = {}) {
       }),
       ...(overrides.sEORecord || {}),
     },
+  };
+}
+
+function createEditorArticleMatch(overrides = {}) {
+  return {
+    destination: {
+      id: "destination_1",
+      kind: "WEBSITE",
+      name: "Website",
+      platform: "WEBSITE",
+      slug: "website",
+    },
+    failedAt: null,
+    fetchedArticle: null,
+    filterReasonsJson: [],
+    holdReasonsJson: [],
+    id: "match_1",
+    publishAttempts: [],
+    publishedAt: null,
+    queuedAt: null,
+    status: "ELIGIBLE",
+    stream: {
+      id: "stream_1",
+      locale: "en",
+      mode: "REVIEW_REQUIRED",
+      name: "Website Feed",
+      status: "ACTIVE",
+    },
+    ...overrides,
+  };
+}
+
+function createEditorPost(overrides = {}) {
+  return {
+    articleMatches: [],
+    categories: [
+      {
+        category: {
+          id: "category_1",
+          name: "Technology",
+          slug: "technology",
+        },
+        categoryId: "category_1",
+      },
+    ],
+    editorialStage: "APPROVED",
+    excerpt: "Story summary",
+    featuredImage: null,
+    id: "post_1",
+    providerKey: "manual",
+    publishedAt: new Date("2026-04-01T10:00:00.000Z"),
+    scheduledPublishAt: null,
+    slug: "story-title",
+    sourceArticle: null,
+    sourceName: "NewsPub Editorial",
+    sourceUrl: "https://example.com/source-story",
+    status: "PUBLISHED",
+    translations: [
+      {
+        contentHtml: "<p>Story body</p>",
+        contentMd: "Story body",
+        id: "translation_1",
+        locale: "en",
+        seoRecord: null,
+        sourceAttribution: "Source: NewsPub Editorial - https://example.com/source-story",
+        structuredContentJson: {},
+        summary: "Story summary",
+        title: "Story title",
+        updatedAt: new Date("2026-04-01T11:00:00.000Z"),
+      },
+    ],
+    updatedAt: new Date("2026-04-01T12:00:00.000Z"),
+    ...overrides,
   };
 }
 
@@ -208,5 +282,153 @@ describe("manual post creation", () => {
 
     expect(prisma.fetchedArticle.create).not.toHaveBeenCalled();
     expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("post editor updates", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("saves an already published story without triggering publication again", async () => {
+    const publishArticleMatch = vi.fn().mockResolvedValue({
+      id: "attempt_1",
+    });
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      publishArticleMatch,
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost();
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      updatePostEditorialRecord(
+        {
+          action: "save",
+          postId: post.id,
+          status: "PUBLISHED",
+          summary: "Updated summary",
+          title: "Updated title",
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).resolves.toMatchObject({
+      post: {
+        id: "post_1",
+        status: "PUBLISHED",
+      },
+    });
+
+    expect(publishArticleMatch).not.toHaveBeenCalled();
+  });
+
+  it("still publishes when the API requests a published status without an explicit action", async () => {
+    const publishArticleMatch = vi.fn().mockResolvedValue({
+      id: "attempt_1",
+    });
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      publishArticleMatch,
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [createEditorArticleMatch()],
+      status: "DRAFT",
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      updatePostEditorialRecord(
+        {
+          postId: post.id,
+          status: "PUBLISHED",
+          summary: "Updated summary",
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).resolves.toMatchObject({
+      post: {
+        id: "post_1",
+      },
+    });
+
+    expect(publishArticleMatch).toHaveBeenCalledWith("match_1", {}, prisma);
+  });
+
+  it("requires a future publish time when scheduling from the editor", async () => {
+    const publishArticleMatch = vi.fn().mockResolvedValue({
+      id: "attempt_1",
+    });
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      publishArticleMatch,
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost({
+      status: "DRAFT",
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      updatePostEditorialRecord(
+        {
+          action: "schedule",
+          postId: post.id,
+          status: "SCHEDULED",
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({
+      status: "manual_post_validation_failed",
+    });
+
+    expect(publishArticleMatch).not.toHaveBeenCalled();
   });
 });
