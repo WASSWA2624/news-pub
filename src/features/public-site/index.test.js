@@ -270,6 +270,76 @@ describe("public site data", () => {
     });
   });
 
+  it("applies the optional country filter when searching published stories", async () => {
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([createPublishedPost()]),
+      },
+    };
+    const { searchPublishedPosts } = await import("./index");
+
+    const snapshot = await searchPublishedPosts(
+      {
+        country: " US ",
+        locale: "en",
+        page: "1",
+        search: "health",
+      },
+      prisma,
+    );
+
+    expect(snapshot.country).toBe("us");
+    expect(prisma.post.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              sourceArticle: {
+                is: {
+                  providerCountriesJson: {
+                    array_contains: "us",
+                  },
+                },
+              },
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("builds published country filter options from available website stories", async () => {
+    const prisma = {
+      fetchedArticle: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            providerCountriesJson: ["us", "gb"],
+          },
+          {
+            providerCountriesJson: ["us"],
+          },
+        ]),
+      },
+    };
+    const { getPublishedSearchFilterData } = await import("./index");
+
+    const snapshot = await getPublishedSearchFilterData({ locale: "en" }, prisma);
+
+    expect(snapshot.countries).toEqual([
+      expect.objectContaining({
+        count: 2,
+        label: "United States",
+        value: "us",
+      }),
+      expect.objectContaining({
+        count: 1,
+        label: "United Kingdom",
+        value: "gb",
+      }),
+    ]);
+  });
+
   it("builds a story page with source attribution and related stories", async () => {
     const prisma = {
       post: {

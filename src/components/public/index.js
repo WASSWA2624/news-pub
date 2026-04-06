@@ -518,11 +518,19 @@ const SearchForm = styled.form`
   gap: 0.75rem;
 
   @media (min-width: 620px) {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 220px) auto;
   }
 `;
 
 const SearchInput = styled.input`
+  background: white;
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  border-radius: 12px;
+  min-height: 48px;
+  padding: 0.8rem 0.95rem;
+`;
+
+const SearchSelect = styled.select`
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
   border-radius: 12px;
@@ -577,9 +585,30 @@ const StoryHeroBar = styled.div`
   align-items: center;
   border-bottom: 1px solid rgba(62, 47, 24, 0.14);
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.55rem 0.9rem;
   padding-bottom: 1rem;
+`;
+
+const StoryHeroStatus = styled.div`
+  align-items: center;
+  color: rgba(86, 69, 43, 0.82);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+const StoryStatusDot = styled.span`
+  background: linear-gradient(135deg, #9d6b20 0%, #6f4b16 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 0 5px rgba(157, 107, 32, 0.12);
+  display: inline-flex;
+  height: 0.52rem;
+  width: 0.52rem;
 `;
 
 const StoryBreadcrumbs = styled.nav`
@@ -616,6 +645,7 @@ const StoryHeroLayout = styled.div`
 const StoryHeroContent = styled.div`
   display: grid;
   gap: 1rem;
+  min-width: 0;
 `;
 
 const StorySourceBadge = styled(Eyebrow)`
@@ -672,6 +702,26 @@ const StoryBylineItem = styled.span`
   }
 `;
 
+const StoryActionRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+`;
+
+const StoryActionLink = styled.a`
+  background: ${({ $secondary }) =>
+    $secondary ? "rgba(120, 81, 28, 0.06)" : "linear-gradient(135deg, #764d18 0%, #52340f 100%)"};
+  border: 1px solid ${({ $secondary }) => ($secondary ? "rgba(120, 81, 28, 0.14)" : "rgba(82, 52, 15, 0.18)")};
+  border-radius: 999px;
+  color: ${({ $secondary }) => ($secondary ? "#6d4b19" : "#fffaf2")};
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.8rem 1.05rem;
+  text-decoration: none;
+`;
+
 const StoryMetaGrid = styled.div`
   background: rgba(255, 250, 242, 0.88);
   border: 1px solid rgba(96, 76, 46, 0.12);
@@ -707,6 +757,7 @@ const StoryMetaValue = styled.span`
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 `;
 
 const StoryTagRow = styled(ChipRow)`
@@ -720,6 +771,82 @@ const StoryTag = styled(ChipLink)`
   padding: 0.38rem 0.8rem;
 `;
 
+const StoryHighlightStrip = styled.section`
+  background:
+    linear-gradient(135deg, rgba(74, 51, 18, 0.96), rgba(104, 72, 24, 0.94)),
+    radial-gradient(circle at top right, rgba(255, 214, 132, 0.25), transparent 35%);
+  border: 1px solid rgba(74, 51, 18, 0.16);
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(61, 45, 24, 0.12);
+  color: #fffaf3;
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+
+  @media (min-width: 900px) {
+    align-items: start;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  }
+`;
+
+const StoryHighlightIntro = styled.div`
+  display: grid;
+  gap: 0.5rem;
+`;
+
+const StoryHighlightTitle = styled.h2`
+  color: inherit;
+  font-family: var(--font-editorial), Georgia, serif;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+`;
+
+const StoryHighlightText = styled.p`
+  color: rgba(255, 247, 235, 0.88);
+  font-size: 0.97rem;
+  line-height: 1.72;
+  margin: 0;
+  max-width: 58ch;
+`;
+
+const StoryHighlightGrid = styled.div`
+  display: grid;
+  gap: 0.75rem;
+
+  @media (min-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const StoryHighlightCard = styled.div`
+  background: rgba(255, 247, 235, 0.08);
+  border: 1px solid rgba(255, 239, 214, 0.12);
+  border-radius: 18px;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 0.95rem;
+`;
+
+const StoryHighlightLabel = styled.span`
+  color: rgba(255, 241, 219, 0.72);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+`;
+
+const StoryHighlightValue = styled.span`
+  color: #fffaf3;
+  font-family: var(--font-editorial), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+`;
+
 const StoryHeroAside = styled.aside`
   background: linear-gradient(180deg, rgba(255, 250, 242, 0.9), rgba(249, 243, 233, 0.96));
   border: 1px solid rgba(96, 76, 46, 0.12);
@@ -727,6 +854,7 @@ const StoryHeroAside = styled.aside`
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   display: grid;
   gap: 1rem;
+  min-width: 0;
   padding: 1.1rem;
 
   @media (max-width: 1039px) {
@@ -781,6 +909,7 @@ const StoryFactValue = styled.span`
   font-size: 1.14rem;
   font-weight: 700;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 `;
 
 const StoryLayout = styled.div`
@@ -798,12 +927,14 @@ const StoryLayout = styled.div`
 
 const StoryMainColumn = styled.div`
   display: grid;
-  gap: 1.25rem;
+  gap: 1.5rem;
+  min-width: 0;
 `;
 
 const StorySidebar = styled.aside`
   display: grid;
   gap: 1rem;
+  min-width: 0;
 
   @media (min-width: 1040px) {
     position: sticky;
@@ -827,6 +958,22 @@ const StoryImagePanel = styled.div`
 const StoryMediaPanel = styled.section`
   display: grid;
   gap: 0.85rem;
+`;
+
+const StorySectionHeader = styled.div`
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+`;
+
+const StorySectionLead = styled.p`
+  color: rgba(78, 61, 37, 0.86);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 52ch;
 `;
 
 const StoryContentPanel = styled.section`
@@ -887,6 +1034,56 @@ const StoryDateline = styled.p`
 const StoryDatelineSource = styled.span`
   color: #24180f;
   font-weight: 800;
+`;
+
+const StoryReadingFrame = styled.div`
+  display: grid;
+  gap: 1rem;
+`;
+
+const StoryReadingHeader = styled.div`
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+  justify-content: space-between;
+`;
+
+const StoryReadingTitleGroup = styled.div`
+  display: grid;
+  gap: 0.45rem;
+`;
+
+const StoryReadingTitle = styled.h2`
+  color: #24180f;
+  font-family: var(--font-editorial), Georgia, serif;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  margin: 0;
+`;
+
+const StoryReadingText = styled.p`
+  color: rgba(78, 61, 37, 0.86);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 54ch;
+`;
+
+const StoryReadingBadge = styled.span`
+  align-items: center;
+  background: rgba(120, 81, 28, 0.06);
+  border: 1px solid rgba(120, 81, 28, 0.12);
+  border-radius: 999px;
+  color: #6d4b19;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.85rem;
+  text-transform: uppercase;
 `;
 
 const StoryMediaGallery = styled.div`
@@ -1010,6 +1207,7 @@ const StoryRailSection = styled.section`
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   display: grid;
   gap: 0.7rem;
+  min-width: 0;
   padding: 1rem;
 `;
 
@@ -1027,6 +1225,29 @@ const StoryRailText = styled.p`
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
+`;
+
+const StoryRelatedList = styled.div`
+  display: grid;
+  gap: 0.8rem;
+`;
+
+const StoryRelatedCard = styled(Link)`
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(96, 76, 46, 0.08);
+  border-radius: 18px;
+  color: #24180f;
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.8rem 0.9rem;
+`;
+
+const StoryRelatedEyebrow = styled.span`
+  color: rgba(102, 81, 48, 0.76);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 `;
 
 const StoryShareGrid = styled.div`
@@ -1315,9 +1536,11 @@ export function PublicCollectionPage({
   pageData,
   pathname,
   query = {},
+  searchFilters = {},
   showSearch = false,
 }) {
   const common = messages.common || {};
+  const countryOptions = Array.isArray(searchFilters.countries) ? searchFilters.countries : [];
 
   return (
     <PageMain>
@@ -1339,15 +1562,35 @@ export function PublicCollectionPage({
               name="q"
               placeholder={common.searchPlaceholder || "Search published stories"}
             />
+            <SearchSelect
+              aria-label={common.countryFilterLabel || "Filter by country"}
+              defaultValue={query.country || ""}
+              name="country"
+            >
+              <option value="">{common.allCountriesOption || "All countries"}</option>
+              {countryOptions.map((country) => (
+                <option key={country.value} value={country.value}>
+                  {country.label}
+                </option>
+              ))}
+            </SearchSelect>
             <ActionButton type="submit">{common.searchAction || "Search"}</ActionButton>
           </SearchForm>
         ) : null}
 
-        <StoryList
-          emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
-          items={pageData.items}
-          locale={locale}
-        />
+        {showSearch ? (
+          <HomeStoryList
+            emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
+            items={pageData.items}
+            locale={locale}
+          />
+        ) : (
+          <StoryList
+            emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
+            items={pageData.items}
+            locale={locale}
+          />
+        )}
 
         <PaginationRow>
           <MetaBadge>
@@ -1419,6 +1662,10 @@ export function PublicStoryPage({ locale, messages, pageData }) {
             <span>/</span>
             <StoryBreadcrumbCurrent>{article.sourceName}</StoryBreadcrumbCurrent>
           </StoryBreadcrumbs>
+          <StoryHeroStatus>
+            <StoryStatusDot />
+            Published story
+          </StoryHeroStatus>
         </StoryHeroBar>
 
         <StoryHeroLayout>
@@ -1435,6 +1682,17 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               <StoryBylineItem>{readingMinutes} min read</StoryBylineItem>
               {updatedLabel ? <StoryBylineItem>{common.updatedLabel || "Updated"} {updatedLabel}</StoryBylineItem> : null}
             </StoryBylineRow>
+
+            <StoryActionRow>
+              {article.sourceUrl ? (
+                <StoryActionLink href={article.sourceUrl} rel="noreferrer" target="_blank">
+                  Read original source
+                </StoryActionLink>
+              ) : null}
+              <StoryActionLink $secondary href="#story-content">
+                Jump to article
+              </StoryActionLink>
+            </StoryActionRow>
 
             <StoryMetaGrid>
               {publishedLabel ? (
@@ -1509,21 +1767,67 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
         <StoryLayout>
           <StoryMainColumn>
+            <StoryHighlightStrip>
+              <StoryHighlightIntro>
+                <StorySectionKicker>At a glance</StorySectionKicker>
+                <StoryHighlightTitle>Fast context before you dive into the full report.</StoryHighlightTitle>
+                <StoryHighlightText>
+                  This page is arranged for quick scanning first, then deep reading: source, timing, topic, and the
+                  full article all stay visible without making the layout feel crowded.
+                </StoryHighlightText>
+              </StoryHighlightIntro>
+              <StoryHighlightGrid>
+                <StoryHighlightCard>
+                  <StoryHighlightLabel>Primary topic</StoryHighlightLabel>
+                  <StoryHighlightValue>{articlePrimaryCategory}</StoryHighlightValue>
+                </StoryHighlightCard>
+                <StoryHighlightCard>
+                  <StoryHighlightLabel>Published</StoryHighlightLabel>
+                  <StoryHighlightValue>{publishedLabel || "Recently"}</StoryHighlightValue>
+                </StoryHighlightCard>
+                <StoryHighlightCard>
+                  <StoryHighlightLabel>Source</StoryHighlightLabel>
+                  <StoryHighlightValue>{articleSourceName}</StoryHighlightValue>
+                </StoryHighlightCard>
+                <StoryHighlightCard>
+                  <StoryHighlightLabel>Reading time</StoryHighlightLabel>
+                  <StoryHighlightValue>{readingMinutes} min read</StoryHighlightValue>
+                </StoryHighlightCard>
+              </StoryHighlightGrid>
+            </StoryHighlightStrip>
+
             <StoryContentPanel>
-              <StoryContentIntro>
-                <StorySectionKicker>Full report</StorySectionKicker>
-                <StoryDateline>
-                  <StoryDatelineSource>{articleSourceName}</StoryDatelineSource>
-                  {publishedLabel ? <span>{publishedLabel}</span> : null}
-                </StoryDateline>
-              </StoryContentIntro>
-              <StoryContent dangerouslySetInnerHTML={{ __html: storyBodyHtml }} />
+              <StoryReadingFrame id="story-content">
+                <StoryReadingHeader>
+                  <StoryReadingTitleGroup>
+                    <StorySectionKicker>Full report</StorySectionKicker>
+                    <StoryReadingTitle>{articleTitle}</StoryReadingTitle>
+                    <StoryReadingText>{articleSummary}</StoryReadingText>
+                  </StoryReadingTitleGroup>
+                  <StoryReadingBadge>{articleProviderLabel}</StoryReadingBadge>
+                </StoryReadingHeader>
+                <StoryContentIntro>
+                  <StoryDateline>
+                    <StoryDatelineSource>{articleSourceName}</StoryDatelineSource>
+                    {publishedLabel ? <span>{publishedLabel}</span> : null}
+                    {updatedLabel ? <span>{common.updatedLabel || "Updated"} {updatedLabel}</span> : null}
+                  </StoryDateline>
+                </StoryContentIntro>
+                <StoryContent dangerouslySetInnerHTML={{ __html: storyBodyHtml }} />
+              </StoryReadingFrame>
             </StoryContentPanel>
 
             {additionalMedia.length ? (
               <StoryMediaPanel>
-                <StorySectionKicker>Gallery</StorySectionKicker>
-                <SectionTitle>Additional media</SectionTitle>
+                <StorySectionHeader>
+                  <div style={{ display: "grid", gap: "0.35rem" }}>
+                    <StorySectionKicker>Gallery</StorySectionKicker>
+                    <SectionTitle>Additional media</SectionTitle>
+                  </div>
+                  <StorySectionLead>
+                    Supporting visuals stay grouped here so the main reading column can remain focused and calm.
+                  </StorySectionLead>
+                </StorySectionHeader>
                 <StoryMediaGallery>
                   {additionalMedia.map((media) => (
                     <StoryImagePanel key={getMediaIdentity(media)}>
@@ -1567,21 +1871,23 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
               <StoryRailSection>
                 <StoryRailTitle>{common.relatedPostsTitle || "Related stories"}</StoryRailTitle>
-                <SidebarList>
+                <StoryRailText>More coverage connected by source or category so the next read is easy to pick.</StoryRailText>
+                <StoryRelatedList>
                   {pageData.relatedStories.length ? (
                     pageData.relatedStories.map((story) => (
-                      <SidebarLink href={story.path} key={story.id}>
+                      <StoryRelatedCard href={story.path} key={story.id}>
+                        <StoryRelatedEyebrow>{formatDisplayText(story.sourceName, "News source")}</StoryRelatedEyebrow>
                         <SidebarTitle>{formatDisplayText(story.title, story.slug)}</SidebarTitle>
                         <SidebarMeta>
                           {formatDisplayText(story.sourceName, "News source")}
                           {story.publishedAt ? ` | ${formatDateLabel(locale, story.publishedAt)}` : ""}
                         </SidebarMeta>
-                      </SidebarLink>
+                      </StoryRelatedCard>
                     ))
                 ) : (
                   <EmptyState>{common.emptyStateDescription || "More stories will appear here soon."}</EmptyState>
                 )}
-              </SidebarList>
+              </StoryRelatedList>
             </StoryRailSection>
           </StorySidebar>
         </StoryLayout>

@@ -1,7 +1,7 @@
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { searchPublishedPosts } from "@/features/public-site";
+import { getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -13,12 +13,14 @@ export async function generateMetadata({ params, searchParams }) {
   const pageContent = messages?.public?.search || {};
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
   const query = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q.trim() : "";
+  const country = typeof resolvedSearchParams?.country === "string" ? resolvedSearchParams.country.trim() : "";
 
   return buildPageMetadata({
     description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
     locale,
     noindex: true,
     query: {
+      ...(country ? { country } : {}),
       ...(Number.isFinite(page) && page > 1 ? { page } : {}),
       ...(query ? { q: query } : {}),
     },
@@ -32,9 +34,11 @@ export default async function SearchPage({ params, searchParams }) {
   const resolvedSearchParams = await searchParams;
   const page = resolvedSearchParams?.page;
   const query = resolvedSearchParams?.q;
-  const [messages, pageData] = await Promise.all([
+  const country = resolvedSearchParams?.country;
+  const [messages, pageData, filterData] = await Promise.all([
     getMessages(locale),
-    searchPublishedPosts({ locale, page, search: query }),
+    searchPublishedPosts({ country, locale, page, search: query }),
+    getPublishedSearchFilterData({ locale }),
   ]);
 
   return (
@@ -44,7 +48,11 @@ export default async function SearchPage({ params, searchParams }) {
       pageContent={messages.public?.search || {}}
       pageData={pageData}
       pathname={buildLocalizedPath(locale, publicRouteSegments.search)}
-      query={query ? { q: query } : {}}
+      query={{
+        ...(pageData.country ? { country: pageData.country } : {}),
+        ...(pageData.query ? { q: pageData.query } : {}),
+      }}
+      searchFilters={filterData}
       showSearch
     />
   );

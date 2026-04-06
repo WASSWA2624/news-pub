@@ -14,6 +14,7 @@
     },
     "navigation": {
       "about": "About",
+      "categories": "Categories",
       "home": "Home",
       "news": "News",
       "search": "Search"
@@ -33,6 +34,8 @@
       "referencesHeading": "Source attribution",
       "relatedPostsTitle": "Related stories",
       "resultsLabel": "Published stories",
+      "allCountriesOption": "All countries",
+      "countryFilterLabel": "Filter by country",
       "searchAction": "Search",
       "searchPlaceholder": "Search published stories, sources, or categories",
       "shareDescription": "Send this story to teammates or publish it through your own channels.",
@@ -62,7 +65,7 @@
     "search": {
       "eyebrow": "Search",
       "title": "Search published stories",
-      "description": "Search the public NewsPub website for published stories, source names, and category pages.",
+      "description": "Search the public NewsPub website for published stories, source names, category pages, and country-based coverage.",
       "metaTitle": "Search published stories",
       "metaDescription": "Search published NewsPub website stories."
     },

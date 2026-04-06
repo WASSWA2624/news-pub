@@ -5,6 +5,7 @@ import SiteShell from "@/components/layout/site-shell";
 import { isSupportedLocale, supportedLocales } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
+import { getPublishedCategoryNavigationData } from "@/features/public-site";
 import { buildOrganizationJsonLd } from "@/lib/seo";
 
 export const dynamicParams = false;
@@ -37,7 +38,10 @@ export default async function LocaleLayout({ children, params }) {
     notFound();
   }
 
-  const messages = await getMessages(locale);
+  const [messages, categoryLinks] = await Promise.all([
+    getMessages(locale),
+    getPublishedCategoryNavigationData({ locale, limit: 8 }),
+  ]);
 
   return (
     <LocaleMessagesProvider locale={locale} messages={messages}>
@@ -51,7 +55,7 @@ export default async function LocaleLayout({ children, params }) {
           }),
         ]}
       />
-      <SiteShell locale={locale} messages={messages}>
+      <SiteShell categoryLinks={categoryLinks} locale={locale} messages={messages}>
         {children}
       </SiteShell>
     </LocaleMessagesProvider>

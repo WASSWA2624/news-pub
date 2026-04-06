@@ -101,6 +101,63 @@ const NavigationLink = styled(Link)`
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
 `;
 
+const CategoryMenu = styled.details`
+  position: relative;
+`;
+
+const CategoryMenuSummary = styled.summary`
+  color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: ${({ $active }) => ($active ? 800 : 700)};
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+`;
+
+const CategoryMenuList = styled.div`
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.92);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(var(--theme-primary-rgb), 0.12);
+  display: grid;
+  gap: 0.15rem;
+  min-width: 220px;
+  padding: 0.55rem;
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  z-index: 10;
+
+  @media (max-width: 780px) {
+    position: static;
+    margin-top: 0.55rem;
+    width: min(100%, 320px);
+  }
+`;
+
+const CategoryMenuLink = styled(Link)`
+  align-items: center;
+  border-radius: 12px;
+  color: var(--theme-text);
+  display: flex;
+  font-size: 0.92rem;
+  font-weight: 700;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.7rem;
+
+  &:hover {
+    background: rgba(var(--theme-primary-rgb), 0.08);
+  }
+`;
+
+const CategoryMenuCount = styled.span`
+  color: rgba(var(--theme-text-rgb), 0.62);
+  font-size: 0.78rem;
+`;
+
 const SearchWrap = styled.div`
   max-width: 100%;
 `;
@@ -173,7 +230,7 @@ const FooterBottom = styled.div`
 /**
  * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
  */
-export default function SiteShell({ children, locale, messages }) {
+export default function SiteShell({ categoryLinks = [], children, locale, messages }) {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
   const searchBarCopy = messages.site.searchBar || {};
@@ -185,6 +242,7 @@ export default function SiteShell({ children, locale, messages }) {
   const aboutHref = buildLocalizedPath(locale, publicRouteSegments.about);
   const disclaimerHref = buildLocalizedPath(locale, publicRouteSegments.disclaimer);
   const privacyHref = buildLocalizedPath(locale, publicRouteSegments.privacy);
+  const isCategoryActive = normalizePathname(pathname).startsWith(`/${locale}/category`);
   const primaryLinks = [
     { href: homeHref, key: "home", label: messages.site.navigation.home },
     { href: newsHref, key: "news", label: messages.site.navigation.news },
@@ -215,6 +273,21 @@ export default function SiteShell({ children, locale, messages }) {
                 {item.label}
               </NavigationLink>
             ))}
+            {categoryLinks.length ? (
+              <CategoryMenu>
+                <CategoryMenuSummary $active={isCategoryActive}>
+                  {messages.site.navigation.categories || "Categories"}
+                </CategoryMenuSummary>
+                <CategoryMenuList>
+                  {categoryLinks.map((category) => (
+                    <CategoryMenuLink href={category.path} key={category.slug}>
+                      <span>{category.name}</span>
+                      <CategoryMenuCount>{category.count}</CategoryMenuCount>
+                    </CategoryMenuLink>
+                  ))}
+                </CategoryMenuList>
+              </CategoryMenu>
+            ) : null}
           </Navigation>
 
           <SearchWrap>
@@ -245,6 +318,11 @@ export default function SiteShell({ children, locale, messages }) {
               <FooterLink href={homeHref}>{messages.site.navigation.home}</FooterLink>
               <FooterLink href={newsHref}>{messages.site.navigation.news}</FooterLink>
               <FooterLink href={searchHref}>{messages.site.navigation.search}</FooterLink>
+              {categoryLinks[0] ? (
+                <FooterLink href={categoryLinks[0].path}>
+                  {messages.site.navigation.categories || "Categories"}
+                </FooterLink>
+              ) : null}
             </FooterLinkList>
           </FooterSection>
 

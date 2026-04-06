@@ -31,6 +31,29 @@ function normalizeSearch(value) {
   return trimText(value).slice(0, 191);
 }
 
+function normalizeCountry(value) {
+  return trimText(value).toLowerCase().slice(0, 8);
+}
+
+function formatCountryLabel(countryCode, locale = defaultLocale) {
+  const normalizedCountry = normalizeCountry(countryCode).toUpperCase();
+
+  if (!normalizedCountry) {
+    return "";
+  }
+
+  try {
+    const regionNames = new Intl.DisplayNames([locale], {
+      type: "region",
+    });
+    const label = regionNames.of(normalizedCountry);
+
+    return label || normalizedCountry;
+  } catch {
+    return normalizedCountry;
+  }
+}
+
 function mapImage(asset, fallbackAlt = "Story image") {
   if (!asset) {
     return null;
@@ -454,6 +477,42 @@ async function getPublishedCategoryCounts(db) {
     .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
 }
 
+async function getPublishedCountryCounts(db, locale) {
+  const publishedArticles = await db.fetchedArticle.findMany({
+    select: {
+      providerCountriesJson: true,
+    },
+    where: {
+      posts: {
+        some: buildPublishedLocaleWhere(locale),
+      },
+    },
+  });
+  const counts = new Map();
+
+  for (const article of publishedArticles) {
+    const countryCodes = Array.isArray(article.providerCountriesJson) ? article.providerCountriesJson : [];
+
+    for (const countryCode of countryCodes) {
+      const normalizedCountry = normalizeCountry(countryCode);
+
+      if (!normalizedCountry) {
+        continue;
+      }
+
+      counts.set(normalizedCountry, (counts.get(normalizedCountry) || 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([value, count]) => ({
+      count,
+      label: formatCountryLabel(value, locale),
+      value,
+    }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
 async function getLatestPublishedPosts(
   db,
   locale,
@@ -500,6 +559,28 @@ export async function getPublishedHomePageData({ locale = defaultLocale } = {}, 
       count: category.count,
       ...mapCategory(category, locale),
     })),
+  };
+}
+
+export async function getPublishedCategoryNavigationData(
+  { locale = defaultLocale, limit = 8 } = {},
+  prisma,
+) {
+  const db = await resolvePrismaClient(prisma);
+  const categories = await getPublishedCategoryCounts(db);
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 8;
+
+  return categories.slice(0, safeLimit).map((category) => ({
+    count: category.count,
+    ...mapCategory(category, locale),
+  }));
+}
+
+export async function getPublishedSearchFilterData({ locale = defaultLocale } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+
+  return {
+    countries: await getPublishedCountryCounts(db, locale),
   };
 }
 
@@ -601,20 +682,36 @@ export async function getPublishedCategoryPageData({ locale = defaultLocale, pag
   };
 }
 
-function buildSearchWhere(locale, search) {
+function buildSearchWhere(locale, search, country) {
   const normalizedSearch = normalizeSearch(search);
-
-  if (!normalizedSearch) {
-    return buildPublishedWebsiteWhere({
+  const normalizedCountry = normalizeCountry(country);
+  const filters = [
+    {
       translations: {
         some: {
           locale,
         },
       },
+    },
+  ];
+
+  if (normalizedCountry) {
+    filters.push({
+      sourceArticle: {
+        is: {
+          providerCountriesJson: {
+            array_contains: normalizedCountry,
+          },
+        },
+      },
     });
   }
 
-  return buildPublishedWebsiteWhere({
+  if (!normalizedSearch) {
+    return buildPublishedWebsiteWhere(filters.length === 1 ? filters[0] : { AND: filters });
+  }
+
+  filters.push({
     OR: [
       {
         slug: {
@@ -676,18 +773,21 @@ function buildSearchWhere(locale, search) {
         },
       },
     ],
-    translations: {
-      some: {
-        locale,
-      },
-    },
+  });
+
+  return buildPublishedWebsiteWhere({
+    AND: filters,
   });
 }
 
-export async function searchPublishedStories({ locale = defaultLocale, page = 1, search = "" } = {}, prisma) {
+export async function searchPublishedStories(
+  { locale = defaultLocale, page = 1, search = "", country = "" } = {},
+  prisma,
+) {
   const db = await resolvePrismaClient(prisma);
   const requestedPage = normalizePage(page);
-  const where = buildSearchWhere(locale, search);
+  const normalizedCountry = normalizeCountry(country);
+  const where = buildSearchWhere(locale, search, normalizedCountry);
   const totalItems = await db.post.count({ where });
   const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
   const posts = await db.post.findMany({
@@ -699,6 +799,7 @@ export async function searchPublishedStories({ locale = defaultLocale, page = 1,
   });
 
   return {
+    country: normalizedCountry,
     items: posts.map((post) => mapPostCard(post, locale)),
     pagination,
     query: normalizeSearch(search),
