@@ -1,12 +1,14 @@
 import {
-  AdminDescription,
+  ActionIcon,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
+  ButtonIcon,
   Card,
   CardHeader,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -47,28 +49,18 @@ export default async function ReviewQueuePage({ searchParams }) {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="review" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.reviewCount}</SummaryValue>
-          <SummaryLabel>Stories awaiting action</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.scheduledCount}</SummaryValue>
-          <SummaryLabel>Scheduled stories</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.items.length}</SummaryValue>
-          <SummaryLabel>Visible on this page</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="review" label="Stories awaiting action" value={snapshot.summary.reviewCount} />
+        <AdminMetricCard icon="calendar-clock" label="Scheduled stories" tone="accent" value={snapshot.summary.scheduledCount} />
+        <AdminMetricCard icon="news" label="Visible on this page" value={snapshot.items.length} />
       </SummaryGrid>
 
       <Card>
         <CardHeader>
-          <CardTitle>Review queue</CardTitle>
+          <AdminSectionTitle icon="review">Review queue</AdminSectionTitle>
           <SmallText>Stories stay easy to scan on small screens without losing the editorial status details.</SmallText>
         </CardHeader>
         {snapshot.items.length ? (
@@ -98,7 +90,12 @@ export default async function ReviewQueuePage({ searchParams }) {
                     <td data-label="Source">{item.sourceName}</td>
                     <td data-label="Scheduled">{formatDateTime(item.scheduledPublishAt)}</td>
                     <td data-label="Action">
-                      <LinkButton href={`/admin/posts/${item.id}`}>Open editor</LinkButton>
+                      <LinkButton href={`/admin/posts/${item.id}`}>
+                        <ButtonIcon>
+                          <ActionIcon name="edit" />
+                        </ButtonIcon>
+                        Open editor
+                      </LinkButton>
                     </td>
                   </tr>
                 ))}

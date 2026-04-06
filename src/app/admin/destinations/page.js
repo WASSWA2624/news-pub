@@ -1,14 +1,14 @@
 import {
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   ButtonRow,
   Card,
   CardHeader,
   CardDescription,
-  CardTitle,
   MetaPill,
   RecordCard,
   RecordHeader,
@@ -176,30 +176,20 @@ export default async function DestinationsPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="destinations" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total destinations</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.connectedCount}</SummaryValue>
-          <SummaryLabel>Connected destinations</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.errorCount}</SummaryValue>
-          <SummaryLabel>Destinations in error</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="destinations" label="Total destinations" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="badge-check" label="Connected destinations" value={snapshot.summary.connectedCount} />
+        <AdminMetricCard icon="warning" label="Destinations in error" tone="danger" value={snapshot.summary.errorCount} />
       </SummaryGrid>
 
       <DestinationGrid $wide>
         <Card>
           <DirectoryHeader>
             <CardHeader>
-              <CardTitle>Configured destinations</CardTitle>
+              <AdminSectionTitle icon="destinations">Configured destinations</AdminSectionTitle>
               <CardDescription>
                 Keep each publishing target compact, connected, and easier to audit with grouped identity, routing, and connection details.
               </CardDescription>
@@ -265,7 +255,7 @@ export default async function DestinationsPage() {
 
         <StickyCard>
           <CardHeader>
-            <CardTitle>Add destination</CardTitle>
+            <AdminSectionTitle icon="plus">Add destination</AdminSectionTitle>
             <CardDescription>
               Website and social endpoints can be managed independently and connected to multiple streams.
             </CardDescription>

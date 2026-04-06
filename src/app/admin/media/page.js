@@ -1,15 +1,15 @@
 import {
   ActionIcon,
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   ButtonIcon,
   Card,
   CardHeader,
   CardDescription,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -49,25 +49,18 @@ export default async function MediaPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="media" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total media assets</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.variantCount}</SummaryValue>
-          <SummaryLabel>Generated variants</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="media" label="Total media assets" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="layout" label="Generated variants" value={snapshot.summary.variantCount} />
       </SummaryGrid>
 
       <SectionGrid>
         <Card>
           <CardHeader>
-            <CardTitle>Upload media asset</CardTitle>
+            <AdminSectionTitle icon="upload">Upload media asset</AdminSectionTitle>
             <CardDescription>
               Uploaded assets go through the shared storage adapter and responsive variant pipeline.
             </CardDescription>
@@ -121,7 +114,7 @@ export default async function MediaPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Current media library</CardTitle>
+            <AdminSectionTitle icon="image">Current media library</AdminSectionTitle>
             <CardDescription>Files stay scannable on mobile with the same details visible as compact cards.</CardDescription>
           </CardHeader>
           {snapshot.assets.length ? (

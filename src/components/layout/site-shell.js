@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
 import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
@@ -33,6 +34,13 @@ function isNavigationActive(pathname, href) {
 
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
 }
+
+const publicNavigationIcons = Object.freeze({
+  about: "info",
+  home: "home",
+  news: "news",
+  search: "search",
+});
 
 const Shell = styled.div`
   display: flex;
@@ -110,11 +118,20 @@ const Navigation = styled.nav`
 `;
 
 const NavigationLink = styled(Link)`
+  align-items: center;
   color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
+  display: inline-flex;
   font-size: 0.95rem;
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
+  gap: 0.34rem;
   line-height: 1.2;
   min-height: 2rem;
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
 `;
 
 const Dropdown = styled.details`
@@ -151,13 +168,25 @@ const DropdownSummary = styled.summary`
   &::-webkit-details-marker {
     display: none;
   }
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
 `;
 
 const DropdownChevron = styled.span`
   color: inherit;
-  font-size: 0.68rem;
+  display: inline-flex;
   transform: ${({ $open }) => ($open ? "translateY(1px) rotate(180deg)" : "translateY(1px) rotate(0deg)")};
   transition: transform 0.18s ease;
+
+  svg {
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
 `;
 
 const DropdownList = styled.div`
@@ -290,8 +319,17 @@ const FooterLinkList = styled.div`
 `;
 
 const FooterLink = styled(Link)`
+  align-items: center;
   color: rgba(255, 255, 255, 0.96);
+  display: inline-flex;
+  gap: 0.38rem;
   font-weight: 700;
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
 `;
 
 const FooterBottom = styled.div`
@@ -305,9 +343,15 @@ const FooterBottom = styled.div`
 /**
  * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
  */
-export default function SiteShell({ categoryLinks = [], children, countryLinks = [], locale, messages }) {
+function SiteShellFrame({
+  categoryLinks = [],
+  children,
+  countryLinks = [],
+  countryQuery = "",
+  locale,
+  messages,
+}) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const categoryDropdownRef = useRef(null);
   const countryDropdownRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -323,7 +367,6 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
   const disclaimerHref = buildLocalizedPath(locale, publicRouteSegments.disclaimer);
   const privacyHref = buildLocalizedPath(locale, publicRouteSegments.privacy);
   const isCategoryActive = normalizePathname(pathname).startsWith(`/${locale}/category`);
-  const countryQuery = typeof searchParams?.get("country") === "string" ? searchParams.get("country").trim() : "";
   const routeStateKey = `${normalizePathname(pathname)}|${countryQuery}`;
   const isCategoryOpen =
     openDropdown === "category" && openDropdownRouteKey === routeStateKey;
@@ -331,10 +374,10 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
   const isCountryOpen =
     openDropdown === "country" && openDropdownRouteKey === routeStateKey;
   const primaryLinks = [
-    { href: homeHref, key: "home", label: messages.site.navigation.home },
-    { href: newsHref, key: "news", label: messages.site.navigation.news },
-    { href: searchHref, key: "search", label: messages.site.navigation.search },
-    { href: aboutHref, key: "about", label: messages.site.navigation.about },
+    { href: homeHref, icon: publicNavigationIcons.home, key: "home", label: messages.site.navigation.home },
+    { href: newsHref, icon: publicNavigationIcons.news, key: "news", label: messages.site.navigation.news },
+    { href: searchHref, icon: publicNavigationIcons.search, key: "search", label: messages.site.navigation.search },
+    { href: aboutHref, icon: publicNavigationIcons.about, key: "about", label: messages.site.navigation.about },
   ];
 
   useEffect(() => {
@@ -393,6 +436,7 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
                 key={item.key}
                 $active={isNavigationActive(pathname, item.href)}
               >
+                {item.icon ? <AppIcon name={item.icon} size={15} /> : null}
                 {item.label}
               </NavigationLink>
             ))}
@@ -406,8 +450,11 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
                     handleDropdownToggle("category");
                   }}
                 >
+                  <AppIcon name="tag" size={15} />
                   {messages.site.navigation.categories || "Categories"}
-                  <DropdownChevron $open={isCategoryOpen} aria-hidden="true">▼</DropdownChevron>
+                  <DropdownChevron $open={isCategoryOpen} aria-hidden="true">
+                    <AppIcon name="chevron-down" size={13} />
+                  </DropdownChevron>
                 </DropdownSummary>
                 <DropdownList>
                   {categoryLinks.map((category) => (
@@ -432,8 +479,11 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
                     handleDropdownToggle("country");
                   }}
                 >
+                  <AppIcon name="globe" size={15} />
                   {messages.site.navigation.countriesRegions || "Countries/Regions"}
-                  <DropdownChevron $open={isCountryOpen} aria-hidden="true">▼</DropdownChevron>
+                  <DropdownChevron $open={isCountryOpen} aria-hidden="true">
+                    <AppIcon name="chevron-down" size={13} />
+                  </DropdownChevron>
                 </DropdownSummary>
                 <DropdownList>
                   {countryLinks.map((country) => (
@@ -486,16 +536,27 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
           <FooterSection>
             <FooterSectionTitle>Browse</FooterSectionTitle>
             <FooterLinkList>
-              <FooterLink href={homeHref}>{messages.site.navigation.home}</FooterLink>
-              <FooterLink href={newsHref}>{messages.site.navigation.news}</FooterLink>
-              <FooterLink href={searchHref}>{messages.site.navigation.search}</FooterLink>
+              <FooterLink href={homeHref}>
+                <AppIcon name="home" size={15} />
+                {messages.site.navigation.home}
+              </FooterLink>
+              <FooterLink href={newsHref}>
+                <AppIcon name="news" size={15} />
+                {messages.site.navigation.news}
+              </FooterLink>
+              <FooterLink href={searchHref}>
+                <AppIcon name="search" size={15} />
+                {messages.site.navigation.search}
+              </FooterLink>
               {categoryLinks[0] ? (
                 <FooterLink href={categoryLinks[0].path}>
+                  <AppIcon name="tag" size={15} />
                   {messages.site.navigation.categories || "Categories"}
                 </FooterLink>
               ) : null}
               {countryLinks[0] ? (
                 <FooterLink href={countryLinks[0].path}>
+                  <AppIcon name="globe" size={15} />
                   {messages.site.navigation.countriesRegions || "Countries/Regions"}
                 </FooterLink>
               ) : null}
@@ -505,11 +566,18 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
           <FooterSection>
             <FooterSectionTitle>Company</FooterSectionTitle>
             <FooterLinkList>
-              <FooterLink href={aboutHref}>{messages.site.navigation.about}</FooterLink>
+              <FooterLink href={aboutHref}>
+                <AppIcon name="info" size={15} />
+                {messages.site.navigation.about}
+              </FooterLink>
               <FooterLink href={disclaimerHref}>
+                <AppIcon name="shield" size={15} />
                 {legalNavigation.disclaimer || "Disclaimer"}
               </FooterLink>
-              <FooterLink href={privacyHref}>{legalNavigation.privacy || "Privacy"}</FooterLink>
+              <FooterLink href={privacyHref}>
+                <AppIcon name="lock" size={15} />
+                {legalNavigation.privacy || "Privacy"}
+              </FooterLink>
             </FooterLinkList>
           </FooterSection>
         </FooterInner>
@@ -519,5 +587,24 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
         </FooterBottom>
       </Footer>
     </Shell>
+  );
+}
+
+function SiteShellContent(props) {
+  const searchParams = useSearchParams();
+  const countryQuery =
+    typeof searchParams?.get("country") === "string" ? searchParams.get("country").trim() : "";
+
+  return <SiteShellFrame {...props} countryQuery={countryQuery} />;
+}
+
+/**
+ * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
+ */
+export default function SiteShell(props) {
+  return (
+    <Suspense fallback={<SiteShellFrame {...props} countryQuery="" />}>
+      <SiteShellContent {...props} />
+    </Suspense>
   );
 }

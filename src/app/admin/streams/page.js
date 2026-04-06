@@ -1,13 +1,10 @@
 import {
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
-  SummaryCard,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import StreamManagementScreen from "@/components/admin/stream-management-screen";
@@ -82,23 +79,13 @@ export default async function StreamsPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="streams" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total streams</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.activeCount}</SummaryValue>
-          <SummaryLabel>Active streams</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.pausedCount}</SummaryValue>
-          <SummaryLabel>Paused streams</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="streams" label="Total streams" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="badge-check" label="Active streams" value={snapshot.summary.activeCount} />
+        <AdminMetricCard icon="clock" label="Paused streams" tone="accent" value={snapshot.summary.pausedCount} />
       </SummaryGrid>
 
       <StreamManagementScreen

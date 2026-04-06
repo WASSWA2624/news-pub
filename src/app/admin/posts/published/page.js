@@ -1,12 +1,14 @@
 import {
-  AdminDescription,
+  ActionIcon,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
+  ButtonIcon,
   Card,
   CardHeader,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -39,28 +41,18 @@ export default async function PublishedPostsPage({ searchParams }) {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="published" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.publishedCount}</SummaryValue>
-          <SummaryLabel>Total published stories</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.items.filter((item) => item.websitePublished).length}</SummaryValue>
-          <SummaryLabel>Website published on this page</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.items.length}</SummaryValue>
-          <SummaryLabel>Visible on this page</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="published" label="Total published stories" value={snapshot.summary.publishedCount} />
+        <AdminMetricCard icon="globe" label="Website published on this page" value={snapshot.items.filter((item) => item.websitePublished).length} />
+        <AdminMetricCard icon="news" label="Visible on this page" value={snapshot.items.length} />
       </SummaryGrid>
 
       <Card>
         <CardHeader>
-          <CardTitle>Published stories</CardTitle>
+          <AdminSectionTitle icon="published">Published stories</AdminSectionTitle>
           <SmallText>Published inventory stays compact on mobile while preserving website and source context.</SmallText>
         </CardHeader>
         {snapshot.items.length ? (
@@ -92,7 +84,12 @@ export default async function PublishedPostsPage({ searchParams }) {
                     <td data-label="Source">{item.sourceName}</td>
                     <td data-label="Website">{item.websitePublished ? "Yes" : "No"}</td>
                     <td data-label="Action">
-                      <LinkButton href={`/admin/posts/${item.id}`}>Open editor</LinkButton>
+                      <LinkButton href={`/admin/posts/${item.id}`}>
+                        <ButtonIcon>
+                          <ActionIcon name="edit" />
+                        </ButtonIcon>
+                        Open editor
+                      </LinkButton>
                     </td>
                   </tr>
                 ))}

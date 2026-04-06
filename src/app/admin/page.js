@@ -1,13 +1,16 @@
 import {
+  ActionIcon,
   AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
+  ButtonIcon,
   ButtonRow,
   Card,
   CardDescription,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -52,48 +55,34 @@ export default async function AdminDashboardPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="dashboard" title={copy.title} />
         <ButtonRow>
           <form action={runSchedulerAction}>
-            <PrimaryButton type="submit">Run due streams now</PrimaryButton>
+            <PrimaryButton type="submit">
+              <ButtonIcon>
+                <ActionIcon name="bolt" />
+              </ButtonIcon>
+              Run due streams now
+            </PrimaryButton>
           </form>
         </ButtonRow>
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.fetchRunCount7d}</SummaryValue>
-          <SummaryLabel>Fetch runs, last 7 days</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.publishableCount7d}</SummaryValue>
-          <SummaryLabel>Publishable stories, last 7 days</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.publishedCount7d}</SummaryValue>
-          <SummaryLabel>Published stories, last 7 days</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="refresh" label="Fetch runs, last 7 days" value={snapshot.summary.fetchRunCount7d} />
+        <AdminMetricCard icon="review" label="Publishable stories, last 7 days" value={snapshot.summary.publishableCount7d} />
+        <AdminMetricCard icon="published" label="Published stories, last 7 days" value={snapshot.summary.publishedCount7d} />
       </SummaryGrid>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.failedFetchRuns7d}</SummaryValue>
-          <SummaryLabel>Failed fetch runs</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.failedPublishAttempts7d}</SummaryValue>
-          <SummaryLabel>Failed publish attempts</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.retryCount7d}</SummaryValue>
-          <SummaryLabel>Retry count</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="warning" label="Failed fetch runs" tone="danger" value={snapshot.summary.failedFetchRuns7d} />
+        <AdminMetricCard icon="send" label="Failed publish attempts" tone="danger" value={snapshot.summary.failedPublishAttempts7d} />
+        <AdminMetricCard icon="refresh" label="Retry count" tone="accent" value={snapshot.summary.retryCount7d} />
       </SummaryGrid>
 
       <SectionGrid $wide>
         <Card>
-          <CardTitle>Recent fetch runs</CardTitle>
+          <AdminSectionTitle icon="refresh">Recent fetch runs</AdminSectionTitle>
           {snapshot.recentFetchRuns.length ? (
             <DataTableWrap>
               <DataTable>
@@ -132,28 +121,13 @@ export default async function AdminDashboardPage() {
         </Card>
 
         <Card>
-          <CardTitle>Operational health</CardTitle>
+          <AdminSectionTitle icon="shield">Operational health</AdminSectionTitle>
           <SummaryGrid>
-            <SummaryCard>
-              <SummaryValue>{snapshot.providerStatus.enabled}</SummaryValue>
-              <SummaryLabel>Enabled providers</SummaryLabel>
-            </SummaryCard>
-            <SummaryCard>
-              <SummaryValue>{snapshot.providerStatus.missingCredentials}</SummaryValue>
-              <SummaryLabel>Providers missing credentials</SummaryLabel>
-            </SummaryCard>
-            <SummaryCard>
-              <SummaryValue>{snapshot.destinationStatus.connected}</SummaryValue>
-              <SummaryLabel>Connected destinations</SummaryLabel>
-            </SummaryCard>
-            <SummaryCard>
-              <SummaryValue>{snapshot.destinationStatus.error}</SummaryValue>
-              <SummaryLabel>Destinations in error</SummaryLabel>
-            </SummaryCard>
-            <SummaryCard>
-              <SummaryValue>{snapshot.streamStatus.active}</SummaryValue>
-              <SummaryLabel>Active streams</SummaryLabel>
-            </SummaryCard>
+            <AdminMetricCard icon="providers" label="Enabled providers" value={snapshot.providerStatus.enabled} />
+            <AdminMetricCard icon="warning" label="Providers missing credentials" tone="danger" value={snapshot.providerStatus.missingCredentials} />
+            <AdminMetricCard icon="destinations" label="Connected destinations" value={snapshot.destinationStatus.connected} />
+            <AdminMetricCard icon="warning" label="Destinations in error" tone="danger" value={snapshot.destinationStatus.error} />
+            <AdminMetricCard icon="streams" label="Active streams" value={snapshot.streamStatus.active} />
           </SummaryGrid>
           <CardDescription>
             The dashboard keeps provider credentials, destination health, and active stream coverage in one glance.
@@ -163,7 +137,7 @@ export default async function AdminDashboardPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Provider status</CardTitle>
+          <AdminSectionTitle icon="providers">Provider status</AdminSectionTitle>
           {snapshot.providerStatus.providers.length ? (
             <DataTableWrap>
               <DataTable>
@@ -205,7 +179,7 @@ export default async function AdminDashboardPage() {
         </Card>
 
         <Card>
-          <CardTitle>Recent failures and retries</CardTitle>
+          <AdminSectionTitle icon="warning">Recent failures and retries</AdminSectionTitle>
           {snapshot.recentFailures.length ? (
             <DataTableWrap>
               <DataTable>
@@ -242,7 +216,7 @@ export default async function AdminDashboardPage() {
 
       <SectionGrid>
         <Card>
-          <CardTitle>Recent publish attempts</CardTitle>
+          <AdminSectionTitle icon="destinations">Recent publish attempts</AdminSectionTitle>
           {snapshot.recentPublishAttempts.length ? (
             <DataTableWrap>
               <DataTable>
@@ -277,7 +251,7 @@ export default async function AdminDashboardPage() {
         </Card>
 
         <Card>
-          <CardTitle>Published stories</CardTitle>
+          <AdminSectionTitle icon="published">Published stories</AdminSectionTitle>
           {snapshot.latestStories.length ? (
             <DataTableWrap>
               <DataTable>

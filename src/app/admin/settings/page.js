@@ -1,13 +1,15 @@
 import {
-  AdminDescription,
+  ActionIcon,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
+  ButtonIcon,
   ButtonRow,
   Card,
   CardHeader,
-  CardTitle,
   DataTable,
   DataTableWrap,
   NoticeBanner,
@@ -38,38 +40,30 @@ export default async function SettingsPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="settings" title={copy.title} />
         <ButtonRow>
           <form action={refreshSettingsAction}>
-            <PrimaryButton type="submit">Refresh settings snapshot</PrimaryButton>
+            <PrimaryButton type="submit">
+              <ButtonIcon>
+                <ActionIcon name="refresh" />
+              </ButtonIcon>
+              Refresh settings snapshot
+            </PrimaryButton>
           </form>
         </ButtonRow>
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.providerCount}</SummaryValue>
-          <SummaryLabel>Provider records</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.destinationCount}</SummaryValue>
-          <SummaryLabel>Destination records</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.streamCount}</SummaryValue>
-          <SummaryLabel>Stream records</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.configurationIssueCount}</SummaryValue>
-          <SummaryLabel>Configuration issues</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="providers" label="Provider records" value={snapshot.summary.providerCount} />
+        <AdminMetricCard icon="destinations" label="Destination records" value={snapshot.summary.destinationCount} />
+        <AdminMetricCard icon="streams" label="Stream records" value={snapshot.summary.streamCount} />
+        <AdminMetricCard icon="warning" label="Configuration issues" tone="danger" value={snapshot.summary.configurationIssueCount} />
       </SummaryGrid>
 
       <SectionGrid>
         <Card>
           <CardHeader>
-            <CardTitle>Locales</CardTitle>
+            <AdminSectionTitle icon="globe">Locales</AdminSectionTitle>
             <SmallText>Locale status stays readable in stacked cards on smaller screens.</SmallText>
           </CardHeader>
           <DataTableWrap>
@@ -98,7 +92,7 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Runtime configuration</CardTitle>
+            <AdminSectionTitle icon="sliders">Runtime configuration</AdminSectionTitle>
             <SmallText>Operational values are grouped into a short checklist instead of a large settings form.</SmallText>
           </CardHeader>
           <SmallText>Storage driver: {snapshot.storage.driver}</SmallText>
@@ -112,7 +106,7 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Configuration health</CardTitle>
+            <AdminSectionTitle icon="shield">Configuration health</AdminSectionTitle>
             <SmallText>
               Cross-check destination kinds, stream modes, and template platforms before scheduled jobs hit them.
             </SmallText>

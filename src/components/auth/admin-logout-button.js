@@ -4,14 +4,20 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
+
 const Button = styled.button`
+  align-items: center;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   color: white;
   cursor: pointer;
+  display: inline-flex;
   font-size: 0.84rem;
   font-weight: 700;
+  gap: 0.38rem;
+  justify-content: center;
   min-height: 34px;
   padding: 0.46rem 0.78rem;
   transition:
@@ -28,6 +34,12 @@ const Button = styled.button`
   &:disabled {
     cursor: wait;
     opacity: 0.72;
+  }
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
   }
 `;
 
@@ -66,6 +78,7 @@ export default function AdminLogoutButton({ className }) {
       onClick={handleLogout}
       type="button"
     >
+      <AppIcon name="log-out" size={14} />
       {isPending ? "Signing out..." : "Sign out"}
     </Button>
   );

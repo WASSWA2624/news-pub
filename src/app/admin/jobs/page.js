@@ -1,11 +1,13 @@
 import {
-  AdminDescription,
+  ActionIcon,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
+  ButtonIcon,
   Card,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -51,28 +53,18 @@ export default async function JobsPage({ searchParams }) {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="jobs" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalFetchRuns}</SummaryValue>
-          <SummaryLabel>Fetch runs shown</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalPublishAttempts}</SummaryValue>
-          <SummaryLabel>Publish attempts shown</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.failedPublishAttempts + snapshot.summary.failedFetchRuns}</SummaryValue>
-          <SummaryLabel>Failures shown</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="refresh" label="Fetch runs shown" value={snapshot.summary.totalFetchRuns} />
+        <AdminMetricCard icon="destinations" label="Publish attempts shown" value={snapshot.summary.totalPublishAttempts} />
+        <AdminMetricCard icon="warning" label="Failures shown" tone="danger" value={snapshot.summary.failedPublishAttempts + snapshot.summary.failedFetchRuns} />
       </SummaryGrid>
 
       <SectionGrid>
         <Card>
-          <CardTitle>Fetch runs</CardTitle>
+          <AdminSectionTitle icon="refresh">Fetch runs</AdminSectionTitle>
           {snapshot.fetchRuns.length ? (
             <DataTableWrap>
               <DataTable>
@@ -109,7 +101,7 @@ export default async function JobsPage({ searchParams }) {
         </Card>
 
         <Card>
-          <CardTitle>Publish attempts</CardTitle>
+          <AdminSectionTitle icon="destinations">Publish attempts</AdminSectionTitle>
           {snapshot.publishAttempts.length ? (
             <DataTableWrap>
               <DataTable>
@@ -139,7 +131,12 @@ export default async function JobsPage({ searchParams }) {
                           <form action={retryPublishAttemptAction}>
                             <input name="attemptId" type="hidden" value={attempt.id} />
                             <input name="returnTo" type="hidden" value="/admin/jobs" />
-                            <SecondaryButton type="submit">Retry</SecondaryButton>
+                            <SecondaryButton type="submit">
+                              <ButtonIcon>
+                                <ActionIcon name="refresh" />
+                              </ButtonIcon>
+                              Retry
+                            </SecondaryButton>
                           </form>
                         ) : (
                           <SmallText>Not needed</SmallText>
@@ -157,7 +154,7 @@ export default async function JobsPage({ searchParams }) {
       </SectionGrid>
 
       <Card>
-        <CardTitle>Recent audit events</CardTitle>
+        <AdminSectionTitle icon="file-text">Recent audit events</AdminSectionTitle>
         {snapshot.auditEvents.length ? (
           <DataTableWrap>
             <DataTable>

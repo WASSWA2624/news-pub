@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import AdminLogoutButton from "@/components/auth/admin-logout-button";
+import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocaleRootPath } from "@/features/i18n/routing";
@@ -507,6 +508,7 @@ const PrimaryNavLink = styled(Link)`
   border-radius: 0;
   color: ${({ $active }) => ($active ? "#ffffff" : "rgba(244, 248, 252, 0.88)")};
   display: inline-flex;
+  gap: 0.32rem;
   font-size: clamp(0.76rem, 0.92vw, 0.88rem);
   font-weight: ${({ $active }) => ($active ? 800 : 650)};
   letter-spacing: -0.03em;
@@ -518,6 +520,12 @@ const PrimaryNavLink = styled(Link)`
     color 160ms ease,
     transform 160ms ease;
   white-space: nowrap;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 
   @media (max-width: 479px) {
     font-size: 0.74rem;
@@ -639,12 +647,19 @@ const MeasureNavItem = styled.span`
   border: 1px solid transparent;
   border-radius: 14px;
   display: inline-flex;
+  gap: 0.32rem;
   font-size: clamp(0.76rem, 0.95vw, 0.84rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   min-height: 34px;
   padding: 0 0.62rem;
   white-space: nowrap;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 
   @media (max-width: 479px) {
     font-size: 0.72rem;
@@ -740,11 +755,24 @@ const OverflowLink = styled(Link)`
 `;
 
 const OverflowLinkDot = styled.span`
-  background: ${({ $active }) => ($active ? "#244b73" : "rgba(36, 75, 115, 0.34)")};
-  border-radius: 999px;
-  display: block;
-  height: 6px;
-  width: 6px;
+  align-items: center;
+  background: ${({ $active }) =>
+    $active
+      ? "linear-gradient(180deg, rgba(36, 75, 115, 0.14), rgba(36, 75, 115, 0.08))"
+      : "rgba(36, 75, 115, 0.06)"};
+  border: 1px solid ${({ $active }) => ($active ? "rgba(36, 75, 115, 0.14)" : "rgba(36, 75, 115, 0.08)")};
+  border-radius: 10px;
+  color: ${({ $active }) => ($active ? "#244b73" : "rgba(36, 75, 115, 0.72)")};
+  display: inline-flex;
+  height: 1.8rem;
+  justify-content: center;
+  width: 1.8rem;
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
+  }
 `;
 
 const OverflowLinkText = styled.div`
@@ -767,8 +795,13 @@ const OverflowLinkHint = styled.span`
 
 const OverflowLinkChevron = styled.span`
   color: rgba(80, 92, 115, 0.8);
-  font-size: 0.9rem;
-  line-height: 1;
+  display: inline-flex;
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
+  }
 `;
 
 const OverflowActions = styled.div`
@@ -785,6 +818,7 @@ const OverflowActionLink = styled(Link)`
   display: inline-flex;
   font-size: 0.84rem;
   font-weight: 700;
+  gap: 0.38rem;
   justify-content: center;
   min-height: 38px;
   padding: 0 0.72rem;
@@ -797,6 +831,12 @@ const OverflowActionLink = styled(Link)`
     background: linear-gradient(180deg, rgba(36, 75, 115, 0.07), rgba(36, 75, 115, 0.04));
     border-color: rgba(36, 75, 115, 0.12);
     transform: translateY(-1px);
+  }
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
   }
 `;
 
@@ -942,6 +982,7 @@ export default function AdminShell({ children, messages, user }) {
           onClick={() => setOpenMenuContext(null)}
           $active={isActive}
         >
+          {item.icon ? <AppIcon name={item.icon} size={14} /> : null}
           {item.label}
         </PrimaryNavLink>
       );
@@ -960,12 +1001,16 @@ export default function AdminShell({ children, messages, user }) {
           onClick={() => setOpenMenuContext(null)}
           $active={isActive}
         >
-          <OverflowLinkDot aria-hidden="true" $active={isActive} />
+          <OverflowLinkDot aria-hidden="true" $active={isActive}>
+            {item.icon ? <AppIcon name={item.icon} size={14} /> : null}
+          </OverflowLinkDot>
           <OverflowLinkText>
             <OverflowLinkLabel>{item.label}</OverflowLinkLabel>
             <OverflowLinkHint>{isActive ? "Current section" : "Open section"}</OverflowLinkHint>
           </OverflowLinkText>
-          <OverflowLinkChevron aria-hidden="true">&gt;</OverflowLinkChevron>
+          <OverflowLinkChevron aria-hidden="true">
+            <AppIcon name="chevron-right" size={14} />
+          </OverflowLinkChevron>
         </OverflowLink>
       );
     });
@@ -984,6 +1029,7 @@ export default function AdminShell({ children, messages, user }) {
                 }
               }}
             >
+              {item.icon ? <AppIcon name={item.icon} size={14} /> : null}
               {item.label}
             </MeasureNavItem>
           ))}
@@ -1069,6 +1115,7 @@ export default function AdminShell({ children, messages, user }) {
                           href={publicSiteHref}
                           onClick={() => setOpenMenuContext(null)}
                         >
+                          <AppIcon name="external-link" size={14} />
                           Open public site
                         </OverflowActionLink>
                         <OverflowLogoutButton />
@@ -1121,6 +1168,7 @@ export default function AdminShell({ children, messages, user }) {
                             href={publicSiteHref}
                             onClick={() => setOpenMenuContext(null)}
                           >
+                            <AppIcon name="external-link" size={14} />
                             Open public site
                           </OverflowActionLink>
                           <OverflowLogoutButton />

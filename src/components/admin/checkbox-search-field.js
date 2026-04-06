@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
 import {
   CheckboxChip,
   CheckboxRow,
@@ -12,6 +13,7 @@ import {
   SecondaryButton,
   SmallText,
 } from "@/components/admin/news-admin-ui";
+import OptionFlag from "@/components/common/option-flag";
 import { MULTI_VALUE_EMPTY_SENTINEL } from "@/lib/news/provider-definitions";
 
 const SearchableCheckboxWrap = styled.div`
@@ -42,6 +44,43 @@ const SearchableCheckboxActions = styled.div`
   justify-content: space-between;
 `;
 
+const SearchFieldWrap = styled.label`
+  align-items: center;
+  background: white;
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(16, 32, 51, 0.03);
+  display: flex;
+  gap: 0.48rem;
+  min-height: 34px;
+  padding: 0 0.62rem;
+
+  &:focus-within {
+    border-color: rgba(27, 79, 147, 0.42);
+    box-shadow: 0 0 0 4px rgba(27, 79, 147, 0.08);
+  }
+
+  svg {
+    color: rgba(36, 75, 115, 0.72);
+    display: block;
+    flex: 0 0 auto;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
+`;
+
+const SearchInput = styled(Input)`
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-height: 100%;
+  padding: 0;
+
+  &:focus {
+    box-shadow: none;
+  }
+`;
+
 const SearchableCheckboxActionGroup = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -51,6 +90,19 @@ const SearchableCheckboxActionGroup = styled.div`
 const ActionButton = styled(SecondaryButton)`
   min-height: 30px;
   padding: 0.42rem 0.72rem;
+`;
+
+const CheckboxLabelContent = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.34rem;
+  max-width: 100%;
+  min-width: 0;
+`;
+
+const CheckboxLabelText = styled.span`
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 function normalizeText(value) {
@@ -154,13 +206,16 @@ export default function CheckboxSearchField({
       <FieldLabel>{title}</FieldLabel>
       {description ? <SmallText>{description}</SmallText> : null}
       <SearchableCheckboxWrap>
-        <Input
-          aria-label={`Search ${title}`}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={searchPlaceholder}
-          type="search"
-          value={query}
-        />
+        <SearchFieldWrap>
+          <AppIcon name="search" size={15} />
+          <SearchInput
+            aria-label={`Search ${title}`}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            type="search"
+            value={query}
+          />
+        </SearchFieldWrap>
         <SearchableCheckboxActions>
           <SearchableCheckboxActionGroup>
             <ActionButton
@@ -192,7 +247,14 @@ export default function CheckboxSearchField({
                   type="checkbox"
                   value={option.value}
                 />
-                {option.label}
+                <CheckboxLabelContent>
+                  <OptionFlag
+                    flagEmoji={option.flagEmoji}
+                    flagImageUrl={option.flagImageUrl}
+                    size="compact"
+                  />
+                  <CheckboxLabelText>{option.label}</CheckboxLabelText>
+                </CheckboxLabelContent>
               </CheckboxChip>
             ))}
           </SearchableCheckboxGrid>

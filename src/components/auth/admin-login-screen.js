@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
+
 const Shell = styled.main`
   align-items: center;
   display: grid;
@@ -37,6 +39,28 @@ const Narrative = styled.div`
 
   @media (min-width: 900px) {
     order: 1;
+  }
+`;
+
+const NarrativeHero = styled.div`
+  display: grid;
+  gap: 0.9rem;
+`;
+
+const NarrativeIconBadge = styled.span`
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  display: inline-flex;
+  height: 3.3rem;
+  justify-content: center;
+  width: 3.3rem;
+
+  svg {
+    display: block;
+    height: 1.5rem;
+    width: 1.5rem;
   }
 `;
 
@@ -81,6 +105,18 @@ const InsightCard = styled.article`
   display: grid;
   gap: 0.28rem;
   padding: clamp(0.68rem, 1.7vw, ${({ theme }) => theme.spacing.lg});
+`;
+
+const InsightTitleRow = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.42rem;
+
+  svg {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
 `;
 
 const InsightTitle = styled.h2`
@@ -138,26 +174,52 @@ const FieldLabel = styled.span`
   font-weight: 700;
 `;
 
+const FieldControl = styled.div`
+  align-items: center;
+  background: white;
+  border: 1px solid var(--theme-border, #b8c8de);
+  border-radius: ${({ theme }) => theme.radius.sm};
+  display: flex;
+  gap: 0.46rem;
+  min-height: 42px;
+  padding: 0 0.76rem;
+
+  &:focus-within {
+    border-color: var(--theme-primary, #1b4f93);
+    box-shadow: 0 0 0 4px rgba(0, 95, 115, 0.12);
+  }
+`;
+
+const FieldIcon = styled.span`
+  color: var(--theme-primary, #1b4f93);
+  display: inline-flex;
+  flex: 0 0 auto;
+
+  svg {
+    display: block;
+    height: 0.94rem;
+    width: 0.94rem;
+  }
+`;
+
 const PasswordField = styled.div`
   position: relative;
 `;
 
 const Input = styled.input`
-  background: white;
-  border: 1px solid var(--theme-border, #b8c8de);
-  border-radius: ${({ theme }) => theme.radius.sm};
-  min-height: 42px;
-  padding: 0.66rem 0.76rem;
+  background: transparent;
+  border: none;
+  flex: 1 1 auto;
+  min-height: 100%;
+  padding: 0;
 
   &:focus {
-    border-color: var(--theme-primary, #1b4f93);
-    box-shadow: 0 0 0 4px rgba(0, 95, 115, 0.12);
     outline: none;
   }
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: 4.8rem;
+  padding-right: 3.4rem;
 `;
 
 const PasswordToggle = styled.button`
@@ -191,12 +253,16 @@ const ErrorNotice = styled.p`
 `;
 
 const SubmitButton = styled.button`
+  align-items: center;
   background: var(--theme-primary, #1b4f93);
   border: none;
   border-radius: 999px;
   color: white;
   cursor: pointer;
+  display: inline-flex;
   font-weight: 700;
+  gap: 0.38rem;
+  justify-content: center;
   min-height: 40px;
   padding: 0.66rem 0.9rem;
   transition: transform 120ms ease, opacity 120ms ease;
@@ -208,6 +274,12 @@ const SubmitButton = styled.button`
 
   &:not(:disabled):hover {
     transform: translateY(-1px);
+  }
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
   }
 `;
 
@@ -266,35 +338,52 @@ export default function AdminLoginScreen({ nextPath }) {
     <Shell>
       <Panel>
         <Narrative>
-          <div>
-            <Eyebrow>Admin Access</Eyebrow>
-            <Title>Source-grounded publishing starts here.</Title>
-          </div>
+          <NarrativeHero>
+            <NarrativeIconBadge aria-hidden="true">
+              <AppIcon name="shield" size={24} />
+            </NarrativeIconBadge>
+            <div>
+              <Eyebrow>Admin Access</Eyebrow>
+              <Title>Source-grounded publishing starts here.</Title>
+            </div>
+          </NarrativeHero>
           <Description>
             Release 1 keeps the public site open while the editorial workspace stays behind
             authenticated admin sessions. Sign in with the seeded admin account to continue.
           </Description>
           <InsightGrid>
             <InsightCard>
-              <InsightTitle>Email and password</InsightTitle>
+              <InsightTitleRow>
+                <AppIcon name="lock" size={16} />
+                <InsightTitle>Email and password</InsightTitle>
+              </InsightTitleRow>
               <InsightBody>
                 The admin workflow uses credential auth first, matching the Release 1 access rules.
               </InsightBody>
             </InsightCard>
             <InsightCard>
-              <InsightTitle>Protected sessions</InsightTitle>
+              <InsightTitleRow>
+                <AppIcon name="shield" size={16} />
+                <InsightTitle>Protected sessions</InsightTitle>
+              </InsightTitleRow>
               <InsightBody>
                 Session cookies are validated server-side so expired or tampered access is rejected.
               </InsightBody>
             </InsightCard>
             <InsightCard>
-              <InsightTitle>Audit trail ready</InsightTitle>
+              <InsightTitleRow>
+                <AppIcon name="file-text" size={16} />
+                <InsightTitle>Audit trail ready</InsightTitle>
+              </InsightTitleRow>
               <InsightBody>
                 Login and logout events are recorded to support future editorial accountability work.
               </InsightBody>
             </InsightCard>
             <InsightCard>
-              <InsightTitle>RBAC next</InsightTitle>
+              <InsightTitleRow>
+                <AppIcon name="settings" size={16} />
+                <InsightTitle>RBAC next</InsightTitle>
+              </InsightTitleRow>
               <InsightBody>
                 This step secures the admin surface now and leaves room for role-based controls next.
               </InsightBody>
@@ -311,40 +400,51 @@ export default function AdminLoginScreen({ nextPath }) {
           <Form onSubmit={handleSubmit}>
             <Field>
               <FieldLabel>Email address</FieldLabel>
-              <Input
-                autoComplete="email"
-                name="email"
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="admin@example.com"
-                required
-                type="email"
-                value={email}
-              />
+              <FieldControl>
+                <FieldIcon aria-hidden="true">
+                  <AppIcon name="user" size={15} />
+                </FieldIcon>
+                <Input
+                  autoComplete="email"
+                  name="email"
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="admin@example.com"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </FieldControl>
             </Field>
             <Field>
               <FieldLabel>Password</FieldLabel>
               <PasswordField>
-                <PasswordInput
-                  autoComplete="current-password"
-                  name="password"
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  type={isPasswordVisible ? "text" : "password"}
-                  value={password}
-                />
-                <PasswordToggle
-                  aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                  aria-pressed={isPasswordVisible}
-                  onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                  type="button"
-                >
-                  {isPasswordVisible ? "Hide" : "Show"}
-                </PasswordToggle>
+                <FieldControl>
+                  <FieldIcon aria-hidden="true">
+                    <AppIcon name="lock" size={15} />
+                  </FieldIcon>
+                  <PasswordInput
+                    autoComplete="current-password"
+                    name="password"
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    type={isPasswordVisible ? "text" : "password"}
+                    value={password}
+                  />
+                  <PasswordToggle
+                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                    aria-pressed={isPasswordVisible}
+                    onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                    type="button"
+                  >
+                    <AppIcon name={isPasswordVisible ? "eye-off" : "eye"} size={15} />
+                  </PasswordToggle>
+                </FieldControl>
               </PasswordField>
             </Field>
             {error ? <ErrorNotice aria-live="polite">{error}</ErrorNotice> : null}
             <SubmitButton disabled={isSubmitting || isNavigating} type="submit">
+              <AppIcon name="log-in" size={15} />
               {isSubmitting || isNavigating ? "Signing in..." : "Sign in"}
             </SubmitButton>
           </Form>

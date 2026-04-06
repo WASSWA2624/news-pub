@@ -2,6 +2,8 @@
 
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
+
 const Wrapper = styled.main`
   display: grid;
   gap: ${({ theme }) => theme.spacing.md};
@@ -35,6 +37,24 @@ const HeroContent = styled.div`
   gap: ${({ theme }) => theme.spacing.sm};
   position: relative;
   z-index: 1;
+`;
+
+const HeroIconBadge = styled.span`
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(22, 92, 102, 0.12);
+  border-radius: 18px;
+  color: ${({ theme }) => theme.colors.primary};
+  display: inline-flex;
+  height: 3.2rem;
+  justify-content: center;
+  width: 3.2rem;
+
+  svg {
+    display: block;
+    height: 1.45rem;
+    width: 1.45rem;
+  }
 `;
 
 const Eyebrow = styled.p`
@@ -98,6 +118,18 @@ const CardTitle = styled.h2`
   margin: 0;
 `;
 
+const CardTitleRow = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+
+  svg {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
+`;
+
 const BulletList = styled.ul`
   color: ${({ theme }) => theme.colors.muted};
   display: grid;
@@ -115,6 +147,7 @@ export default function PlaceholderPage({
   badges = [],
   description,
   eyebrow,
+  icon = "info",
   notes = [],
   title,
 }) {
@@ -122,6 +155,9 @@ export default function PlaceholderPage({
     <Wrapper>
       <Hero>
         <HeroContent>
+          <HeroIconBadge aria-hidden="true">
+            <AppIcon name={icon} size={22} />
+          </HeroIconBadge>
           <Eyebrow>{eyebrow}</Eyebrow>
           <Title>{title}</Title>
           <Description>{description}</Description>
@@ -136,7 +172,12 @@ export default function PlaceholderPage({
       </Hero>
       <SectionGrid>
         <Card>
-          <CardTitle>Access context</CardTitle>
+          <CardTitle>
+            <CardTitleRow>
+              <AppIcon name="shield" size={16} />
+              Access context
+            </CardTitleRow>
+          </CardTitle>
           <BulletList>
             <li>This route is active in the current NewsPub build.</li>
             <li>The current session or role determines whether actions are available.</li>
@@ -144,7 +185,12 @@ export default function PlaceholderPage({
           </BulletList>
         </Card>
         <Card>
-          <CardTitle>What to check next</CardTitle>
+          <CardTitle>
+            <CardTitleRow>
+              <AppIcon name="arrow-right" size={16} />
+              What to check next
+            </CardTitleRow>
+          </CardTitle>
           <BulletList>
             {notes.map((note) => (
               <li key={note}>{note}</li>

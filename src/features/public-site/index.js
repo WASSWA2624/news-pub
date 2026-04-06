@@ -1,5 +1,11 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import {
+  formatCountryFlagEmoji as formatCountryFlag,
+  formatCountryFlagImageUrl,
+  formatCountryLabel,
+  normalizeCountryCode as normalizeCountry,
+} from "@/lib/countries";
 import { createImagePlaceholderDataUrl, getRenderableImageUrl } from "@/lib/media";
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
 import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
@@ -29,55 +35,6 @@ function normalizePage(value) {
 
 function normalizeSearch(value) {
   return trimText(value).slice(0, 191);
-}
-
-function normalizeCountry(value) {
-  const normalizedValue = trimText(value).toLowerCase();
-
-  if (!normalizedValue || normalizedValue === "all") {
-    return "";
-  }
-
-  return normalizedValue.slice(0, 8);
-}
-
-function formatCountryLabel(countryCode, locale = defaultLocale) {
-  const normalizedCountry = normalizeCountry(countryCode).toUpperCase();
-
-  if (!normalizedCountry) {
-    return "";
-  }
-
-  try {
-    const regionNames = new Intl.DisplayNames([locale], {
-      type: "region",
-    });
-    const label = regionNames.of(normalizedCountry);
-
-    return label || normalizedCountry;
-  } catch {
-    return normalizedCountry;
-  }
-}
-
-function formatCountryFlag(countryCode) {
-  const normalizedCountry = normalizeCountry(countryCode).toUpperCase();
-
-  if (!/^[A-Z]{2}$/.test(normalizedCountry)) {
-    return "";
-  }
-
-  return String.fromCodePoint(...normalizedCountry.split("").map((char) => 127397 + char.charCodeAt(0)));
-}
-
-function formatCountryFlagImageUrl(countryCode) {
-  const normalizedCountry = normalizeCountry(countryCode).toLowerCase();
-
-  if (!/^[a-z]{2}$/.test(normalizedCountry)) {
-    return "";
-  }
-
-  return `https://flagcdn.com/24x18/${normalizedCountry}.png`;
 }
 
 function getCategoryLogoEmoji(category = {}) {

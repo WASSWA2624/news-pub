@@ -25,6 +25,7 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
+import AppIcon from "@/components/common/app-icon";
 import StreamFormCard from "@/components/admin/stream-form-card";
 
 const TargetingCard = styled.section`
@@ -79,6 +80,18 @@ const TargetingTitle = styled.h2`
   letter-spacing: -0.045em;
   line-height: 1.1;
   margin: 0;
+`;
+
+const TitleWithIcon = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.46rem;
+
+  svg {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
 `;
 
 const ActionRow = styled.div`
@@ -147,6 +160,12 @@ const PrimaryActionButton = styled.button`
     box-shadow: ${({ disabled }) =>
       disabled ? "0 12px 24px rgba(15, 96, 121, 0.18)" : "0 16px 30px rgba(15, 96, 121, 0.22)"};
     transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
+  }
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
   }
 `;
 
@@ -1048,17 +1067,25 @@ export default function StreamManagementScreen({
         <TargetingLayout>
           <TargetingCopy>
             <TargetingEyebrow>Target platforms</TargetingEyebrow>
-            <TargetingTitle>Choose the platforms you want this stream workflow to target.</TargetingTitle>
+            <TargetingTitle>
+              <TitleWithIcon>
+                <AppIcon name="streams" size={16} />
+                Choose the platforms you want this stream workflow to target.
+              </TitleWithIcon>
+            </TargetingTitle>
             <SmallText>{scopeDescription}</SmallText>
             <ActionRow>
               <TargetSummary>
                 <SummaryPill $tone="accent">
+                  <AppIcon name="tag" size={14} />
                   {selectedPlatforms.length} selected
                 </SummaryPill>
                 <SummaryPill>
+                  <AppIcon name="destinations" size={14} />
                   {filteredDestinationOptions.length} destinations in scope
                 </SummaryPill>
                 <SummaryPill>
+                  <AppIcon name="play" size={14} />
                   {runnableStreams.length} runnable streams
                 </SummaryPill>
               </TargetSummary>
@@ -1069,6 +1096,7 @@ export default function StreamManagementScreen({
                     onClick={handleRunSelected}
                     type="button"
                   >
+                    <AppIcon name="bolt" size={14} />
                     Run selected
                     <ScopeCount $active>{runnableStreams.length}</ScopeCount>
                   </PrimaryActionButton>
@@ -1132,11 +1160,14 @@ export default function StreamManagementScreen({
         <Card>
           <CardHeader>
             <CardTitle>
-              {selectedPlatforms.length === allPlatforms.length
-                ? "Configured streams"
-                : selectedPlatforms.length === 1
-                  ? `${formatEnumLabel(selectedPlatforms[0])} streams`
-                  : "Selected platform streams"}
+              <TitleWithIcon>
+                <AppIcon name="streams" size={16} />
+                {selectedPlatforms.length === allPlatforms.length
+                  ? "Configured streams"
+                  : selectedPlatforms.length === 1
+                    ? `${formatEnumLabel(selectedPlatforms[0])} streams`
+                    : "Selected platform streams"}
+              </TitleWithIcon>
             </CardTitle>
             <CardDescription>
               {selectedPlatforms.length
@@ -1204,11 +1235,14 @@ export default function StreamManagementScreen({
         <StickyCard>
           <StickyHeader>
             <CardTitle>
-              {selectedPlatforms.length === allPlatforms.length
-                ? "Add stream"
-                : selectedPlatforms.length === 1
-                  ? `Add ${formatEnumLabel(selectedPlatforms[0])} stream`
-                  : "Add stream to selected platforms"}
+              <TitleWithIcon>
+                <AppIcon name="plus" size={16} />
+                {selectedPlatforms.length === allPlatforms.length
+                  ? "Add stream"
+                  : selectedPlatforms.length === 1
+                    ? `Add ${formatEnumLabel(selectedPlatforms[0])} stream`
+                    : "Add stream to selected platforms"}
+              </TitleWithIcon>
             </CardTitle>
             <CardDescription>
               {selectedPlatforms.length === allPlatforms.length

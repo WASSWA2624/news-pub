@@ -130,61 +130,73 @@ const adminRoleSet = new Set(ADMIN_ROLE_NAMES);
 export const ADMIN_NAV_ITEMS = Object.freeze([
   Object.freeze({
     href: "/admin",
+    icon: "dashboard",
     key: "dashboard",
     permission: ADMIN_PERMISSIONS.VIEW_DASHBOARD,
   }),
   Object.freeze({
     href: "/admin/providers",
+    icon: "providers",
     key: "providers",
     permission: ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
   }),
   Object.freeze({
     href: "/admin/destinations",
+    icon: "destinations",
     key: "destinations",
     permission: ADMIN_PERMISSIONS.MANAGE_DESTINATIONS,
   }),
   Object.freeze({
     href: "/admin/streams",
+    icon: "streams",
     key: "streams",
     permission: ADMIN_PERMISSIONS.MANAGE_STREAMS,
   }),
   Object.freeze({
     href: "/admin/categories",
+    icon: "categories",
     key: "categories",
     permission: ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
   }),
   Object.freeze({
     href: "/admin/posts/review",
+    icon: "review",
     key: "review",
     permission: ADMIN_PERMISSIONS.VIEW_REVIEW_QUEUE,
   }),
   Object.freeze({
     href: "/admin/posts/published",
+    icon: "published",
     key: "published",
     permission: ADMIN_PERMISSIONS.VIEW_POST_INVENTORY,
   }),
   Object.freeze({
     href: "/admin/media",
+    icon: "media",
     key: "media",
     permission: ADMIN_PERMISSIONS.MANAGE_MEDIA,
   }),
   Object.freeze({
     href: "/admin/templates",
+    icon: "templates",
     key: "templates",
     permission: ADMIN_PERMISSIONS.MANAGE_TEMPLATES,
   }),
   Object.freeze({
     href: "/admin/jobs",
+    icon: "jobs",
     key: "jobs",
     permission: ADMIN_PERMISSIONS.VIEW_JOBS,
   }),
   Object.freeze({
     href: "/admin/seo",
+    icon: "seo",
     key: "seo",
     permission: ADMIN_PERMISSIONS.MANAGE_SEO,
   }),
   Object.freeze({
     href: "/admin/settings",
+    icon: "settings",
     key: "settings",
     permission: ADMIN_PERMISSIONS.MANAGE_SETTINGS,
   }),

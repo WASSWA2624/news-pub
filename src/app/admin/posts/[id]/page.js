@@ -1,15 +1,14 @@
 import {
   ActionIcon,
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   ButtonIcon,
   ButtonRow,
   Card,
   CardDescription,
-  CardTitle,
   DataTable,
   DataTableWrap,
   Field,
@@ -97,13 +96,12 @@ export default async function PostEditorPage({ params }) {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="edit" title={copy.title} />
       </AdminHero>
 
       <SectionGrid $wide>
         <Card>
-          <CardTitle>Canonical story editor</CardTitle>
+          <AdminSectionTitle icon="edit">Canonical story editor</AdminSectionTitle>
           <CardDescription>
             The editor now opens as a full workspace modal so long-form copy, publishing controls, and metadata stay organized across mobile and desktop.
           </CardDescription>
@@ -241,7 +239,7 @@ export default async function PostEditorPage({ params }) {
 
         <SidebarStack>
           <Card>
-            <CardTitle>Story status</CardTitle>
+            <AdminSectionTitle icon="published">Story status</AdminSectionTitle>
             <ButtonRow>
               <StatusBadge $tone={getTone(snapshot.post.status)}>{snapshot.post.status}</StatusBadge>
               <StatusBadge $tone={getTone(snapshot.post.editorialStage)}>{snapshot.post.editorialStage}</StatusBadge>
@@ -250,12 +248,15 @@ export default async function PostEditorPage({ params }) {
             <SmallText>Scheduled: {formatDateTime(snapshot.post.scheduledPublishAt)}</SmallText>
             <SmallText>Source: {snapshot.post.sourceName}</SmallText>
             <LinkButton href={snapshot.post.websitePath} target="_blank">
+              <ButtonIcon>
+                <ActionIcon name="external-link" />
+              </ButtonIcon>
               Open website path
             </LinkButton>
           </Card>
 
           <Card>
-            <CardTitle>Source article</CardTitle>
+            <AdminSectionTitle icon="news">Source article</AdminSectionTitle>
             <CardDescription>
               Canonical render artifacts stay linked to the originating normalized article.
             </CardDescription>
@@ -267,7 +268,7 @@ export default async function PostEditorPage({ params }) {
       </SectionGrid>
 
       <Card>
-        <CardTitle>Destination matches and publish history</CardTitle>
+        <AdminSectionTitle icon="destinations">Destination matches and publish history</AdminSectionTitle>
         {snapshot.post.articleMatches.length ? (
           <DataTableWrap>
             <DataTable>

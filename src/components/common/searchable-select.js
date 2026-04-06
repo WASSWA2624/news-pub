@@ -4,6 +4,8 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 
+import OptionFlag from "@/components/common/option-flag";
+
 const VIEWPORT_MARGIN = 8;
 const DROPDOWN_GAP = 6;
 const MIN_DROPDOWN_WIDTH = 240;
@@ -45,6 +47,8 @@ function normalizeOption(option, index) {
   const label = option?.label ? `${option.label}` : value;
   const description = option?.description ? `${option.description}` : "";
   const badge = option?.badge ? `${option.badge}` : "";
+  const flagEmoji = option?.flagEmoji ? `${option.flagEmoji}` : "";
+  const flagImageUrl = option?.flagImageUrl ? `${option.flagImageUrl}` : "";
   const keywords = Array.isArray(option?.keywords)
     ? option.keywords.map((keyword) => `${keyword}`)
     : [];
@@ -53,6 +57,8 @@ function normalizeOption(option, index) {
     badge,
     description,
     disabled: Boolean(option?.disabled),
+    flagEmoji,
+    flagImageUrl,
     id: option?.id ? `${option.id}` : `${value || "option"}-${index}`,
     keywords,
     label,
@@ -314,9 +320,21 @@ const TriggerValue = styled.span`
   }
 `;
 
-const TriggerLabel = styled.span`
+const LabelContent = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.38rem;
+  max-width: 100%;
+  min-width: 0;
+`;
+
+const TriggerLabel = styled(LabelContent)`
   font-size: 0.88rem;
   font-weight: 600;
+`;
+
+const TriggerLabelText = styled.span`
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -621,10 +639,14 @@ const OptionHeader = styled.div`
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
-const OptionLabel = styled.div`
+const OptionLabel = styled(LabelContent)`
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.22;
+`;
+
+const OptionLabelText = styled.span`
+  min-width: 0;
   overflow-wrap: anywhere;
 `;
 
@@ -1092,7 +1114,14 @@ export default function SearchableSelect({
                     type="button"
                   >
                     <OptionHeader>
-                      <OptionLabel>{option.label}</OptionLabel>
+                      <OptionLabel>
+                        <OptionFlag
+                          flagEmoji={option.flagEmoji}
+                          flagImageUrl={option.flagImageUrl}
+                          size="compact"
+                        />
+                        <OptionLabelText>{option.label}</OptionLabelText>
+                      </OptionLabel>
                       <OptionMeta>
                         {option.badge ? <OptionBadge>{option.badge}</OptionBadge> : null}
                         <OptionIndicator $selected={isSelected} aria-hidden="true" />
@@ -1145,7 +1174,14 @@ export default function SearchableSelect({
                 <TriggerChipRow>
                   {previewOptions.map((option) => (
                     <TriggerChip key={option.id} title={option.label}>
-                      {option.label}
+                      <LabelContent>
+                        <OptionFlag
+                          flagEmoji={option.flagEmoji}
+                          flagImageUrl={option.flagImageUrl}
+                          size="compact"
+                        />
+                        <TriggerLabelText>{option.label}</TriggerLabelText>
+                      </LabelContent>
                     </TriggerChip>
                   ))}
                   {selectedOptions.length > previewOptions.length ? (
@@ -1160,7 +1196,14 @@ export default function SearchableSelect({
             )
           ) : selectedOption ? (
             <>
-              <TriggerLabel>{selectedOption.label}</TriggerLabel>
+              <TriggerLabel>
+                <OptionFlag
+                  flagEmoji={selectedOption.flagEmoji}
+                  flagImageUrl={selectedOption.flagImageUrl}
+                  size="compact"
+                />
+                <TriggerLabelText>{selectedOption.label}</TriggerLabelText>
+              </TriggerLabel>
               {selectedOption.description ? (
                 <TriggerDescription>{selectedOption.description}</TriggerDescription>
               ) : null}

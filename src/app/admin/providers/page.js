@@ -1,14 +1,14 @@
 import {
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
   ButtonRow,
   Card,
   CardHeader,
   CardDescription,
-  CardTitle,
+  AdminSectionTitle,
   MetaPill,
   RecordCard,
   RecordHeader,
@@ -42,29 +42,19 @@ export default async function ProvidersPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="providers" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total providers</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.enabledCount}</SummaryValue>
-          <SummaryLabel>Enabled providers</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.configuredCredentialCount}</SummaryValue>
-          <SummaryLabel>Credentials configured</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="providers" label="Total providers" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="badge-check" label="Enabled providers" value={snapshot.summary.enabledCount} />
+        <AdminMetricCard icon="shield" label="Credentials configured" value={snapshot.summary.configuredCredentialCount} />
       </SummaryGrid>
 
       <SectionGrid>
         <Card>
           <CardHeader>
-            <CardTitle>Configured providers</CardTitle>
+            <AdminSectionTitle icon="providers">Configured providers</AdminSectionTitle>
             <CardDescription>
               Provider secrets remain env-only. This screen controls selection, defaults, labels,
               and request defaults.
@@ -108,7 +98,7 @@ export default async function ProvidersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Supported provider catalog</CardTitle>
+            <AdminSectionTitle icon="book-open">Supported provider catalog</AdminSectionTitle>
             <CardDescription>
               Provider records are seeded for the supported Release 1 news APIs. Each card now exposes the official filter set directly, so admins do not have to remember provider-specific parameter names or values before configuring defaults.
             </CardDescription>

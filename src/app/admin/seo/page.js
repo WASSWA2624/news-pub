@@ -1,12 +1,12 @@
 import {
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   Card,
   CardHeader,
-  CardTitle,
   DataTable,
   DataTableWrap,
   EmptyState,
@@ -30,28 +30,18 @@ export default async function SeoPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="seo" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.publishedStoryCount}</SummaryValue>
-          <SummaryLabel>Published website stories</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.categoryPageCount}</SummaryValue>
-          <SummaryLabel>Category landing pages</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.storyLocalesCount}</SummaryValue>
-          <SummaryLabel>Story locale records</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="published" label="Published website stories" value={snapshot.summary.publishedStoryCount} />
+        <AdminMetricCard icon="categories" label="Category landing pages" value={snapshot.summary.categoryPageCount} />
+        <AdminMetricCard icon="globe" label="Story locale records" value={snapshot.summary.storyLocalesCount} />
       </SummaryGrid>
 
       <Card>
         <CardHeader>
-          <CardTitle>Published story metadata</CardTitle>
+          <AdminSectionTitle icon="seo">Published story metadata</AdminSectionTitle>
           <EmptyState>SEO review stays compact on mobile without losing canonical and locale coverage details.</EmptyState>
         </CardHeader>
         {snapshot.stories.length ? (

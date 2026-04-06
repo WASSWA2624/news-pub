@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styled, { css } from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
 import ShareActions from "@/components/public/share-actions";
@@ -250,6 +251,31 @@ const SummaryCard = styled.article`
   padding: 0.34rem 0.46rem;
 `;
 
+const SummaryCardHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+`;
+
+const SummaryIconBadge = styled.span`
+  align-items: center;
+  background: rgba(var(--theme-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--theme-primary-rgb), 0.12);
+  border-radius: 10px;
+  color: var(--theme-primary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 1.8rem;
+  justify-content: center;
+  width: 1.8rem;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
+`;
+
 const SummaryValue = styled.strong`
   color: #132949;
   font-size: 0.82rem;
@@ -285,6 +311,31 @@ const SectionTitle = styled.h2`
   font-size: 1.25rem;
   letter-spacing: -0.03em;
   margin: 0;
+`;
+
+const SectionTitleRow = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.46rem;
+
+  svg {
+    display: block;
+    height: 1rem;
+    width: 1rem;
+  }
+`;
+
+const HeroTitleRow = styled.span`
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  svg {
+    display: block;
+    height: 1.05rem;
+    width: 1.05rem;
+  }
 `;
 
 const StoryGrid = styled.div`
@@ -403,10 +454,26 @@ const CompactStoryTitleLink = styled(Link)`
 `;
 
 const CompactStoryMeta = styled.p`
+  align-items: center;
   color: rgba(72, 85, 110, 0.86);
+  display: flex;
+  flex-wrap: wrap;
   font-size: 0.8rem;
+  gap: 0.35rem 0.6rem;
   line-height: 1.35;
   margin: 0;
+`;
+
+const CompactStoryMetaItem = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.28rem;
+
+  svg {
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
 `;
 
 const CompactStoryExcerpt = styled.p`
@@ -422,10 +489,19 @@ const CompactStoryExcerpt = styled.p`
 `;
 
 const CompactStoryReadMore = styled(Link)`
+  align-items: center;
   color: #124f65;
+  display: inline-flex;
   font-size: 0.82rem;
   font-weight: 800;
+  gap: 0.3rem;
   justify-self: start;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 `;
 
 const StoryBody = styled.div`
@@ -456,9 +532,18 @@ const MetaRow = styled.div`
 `;
 
 const MetaBadge = styled.span`
+  align-items: center;
   color: rgba(53, 71, 99, 0.9);
+  display: inline-flex;
   font-size: 0.74rem;
   font-weight: 700;
+  gap: 0.28rem;
+
+  svg {
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
 `;
 
 const ChipRow = styled.div`
@@ -530,12 +615,44 @@ const SearchForm = styled.form`
   }
 `;
 
-const SearchInput = styled.input`
+const SearchField = styled.label`
+  align-items: center;
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
   border-radius: 12px;
+  display: flex;
+  gap: 0.46rem;
   min-height: 42px;
-  padding: 0.62rem 0.76rem;
+  padding: 0 0.76rem;
+
+  &:focus-within {
+    border-color: rgba(var(--theme-primary-rgb), 0.4);
+    box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.08);
+  }
+`;
+
+const SearchFieldIcon = styled.span`
+  color: rgba(var(--theme-primary-rgb), 0.78);
+  display: inline-flex;
+  flex: 0 0 auto;
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
+  }
+`;
+
+const SearchInput = styled.input`
+  background: transparent;
+  border: none;
+  flex: 1 1 auto;
+  min-height: 100%;
+  padding: 0;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 const SearchSelect = styled.select`
@@ -547,14 +664,24 @@ const SearchSelect = styled.select`
 `;
 
 const ActionButton = styled.button`
+  align-items: center;
   background: linear-gradient(135deg, #0f6e8d 0%, #0b5871 100%);
   border: none;
   border-radius: 999px;
   color: white;
   cursor: pointer;
+  display: inline-flex;
   font-weight: 800;
+  gap: 0.38rem;
+  justify-content: center;
   min-height: 42px;
   padding: 0.6rem 0.88rem;
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
+  }
 `;
 
 const StoryHero = styled(Hero)`
@@ -670,9 +797,16 @@ const StorySourceBadge = styled(Eyebrow)`
   color: rgba(var(--theme-story-accent-rgb), 0.92);
   display: inline-flex;
   font-size: 0.7rem;
+  gap: 0.3rem;
   justify-self: start;
   letter-spacing: 0.22em;
   padding: 0;
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
+  }
 `;
 
 const StoryTitle = styled.h1`
@@ -715,6 +849,12 @@ const StoryBylineItem = styled.span`
     color: var(--theme-story-ink);
     font-weight: 800;
   }
+
+  svg {
+    display: block;
+    height: 0.9rem;
+    width: 0.9rem;
+  }
 `;
 
 const StoryActionRow = styled.div`
@@ -725,6 +865,7 @@ const StoryActionRow = styled.div`
 `;
 
 const StoryActionLink = styled.a`
+  align-items: center;
   background: ${({ $secondary }) =>
     $secondary
       ? "rgba(var(--theme-story-accent-rgb), 0.06)"
@@ -734,11 +875,19 @@ const StoryActionLink = styled.a`
       $secondary ? "rgba(var(--theme-story-accent-rgb), 0.14)" : "rgba(var(--theme-primary-rgb), 0.18)"};
   border-radius: 999px;
   color: ${({ $secondary }) => ($secondary ? "var(--theme-story-accent)" : "#fffaf2")};
+  display: inline-flex;
   font-size: 0.82rem;
   font-weight: 800;
+  gap: 0.34rem;
   line-height: 1;
   padding: 0.62rem 0.84rem;
   text-decoration: none;
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
+  }
 `;
 
 const StoryMetaGrid = styled.div`
@@ -763,7 +912,16 @@ const StoryMetaCard = styled.article`
 
 const StoryMetaLabel = styled.span`
   ${storyLabelStyles}
+  align-items: center;
+  display: inline-flex;
   font-weight: 700;
+  gap: 0.26rem;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 `;
 
 const StoryMetaValue = styled.span`
@@ -1078,10 +1236,17 @@ const StoryReadingBadge = styled.span`
   display: inline-flex;
   font-size: 0.75rem;
   font-weight: 800;
+  gap: 0.32rem;
   letter-spacing: 0.12em;
   min-height: 2.4rem;
   padding: 0.4rem 0.85rem;
   text-transform: uppercase;
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
+  }
 `;
 
 const StoryMediaGallery = styled.div`
@@ -1246,13 +1411,22 @@ const StoryShareGrid = styled.div`
 `;
 
 const StoryShareLink = styled.a`
+  align-items: center;
   background: rgba(var(--theme-story-accent-rgb), 0.06);
   border: 1px solid rgba(var(--theme-story-accent-rgb), 0.14);
   border-radius: 999px;
   color: var(--theme-story-accent);
+  display: inline-flex;
   font-size: 0.8rem;
   font-weight: 700;
+  gap: 0.32rem;
   padding: 0.42rem 0.76rem;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 `;
 
 const StorySourceLink = styled.a`
@@ -1365,12 +1539,20 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
     <CompactStoryList>
       {items.map((item) => {
         const media = resolveCompactStoryMedia(item);
-        const meta = [
-          item.publishedAt ? formatDateTimeLabel(locale, item.publishedAt) : null,
-          item.sourceName || null,
-        ]
-          .filter(Boolean)
-          .join(" | ");
+        const metaItems = [
+          item.publishedAt
+            ? {
+                icon: "calendar",
+                label: formatDateTimeLabel(locale, item.publishedAt),
+              }
+            : null,
+          item.sourceName
+            ? {
+                icon: "news",
+                label: item.sourceName,
+              }
+            : null,
+        ].filter(Boolean);
 
         return (
           <CompactStoryRow $hasMedia={Boolean(media)} key={item.id}>
@@ -1387,9 +1569,21 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
             ) : null}
             <CompactStoryBody>
               <CompactStoryTitleLink href={item.path}>{item.title}</CompactStoryTitleLink>
-              {meta ? <CompactStoryMeta>{meta}</CompactStoryMeta> : null}
+              {metaItems.length ? (
+                <CompactStoryMeta>
+                  {metaItems.map((metaItem) => (
+                    <CompactStoryMetaItem key={`${item.id}-${metaItem.label}`}>
+                      <AppIcon name={metaItem.icon} size={13} />
+                      {metaItem.label}
+                    </CompactStoryMetaItem>
+                  ))}
+                </CompactStoryMeta>
+              ) : null}
               {item.summary ? <CompactStoryExcerpt>{item.summary}</CompactStoryExcerpt> : null}
-              <CompactStoryReadMore href={item.path}>Read more</CompactStoryReadMore>
+              <CompactStoryReadMore href={item.path}>
+                Read more
+                <AppIcon name="arrow-right" size={13} />
+              </CompactStoryReadMore>
             </CompactStoryBody>
           </CompactStoryRow>
         );
@@ -1410,20 +1604,40 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
       <PublicViewTracker eventType="WEBSITE_VIEW" locale={locale} />
       <Hero>
         {pageContent.eyebrow ? <Eyebrow>{pageContent.eyebrow}</Eyebrow> : null}
-        <Title>{pageContent.title}</Title>
+        <Title>
+          <HeroTitleRow>
+            <AppIcon name="news" size={18} />
+            <span>{pageContent.title}</span>
+          </HeroTitleRow>
+        </Title>
         <Description>{pageContent.description}</Description>
         <SummaryGrid>
           <SummaryCard>
+            <SummaryCardHeader>
+              <SummaryIconBadge>
+                <AppIcon name="news" size={14} />
+              </SummaryIconBadge>
+              <SummaryLabel>{common.resultsLabel || "Published stories"}</SummaryLabel>
+            </SummaryCardHeader>
             <SummaryValue>{pageData.summary.publishedStoryCount}</SummaryValue>
-            <SummaryLabel>{common.resultsLabel || "Published stories"}</SummaryLabel>
           </SummaryCard>
           <SummaryCard>
+            <SummaryCardHeader>
+              <SummaryIconBadge>
+                <AppIcon name="tag" size={14} />
+              </SummaryIconBadge>
+              <SummaryLabel>{common.topCategoriesTitle || "Top categories"}</SummaryLabel>
+            </SummaryCardHeader>
             <SummaryValue>{pageData.summary.categoryCount}</SummaryValue>
-            <SummaryLabel>{common.topCategoriesTitle || "Top categories"}</SummaryLabel>
           </SummaryCard>
           <SummaryCard>
+            <SummaryCardHeader>
+              <SummaryIconBadge>
+                <AppIcon name="clock" size={14} />
+              </SummaryIconBadge>
+              <SummaryLabel>{common.latestPostsTitle || "Latest stories"}</SummaryLabel>
+            </SummaryCardHeader>
             <SummaryValue>{pageData.summary.latestStoryCount ?? pageData.latestStories.length}</SummaryValue>
-            <SummaryLabel>{common.latestPostsTitle || "Latest stories"}</SummaryLabel>
           </SummaryCard>
         </SummaryGrid>
       </Hero>
@@ -1432,7 +1646,12 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
         <div style={{ display: "grid", gap: "1.1rem" }}>
           {pageData.featuredStory ? (
             <Panel>
-              <SectionTitle>{pageContent.featuredTitle || "Featured story"}</SectionTitle>
+              <SectionTitle>
+                <SectionTitleRow>
+                  <AppIcon name="sparkles" size={16} />
+                  {pageContent.featuredTitle || "Featured story"}
+                </SectionTitleRow>
+              </SectionTitle>
               <HomeStoryList
                 emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
                 items={[pageData.featuredStory]}
@@ -1442,7 +1661,12 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
           ) : null}
 
           <Panel>
-            <SectionTitle>{pageContent.latestTitle || common.latestPostsTitle || "Latest stories"}</SectionTitle>
+            <SectionTitle>
+              <SectionTitleRow>
+                <AppIcon name="clock" size={16} />
+                {pageContent.latestTitle || common.latestPostsTitle || "Latest stories"}
+              </SectionTitleRow>
+            </SectionTitle>
             <HomeLatestStories
               emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
               initialHasMore={pageData.hasMoreLatestStories}
@@ -1456,7 +1680,12 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
 
         <div style={{ display: "grid", gap: "1rem" }}>
           <Panel>
-            <SectionTitle>{pageContent.discoveryTitle || common.topCategoriesTitle || "Top categories"}</SectionTitle>
+            <SectionTitle>
+              <SectionTitleRow>
+                <AppIcon name="tag" size={16} />
+                {pageContent.discoveryTitle || common.topCategoriesTitle || "Top categories"}
+              </SectionTitleRow>
+            </SectionTitle>
             <SidebarList>
               {pageData.topCategories.map((category) => (
                 <SidebarLink href={category.path} key={category.slug}>
@@ -1512,8 +1741,14 @@ export function PublicCollectionPage({
       <Hero>
         <Eyebrow>{pageContent.eyebrow || "Published stories"}</Eyebrow>
         <Title>
-          {entity?.name ? <span aria-hidden="true">{entity.logoEmoji || "📰"} </span> : null}
-          {entity?.name || pageContent.title}
+          <HeroTitleRow>
+            {entity?.name ? (
+              <span aria-hidden="true">{entity.logoEmoji || "📰"}</span>
+            ) : (
+              <AppIcon name={showSearch ? "search" : "news"} size={18} />
+            )}
+            <span>{entity?.name || pageContent.title}</span>
+          </HeroTitleRow>
         </Title>
         <Description>{entity?.description || pageContent.description}</Description>
       </Hero>
@@ -1521,11 +1756,16 @@ export function PublicCollectionPage({
       <Panel>
         {showSearch ? (
           <SearchForm action={searchPath} method="get">
-            <SearchInput
-              defaultValue={query}
-              name="q"
-              placeholder={common.searchPlaceholder || "Search published stories"}
-            />
+            <SearchField>
+              <SearchFieldIcon aria-hidden="true">
+                <AppIcon name="search" size={14} />
+              </SearchFieldIcon>
+              <SearchInput
+                defaultValue={query}
+                name="q"
+                placeholder={common.searchPlaceholder || "Search published stories"}
+              />
+            </SearchField>
             <SearchSelect
               aria-label={common.countryFilterLabel || "Filter by country"}
               defaultValue={collectionCountry}
@@ -1538,7 +1778,10 @@ export function PublicCollectionPage({
                 </option>
               ))}
             </SearchSelect>
-            <ActionButton type="submit">{common.searchAction || "Search"}</ActionButton>
+            <ActionButton type="submit">
+              <AppIcon name="search" size={14} />
+              {common.searchAction || "Search"}
+            </ActionButton>
           </SearchForm>
         ) : null}
 
@@ -1592,41 +1835,61 @@ export function PublicStoryPage({ locale, messages, pageData }) {
             <StoryBreadcrumbLink href={buildLocalizedPath(locale, publicRouteSegments.home)}>
               Home
             </StoryBreadcrumbLink>
-            <span>/</span>
+            <AppIcon name="chevron-right" size={13} />
             <StoryBreadcrumbLink href={newsPath}>
               News
             </StoryBreadcrumbLink>
-            <span>/</span>
+            <AppIcon name="chevron-right" size={13} />
             <StoryBreadcrumbCurrent>{article.sourceName}</StoryBreadcrumbCurrent>
           </StoryBreadcrumbs>
           <StoryHeroStatus>
-            <StoryStatusDot />
+            <StoryStatusDot aria-hidden="true" />
+            <AppIcon name="badge-check" size={14} />
             Published story
           </StoryHeroStatus>
         </StoryHeroBar>
 
         <StoryHeroLayout>
           <StoryHeroContent>
-            <StorySourceBadge>{articleSourceName}</StorySourceBadge>
+            <StorySourceBadge>
+              <AppIcon name="news" size={14} />
+              {articleSourceName}
+            </StorySourceBadge>
             <StoryTitle>{articleTitle}</StoryTitle>
             <StoryLead>{articleSummary}</StoryLead>
 
             <StoryBylineRow>
               <StoryBylineItem>
+                <AppIcon name="news" size={14} />
                 <strong>{articleSourceName}</strong>
               </StoryBylineItem>
-              {publishedLabel ? <StoryBylineItem>{publishedLabel}</StoryBylineItem> : null}
-              <StoryBylineItem>{readingMinutes} min read</StoryBylineItem>
-              {updatedLabel ? <StoryBylineItem>{common.updatedLabel || "Updated"} {updatedLabel}</StoryBylineItem> : null}
+              {publishedLabel ? (
+                <StoryBylineItem>
+                  <AppIcon name="calendar" size={14} />
+                  {publishedLabel}
+                </StoryBylineItem>
+              ) : null}
+              <StoryBylineItem>
+                <AppIcon name="clock" size={14} />
+                {readingMinutes} min read
+              </StoryBylineItem>
+              {updatedLabel ? (
+                <StoryBylineItem>
+                  <AppIcon name="refresh" size={14} />
+                  {common.updatedLabel || "Updated"} {updatedLabel}
+                </StoryBylineItem>
+              ) : null}
             </StoryBylineRow>
 
             <StoryActionRow>
               {article.sourceUrl ? (
                 <StoryActionLink href={article.sourceUrl} rel="noreferrer" target="_blank">
+                  <AppIcon name="external-link" size={14} />
                   Read original source
                 </StoryActionLink>
               ) : null}
               <StoryActionLink $secondary href="#story-content">
+                <AppIcon name="arrow-right" size={14} />
                 Jump to article
               </StoryActionLink>
             </StoryActionRow>
@@ -1634,22 +1897,34 @@ export function PublicStoryPage({ locale, messages, pageData }) {
             <StoryMetaGrid>
               {publishedLabel ? (
                 <StoryMetaCard>
-                  <StoryMetaLabel>{common.publishedLabel || "Published"}</StoryMetaLabel>
+                  <StoryMetaLabel>
+                    <AppIcon name="calendar" size={13} />
+                    {common.publishedLabel || "Published"}
+                  </StoryMetaLabel>
                   <StoryMetaValue>{publishedLabel}</StoryMetaValue>
                 </StoryMetaCard>
               ) : null}
               {updatedLabel ? (
                 <StoryMetaCard>
-                  <StoryMetaLabel>{common.updatedLabel || "Updated"}</StoryMetaLabel>
+                  <StoryMetaLabel>
+                    <AppIcon name="refresh" size={13} />
+                    {common.updatedLabel || "Updated"}
+                  </StoryMetaLabel>
                   <StoryMetaValue>{updatedLabel}</StoryMetaValue>
                 </StoryMetaCard>
               ) : null}
               <StoryMetaCard>
-                <StoryMetaLabel>Reading time</StoryMetaLabel>
+                <StoryMetaLabel>
+                  <AppIcon name="clock" size={13} />
+                  Reading time
+                </StoryMetaLabel>
                 <StoryMetaValue>{readingMinutes} min read</StoryMetaValue>
               </StoryMetaCard>
               <StoryMetaCard>
-                <StoryMetaLabel>Filed under</StoryMetaLabel>
+                <StoryMetaLabel>
+                  <AppIcon name="tag" size={13} />
+                  Filed under
+                </StoryMetaLabel>
                 <StoryMetaValue>{articlePrimaryCategory}</StoryMetaValue>
               </StoryMetaCard>
             </StoryMetaGrid>
@@ -1739,10 +2014,13 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                 <StoryReadingHeader>
                   <StoryReadingTitleGroup>
                     <StorySectionKicker>Full report</StorySectionKicker>
-                    <StoryReadingTitle>{articleTitle}</StoryReadingTitle>
-                    <StoryReadingText>{articleSummary}</StoryReadingText>
-                  </StoryReadingTitleGroup>
-                  <StoryReadingBadge>{articleProviderLabel}</StoryReadingBadge>
+                <StoryReadingTitle>{articleTitle}</StoryReadingTitle>
+                <StoryReadingText>{articleSummary}</StoryReadingText>
+              </StoryReadingTitleGroup>
+                  <StoryReadingBadge>
+                    <AppIcon name="sparkles" size={14} />
+                    {articleProviderLabel}
+                  </StoryReadingBadge>
                 </StoryReadingHeader>
                 <StoryContentIntro>
                   <StoryDateline>
@@ -1760,7 +2038,12 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                 <StorySectionHeader>
                   <div style={{ display: "grid", gap: "0.35rem" }}>
                     <StorySectionKicker>Gallery</StorySectionKicker>
-                    <SectionTitle>Additional media</SectionTitle>
+                    <SectionTitle>
+                      <SectionTitleRow>
+                        <AppIcon name="image" size={16} />
+                        Additional media
+                      </SectionTitleRow>
+                    </SectionTitle>
                   </div>
                   <StorySectionLead>
                     Supporting visuals stay grouped here so the main reading column can remain focused and calm.
@@ -1779,7 +2062,12 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
           <StorySidebar>
             <StoryRailSection>
-              <StoryRailTitle>{common.referencesHeading || "Source attribution"}</StoryRailTitle>
+              <StoryRailTitle>
+                <SectionTitleRow>
+                  <AppIcon name="external-link" size={16} />
+                  {common.referencesHeading || "Source attribution"}
+                </SectionTitleRow>
+              </StoryRailTitle>
               <SidebarList>
                 {article.sourceUrl ? (
                   <StorySourceLink href={article.sourceUrl} rel="noreferrer" target="_blank">
@@ -1795,11 +2083,17 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
             {shareLinks.length ? (
               <StoryRailSection>
-                <StoryRailTitle>{common.shareTitle || "Share this story"}</StoryRailTitle>
+                <StoryRailTitle>
+                  <SectionTitleRow>
+                    <AppIcon name="share" size={16} />
+                    {common.shareTitle || "Share this story"}
+                  </SectionTitleRow>
+                </StoryRailTitle>
                 <StoryRailText>{common.shareDescription || "Share this story with your audience."}</StoryRailText>
                 <StoryShareGrid>
                   {shareLinks.map((link) => (
                     <StoryShareLink href={link.href} key={link.label} rel="noreferrer" target="_blank">
+                      <AppIcon name="link" size={13} />
                       {link.label}
                     </StoryShareLink>
                   ))}
@@ -1808,7 +2102,12 @@ export function PublicStoryPage({ locale, messages, pageData }) {
             ) : null}
 
               <StoryRailSection>
-                <StoryRailTitle>{common.relatedPostsTitle || "Related stories"}</StoryRailTitle>
+                <StoryRailTitle>
+                  <SectionTitleRow>
+                    <AppIcon name="news" size={16} />
+                    {common.relatedPostsTitle || "Related stories"}
+                  </SectionTitleRow>
+                </StoryRailTitle>
                 <StoryRailText>More coverage connected by source or category so the next read is easy to pick.</StoryRailText>
                 <StoryRelatedList>
                   <HomeStoryList
@@ -1831,14 +2130,24 @@ export function PublicStaticPage({ locale, pageContent }) {
       <PublicViewTracker eventType="PAGE_VIEW" locale={locale} />
       <Hero>
         <Eyebrow>{pageContent.eyebrow}</Eyebrow>
-        <Title>{pageContent.title}</Title>
+        <Title>
+          <HeroTitleRow>
+            <AppIcon name="info" size={18} />
+            <span>{pageContent.title}</span>
+          </HeroTitleRow>
+        </Title>
         <Description>{pageContent.description}</Description>
       </Hero>
 
       <Panel>
         {(pageContent.sections || []).map((section) => (
           <LegalSection key={section.title}>
-            <SectionTitle>{section.title}</SectionTitle>
+            <SectionTitle>
+              <SectionTitleRow>
+                <AppIcon name="file-text" size={16} />
+                {section.title}
+              </SectionTitleRow>
+            </SectionTitle>
             <SectionBody>
               {(section.paragraphs || []).map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>

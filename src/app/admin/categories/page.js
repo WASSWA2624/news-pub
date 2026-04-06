@@ -1,15 +1,15 @@
 import {
   ActionIcon,
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   ButtonIcon,
   Card,
   CardHeader,
   CardDescription,
-  CardTitle,
   DataTable,
   DataTableWrap,
   Field,
@@ -198,29 +198,19 @@ export default async function CategoriesPage() {
     <AdminPage>
       <AdminHero>
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-        <AdminTitle>{copy.title}</AdminTitle>
-        <AdminDescription>{copy.description}</AdminDescription>
+        <AdminHeroHeading description={copy.description} icon="categories" title={copy.title} />
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total categories</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalAssignments}</SummaryValue>
-          <SummaryLabel>Post assignments</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalStreamAssignments}</SummaryValue>
-          <SummaryLabel>Stream assignments</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="categories" label="Total categories" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="news" label="Post assignments" value={snapshot.summary.totalAssignments} />
+        <AdminMetricCard icon="streams" label="Stream assignments" value={snapshot.summary.totalStreamAssignments} />
       </SummaryGrid>
 
       <SectionGrid>
         <Card>
           <CardHeader>
-            <CardTitle>Current categories</CardTitle>
+            <AdminSectionTitle icon="tag">Current categories</AdminSectionTitle>
             <CardDescription>Review taxonomy usage before removing a category from the editorial system.</CardDescription>
           </CardHeader>
           <DataTableWrap>
@@ -286,7 +276,7 @@ export default async function CategoriesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Create category</CardTitle>
+            <AdminSectionTitle icon="plus">Create category</AdminSectionTitle>
             <CardDescription>Categories drive stream filters, landing pages, and website discovery.</CardDescription>
           </CardHeader>
           <SmallText>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
 import { publicHomeLatestIncrementCount } from "@/features/public-site/constants";
 
 function formatDateTimeLabel(locale, value) {
@@ -108,10 +109,26 @@ const CompactStoryTitleLink = styled(Link)`
 `;
 
 const CompactStoryMeta = styled.p`
+  align-items: center;
   color: rgba(72, 85, 110, 0.86);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
   font-size: 0.8rem;
   line-height: 1.35;
   margin: 0;
+`;
+
+const CompactStoryMetaItem = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.28rem;
+
+  svg {
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
 `;
 
 const CompactStoryExcerpt = styled.p`
@@ -131,10 +148,19 @@ const CompactStoryExcerpt = styled.p`
 `;
 
 const CompactStoryReadMore = styled(Link)`
+  align-items: center;
   color: #124f65;
+  display: inline-flex;
   font-size: 0.82rem;
   font-weight: 800;
+  gap: 0.3rem;
   justify-self: start;
+
+  svg {
+    display: block;
+    height: 0.84rem;
+    width: 0.84rem;
+  }
 `;
 
 const HomeListFooter = styled.div`
@@ -144,6 +170,7 @@ const HomeListFooter = styled.div`
 `;
 
 const HomeViewMoreButton = styled.button`
+  align-items: center;
   background: transparent;
   border: none;
   color: #124f65;
@@ -151,6 +178,7 @@ const HomeViewMoreButton = styled.button`
   display: inline-flex;
   font-size: 0.84rem;
   font-weight: 800;
+  gap: 0.34rem;
   letter-spacing: 0.01em;
   padding: 0;
   min-height: 38px;
@@ -163,13 +191,28 @@ const HomeViewMoreButton = styled.button`
     cursor: wait;
     opacity: 0.72;
   }
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
+  }
 `;
 
 const HomeListError = styled.p`
+  align-items: center;
   color: #9a4221;
+  display: inline-flex;
   font-size: 0.82rem;
+  gap: 0.35rem;
   line-height: 1.45;
   margin: 0.62rem 0 0;
+
+  svg {
+    display: block;
+    height: 0.88rem;
+    width: 0.88rem;
+  }
 `;
 
 function HomeStoryList({ emptyLabel, items = [], locale }) {
@@ -181,12 +224,20 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
     <CompactStoryList>
       {items.map((item) => {
         const media = resolveCompactStoryMedia(item);
-        const meta = [
-          item.publishedAt ? formatDateTimeLabel(locale, item.publishedAt) : null,
-          item.sourceName || null,
-        ]
-          .filter(Boolean)
-          .join(" | ");
+        const metaItems = [
+          item.publishedAt
+            ? {
+                icon: "calendar",
+                label: formatDateTimeLabel(locale, item.publishedAt),
+              }
+            : null,
+          item.sourceName
+            ? {
+                icon: "news",
+                label: item.sourceName,
+              }
+            : null,
+        ].filter(Boolean);
 
         return (
           <CompactStoryRow $hasMedia={Boolean(media)} key={item.id}>
@@ -203,9 +254,21 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
             ) : null}
             <CompactStoryBody>
               <CompactStoryTitleLink href={item.path}>{item.title}</CompactStoryTitleLink>
-              {meta ? <CompactStoryMeta>{meta}</CompactStoryMeta> : null}
+              {metaItems.length ? (
+                <CompactStoryMeta>
+                  {metaItems.map((metaItem) => (
+                    <CompactStoryMetaItem key={`${item.id}-${metaItem.label}`}>
+                      <AppIcon name={metaItem.icon} size={13} />
+                      {metaItem.label}
+                    </CompactStoryMetaItem>
+                  ))}
+                </CompactStoryMeta>
+              ) : null}
               {item.summary ? <CompactStoryExcerpt>{item.summary}</CompactStoryExcerpt> : null}
-              <CompactStoryReadMore href={item.path}>Read more</CompactStoryReadMore>
+              <CompactStoryReadMore href={item.path}>
+                Read more
+                <AppIcon name="arrow-right" size={13} />
+              </CompactStoryReadMore>
             </CompactStoryBody>
           </CompactStoryRow>
         );
@@ -289,7 +352,12 @@ export default function HomeLatestStories({
         {isLoading ? "Loading more stories" : ""}
       </span>
       <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />
-      {error ? <HomeListError role="status">{error}</HomeListError> : null}
+      {error ? (
+        <HomeListError role="status">
+          <AppIcon name="warning" size={14} />
+          {error}
+        </HomeListError>
+      ) : null}
       {hasMore ? (
         <HomeListFooter>
           <HomeViewMoreButton
@@ -298,6 +366,7 @@ export default function HomeLatestStories({
             onClick={handleViewMore}
             type="button"
           >
+            <AppIcon name={isLoading ? "refresh" : "arrow-right"} size={14} />
             {isLoading ? "Loading..." : viewMoreLabel}
           </HomeViewMoreButton>
         </HomeListFooter>

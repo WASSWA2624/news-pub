@@ -1,14 +1,14 @@
 import {
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
+  AdminHeroHeading,
+  AdminMetricCard,
   AdminPage,
-  AdminTitle,
+  AdminSectionTitle,
   ButtonRow,
   Card,
   CardHeader,
   CardDescription,
-  CardTitle,
   MetaPill,
   RecordCard,
   RecordHeader,
@@ -245,8 +245,7 @@ export default async function TemplatesPage() {
         <HeroLayout>
           <div>
             <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
-            <AdminTitle>{copy.title}</AdminTitle>
-            <AdminDescription>{copy.description}</AdminDescription>
+            <AdminHeroHeading description={copy.description} icon="templates" title={copy.title} />
           </div>
 
           <HeroStats>
@@ -271,18 +270,9 @@ export default async function TemplatesPage() {
       </AdminHero>
 
       <SummaryGrid>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.totalCount}</SummaryValue>
-          <SummaryLabel>Total templates</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{snapshot.summary.defaultCount}</SummaryValue>
-          <SummaryLabel>Platform defaults</SummaryLabel>
-        </SummaryCard>
-        <SummaryCard>
-          <SummaryValue>{platformValues.length}</SummaryValue>
-          <SummaryLabel>Supported publishing surfaces</SummaryLabel>
-        </SummaryCard>
+        <AdminMetricCard icon="templates" label="Total templates" value={snapshot.summary.totalCount} />
+        <AdminMetricCard icon="badge-check" label="Platform defaults" value={snapshot.summary.defaultCount} />
+        <AdminMetricCard icon="globe" label="Supported publishing surfaces" value={platformValues.length} />
       </SummaryGrid>
 
       <StudioGuide>
@@ -311,7 +301,7 @@ export default async function TemplatesPage() {
         <Card>
           <DirectoryHeader>
             <CardHeader>
-              <CardTitle>Configured templates</CardTitle>
+              <AdminSectionTitle icon="templates">Configured templates</AdminSectionTitle>
               <CardDescription>
                 Each template card now surfaces where it wins in the fallback chain before you edit the actual content.
               </CardDescription>
@@ -369,7 +359,7 @@ export default async function TemplatesPage() {
 
         <StickyCard>
           <CardHeader>
-            <CardTitle>Add template</CardTitle>
+            <AdminSectionTitle icon="plus">Add template</AdminSectionTitle>
             <CardDescription>
               Template selection follows stream, platform plus category, platform plus locale, then platform default.
             </CardDescription>

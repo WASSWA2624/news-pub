@@ -1,6 +1,8 @@
 import Link from "next/link";
 import styled from "styled-components";
 
+import AppIcon from "@/components/common/app-icon";
+
 export const AdminPage = styled.main`
   display: grid;
   gap: 0.6rem;
@@ -47,6 +49,112 @@ export const AdminDescription = styled.p`
   margin: 0;
   max-width: 62ch;
 `;
+
+export const AdminIconBadge = styled.span`
+  align-items: center;
+  background:
+    ${({ $tone }) =>
+      $tone === "accent"
+        ? "linear-gradient(180deg, rgba(224, 165, 58, 0.18), rgba(224, 165, 58, 0.1))"
+        : $tone === "danger"
+          ? "linear-gradient(180deg, rgba(176, 46, 34, 0.14), rgba(176, 46, 34, 0.08))"
+          : $tone === "success"
+            ? "linear-gradient(180deg, rgba(27, 138, 73, 0.14), rgba(27, 138, 73, 0.08))"
+            : $tone === "muted"
+              ? "rgba(16, 32, 51, 0.06)"
+              : "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))"};
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === "accent"
+        ? "rgba(168, 113, 12, 0.16)"
+        : $tone === "danger"
+          ? "rgba(176, 46, 34, 0.16)"
+          : $tone === "success"
+            ? "rgba(27, 138, 73, 0.16)"
+            : $tone === "muted"
+              ? "rgba(16, 32, 51, 0.08)"
+              : "rgba(15, 111, 141, 0.18)"};
+  border-radius: ${({ $size }) => ($size === "1.9rem" ? "12px" : "16px")};
+  color: ${({ $tone }) =>
+    $tone === "accent"
+      ? "#8f630c"
+      : $tone === "danger"
+        ? "#a63725"
+        : $tone === "success"
+          ? "#197341"
+          : $tone === "muted"
+            ? "#30435f"
+            : "#0d5f79"};
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: ${({ $size }) => $size || "2.4rem"};
+  justify-content: center;
+  width: ${({ $size }) => $size || "2.4rem"};
+
+  svg {
+    height: ${({ $iconSize }) => $iconSize || "1.1rem"};
+    width: ${({ $iconSize }) => $iconSize || "1.1rem"};
+  }
+`;
+
+const AdminHeroHeadingRow = styled.div`
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+`;
+
+const AdminHeroCopy = styled.div`
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+`;
+
+const SummaryHeader = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 0.48rem;
+  min-width: 0;
+`;
+
+const SectionTitleRow = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  min-width: 0;
+`;
+
+export function AdminHeroHeading({ description, icon, title, tone = "primary" }) {
+  return (
+    <AdminHeroHeadingRow>
+      {icon ? (
+        <AdminIconBadge $iconSize="1.22rem" $size="2.7rem" $tone={tone}>
+          <AppIcon name={icon} size={22} />
+        </AdminIconBadge>
+      ) : null}
+      <AdminHeroCopy>
+        <AdminTitle>{title}</AdminTitle>
+        {description ? <AdminDescription>{description}</AdminDescription> : null}
+      </AdminHeroCopy>
+    </AdminHeroHeadingRow>
+  );
+}
+
+export function AdminMetricCard({ icon, label, tone = "primary", value }) {
+  return (
+    <SummaryCard>
+      <SummaryHeader>
+        {icon ? (
+          <AdminIconBadge $iconSize="0.95rem" $size="2rem" $tone={tone}>
+            <AppIcon name={icon} size={16} />
+          </AdminIconBadge>
+        ) : null}
+        <SummaryLabel>{label}</SummaryLabel>
+      </SummaryHeader>
+      <SummaryValue>{value}</SummaryValue>
+    </SummaryCard>
+  );
+}
 
 export const SummaryGrid = styled.div`
   display: grid;
@@ -123,6 +231,21 @@ export const CardTitle = styled.h2`
   letter-spacing: -0.03em;
   margin: 0;
 `;
+
+export function AdminSectionTitle({ children, icon, tone = "accent" }) {
+  return (
+    <CardTitle>
+      <SectionTitleRow>
+        {icon ? (
+          <AdminIconBadge $iconSize="0.9rem" $size="1.9rem" $tone={tone}>
+            <AppIcon name={icon} size={15} />
+          </AdminIconBadge>
+        ) : null}
+        <span>{children}</span>
+      </SectionTitleRow>
+    </CardTitle>
+  );
+}
 
 export const CardDescription = styled.p`
   color: rgba(72, 85, 108, 0.92);
@@ -600,107 +723,8 @@ export const SmallText = styled.p`
   margin: 0;
 `;
 
-const IconSvg = styled.svg`
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-`;
-
 export function ActionIcon({ name }) {
-  if (name === "play") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M8 6l10 6-10 6Z" fill="currentColor" stroke="currentColor" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "publish") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M22 2L11 13" />
-        <path d="M22 2l-7 20-4-9-9-4Z" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "schedule") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 8v5l3 2" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "archive") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M4 5h16v4H4Z" />
-        <path d="M6 9h12v10H6Z" />
-        <path d="M10 13h4" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "upload") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 17V5" />
-        <path d="m8 9 4-4 4 4" />
-        <path d="M5 19h14" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "delete") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M3 6h18" />
-        <path d="M8 6V4h8v2" />
-        <path d="M19 6l-1 14H6L5 6" />
-        <path d="M10 10v6" />
-        <path d="M14 10v6" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "close") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M6 6l12 12" />
-        <path d="M18 6 6 18" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "edit") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 20h9" />
-        <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
-      </IconSvg>
-    );
-  }
-
-  if (name === "plus") {
-    return (
-      <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 5v14" />
-        <path d="M5 12h14" />
-      </IconSvg>
-    );
-  }
-
-  return (
-    <IconSvg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M5 4h11l3 3v13H5Z" />
-      <path d="M9 4v6h6V4" />
-      <path d="M9 20v-6h6v6" />
-    </IconSvg>
-  );
+  return <AppIcon name={name} size={18} />;
 }
 
 export function formatDateTime(value) {

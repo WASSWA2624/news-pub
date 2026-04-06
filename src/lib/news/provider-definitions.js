@@ -3,6 +3,8 @@
  * Option catalogs and field groupings are aligned with the official provider docs.
  */
 
+import { formatCountryFlagEmoji, formatCountryFlagImageUrl } from "@/lib/countries";
+
 export const MULTI_VALUE_EMPTY_SENTINEL = "__newspub_empty__";
 
 const TITLE_CASE_SMALL_WORDS = new Set(["and", "of", "the"]);
@@ -54,6 +56,16 @@ function createOption(value, label, extra = {}) {
   };
 }
 
+function createCountryOption(value, label, extra = {}) {
+  const normalizedValue = normalizeKey(value);
+
+  return createOption(normalizedValue, label, {
+    flagEmoji: formatCountryFlagEmoji(normalizedValue),
+    flagImageUrl: formatCountryFlagImageUrl(normalizedValue),
+    ...extra,
+  });
+}
+
 function buildValueOptions(values = [], labelOverrides = {}) {
   return Object.freeze(
     values.map((value) =>
@@ -68,7 +80,7 @@ function buildValueOptions(values = [], labelOverrides = {}) {
 function buildCountryOptions(rows = []) {
   return Object.freeze(
     rows.map(([code, label]) =>
-      createOption(normalizeKey(code), formatCatalogLabel(label)),
+      createCountryOption(code, formatCatalogLabel(label)),
     ),
   );
 }
@@ -97,7 +109,7 @@ function buildCountrySubset(codes, countryOptions) {
       const normalizedCode = normalizeKey(code);
 
       return optionByValue.get(normalizedCode)
-        || createOption(normalizedCode, normalizedCode.toUpperCase());
+        || createCountryOption(normalizedCode, normalizedCode.toUpperCase());
     }),
   );
 }
