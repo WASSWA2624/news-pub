@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
@@ -154,32 +154,60 @@ function trimStoryContentHtml(value) {
     .trim();
 }
 
+const editorialHeadingStyles = css`
+  color: var(--theme-story-ink);
+  font-family: var(--font-editorial), Georgia, serif;
+  letter-spacing: -0.04em;
+`;
+
+const storyLabelStyles = css`
+  color: rgba(var(--theme-story-label-rgb), 0.88);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  margin: 0;
+  text-transform: uppercase;
+`;
+
+const storyPaperPanelStyles = css`
+  background: linear-gradient(
+    180deg,
+    rgba(var(--theme-story-paper-rgb), 0.94),
+    rgba(var(--theme-story-paper-alt-rgb), 0.94)
+  );
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
+  border-radius: var(--theme-radius-lg);
+  box-shadow:
+    0 18px 48px rgba(var(--theme-story-ink-rgb), 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+`;
+
 const PageMain = styled.main`
   display: grid;
-  gap: clamp(1.2rem, 2.8vw, 1.8rem);
+  gap: clamp(0.9rem, 2.1vw, 1.3rem);
   margin: 0 auto;
-  max-width: 1260px;
-  padding: clamp(1.35rem, 3vw, 2.1rem) clamp(1rem, 3vw, 1.5rem) clamp(2rem, 4vw, 3rem);
+  max-width: var(--theme-page-max-width);
+  padding: clamp(1rem, 2.3vw, 1.5rem) clamp(0.85rem, 2.2vw, 1.2rem) clamp(1.4rem, 3vw, 2.2rem);
   width: 100%;
 `;
 
 const Hero = styled.section`
   background:
-    radial-gradient(circle at top left, rgba(11, 107, 139, 0.18), transparent 34%),
-    radial-gradient(circle at 85% 20%, rgba(251, 195, 61, 0.14), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.94));
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+    radial-gradient(circle at top left, rgba(var(--theme-story-accent-rgb), 0.16), transparent 34%),
+    radial-gradient(circle at 85% 20%, rgba(var(--theme-accent-rgb), 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(var(--theme-bg-rgb), 0.94));
+  border: 1px solid rgba(var(--theme-border-rgb), 0.72);
+  border-radius: var(--theme-radius-md);
   box-shadow:
-    0 10px 22px rgba(16, 32, 51, 0.05),
+    0 10px 22px rgba(var(--theme-primary-rgb), 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   display: grid;
-  gap: 0.3rem;
-  padding: clamp(0.7rem, 1.8vw, 0.9rem);
+  gap: 0.22rem;
+  padding: clamp(0.56rem, 1.4vw, 0.72rem);
 `;
 
 const Eyebrow = styled.p`
-  color: rgba(14, 88, 121, 0.8);
+  color: rgba(var(--theme-story-accent-rgb), 0.9);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -188,29 +216,25 @@ const Eyebrow = styled.p`
 `;
 
 const Title = styled.h1`
-  color: #182742;
+  color: var(--theme-text);
   font-size: clamp(1.15rem, 2.7vw, 1.6rem);
   letter-spacing: -0.035em;
   line-height: 1.05;
   margin: 0;
   max-width: none;
-
-  @media (max-width: 720px) {
-    max-width: 18ch;
-  }
 `;
 
 const Description = styled.p`
-  color: rgba(71, 84, 108, 0.95);
+  color: rgba(var(--theme-muted-rgb), 0.95);
   font-size: clamp(0.74rem, 1.4vw, 0.82rem);
   line-height: 1.4;
   margin: 0;
-  max-width: 72ch;
+  max-width: none;
 `;
 
 const SummaryGrid = styled.div`
   display: grid;
-  gap: 0.4rem;
+  gap: 0.3rem;
 
   @media (min-width: 760px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -222,8 +246,8 @@ const SummaryCard = styled.article`
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 10px;
   display: grid;
-  gap: 0.08rem;
-  padding: 0.42rem 0.55rem;
+  gap: 0.04rem;
+  padding: 0.34rem 0.46rem;
 `;
 
 const SummaryValue = styled.strong`
@@ -238,7 +262,7 @@ const SummaryLabel = styled.span`
 
 const ContentGrid = styled.div`
   display: grid;
-  gap: 1.1rem;
+  gap: 0.8rem;
 
   @media (min-width: 980px) {
     align-items: start;
@@ -252,8 +276,8 @@ const Panel = styled.section`
   border-radius: 18px;
   box-shadow: 0 18px 42px rgba(18, 34, 58, 0.06);
   display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 2.3vw, 1.35rem);
+  gap: 0.72rem;
+  padding: clamp(0.78rem, 1.9vw, 1rem);
 `;
 
 const SectionTitle = styled.h2`
@@ -265,7 +289,7 @@ const SectionTitle = styled.h2`
 
 const StoryGrid = styled.div`
   display: grid;
-  gap: 0.95rem;
+  gap: 0.72rem;
 `;
 
 const StoryCard = styled.article`
@@ -275,7 +299,7 @@ const StoryCard = styled.article`
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: 14px;
   display: grid;
-  gap: ${({ $hasMedia }) => ($hasMedia ? "0.8rem" : "0.35rem")};
+  gap: ${({ $hasMedia }) => ($hasMedia ? "0.62rem" : "0.26rem")};
   overflow: hidden;
 `;
 
@@ -327,9 +351,9 @@ const CompactStoryRow = styled.article`
   align-items: start;
   border-top: 1px solid rgba(16, 32, 51, 0.08);
   display: grid;
-  gap: 0.8rem;
+  gap: 0.62rem;
   grid-template-columns: ${({ $hasMedia }) => ($hasMedia ? "88px minmax(0, 1fr)" : "minmax(0, 1fr)")};
-  padding: 0.9rem 0;
+  padding: 0.72rem 0;
 
   &:first-child {
     border-top: none;
@@ -341,7 +365,7 @@ const CompactStoryRow = styled.article`
   }
 
   @media (min-width: 760px) {
-    gap: 0.95rem;
+    gap: 0.76rem;
     grid-template-columns: ${({ $hasMedia }) => ($hasMedia ? "112px minmax(0, 1fr)" : "minmax(0, 1fr)")};
   }
 `;
@@ -366,7 +390,7 @@ const CompactStoryMediaImage = styled.img`
 
 const CompactStoryBody = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.22rem;
   min-width: 0;
 `;
 
@@ -406,8 +430,8 @@ const CompactStoryReadMore = styled(Link)`
 
 const StoryBody = styled.div`
   display: grid;
-  gap: ${({ $compact }) => ($compact ? "0.55rem" : "0.75rem")};
-  padding: ${({ $compact }) => ($compact ? "0.8rem 0.9rem 0.9rem" : "1rem 1rem 1.05rem")};
+  gap: ${({ $compact }) => ($compact ? "0.42rem" : "0.58rem")};
+  padding: ${({ $compact }) => ($compact ? "0.62rem 0.72rem 0.72rem" : "0.78rem 0.82rem 0.86rem")};
 `;
 
 const StoryTitleLink = styled(Link)`
@@ -428,7 +452,7 @@ const StorySummary = styled.p`
 const MetaRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem 0.75rem;
+  gap: 0.32rem 0.56rem;
 `;
 
 const MetaBadge = styled.span`
@@ -440,7 +464,7 @@ const MetaBadge = styled.span`
 const ChipRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.32rem;
 `;
 
 const ChipLink = styled(Link)`
@@ -455,7 +479,7 @@ const ChipLink = styled(Link)`
 
 const SidebarList = styled.div`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.56rem;
 `;
 
 const SidebarLink = styled(Link)`
@@ -484,7 +508,7 @@ const PaginationRow = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: 0.5rem;
   justify-content: space-between;
 `;
 
@@ -494,12 +518,12 @@ const PaginationLink = styled(Link)`
   border-radius: 999px;
   color: #152744;
   font-weight: 700;
-  padding: 0.55rem 0.95rem;
+  padding: 0.44rem 0.76rem;
 `;
 
 const SearchForm = styled.form`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.56rem;
 
   @media (min-width: 620px) {
     grid-template-columns: minmax(0, 1fr) minmax(180px, 220px) auto;
@@ -510,16 +534,16 @@ const SearchInput = styled.input`
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
   border-radius: 12px;
-  min-height: 48px;
-  padding: 0.8rem 0.95rem;
+  min-height: 42px;
+  padding: 0.62rem 0.76rem;
 `;
 
 const SearchSelect = styled.select`
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
   border-radius: 12px;
-  min-height: 48px;
-  padding: 0.8rem 0.95rem;
+  min-height: 42px;
+  padding: 0.62rem 0.76rem;
 `;
 
 const ActionButton = styled.button`
@@ -529,55 +553,64 @@ const ActionButton = styled.button`
   color: white;
   cursor: pointer;
   font-weight: 800;
-  min-height: 48px;
-  padding: 0.75rem 1.1rem;
+  min-height: 42px;
+  padding: 0.6rem 0.88rem;
 `;
 
 const StoryHero = styled(Hero)`
   background:
-    radial-gradient(circle at top right, rgba(153, 108, 41, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(249, 244, 236, 0.98)),
+    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.14), transparent 28%),
+    linear-gradient(
+      180deg,
+      rgba(var(--theme-story-paper-rgb), 0.98),
+      rgba(var(--theme-story-paper-alt-rgb), 0.98)
+    ),
     repeating-linear-gradient(
       180deg,
-      rgba(99, 78, 45, 0.025) 0,
-      rgba(99, 78, 45, 0.025) 1px,
+      rgba(var(--theme-story-line-rgb), 0.16) 0,
+      rgba(var(--theme-story-line-rgb), 0.16) 1px,
       transparent 1px,
       transparent 34px
     );
-  border: 1px solid rgba(82, 65, 39, 0.15);
-  border-radius: 28px;
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.64);
+  border-radius: var(--theme-radius-lg);
   box-shadow:
-    0 26px 70px rgba(61, 45, 24, 0.08),
+    0 26px 70px rgba(var(--theme-story-ink-rgb), 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  gap: clamp(1.35rem, 3vw, 1.95rem);
+  gap: clamp(1rem, 2.4vw, 1.45rem);
   overflow: hidden;
-  padding: clamp(1.2rem, 3vw, 1.95rem);
+  padding: clamp(0.9rem, 2.3vw, 1.4rem);
   position: relative;
 
   &::before {
-    background: linear-gradient(90deg, rgba(46, 35, 18, 0.82), rgba(131, 92, 33, 0.42), transparent);
+    background: linear-gradient(
+      90deg,
+      rgba(var(--theme-story-ink-rgb), 0.82),
+      rgba(var(--theme-story-accent-rgb), 0.5),
+      transparent
+    );
     content: "";
     height: 3px;
-    left: clamp(1.2rem, 3vw, 1.95rem);
+    left: clamp(0.9rem, 2.3vw, 1.4rem);
     position: absolute;
-    right: clamp(1.2rem, 3vw, 1.95rem);
+    right: clamp(0.9rem, 2.3vw, 1.4rem);
     top: 0;
   }
 `;
 
 const StoryHeroBar = styled.div`
   align-items: center;
-  border-bottom: 1px solid rgba(62, 47, 24, 0.14);
+  border-bottom: 1px solid rgba(var(--theme-story-line-rgb), 0.72);
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.55rem 0.9rem;
-  padding-bottom: 1rem;
+  gap: 0.4rem 0.68rem;
+  padding-bottom: 0.72rem;
 `;
 
 const StoryHeroStatus = styled.div`
   align-items: center;
-  color: rgba(86, 69, 43, 0.82);
+  color: rgba(var(--theme-story-muted-rgb), 0.92);
   display: inline-flex;
   font-size: 0.76rem;
   font-weight: 700;
@@ -587,9 +620,9 @@ const StoryHeroStatus = styled.div`
 `;
 
 const StoryStatusDot = styled.span`
-  background: linear-gradient(135deg, #9d6b20 0%, #6f4b16 100%);
+  background: linear-gradient(135deg, var(--theme-accent) 0%, var(--theme-story-accent) 100%);
   border-radius: 999px;
-  box-shadow: 0 0 0 5px rgba(157, 107, 32, 0.12);
+  box-shadow: 0 0 0 5px rgba(var(--theme-accent-rgb), 0.16);
   display: inline-flex;
   height: 0.52rem;
   width: 0.52rem;
@@ -597,7 +630,7 @@ const StoryStatusDot = styled.span`
 
 const StoryBreadcrumbs = styled.nav`
   align-items: center;
-  color: rgba(86, 69, 43, 0.9);
+  color: rgba(var(--theme-story-muted-rgb), 0.92);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.78rem;
@@ -608,33 +641,33 @@ const StoryBreadcrumbs = styled.nav`
 `;
 
 const StoryBreadcrumbLink = styled(Link)`
-  color: #533913;
+  color: var(--theme-story-accent);
 `;
 
 const StoryBreadcrumbCurrent = styled.span`
-  color: rgba(86, 69, 43, 0.72);
+  color: rgba(var(--theme-story-muted-rgb), 0.72);
 `;
 
 const StoryHeroLayout = styled.div`
   display: grid;
-  gap: 1.5rem;
+  gap: 1.05rem;
 
   @media (min-width: 1040px) {
     align-items: start;
-    gap: 2rem;
+    gap: 1.4rem;
     grid-template-columns: minmax(0, 1.9fr) minmax(250px, 330px);
   }
 `;
 
 const StoryHeroContent = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: 0.72rem;
   min-width: 0;
 `;
 
 const StorySourceBadge = styled(Eyebrow)`
   align-items: center;
-  color: rgba(116, 77, 19, 0.92);
+  color: rgba(var(--theme-story-accent-rgb), 0.92);
   display: inline-flex;
   font-size: 0.7rem;
   justify-self: start;
@@ -643,34 +676,32 @@ const StorySourceBadge = styled(Eyebrow)`
 `;
 
 const StoryTitle = styled.h1`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
-  font-size: clamp(2.4rem, 4.9vw, 4.5rem);
+  ${editorialHeadingStyles}
+  font-size: clamp(2rem, 4.2vw, 3.8rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
   line-height: 0.95;
   margin: 0;
-  max-width: 13ch;
-  text-wrap: balance;
+  max-width: none;
+  text-wrap: pretty;
 `;
 
 const StoryLead = styled.p`
-  color: rgba(68, 53, 34, 0.92);
+  color: rgba(var(--theme-story-muted-rgb), 0.96);
   font-family: var(--font-editorial), Georgia, serif;
   font-size: clamp(1.16rem, 1.95vw, 1.45rem);
   font-style: italic;
   line-height: 1.6;
   margin: 0;
-  max-width: 44rem;
+  max-width: none;
   text-wrap: pretty;
 `;
 
 const StoryBylineRow = styled.div`
   align-items: center;
-  color: rgba(72, 56, 31, 0.84);
+  color: rgba(var(--theme-story-muted-rgb), 0.88);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem 0.8rem;
+  gap: 0.32rem 0.58rem;
   font-size: 0.88rem;
   line-height: 1.5;
 `;
@@ -681,7 +712,7 @@ const StoryBylineItem = styled.span`
   gap: 0.4rem;
 
   strong {
-    color: #24180f;
+    color: var(--theme-story-ink);
     font-weight: 800;
   }
 `;
@@ -690,79 +721,78 @@ const StoryActionRow = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: 0.5rem;
 `;
 
 const StoryActionLink = styled.a`
   background: ${({ $secondary }) =>
-    $secondary ? "rgba(120, 81, 28, 0.06)" : "linear-gradient(135deg, #764d18 0%, #52340f 100%)"};
-  border: 1px solid ${({ $secondary }) => ($secondary ? "rgba(120, 81, 28, 0.14)" : "rgba(82, 52, 15, 0.18)")};
+    $secondary
+      ? "rgba(var(--theme-story-accent-rgb), 0.06)"
+      : "linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-story-accent) 100%)"};
+  border: 1px solid
+    ${({ $secondary }) =>
+      $secondary ? "rgba(var(--theme-story-accent-rgb), 0.14)" : "rgba(var(--theme-primary-rgb), 0.18)"};
   border-radius: 999px;
-  color: ${({ $secondary }) => ($secondary ? "#6d4b19" : "#fffaf2")};
+  color: ${({ $secondary }) => ($secondary ? "var(--theme-story-accent)" : "#fffaf2")};
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
-  padding: 0.8rem 1.05rem;
+  padding: 0.62rem 0.84rem;
   text-decoration: none;
 `;
 
 const StoryMetaGrid = styled.div`
-  background: rgba(255, 250, 242, 0.88);
-  border: 1px solid rgba(96, 76, 46, 0.12);
-  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.48);
+  border-radius: var(--theme-radius-lg);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   display: grid;
-  gap: 0.8rem;
-  padding: 0.95rem 1rem;
+  gap: 0.58rem;
+  padding: 0.72rem 0.8rem;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 `;
 
 const StoryMetaCard = styled.article`
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(96, 76, 46, 0.08);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.38);
+  border-radius: var(--theme-radius-md);
   display: grid;
-  gap: 0.22rem;
-  padding: 0.7rem 0.8rem;
+  gap: 0.16rem;
+  padding: 0.54rem 0.62rem;
 `;
 
 const StoryMetaLabel = styled.span`
-  color: rgba(102, 81, 48, 0.78);
-  font-size: 0.68rem;
+  ${storyLabelStyles}
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 `;
 
 const StoryMetaValue = styled.span`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
   font-size: 1.12rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
   line-height: 1.2;
   overflow-wrap: anywhere;
 `;
 
 const StoryTagRow = styled(ChipRow)`
-  gap: 0.6rem;
+  gap: 0.42rem;
 `;
 
 const StoryTag = styled(ChipLink)`
-  background: rgba(120, 81, 28, 0.06);
-  border-color: rgba(120, 81, 28, 0.14);
-  color: #6d4b19;
-  padding: 0.38rem 0.8rem;
+  background: rgba(var(--theme-story-accent-rgb), 0.06);
+  border-color: rgba(var(--theme-story-accent-rgb), 0.14);
+  color: var(--theme-story-accent);
+  padding: 0.3rem 0.64rem;
 `;
 
 const StoryHighlightStrip = styled.section`
   background:
-    linear-gradient(135deg, rgba(74, 51, 18, 0.96), rgba(104, 72, 24, 0.94)),
+    linear-gradient(135deg, var(--theme-story-highlight-from), var(--theme-story-highlight-to)),
     radial-gradient(circle at top right, rgba(255, 214, 132, 0.25), transparent 35%);
-  border: 1px solid rgba(74, 51, 18, 0.16);
-  border-radius: 24px;
-  box-shadow: 0 18px 50px rgba(61, 45, 24, 0.12);
-  color: #fffaf3;
+  border: 1px solid rgba(var(--theme-story-ink-rgb), 0.16);
+  border-radius: var(--theme-radius-lg);
+  box-shadow: 0 18px 50px rgba(var(--theme-story-ink-rgb), 0.12);
+  color: var(--theme-story-highlight-text);
   display: grid;
   gap: 1rem;
   padding: clamp(1rem, 2.5vw, 1.4rem);
@@ -780,10 +810,9 @@ const StoryHighlightIntro = styled.div`
 `;
 
 const StoryHighlightTitle = styled.h2`
+  ${editorialHeadingStyles}
   color: inherit;
-  font-family: var(--font-editorial), Georgia, serif;
   font-size: clamp(1.5rem, 2.8vw, 2rem);
-  letter-spacing: -0.04em;
   line-height: 1.05;
   margin: 0;
 `;
@@ -793,7 +822,7 @@ const StoryHighlightText = styled.p`
   font-size: 0.97rem;
   line-height: 1.72;
   margin: 0;
-  max-width: 58ch;
+  max-width: none;
 `;
 
 const StoryHighlightGrid = styled.div`
@@ -808,7 +837,7 @@ const StoryHighlightGrid = styled.div`
 const StoryHighlightCard = styled.div`
   background: rgba(255, 247, 235, 0.08);
   border: 1px solid rgba(255, 239, 214, 0.12);
-  border-radius: 18px;
+  border-radius: var(--theme-radius-md);
   display: grid;
   gap: 0.3rem;
   padding: 0.85rem 0.95rem;
@@ -823,8 +852,8 @@ const StoryHighlightLabel = styled.span`
 `;
 
 const StoryHighlightValue = styled.span`
-  color: #fffaf3;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
+  color: var(--theme-story-highlight-text);
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.3;
@@ -832,10 +861,7 @@ const StoryHighlightValue = styled.span`
 `;
 
 const StoryHeroAside = styled.aside`
-  background: linear-gradient(180deg, rgba(255, 250, 242, 0.9), rgba(249, 243, 233, 0.96));
-  border: 1px solid rgba(96, 76, 46, 0.12);
-  border-radius: 24px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  ${storyPaperPanelStyles}
   display: grid;
   gap: 1rem;
   min-width: 0;
@@ -847,16 +873,14 @@ const StoryHeroAside = styled.aside`
 `;
 
 const StoryHeroAsideTitle = styled.h2`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
   font-size: 1.45rem;
-  letter-spacing: -0.04em;
   line-height: 1.12;
   margin: 0;
 `;
 
 const StoryHeroAsideText = styled.p`
-  color: rgba(78, 61, 37, 0.86);
+  color: rgba(var(--theme-story-muted-rgb), 0.9);
   font-size: 0.88rem;
   line-height: 1.6;
   margin: 0;
@@ -868,7 +892,7 @@ const StoryFactList = styled.div`
 `;
 
 const StoryFact = styled.div`
-  border-top: 1px solid rgba(96, 76, 46, 0.12);
+  border-top: 1px solid rgba(var(--theme-story-line-rgb), 0.54);
   display: grid;
   gap: 0.25rem;
   padding-top: 0.75rem;
@@ -880,16 +904,12 @@ const StoryFact = styled.div`
 `;
 
 const StoryFactLabel = styled.span`
-  color: rgba(102, 81, 48, 0.76);
-  font-size: 0.68rem;
+  ${storyLabelStyles}
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 `;
 
 const StoryFactValue = styled.span`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
   font-size: 1.14rem;
   font-weight: 700;
   line-height: 1.35;
@@ -897,7 +917,7 @@ const StoryFactValue = styled.span`
 `;
 
 const StoryLayout = styled.div`
-  border-top: 1px solid rgba(96, 76, 46, 0.14);
+  border-top: 1px solid rgba(var(--theme-story-line-rgb), 0.72);
   display: grid;
   gap: 1.5rem;
   padding-top: 1.55rem;
@@ -927,12 +947,7 @@ const StorySidebar = styled.aside`
 `;
 
 const StoryImagePanel = styled.div`
-  background: rgba(255, 251, 244, 0.84);
-  border: 1px solid rgba(96, 76, 46, 0.12);
-  border-radius: 24px;
-  box-shadow:
-    0 18px 50px rgba(62, 47, 24, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  ${storyPaperPanelStyles}
   display: grid;
   gap: 0.55rem;
   overflow: hidden;
@@ -953,27 +968,27 @@ const StorySectionHeader = styled.div`
 `;
 
 const StorySectionLead = styled.p`
-  color: rgba(78, 61, 37, 0.86);
+  color: rgba(var(--theme-story-muted-rgb), 0.9);
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
-  max-width: 52ch;
+  max-width: none;
 `;
 
 const StoryContentPanel = styled.section`
   background:
-    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(250, 244, 235, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(var(--theme-story-paper-alt-rgb), 0.98)),
     repeating-linear-gradient(
       180deg,
-      rgba(99, 78, 45, 0.02) 0,
-      rgba(99, 78, 45, 0.02) 1px,
+      rgba(var(--theme-story-line-rgb), 0.14) 0,
+      rgba(var(--theme-story-line-rgb), 0.14) 1px,
       transparent 1px,
       transparent 34px
     );
-  border: 1px solid rgba(96, 76, 46, 0.12);
-  border-radius: 28px;
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.58);
+  border-radius: var(--theme-radius-lg);
   box-shadow:
-    0 24px 60px rgba(61, 45, 24, 0.06),
+    0 24px 60px rgba(var(--theme-story-ink-rgb), 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.78);
   display: grid;
   gap: 1rem;
@@ -982,7 +997,12 @@ const StoryContentPanel = styled.section`
   position: relative;
 
   &::before {
-    background: linear-gradient(90deg, rgba(46, 35, 18, 0.84), rgba(131, 92, 33, 0.42), transparent);
+    background: linear-gradient(
+      90deg,
+      rgba(var(--theme-story-ink-rgb), 0.84),
+      rgba(var(--theme-story-accent-rgb), 0.42),
+      transparent
+    );
     content: "";
     height: 2px;
     left: clamp(1.15rem, 3vw, 2rem);
@@ -993,12 +1013,8 @@ const StoryContentPanel = styled.section`
 `;
 
 const StorySectionKicker = styled.p`
-  color: rgba(116, 77, 19, 0.88);
-  font-size: 0.68rem;
-  font-weight: 800;
+  ${storyLabelStyles}
   letter-spacing: 0.22em;
-  margin: 0;
-  text-transform: uppercase;
 `;
 
 const StoryContentIntro = styled.div`
@@ -1007,7 +1023,7 @@ const StoryContentIntro = styled.div`
 `;
 
 const StoryDateline = styled.p`
-  color: rgba(78, 61, 37, 0.88);
+  color: rgba(var(--theme-story-muted-rgb), 0.88);
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 0.7rem;
@@ -1016,7 +1032,7 @@ const StoryDateline = styled.p`
 `;
 
 const StoryDatelineSource = styled.span`
-  color: #24180f;
+  color: var(--theme-story-ink);
   font-weight: 800;
 `;
 
@@ -1039,28 +1055,26 @@ const StoryReadingTitleGroup = styled.div`
 `;
 
 const StoryReadingTitle = styled.h2`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
   font-size: clamp(1.7rem, 3vw, 2.2rem);
-  letter-spacing: -0.04em;
   line-height: 1.04;
   margin: 0;
 `;
 
 const StoryReadingText = styled.p`
-  color: rgba(78, 61, 37, 0.86);
+  color: rgba(var(--theme-story-muted-rgb), 0.9);
   font-size: 0.95rem;
   line-height: 1.65;
   margin: 0;
-  max-width: 54ch;
+  max-width: none;
 `;
 
 const StoryReadingBadge = styled.span`
   align-items: center;
-  background: rgba(120, 81, 28, 0.06);
-  border: 1px solid rgba(120, 81, 28, 0.12);
+  background: rgba(var(--theme-story-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--theme-story-accent-rgb), 0.12);
   border-radius: 999px;
-  color: #6d4b19;
+  color: var(--theme-story-accent);
   display: inline-flex;
   font-size: 0.75rem;
   font-weight: 800;
@@ -1080,12 +1094,12 @@ const StoryMediaGallery = styled.div`
 `;
 
 const StoryContent = styled.div`
-  color: #2b2217;
+  color: rgba(var(--theme-story-ink-rgb), 0.96);
   font-family: var(--font-editorial), Georgia, serif;
   font-size: clamp(1.12rem, 1.7vw, 1.28rem);
   line-height: 1.92;
-  margin: 0 auto;
-  max-width: 36em;
+  margin: 0;
+  max-width: var(--theme-reading-max-width);
   overflow: hidden;
 
   > :first-child {
@@ -1095,7 +1109,7 @@ const StoryContent = styled.div`
   > article > section:first-of-type p:first-of-type::first-letter,
   > article > p:first-of-type::first-letter,
   > p:first-of-type::first-letter {
-    color: #4d3510;
+    color: var(--theme-story-accent);
     float: left;
     font-size: 3.65em;
     font-weight: 700;
@@ -1114,14 +1128,14 @@ const StoryContent = styled.div`
   }
 
   img {
-    border: 1px solid rgba(96, 76, 46, 0.12);
-    border-radius: 18px;
+    border: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
+    border-radius: var(--theme-radius-md);
     display: block;
     max-width: 100%;
   }
 
   figcaption {
-    color: rgba(96, 76, 46, 0.8);
+    color: rgba(var(--theme-story-muted-rgb), 0.82);
     font-family: var(--font-ui), "Segoe UI", sans-serif;
     font-size: 0.86rem;
     line-height: 1.55;
@@ -1134,16 +1148,14 @@ const StoryContent = styled.div`
   }
 
   section + section {
-    border-top: 1px solid rgba(96, 76, 46, 0.12);
+    border-top: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
     margin-top: 1.8rem;
     padding-top: 1.45rem;
   }
 
   h2,
   h3 {
-    color: #24180f;
-    font-family: var(--font-editorial), Georgia, serif;
-    letter-spacing: -0.04em;
+    ${editorialHeadingStyles}
     line-height: 1.12;
     margin: 2.1rem 0 0.95rem;
   }
@@ -1167,28 +1179,23 @@ const StoryContent = styled.div`
   }
 
   blockquote {
-    background: linear-gradient(180deg, rgba(255, 249, 240, 0.98), rgba(250, 241, 229, 0.94));
-    border-left: 4px solid rgba(131, 92, 33, 0.72);
+    background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(var(--theme-story-paper-alt-rgb), 0.98));
+    border-left: 4px solid rgba(var(--theme-story-accent-rgb), 0.72);
     border-radius: 0 22px 22px 0;
-    color: #332417;
+    color: rgba(var(--theme-story-ink-rgb), 0.92);
     margin: 1.45rem 0;
     padding: 1.05rem 1.15rem;
   }
 
   a {
-    color: #7b4d10;
+    color: var(--theme-story-accent);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.16em;
   }
 `;
 
 const StoryRailSection = styled.section`
-  background: linear-gradient(180deg, rgba(255, 251, 244, 0.92), rgba(249, 243, 233, 0.96));
-  border: 1px solid rgba(96, 76, 46, 0.12);
-  border-radius: 24px;
-  box-shadow:
-    0 18px 48px rgba(61, 45, 24, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  ${storyPaperPanelStyles}
   display: grid;
   gap: 0.7rem;
   min-width: 0;
@@ -1196,16 +1203,14 @@ const StoryRailSection = styled.section`
 `;
 
 const StoryRailTitle = styled.h2`
-  color: #24180f;
-  font-family: var(--font-editorial), Georgia, serif;
+  ${editorialHeadingStyles}
   font-size: 1.35rem;
-  letter-spacing: -0.04em;
   line-height: 1.1;
   margin: 0;
 `;
 
 const StoryRailText = styled.p`
-  color: rgba(78, 61, 37, 0.88);
+  color: rgba(var(--theme-story-muted-rgb), 0.88);
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
@@ -1218,16 +1223,16 @@ const StoryRelatedList = styled.div`
 
 const StoryRelatedCard = styled(Link)`
   background: rgba(255, 255, 255, 0.54);
-  border: 1px solid rgba(96, 76, 46, 0.08);
-  border-radius: 18px;
-  color: #24180f;
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.36);
+  border-radius: var(--theme-radius-md);
+  color: var(--theme-story-ink);
   display: grid;
   gap: 0.32rem;
   padding: 0.8rem 0.9rem;
 `;
 
 const StoryRelatedEyebrow = styled.span`
-  color: rgba(102, 81, 48, 0.76);
+  color: rgba(var(--theme-story-label-rgb), 0.76);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1241,23 +1246,23 @@ const StoryShareGrid = styled.div`
 `;
 
 const StoryShareLink = styled.a`
-  background: rgba(120, 81, 28, 0.06);
-  border: 1px solid rgba(120, 81, 28, 0.14);
+  background: rgba(var(--theme-story-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--theme-story-accent-rgb), 0.14);
   border-radius: 999px;
-  color: #6d4b19;
+  color: var(--theme-story-accent);
   font-size: 0.8rem;
   font-weight: 700;
   padding: 0.42rem 0.76rem;
 `;
 
 const StorySourceLink = styled.a`
-  color: #24180f;
+  color: var(--theme-story-ink);
   display: grid;
   gap: 0.28rem;
 `;
 
 const StorySourceUrl = styled.span`
-  color: rgba(78, 61, 37, 0.84);
+  color: rgba(var(--theme-story-muted-rgb), 0.84);
   font-size: 0.86rem;
   line-height: 1.5;
   overflow-wrap: anywhere;

@@ -6,7 +6,7 @@ import styled from "styled-components";
 
 const Form = styled.form`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.32rem;
   grid-template-columns: minmax(0, 1fr) auto;
 
   @media (max-width: 640px) {
@@ -15,13 +15,15 @@ const Form = styled.form`
 `;
 
 const Input = styled.input`
-  background: rgba(255, 255, 255, 0.96);
+  background:
+    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(255, 255, 255, 0.94)),
+    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.08), transparent 48%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.92);
-  border-radius: 999px;
+  border-radius: var(--theme-radius-md);
   color: var(--theme-text);
   font: inherit;
-  min-height: 44px;
-  padding: 0 0.95rem;
+  min-height: 38px;
+  padding: 0 0.78rem;
   width: 100%;
 
   &:focus {
@@ -32,18 +34,19 @@ const Input = styled.input`
 `;
 
 const Button = styled.button`
-  background: var(--theme-primary);
+  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-story-accent) 100%);
   border: none;
-  border-radius: 999px;
+  border-radius: var(--theme-radius-md);
+  box-shadow: 0 12px 28px rgba(var(--theme-primary-rgb), 0.18);
   color: white;
   cursor: pointer;
   font: inherit;
   font-weight: 700;
-  min-height: 44px;
-  padding: 0 1rem;
+  min-height: 38px;
+  padding: 0 0.84rem;
 
   @media (max-width: 640px) {
-    min-height: 46px;
+    min-height: 40px;
     width: 100%;
   }
 `;

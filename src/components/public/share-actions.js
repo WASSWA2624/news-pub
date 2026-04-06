@@ -19,17 +19,17 @@ const Panel = styled.section`
     0 18px 38px rgba(var(--theme-primary-rgb), 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
   display: grid;
-  gap: 1rem;
+  gap: 0.72rem;
   overflow: hidden;
-  padding: clamp(1rem, 2.5vw, 1.22rem);
+  padding: clamp(0.8rem, 2vw, 0.98rem);
   position: relative;
 
   ${({ $compact }) =>
     $compact &&
     css`
       border-radius: 16px;
-      gap: 0.8rem;
-      padding: 0.78rem 0.92rem 0.96rem;
+      gap: 0.62rem;
+      padding: 0.64rem 0.78rem 0.8rem;
     `}
 
   &::before {
@@ -39,11 +39,11 @@ const Panel = styled.section`
       rgba(var(--theme-accent-rgb), 0.42)
     );
     content: "";
-    height: 4px;
-    left: 1rem;
+    height: 3px;
+    left: 0.8rem;
     position: absolute;
-    right: 1rem;
-    top: 1rem;
+    right: 0.8rem;
+    top: 0.8rem;
     border-radius: 999px;
 
     ${({ $compact }) =>
@@ -51,7 +51,7 @@ const Panel = styled.section`
       css`
         left: 0.92rem;
         right: 0.92rem;
-        top: 0.66rem;
+        top: 0.54rem;
       `}
   }
 `;
@@ -59,13 +59,13 @@ const Panel = styled.section`
 const SectionHeader = styled.div`
   display: grid;
   gap: 0.22rem;
-  padding-top: 0.6rem;
+  padding-top: 0.46rem;
 
   ${({ $compact }) =>
     $compact &&
     css`
       gap: 0.16rem;
-      padding-top: 0.42rem;
+      padding-top: 0.3rem;
     `}
 `;
 
@@ -109,7 +109,7 @@ const SectionDescription = styled.p`
 
 const ShareButtonRow = styled.div`
   display: grid;
-  gap: 0.72rem;
+  gap: 0.54rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
 
   @media (max-width: 520px) {
@@ -139,8 +139,8 @@ const shareTileStyles = css`
   display: inline-flex;
   font-weight: 800;
   justify-content: flex-start;
-  min-height: 78px;
-  padding: 0.78rem 0.85rem;
+  min-height: 66px;
+  padding: 0.64rem 0.72rem;
   position: relative;
   text-align: left;
   transition:
@@ -165,8 +165,8 @@ const shareTileStyles = css`
     $compact &&
     css`
       border-radius: 14px;
-      min-height: 52px;
-      padding: 0.56rem 0.62rem;
+      min-height: 46px;
+      padding: 0.46rem 0.54rem;
     `}
 `;
 
@@ -182,7 +182,7 @@ const ShareButton = styled.button`
 const ShareTileContent = styled.span`
   align-items: center;
   display: grid;
-  gap: 0.64rem;
+  gap: 0.5rem;
   grid-template-columns: auto minmax(0, 1fr);
   width: 100%;
 
@@ -202,16 +202,16 @@ const ShareIconBadge = styled.span`
   color: ${({ $accent }) => $accent};
   display: inline-flex;
   flex: 0 0 auto;
-  height: 2.75rem;
+  height: 2.4rem;
   justify-content: center;
-  width: 2.75rem;
+  width: 2.4rem;
 
   ${({ $compact }) =>
     $compact &&
     css`
       border-radius: 12px;
-      height: 2.15rem;
-      width: 2.15rem;
+      height: 1.95rem;
+      width: 1.95rem;
     `}
 `;
 

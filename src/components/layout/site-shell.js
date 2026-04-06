@@ -54,10 +54,10 @@ const Header = styled.header`
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.9rem;
+  gap: 0.6rem;
   margin: 0 auto;
-  max-width: 1280px;
-  padding: clamp(0.72rem, 1.8vw, 0.9rem) clamp(0.82rem, 2.2vw, 1rem);
+  max-width: var(--theme-shell-max-width);
+  padding: clamp(0.56rem, 1.4vw, 0.72rem) clamp(0.7rem, 1.8vw, 0.88rem);
 
   @media (min-width: 980px) {
     align-items: center;
@@ -69,7 +69,7 @@ const BrandLink = styled(Link)`
   align-items: center;
   color: ${({ theme }) => theme?.colors?.text ?? "var(--theme-text)"};
   display: inline-flex;
-  gap: 0.65rem;
+  gap: 0.48rem;
 `;
 
 const BrandTitle = styled.span`
@@ -81,21 +81,21 @@ const BrandTitle = styled.span`
 
 const HeaderMeta = styled.div`
   display: grid;
-  gap: 0.35rem;
+  gap: 0.22rem;
 `;
 
 const HeaderTagline = styled.p`
   color: ${({ theme }) => theme?.colors?.muted ?? "var(--theme-muted)"};
   margin: 0;
-  max-width: 52ch;
+  max-width: 64ch;
 `;
 
 const Navigation = styled.nav`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.9rem;
+  gap: 0.62rem;
   overflow-x: auto;
-  padding-bottom: 0.18rem;
+  padding-bottom: 0.08rem;
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
@@ -133,9 +133,9 @@ const DropdownSummary = styled.summary`
   display: inline-flex;
   font-size: 0.95rem;
   font-weight: ${({ $active, $open }) => ($open || $active ? 800 : 700)};
-  gap: 0.45rem;
+  gap: 0.32rem;
   list-style: none;
-  padding: 0.38rem 0.76rem;
+  padding: 0.28rem 0.62rem;
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 
   &:hover {
@@ -161,16 +161,16 @@ const DropdownChevron = styled.span`
 `;
 
 const DropdownList = styled.div`
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(var(--theme-surface-rgb), 0.98);
   border: 1px solid rgba(var(--theme-border-rgb), 0.92);
-  border-radius: 16px;
+  border-radius: var(--theme-radius-md);
   box-shadow: 0 24px 48px rgba(var(--theme-primary-rgb), 0.12);
   display: grid;
-  gap: 0.25rem;
+  gap: 0.18rem;
   max-height: min(62vh, 360px);
   min-width: 260px;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.38rem;
   position: absolute;
   top: calc(100% + 0.6rem);
   z-index: 10;
@@ -189,23 +189,23 @@ const DropdownList = styled.div`
 
   @media (max-width: 780px) {
     position: static;
-    margin-top: 0.55rem;
+    margin-top: 0.4rem;
     width: 100%;
   }
 `;
 
 const DropdownLink = styled(Link)`
   align-items: center;
-  border-radius: 12px;
+  border-radius: var(--theme-radius-sm);
   color: var(--theme-text);
   display: flex;
   font-size: 0.92rem;
   font-weight: 700;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0.7rem;
+  gap: 0.55rem;
+  padding: 0.5rem 0.56rem;
   transition: background 0.18s ease, color 0.18s ease;
-  min-height: 44px;
+  min-height: 38px;
 
   &:hover {
     background: rgba(var(--theme-primary-rgb), 0.08);
@@ -244,19 +244,19 @@ const Content = styled.div`
 
 const Footer = styled.footer`
   background:
-    radial-gradient(circle at top left, rgba(78, 145, 192, 0.22), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(29, 63, 102, 0.2), transparent 32%),
-    linear-gradient(180deg, #17314d 0%, #0f2236 100%);
+    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.24), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(var(--theme-primary-rgb), 0.22), transparent 32%),
+    linear-gradient(180deg, rgba(var(--theme-text-rgb), 0.96) 0%, rgba(var(--theme-primary-rgb), 0.98) 100%);
   color: rgba(255, 255, 255, 0.96);
   margin-top: auto;
 `;
 
 const FooterInner = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: 0.72rem;
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 1.5rem 1rem;
+  max-width: var(--theme-shell-max-width);
+  padding: 1.1rem 0.88rem;
 
   @media (min-width: 900px) {
     align-items: start;
@@ -273,7 +273,7 @@ const FooterCopy = styled.p`
 
 const FooterSection = styled.div`
   display: grid;
-  gap: 0.5rem;
+  gap: 0.34rem;
 `;
 
 const FooterSectionTitle = styled.span`
@@ -286,7 +286,7 @@ const FooterSectionTitle = styled.span`
 
 const FooterLinkList = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.3rem;
 `;
 
 const FooterLink = styled(Link)`
@@ -298,8 +298,8 @@ const FooterBottom = styled.div`
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(230, 237, 245, 0.82);
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 0 1rem 1rem;
+  max-width: var(--theme-shell-max-width);
+  padding: 0 0.88rem 0.72rem;
 `;
 
 /**
@@ -310,8 +310,8 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
   const searchParams = useSearchParams();
   const categoryDropdownRef = useRef(null);
   const countryDropdownRef = useRef(null);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [openDropdownRouteKey, setOpenDropdownRouteKey] = useState("");
   const currentYear = new Date().getFullYear();
   const searchBarCopy = messages.site.searchBar || {};
   const headerTagline = typeof messages.site.tagline === "string" ? messages.site.tagline.trim() : "";
@@ -324,18 +324,18 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
   const privacyHref = buildLocalizedPath(locale, publicRouteSegments.privacy);
   const isCategoryActive = normalizePathname(pathname).startsWith(`/${locale}/category`);
   const countryQuery = typeof searchParams?.get("country") === "string" ? searchParams.get("country").trim() : "";
+  const routeStateKey = `${normalizePathname(pathname)}|${countryQuery}`;
+  const isCategoryOpen =
+    openDropdown === "category" && openDropdownRouteKey === routeStateKey;
   const isCountryActive = normalizePathname(pathname) === normalizePathname(searchHref) && Boolean(countryQuery);
+  const isCountryOpen =
+    openDropdown === "country" && openDropdownRouteKey === routeStateKey;
   const primaryLinks = [
     { href: homeHref, key: "home", label: messages.site.navigation.home },
     { href: newsHref, key: "news", label: messages.site.navigation.news },
     { href: searchHref, key: "search", label: messages.site.navigation.search },
     { href: aboutHref, key: "about", label: messages.site.navigation.about },
   ];
-
-  useEffect(() => {
-    setIsCategoryOpen(false);
-    setIsCountryOpen(false);
-  }, [pathname, countryQuery]);
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -347,15 +347,13 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
         countryDropdownRef.current &&
         !countryDropdownRef.current.contains(target)
       ) {
-        setIsCategoryOpen(false);
-        setIsCountryOpen(false);
+        setOpenDropdown(null);
       }
     }
 
     function handleKeyDown(event) {
       if (event.key === "Escape") {
-        setIsCategoryOpen(false);
-        setIsCountryOpen(false);
+        setOpenDropdown(null);
       }
     }
 
@@ -369,24 +367,10 @@ export default function SiteShell({ categoryLinks = [], children, countryLinks =
   }, []);
 
   function handleDropdownToggle(kind) {
-    if (kind === "category") {
-      setIsCategoryOpen((current) => {
-        const next = !current;
-        if (next) {
-          setIsCountryOpen(false);
-        }
-        return next;
-      });
-      return;
-    }
+    const nextIsOpen = openDropdown === kind && openDropdownRouteKey === routeStateKey ? null : kind;
 
-    setIsCountryOpen((current) => {
-      const next = !current;
-      if (next) {
-        setIsCategoryOpen(false);
-      }
-      return next;
-    });
+    setOpenDropdown(nextIsOpen);
+    setOpenDropdownRouteKey(routeStateKey);
   }
 
   return (

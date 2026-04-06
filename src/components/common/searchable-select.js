@@ -4,10 +4,10 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 
-const VIEWPORT_MARGIN = 10;
-const DROPDOWN_GAP = 8;
+const VIEWPORT_MARGIN = 8;
+const DROPDOWN_GAP = 6;
 const MIN_DROPDOWN_WIDTH = 240;
-const BASE_DROPDOWN_WIDTH = 320;
+const BASE_DROPDOWN_WIDTH = 300;
 const MAX_DROPDOWN_WIDTH = 460;
 const DEFAULT_DROPDOWN_HEIGHT = 320;
 const MIN_FIT_THRESHOLD = 200;
@@ -261,11 +261,11 @@ const TriggerButton = styled.button`
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
-  gap: 0.55rem;
+  gap: 0.42rem;
   justify-content: space-between;
-  min-height: 38px;
+  min-height: 34px;
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0.58rem 0.72rem;
+  padding: 0.46rem 0.58rem;
   text-align: left;
   transition:
     background 160ms ease,
@@ -306,7 +306,7 @@ const CompactTriggerButton = styled(TriggerButton)`
 const TriggerValue = styled.span`
   display: grid;
   flex: 1 1 auto;
-  gap: 0.24rem;
+  gap: 0.18rem;
   min-width: 0;
 
   @container (max-width: 220px) {
@@ -338,7 +338,7 @@ const TriggerDescription = styled.span`
 const TriggerChipRow = styled.span`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.34rem;
+  gap: 0.24rem;
 `;
 
 const TriggerChip = styled.span`
@@ -356,8 +356,8 @@ const TriggerChip = styled.span`
   line-height: 1;
   overflow: hidden;
   max-width: 100%;
-  min-height: 21px;
-  padding: 0 0.42rem;
+  min-height: 19px;
+  padding: 0 0.34rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -366,7 +366,7 @@ const TriggerAdornment = styled.span`
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0.42rem;
+  gap: 0.3rem;
 
   @container (max-width: 220px) {
     margin-left: auto;
@@ -384,7 +384,7 @@ const TriggerBadge = styled.span`
   letter-spacing: 0.08em;
   max-width: 6.8rem;
   overflow: hidden;
-  padding: 0.2rem 0.4rem;
+  padding: 0.14rem 0.32rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -411,12 +411,12 @@ const DropdownSurface = styled.div`
     0 6px 16px rgba(16, 32, 51, 0.05);
   animation: ${dropdownEnter} 180ms cubic-bezier(0.22, 1, 0.36, 1);
   display: grid;
-  gap: 0.48rem;
+  gap: 0.36rem;
   grid-template-rows: auto minmax(0, 1fr);
   left: ${({ $layout }) => `${$layout?.left || 0}px`};
   max-height: ${({ $layout }) => `${$layout?.maxHeight || DEFAULT_DROPDOWN_HEIGHT}px`};
   overflow: hidden;
-  padding: 0.52rem;
+  padding: 0.4rem;
   position: fixed;
   top: ${({ $layout }) => `${$layout?.top || 0}px`};
   transform-origin: ${({ $layout }) => getDropdownTransformOrigin($layout)};
@@ -431,14 +431,14 @@ const DropdownTop = styled.div`
   border: 1px solid rgba(24, 39, 66, 0.06);
   border-radius: 12px;
   display: grid;
-  gap: 0.42rem;
-  padding: 0.52rem;
+  gap: 0.3rem;
+  padding: 0.4rem;
 `;
 
 const DropdownHeader = styled.div`
   align-items: center;
   display: flex;
-  gap: 0.55rem;
+  gap: 0.4rem;
   justify-content: space-between;
 `;
 
@@ -461,8 +461,8 @@ const DropdownMeta = styled.span`
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 21px;
-  padding: 0 0.42rem;
+  min-height: 19px;
+  padding: 0 0.34rem;
   text-transform: uppercase;
 `;
 
@@ -473,9 +473,9 @@ const SearchWrap = styled.div`
   border-radius: 10px;
   display: flex;
   flex: 0 0 auto;
-  gap: 0.45rem;
-  min-height: 34px;
-  padding: 0 0.62rem;
+  gap: 0.32rem;
+  min-height: 30px;
+  padding: 0 0.48rem;
 
   &:focus-within {
     border-color: rgba(15, 111, 141, 0.22);
@@ -525,7 +525,7 @@ const OptionList = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  gap: 0.3rem;
+  gap: 0.22rem;
   max-height: 100%;
   min-height: 0;
   overflow: auto;
@@ -567,12 +567,12 @@ const OptionButton = styled.button`
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: grid;
   flex: 0 0 auto;
-  gap: 0.24rem;
+  gap: 0.18rem;
   height: auto;
-  min-height: 42px;
+  min-height: 38px;
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
   overflow: hidden;
-  padding: 0.58rem 0.7rem 0.58rem 0.8rem;
+  padding: 0.46rem 0.56rem 0.46rem 0.64rem;
   text-align: left;
   transition:
     background 160ms ease,
@@ -590,10 +590,10 @@ const OptionButton = styled.button`
           : "transparent"};
     border-radius: 999px;
     content: "";
-    left: 0.34rem;
+    left: 0.26rem;
     position: absolute;
-    top: 0.6rem;
-    bottom: 0.6rem;
+    top: 0.48rem;
+    bottom: 0.48rem;
     width: 3px;
   }
 
@@ -617,7 +617,7 @@ const OptionButton = styled.button`
 const OptionHeader = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.38rem;
+  gap: 0.28rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
@@ -639,7 +639,7 @@ const OptionMeta = styled.div`
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0.28rem;
+  gap: 0.2rem;
   justify-self: end;
   padding-top: 0.04rem;
 `;
@@ -656,7 +656,7 @@ const OptionBadge = styled.span`
   letter-spacing: 0.08em;
   max-width: 8rem;
   overflow: hidden;
-  padding: 0.16rem 0.34rem;
+  padding: 0.12rem 0.28rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -704,8 +704,8 @@ const StateMessage = styled.div`
   font-size: 0.76rem;
   justify-items: center;
   line-height: 1.55;
-  min-height: 78px;
-  padding: 0.85rem 0.72rem;
+  min-height: 68px;
+  padding: 0.68rem 0.58rem;
   text-align: center;
 `;
 

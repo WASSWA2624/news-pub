@@ -39,20 +39,33 @@ const GlobalStyles = createGlobalStyle`
     --theme-surface-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.surface || "#f8fbff")};
     --theme-text: ${({ theme }) => theme?.colors?.text || "#152844"};
     --theme-text-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.text || "#152844")};
+    --theme-page-max-width: ${({ theme }) => theme?.layout?.pageMaxWidth || "1480px"};
+    --theme-reading-max-width: ${({ theme }) => theme?.layout?.readingMaxWidth || "100%"};
+    --theme-shell-max-width: ${({ theme }) => theme?.layout?.shellMaxWidth || "1480px"};
+    --theme-radius-lg: ${({ theme }) => theme?.radius?.lg || "28px"};
+    --theme-radius-md: ${({ theme }) => theme?.radius?.md || "18px"};
+    --theme-radius-sm: ${({ theme }) => theme?.radius?.sm || "12px"};
+    --theme-story-accent: ${({ theme }) => theme?.story?.accent || "#145f6d"};
+    --theme-story-accent-rgb: ${({ theme }) => toRgbChannels(theme?.story?.accent || "#145f6d")};
+    --theme-story-highlight-from: ${({ theme }) => theme?.story?.highlightFrom || "#18324a"};
+    --theme-story-highlight-to: ${({ theme }) => theme?.story?.highlightTo || "#145f6d"};
+    --theme-story-highlight-text: ${({ theme }) => theme?.story?.highlightText || "#f8f4eb"};
+    --theme-story-ink: ${({ theme }) => theme?.story?.ink || "#1f2937"};
+    --theme-story-ink-rgb: ${({ theme }) => toRgbChannels(theme?.story?.ink || "#1f2937")};
+    --theme-story-label: ${({ theme }) => theme?.story?.label || "#8b5e34"};
+    --theme-story-label-rgb: ${({ theme }) => toRgbChannels(theme?.story?.label || "#8b5e34")};
+    --theme-story-line: ${({ theme }) => theme?.story?.line || "#d7c8b4"};
+    --theme-story-line-rgb: ${({ theme }) => toRgbChannels(theme?.story?.line || "#d7c8b4")};
+    --theme-story-muted: ${({ theme }) => theme?.story?.muted || "#5d6875"};
+    --theme-story-muted-rgb: ${({ theme }) => toRgbChannels(theme?.story?.muted || "#5d6875")};
+    --theme-story-paper: ${({ theme }) => theme?.story?.paper || "#fffdf8"};
+    --theme-story-paper-rgb: ${({ theme }) => toRgbChannels(theme?.story?.paper || "#fffdf8")};
+    --theme-story-paper-alt: ${({ theme }) => theme?.story?.paperAlt || "#f5efe4"};
+    --theme-story-paper-alt-rgb: ${({ theme }) => toRgbChannels(theme?.story?.paperAlt || "#f5efe4")};
   }
 
   * {
     box-sizing: border-box;
-  }
-
-  *,
-  *::before,
-  *::after {
-    border-radius: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
   }
 
   html,
@@ -98,6 +111,7 @@ const GlobalStyles = createGlobalStyle`
 
   button,
   input,
+  select,
   textarea {
     font: inherit;
   }

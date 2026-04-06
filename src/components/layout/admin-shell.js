@@ -265,27 +265,27 @@ const HeaderSurface = styled.div`
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.2rem;
   margin: 0 auto;
   max-width: 1420px;
   padding:
-    clamp(0.28rem, 0.8vw, 0.4rem)
-    clamp(0.45rem, 1.1vw, 0.8rem)
-    clamp(0.3rem, 0.8vw, 0.45rem);
+    clamp(0.22rem, 0.65vw, 0.34rem)
+    clamp(0.38rem, 0.95vw, 0.66rem)
+    clamp(0.22rem, 0.65vw, 0.36rem);
   position: relative;
   width: 100%;
 
   @media (max-width: 479px) {
     padding:
-      0.42rem
-      0.34rem
-      0.46rem;
+      0.32rem
+      0.28rem
+      0.34rem;
   }
 `;
 
 const MobileHeaderLayout = styled.div`
   display: grid;
-  gap: 0.28rem;
+  gap: 0.2rem;
 
   @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     display: none;
@@ -298,7 +298,7 @@ const DesktopBar = styled.div`
   @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     align-items: center;
     display: grid;
-    gap: 0.4rem;
+    gap: 0.3rem;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 `;
@@ -306,7 +306,7 @@ const DesktopBar = styled.div`
 const TopRow = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.34rem;
+  gap: 0.24rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
@@ -314,12 +314,12 @@ const BrandLink = styled(Link)`
   align-items: start;
   color: white;
   display: inline-flex;
-  gap: 0.42rem;
+  gap: 0.32rem;
   min-width: 0;
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.38rem;
   }
 `;
 
@@ -354,7 +354,7 @@ const ProfileTrigger = styled.button`
   color: white;
   cursor: pointer;
   display: inline-grid;
-  height: 2.5rem;
+  height: 2.15rem;
   justify-self: end;
   padding: 0;
   place-items: center;
@@ -362,7 +362,7 @@ const ProfileTrigger = styled.button`
     background 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
-  width: 2.5rem;
+  width: 2.15rem;
 
   &:hover {
     background:
@@ -402,7 +402,7 @@ const ProfileMenu = styled.div`
   overflow: hidden;
   position: absolute;
   right: 0;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.35rem);
   width: min(calc(100vw - 1.2rem), 300px);
   z-index: 55;
 `;
@@ -410,7 +410,7 @@ const ProfileMenu = styled.div`
 const ProfileHeader = styled.div`
   align-items: center;
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
   grid-template-columns: auto minmax(0, 1fr);
 `;
 
@@ -427,16 +427,16 @@ const ProfileInitialsBadge = styled.span`
   display: inline-flex;
   font-size: 0.94rem;
   font-weight: 900;
-  height: 3rem;
+  height: 2.65rem;
   justify-content: center;
   letter-spacing: 0.08em;
   text-indent: 0.08em;
-  width: 3rem;
+  width: 2.65rem;
 `;
 
 const ProfileCopy = styled.div`
   display: grid;
-  gap: 0.16rem;
+  gap: 0.12rem;
   min-width: 0;
 `;
 
@@ -465,7 +465,7 @@ const ProfileRolePill = styled.span`
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  padding: 0.32rem 0.55rem;
+  padding: 0.24rem 0.44rem;
   text-transform: uppercase;
   white-space: nowrap;
 `;
@@ -473,14 +473,14 @@ const ProfileRolePill = styled.span`
 const NavRow = styled.div`
   align-items: center;
   display: grid;
-  gap: 0.3rem;
+  gap: 0.2rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const PrimaryNavScroller = styled.div`
   min-width: 0;
   overflow-x: auto;
-  padding-bottom: 0.1rem;
+  padding-bottom: 0.04rem;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 
@@ -492,11 +492,11 @@ const PrimaryNavScroller = styled.div`
 const PrimaryNav = styled.nav`
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.14rem;
   min-width: max-content;
 
   @media (max-width: 479px) {
-    gap: 0.04rem;
+    gap: 0.02rem;
   }
 `;
 
@@ -510,8 +510,8 @@ const PrimaryNavLink = styled(Link)`
   font-size: clamp(0.76rem, 0.92vw, 0.88rem);
   font-weight: ${({ $active }) => ($active ? 800 : 650)};
   letter-spacing: -0.03em;
-  min-height: 32px;
-  padding: 0.1rem 0.45rem 0.24rem;
+  min-height: 28px;
+  padding: 0.08rem 0.36rem 0.18rem;
   position: relative;
   transition:
     color 160ms ease,
@@ -521,13 +521,13 @@ const PrimaryNavLink = styled(Link)`
 
   @media (max-width: 479px) {
     font-size: 0.74rem;
-    min-height: 28px;
-    padding: 0.08rem 0.3rem 0.2rem;
+    min-height: 25px;
+    padding: 0.06rem 0.24rem 0.16rem;
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    min-height: 31px;
-    padding: 0.08rem 0.42rem 0.22rem;
+    min-height: 28px;
+    padding: 0.06rem 0.34rem 0.18rem;
   }
 
   &::after {
@@ -537,23 +537,23 @@ const PrimaryNavLink = styled(Link)`
     bottom: 0;
     content: "";
     height: ${({ $active }) => ($active ? "2px" : "1px")};
-    left: 0.45rem;
+    left: 0.36rem;
     opacity: ${({ $active }) => ($active ? 1 : 0)};
     position: absolute;
-    right: 0.45rem;
+    right: 0.36rem;
     transform: translateY(0);
     transition:
       opacity 160ms ease,
       background 160ms ease;
 
     @media (max-width: 479px) {
-      left: 0.3rem;
-      right: 0.3rem;
+      left: 0.24rem;
+      right: 0.24rem;
     }
 
     @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-      left: 0.42rem;
-      right: 0.42rem;
+      left: 0.34rem;
+      right: 0.34rem;
     }
   }
 
@@ -580,23 +580,23 @@ const OverflowButton = styled.button`
   color: white;
   cursor: pointer;
   display: inline-grid;
-  height: 32px;
+  height: 28px;
   justify-items: center;
   padding: 0;
   transition:
     background 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
-  width: 32px;
+  width: 28px;
 
   @media (max-width: 479px) {
-    height: 29px;
-    width: 29px;
+    height: 26px;
+    width: 26px;
   }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    height: 31px;
-    width: 31px;
+    height: 28px;
+    width: 28px;
   }
 
   &:hover {
@@ -608,7 +608,7 @@ const OverflowButton = styled.button`
 
 const OverflowDots = styled.span`
   display: grid;
-  gap: 0.14rem;
+  gap: 0.1rem;
   justify-items: center;
 `;
 
@@ -669,12 +669,12 @@ const OverflowMenu = styled.div`
     0 16px 34px rgba(16, 32, 51, 0.14),
     0 6px 14px rgba(16, 32, 51, 0.08);
   display: ${({ $open }) => ($open ? "grid" : "none")};
-  gap: 0.2rem;
+  gap: 0.14rem;
   min-width: min(calc(100vw - 1.2rem), 280px);
   overflow: hidden;
   position: absolute;
   right: 0;
-  top: calc(100% + 0.45rem);
+  top: calc(100% + 0.32rem);
   width: min(calc(100vw - 1.2rem), 280px);
   z-index: 50;
 
@@ -686,8 +686,8 @@ const OverflowMenu = styled.div`
 
 const OverflowSection = styled.div`
   display: grid;
-  gap: 0.34rem;
-  padding: 0.9rem 1rem;
+  gap: 0.24rem;
+  padding: 0.72rem 0.82rem;
 
   & + & {
     border-top: 1px solid rgba(16, 32, 51, 0.07);
@@ -705,7 +705,7 @@ const OverflowSectionTitle = styled.span`
 
 const OverflowList = styled.div`
   display: grid;
-  gap: 0.24rem;
+  gap: 0.18rem;
 `;
 
 const OverflowLink = styled(Link)`
@@ -723,8 +723,8 @@ const OverflowLink = styled(Link)`
   font-size: 0.86rem;
   font-weight: ${({ $active }) => ($active ? 800 : 600)};
   letter-spacing: -0.02em;
-  min-height: 48px;
-  padding: 0.66rem 0.74rem;
+  min-height: 42px;
+  padding: 0.52rem 0.6rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -773,7 +773,7 @@ const OverflowLinkChevron = styled.span`
 
 const OverflowActions = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.32rem;
 `;
 
 const OverflowActionLink = styled(Link)`
@@ -786,8 +786,8 @@ const OverflowActionLink = styled(Link)`
   font-size: 0.84rem;
   font-weight: 700;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 0.9rem;
+  min-height: 38px;
+  padding: 0 0.72rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -808,13 +808,13 @@ const OverflowLogoutButton = styled(AdminLogoutButton)`
   display: inline-flex;
   font-size: 0.84rem;
   justify-content: center;
-  min-height: 46px;
+  min-height: 40px;
   width: 100%;
 `;
 
 const Main = styled.div`
   flex: 1;
-  padding-bottom: 1rem;
+  padding-bottom: 0.7rem;
 `;
 
 export default function AdminShell({ children, messages, user }) {

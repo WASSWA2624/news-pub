@@ -8,7 +8,7 @@ const Shell = styled.main`
   align-items: center;
   display: grid;
   min-height: 100vh;
-  padding: clamp(0.9rem, 4vw, ${({ theme }) => theme.spacing.xl});
+  padding: clamp(0.72rem, 3vw, ${({ theme }) => theme.spacing.xl});
 `;
 
 const Panel = styled.section`
@@ -33,7 +33,7 @@ const Narrative = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
   order: 2;
-  padding: clamp(2rem, 4vw, 3.5rem);
+  padding: clamp(1.4rem, 3vw, 2.4rem);
 
   @media (min-width: 900px) {
     order: 1;
@@ -79,8 +79,8 @@ const InsightCard = styled.article`
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: ${({ theme }) => theme.radius.md};
   display: grid;
-  gap: 0.4rem;
-  padding: clamp(0.85rem, 2vw, ${({ theme }) => theme.spacing.lg});
+  gap: 0.28rem;
+  padding: clamp(0.68rem, 1.7vw, ${({ theme }) => theme.spacing.lg});
 `;
 
 const InsightTitle = styled.h2`
@@ -100,7 +100,7 @@ const FormCard = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
   order: 1;
-  padding: clamp(1.6rem, 3vw, 2.5rem);
+  padding: clamp(1.15rem, 2.3vw, 1.8rem);
 
   @media (min-width: 900px) {
     order: 2;
@@ -109,7 +109,7 @@ const FormCard = styled.div`
 
 const FormHeader = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.32rem;
 `;
 
 const FormTitle = styled.h2`
@@ -130,7 +130,7 @@ const Form = styled.form`
 
 const Field = styled.label`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.32rem;
 `;
 
 const FieldLabel = styled.span`
@@ -146,8 +146,8 @@ const Input = styled.input`
   background: white;
   border: 1px solid var(--theme-border, #b8c8de);
   border-radius: ${({ theme }) => theme.radius.sm};
-  min-height: 48px;
-  padding: 0.8rem 0.9rem;
+  min-height: 42px;
+  padding: 0.66rem 0.76rem;
 
   &:focus {
     border-color: var(--theme-primary, #1b4f93);
@@ -171,8 +171,8 @@ const PasswordToggle = styled.button`
   font-weight: 700;
   inset: 0 0 0 auto;
   justify-content: center;
-  min-width: 4.25rem;
-  padding: 0 0.85rem;
+  min-width: 3.8rem;
+  padding: 0 0.72rem;
   position: absolute;
 
   &:focus-visible {
@@ -187,7 +187,7 @@ const ErrorNotice = styled.p`
   border-radius: ${({ theme }) => theme.radius.sm};
   color: var(--theme-danger, #b42318);
   margin: 0;
-  padding: 0.8rem 0.9rem;
+  padding: 0.66rem 0.76rem;
 `;
 
 const SubmitButton = styled.button`
@@ -197,8 +197,8 @@ const SubmitButton = styled.button`
   color: white;
   cursor: pointer;
   font-weight: 700;
-  min-height: 46px;
-  padding: 0.8rem 1.1rem;
+  min-height: 40px;
+  padding: 0.66rem 0.9rem;
   transition: transform 120ms ease, opacity 120ms ease;
 
   &:disabled {

@@ -56,9 +56,9 @@ const CompactStoryRow = styled.article`
   align-items: start;
   border-top: 1px solid rgba(16, 32, 51, 0.08);
   display: grid;
-  gap: 0.8rem;
+  gap: 0.62rem;
   grid-template-columns: ${({ $hasMedia }) => ($hasMedia ? "88px minmax(0, 1fr)" : "minmax(0, 1fr)")};
-  padding: 0.9rem 0;
+  padding: 0.72rem 0;
 
   &:first-child {
     border-top: none;
@@ -70,7 +70,7 @@ const CompactStoryRow = styled.article`
   }
 
   @media (min-width: 760px) {
-    gap: 0.95rem;
+    gap: 0.76rem;
     grid-template-columns: ${({ $hasMedia }) => ($hasMedia ? "112px minmax(0, 1fr)" : "minmax(0, 1fr)")};
   }
 `;
@@ -95,7 +95,7 @@ const CompactStoryMediaImage = styled.img`
 
 const CompactStoryBody = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.22rem;
   min-width: 0;
 `;
 
@@ -139,8 +139,8 @@ const CompactStoryReadMore = styled(Link)`
 
 const HomeListFooter = styled.div`
   border-top: 1px solid rgba(16, 32, 51, 0.08);
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
+  margin-top: 0.62rem;
+  padding-top: 0.62rem;
 `;
 
 const HomeViewMoreButton = styled.button`
@@ -153,7 +153,7 @@ const HomeViewMoreButton = styled.button`
   font-weight: 800;
   letter-spacing: 0.01em;
   padding: 0;
-  min-height: 44px;
+  min-height: 38px;
 
   &:hover:not(:disabled) {
     text-decoration: underline;
@@ -169,7 +169,7 @@ const HomeListError = styled.p`
   color: #9a4221;
   font-size: 0.82rem;
   line-height: 1.45;
-  margin: 0.85rem 0 0;
+  margin: 0.62rem 0 0;
 `;
 
 function HomeStoryList({ emptyLabel, items = [], locale }) {
