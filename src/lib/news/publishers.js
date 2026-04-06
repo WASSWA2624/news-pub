@@ -6,7 +6,7 @@ import {
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
-const defaultGraphApiBaseUrl = "https://graph.facebook.com/v22.0";
+const defaultGraphApiBaseUrl = "https://graph.facebook.com/v25.0";
 
 /**
  * Outbound destination publishers for Facebook and Instagram.

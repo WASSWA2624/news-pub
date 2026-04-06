@@ -10,14 +10,10 @@ describe("destination meta configuration", () => {
     process.env = {
       ...originalEnv,
       ...createNewsPubTestEnv({
+        META_USER_ACCESS_TOKEN: "env-user-token",
         META_APP_ID: "1234567890",
         META_APP_SECRET: "meta-secret",
         META_ALLOWED_PAGE_IDS: "page_1",
-        META_DESTINATION_CREDENTIALS_JSON: JSON.stringify({
-          "meta-account": {
-            accessToken: "env-user-token",
-          },
-        }),
       }),
     };
   });
@@ -28,7 +24,7 @@ describe("destination meta configuration", () => {
     vi.resetModules();
   });
 
-  it("discovers connected Facebook pages and Instagram accounts from env-backed Meta credentials", async () => {
+  it("discovers connected Facebook pages and Instagram accounts from the Meta user access token", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn()
@@ -52,14 +48,14 @@ describe("destination meta configuration", () => {
                     username: "example.business",
                   },
                   name: "Example Page",
-                  tasks: ["ANALYZE", "CREATE_CONTENT"],
+                  tasks: ["ANALYZE", "CREATE_CONTENT", "MANAGE", "MODERATE"],
                   username: "example.page",
                 },
                 {
                   access_token: "page-access-token-2",
                   id: "page_2",
                   name: "Blocked Page",
-                  tasks: ["CREATE_CONTENT"],
+                  tasks: ["CREATE_CONTENT", "MANAGE"],
                   username: "blocked.page",
                 },
               ],
@@ -76,8 +72,8 @@ describe("destination meta configuration", () => {
       {
         id: "page_1",
         name: "Example Page",
-        sourceKey: "env:meta-account",
-        tasks: ["ANALYZE", "CREATE_CONTENT"],
+        sourceKey: "env:meta-user-access-token",
+        tasks: ["ANALYZE", "CREATE_CONTENT", "MANAGE", "MODERATE"],
         username: "example.page",
       },
     ]);
@@ -85,24 +81,20 @@ describe("destination meta configuration", () => {
       {
         connectedPageId: "page_1",
         id: "ig_1",
-        sourceKey: "env:meta-account",
+        sourceKey: "env:meta-user-access-token",
         username: "example.business",
       },
     ]);
     expect(snapshot.allowedPageIds).toEqual(["page_1"]);
   });
 
-  it("exposes safe env-backed credential defaults for the destination form without leaking tokens", async () => {
+  it("exposes safe Meta form config without leaking tokens", async () => {
     const { getMetaDestinationFormConfig } = await import("./meta-config");
     const config = getMetaDestinationFormConfig();
 
-    expect(config.credentialDefaultsBySlug).toMatchObject({
-      "meta-account": {
-        graphApiBaseUrl: "https://graph.facebook.com/v22.0",
-        hasAccessToken: true,
-        sourceLabel: "meta-account",
-      },
-    });
+    expect(config.credentialDefaultsBySlug).toEqual({});
+    expect(config.defaultGraphApiBaseUrl).toBe("https://graph.facebook.com/v25.0");
+    expect(config.hasDiscoveryAccessToken).toBe(true);
     expect(JSON.stringify(config)).not.toContain("env-user-token");
   });
 
@@ -130,7 +122,7 @@ describe("destination meta configuration", () => {
                   },
                   id: "page_1",
                   name: "Example Page",
-                  tasks: ["CREATE_CONTENT"],
+                  tasks: ["CREATE_CONTENT", "MANAGE", "MODERATE"],
                   username: "example.page",
                 },
               ],
@@ -140,7 +132,7 @@ describe("destination meta configuration", () => {
 
     const { resolveMetaDiscoverySelection } = await import("./meta-config");
     const selection = await resolveMetaDiscoverySelection({
-      sourceKey: "env:meta-account",
+      sourceKey: "env:meta-user-access-token",
       targetId: "ig_1",
       targetType: "INSTAGRAM_ACCOUNT",
     });
@@ -151,7 +143,7 @@ describe("destination meta configuration", () => {
       accountHandle: "@example.creator",
       externalAccountId: "ig_1",
       settingsJsonPatch: {
-        graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+        graphApiBaseUrl: "https://graph.facebook.com/v25.0",
         instagramUserId: "ig_1",
         pageId: "page_1",
       },

@@ -238,7 +238,7 @@ function buildEffectiveCredentialState({
     graphApiBaseUrl:
       trimText(sourceValues.graphApiBaseUrl)
       || metaConfig?.defaultGraphApiBaseUrl
-      || "https://graph.facebook.com/v22.0",
+      || "https://graph.facebook.com/v25.0",
     hasCredentialDefaults,
     instagramUserId: trimText(sourceValues.instagramUserId),
     pageId: trimText(sourceValues.pageId),
@@ -503,8 +503,9 @@ export default function DestinationFormCard({
   metaConfig = {
     appId: null,
     credentialDefaultsBySlug: {},
-    defaultGraphApiBaseUrl: "https://graph.facebook.com/v22.0",
+    defaultGraphApiBaseUrl: "https://graph.facebook.com/v25.0",
     hasAppCredentials: false,
+    hasDiscoveryAccessToken: false,
     socialGuardrails: {},
   },
   platformOptions = [],
@@ -567,7 +568,7 @@ export default function DestinationFormCard({
   const metaDefaults = useMemo(
     () => ({
       ...metaConfig?.socialGuardrails,
-      defaultGraphApiBaseUrl: metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0",
+      defaultGraphApiBaseUrl: metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v25.0",
     }),
     [metaConfig],
   );
@@ -941,7 +942,7 @@ export default function DestinationFormCard({
       <SectionSurface>
         <FormSectionTitle>Connection details</FormSectionTitle>
         <SmallText>
-          Connect supported Meta pages or accounts here, then choose whether this destination should keep using the env-backed Meta bundle or store its own override values.
+          Connect supported Meta pages or accounts here. When you pick one, NewsPub stores the selected token and IDs with that destination.
         </SmallText>
         {isMetaPlatform ? (
           <>
@@ -960,12 +961,12 @@ export default function DestinationFormCard({
             </ButtonRow>
             <SmallText>
               {metaDiscovery.loading
-                ? "Loading connected and allowed Meta pages and accounts..."
+                ? "Loading connected Meta pages and accounts..."
                 : metaDiscovery.data
-                  ? `${metaDiscovery.data.pages.length} allowed Facebook page${metaDiscovery.data.pages.length === 1 ? "" : "s"} and ${metaDiscovery.data.instagramAccounts.length} Instagram account${metaDiscovery.data.instagramAccounts.length === 1 ? "" : "s"} discovered.`
-                  : metaConfig?.appId
-                    ? `Meta app ${metaConfig.appId} is configured. Fetch connected and allowed assets to prefill supported destinations automatically.`
-                    : "Configure Meta app credentials, a discovery token source, and any optional page allowlist to prefill connected assets automatically."}
+                  ? `${metaDiscovery.data.pages.length} publish-ready Facebook page${metaDiscovery.data.pages.length === 1 ? "" : "s"} and ${metaDiscovery.data.instagramAccounts.length} Instagram account${metaDiscovery.data.instagramAccounts.length === 1 ? "" : "s"} discovered.`
+                  : metaConfig?.hasDiscoveryAccessToken
+                    ? "META_USER_ACCESS_TOKEN is configured. Refresh connected Meta assets to prefill supported destinations automatically."
+                    : "Set META_USER_ACCESS_TOKEN to load connected Meta pages and Instagram accounts automatically."}
             </SmallText>
             {metaDiscovery.error ? (
               <NoticeBanner $tone="danger">
@@ -996,13 +997,13 @@ export default function DestinationFormCard({
                 <FieldHelp>
                   <SmallText>
                     {useDestinationCredentialOverrides
-                      ? `This destination is overriding the env-backed Meta bundle for slug "${slug || destination?.slug || "new-destination"}".`
-                      : `This destination is currently using META_DESTINATION_CREDENTIALS_JSON defaults for slug "${slug || destination?.slug || "new-destination"}".`}
+                      ? `This destination is overriding the environment-backed Meta defaults for slug "${slug || destination?.slug || "new-destination"}".`
+                      : `This destination is currently using environment-backed Meta defaults for slug "${slug || destination?.slug || "new-destination"}".`}
                   </SmallText>
                   <SmallText>
                     {credentialDefaults?.sourceLabel
                       ? `Credential source: ${credentialDefaults.sourceLabel}.`
-                      : "The env-backed credential bundle is resolved from META_DESTINATION_CREDENTIALS_JSON."}
+                      : "The environment-backed credential defaults are resolved server-side."}
                   </SmallText>
                   <ExampleBlock>{credentialDefaultsPreview}</ExampleBlock>
                 </FieldHelp>
@@ -1027,12 +1028,12 @@ export default function DestinationFormCard({
                     }}
                     type="checkbox"
                   />{" "}
-                  Override env-backed Meta credentials for this destination
+                  Override environment-backed Meta defaults for this destination
                 </CheckboxChip>
               </CheckboxRow>
             ) : (
               <SmallText>
-                No env-backed Meta credential bundle matches this destination slug yet, so values entered below are stored directly with the destination.
+                No environment-backed Meta defaults match this destination slug, so values entered below are stored directly with the destination.
               </SmallText>
             )}
           </>
@@ -1042,7 +1043,7 @@ export default function DestinationFormCard({
             <FieldLabel>Connected Facebook page</FieldLabel>
             <SearchableSelect
               ariaLabel="Connected Facebook page"
-              emptyMessage="No allowed Facebook pages were discovered from the configured Meta credential sources."
+              emptyMessage="No publish-ready Facebook pages were discovered from the configured Meta access token."
               loading={metaDiscovery.loading}
               loadingMessage="Loading connected Facebook pages..."
               onChange={(value) => {
@@ -1135,7 +1136,7 @@ export default function DestinationFormCard({
             />
             <SmallText>
               {hasCredentialDefaults && !useDestinationCredentialOverrides
-                ? "Currently inherited from META_DESTINATION_CREDENTIALS_JSON."
+                ? "Currently inherited from environment-backed Meta defaults."
                 : "The primary publish target ID used by the runtime publisher."}
             </SmallText>
           </Field>
@@ -1211,11 +1212,11 @@ export default function DestinationFormCard({
                 activateCredentialOverrides();
                 setGraphApiBaseUrl(event.target.value);
               }}
-              placeholder={metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0"}
+              placeholder={metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v25.0"}
               value={graphApiBaseUrl}
             />
             <SmallText>
-              Defaults to {metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v22.0"} when no override is stored.
+              Defaults to {metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v25.0"} when no override is stored.
             </SmallText>
           </Field>
           <Field>
@@ -1229,7 +1230,7 @@ export default function DestinationFormCard({
               }}
               placeholder={
                 credentialInputsDisabled && credentialDefaults?.hasAccessToken
-                  ? "Using access token from META_DESTINATION_CREDENTIALS_JSON"
+                  ? "Using access token from environment-backed Meta defaults"
                   : destination?.tokenHint
                     ? `Stored token ending ${destination.tokenHint}`
                     : "Paste a new token"
@@ -1237,7 +1238,7 @@ export default function DestinationFormCard({
               value={tokenValue}
             />
             <SmallText>
-              Env access tokens stay server-side. Paste a token here only when this destination should keep its own override.
+              Environment access tokens stay server-side. Paste a token here only when this destination should keep its own override.
             </SmallText>
           </Field>
         </WideGrid>

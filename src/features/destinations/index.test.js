@@ -37,13 +37,9 @@ describe("destination feature validation", () => {
   });
 
   it("persists a discovered Meta page selection as destination settings and an encrypted token", async () => {
+    process.env.META_USER_ACCESS_TOKEN = "env-user-token";
     process.env.META_APP_ID = "1234567890";
     process.env.META_APP_SECRET = "meta-secret";
-    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
-      "meta-account": {
-        accessToken: "env-user-token",
-      },
-    });
 
     vi.stubGlobal(
       "fetch",
@@ -63,7 +59,7 @@ describe("destination feature validation", () => {
                   access_token: "page-access-token",
                   id: "page_1",
                   name: "Example Page",
-                  tasks: ["CREATE_CONTENT"],
+                  tasks: ["CREATE_CONTENT", "MANAGE", "MODERATE"],
                   username: "example.page",
                 },
               ],
@@ -82,7 +78,7 @@ describe("destination feature validation", () => {
       {
         connectionStatus: "CONNECTED",
         kind: "FACEBOOK_PAGE",
-        metaDiscoverySourceKey: "env:meta-account",
+        metaDiscoverySourceKey: "env:meta-user-access-token",
         metaDiscoveryTargetId: "page_1",
         metaDiscoveryTargetType: "FACEBOOK_PAGE",
         name: "Example destination",

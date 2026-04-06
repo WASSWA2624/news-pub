@@ -219,6 +219,7 @@ const serverEnvSchema = sharedEnvSchema
     NEWSDATA_API_KEY: optionalString(),
     NEWSAPI_API_KEY: optionalString(),
     DESTINATION_TOKEN_ENCRYPTION_KEY: requiredString("DESTINATION_TOKEN_ENCRYPTION_KEY"),
+    META_USER_ACCESS_TOKEN: optionalString(),
     META_APP_ID: optionalString(),
     META_APP_SECRET: optionalString(),
     META_GRAPH_API_BASE_URL: optionalUrlString("META_GRAPH_API_BASE_URL"),
@@ -369,7 +370,7 @@ function mapServerEnv(parsedEnv) {
         secret: parsedEnv.META_APP_SECRET || null,
       },
       destinationCredentials: parsedEnv.META_DESTINATION_CREDENTIALS_JSON || {},
-      graphApiBaseUrl: parsedEnv.META_GRAPH_API_BASE_URL || "https://graph.facebook.com/v22.0",
+      graphApiBaseUrl: parsedEnv.META_GRAPH_API_BASE_URL || "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         facebookMaxPostsPer24Hours: parsedEnv.META_FACEBOOK_MAX_POSTS_PER_24H || 12,
         instagramMaxHashtags: parsedEnv.META_INSTAGRAM_MAX_HASHTAGS || 8,
@@ -377,6 +378,7 @@ function mapServerEnv(parsedEnv) {
         minPostIntervalMinutes: parsedEnv.META_SOCIAL_MIN_POST_INTERVAL_MINUTES || 90,
         duplicateCooldownHours: parsedEnv.META_SOCIAL_DUPLICATE_COOLDOWN_HOURS || 72,
       },
+      userAccessToken: parsedEnv.META_USER_ACCESS_TOKEN || null,
     },
     media: {
       driver: parsedEnv.MEDIA_DRIVER,

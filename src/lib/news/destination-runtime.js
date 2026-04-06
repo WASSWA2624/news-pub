@@ -80,7 +80,7 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
       : envGraphApiBaseUrl || storedGraphApiBaseUrl
   )
     || trimText(env.meta.graphApiBaseUrl)
-    || "https://graph.facebook.com/v22.0";
+    || "https://graph.facebook.com/v25.0";
   const usesEnvCredentials = Boolean(
     envAccessToken || envExternalAccountId || envPageId || envProfileId || envInstagramUserId,
   ) && !useDestinationCredentialOverrides;

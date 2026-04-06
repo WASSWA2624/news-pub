@@ -22,7 +22,7 @@ describe("environment runtime schema", () => {
         secret: null,
       },
       destinationCredentials: {},
-      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         duplicateCooldownHours: 72,
         facebookMaxPostsPer24Hours: 12,
@@ -30,6 +30,7 @@ describe("environment runtime schema", () => {
         instagramMaxPostsPer24Hours: 20,
         minPostIntervalMinutes: 90,
       },
+      userAccessToken: null,
     });
     expect(env.media).toMatchObject({
       driver: "local",
@@ -80,6 +81,7 @@ describe("environment runtime schema", () => {
   it("parses optional Meta destination runtime credentials", () => {
     const env = parseServerEnv(
       createNewsPubTestEnv({
+        META_USER_ACCESS_TOKEN: "user-token",
         META_APP_ID: "1234567890",
         META_APP_SECRET: "meta-secret",
         META_ALLOWED_PAGE_IDS: "123456789012345,234567890123456",
@@ -90,7 +92,7 @@ describe("environment runtime schema", () => {
           },
         }),
         META_FACEBOOK_MAX_POSTS_PER_24H: "10",
-        META_GRAPH_API_BASE_URL: "https://graph.facebook.com/v22.0",
+        META_GRAPH_API_BASE_URL: "https://graph.facebook.com/v25.0",
         META_INSTAGRAM_MAX_HASHTAGS: "6",
         META_INSTAGRAM_MAX_POSTS_PER_24H: "18",
         META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: "48",
@@ -110,7 +112,7 @@ describe("environment runtime schema", () => {
           pageId: "123456789012345",
         },
       },
-      graphApiBaseUrl: "https://graph.facebook.com/v22.0",
+      graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         duplicateCooldownHours: 48,
         facebookMaxPostsPer24Hours: 10,
@@ -118,6 +120,7 @@ describe("environment runtime schema", () => {
         instagramMaxPostsPer24Hours: 18,
         minPostIntervalMinutes: 120,
       },
+      userAccessToken: "user-token",
     });
   });
 

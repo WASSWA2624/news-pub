@@ -2,7 +2,7 @@ import { env } from "@/lib/env/server";
 import { getMetaAppAccessToken, getMetaAppSecretProof } from "@/lib/news/destination-runtime";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 
-const defaultGraphApiBaseUrl = "https://graph.facebook.com/v22.0";
+const defaultGraphApiBaseUrl = "https://graph.facebook.com/v25.0";
 
 const socialGuardrailDefaults = Object.freeze({
   duplicateCooldownHours: 72,
@@ -30,7 +30,7 @@ const knownMetaSettingKeys = Object.freeze([
 ]);
 
 const metaInstagramFields = "account_type,id,profile_picture_url,username";
-const publishCapableFacebookPageTasks = new Set(["CREATE_CONTENT", "MANAGE"]);
+const requiredFacebookPageTasks = new Set(["CREATE_CONTENT", "MANAGE", "MODERATE"]);
 const metaPageFields = [
   "access_token",
   "id",
@@ -111,21 +111,41 @@ function hasMetaCredentialDefaults(credential = {}) {
 }
 
 function getMetaCredentialSources() {
-  return Object.entries(env.meta.destinationCredentials || {}).map(([credentialKey, credentialValue]) => {
-    const credential = normalizeSettings(credentialValue);
+  const sources = [];
+  const normalizedUserAccessToken = trimText(env.meta.userAccessToken);
 
-    return {
-      accessToken: trimText(credential.accessToken) || null,
-      credentialKey,
-      externalAccountId: trimText(credential.externalAccountId) || null,
-      graphApiBaseUrl: getMetaGraphRequestBaseUrl(credential.graphApiBaseUrl),
-      instagramUserId: trimText(credential.instagramUserId) || null,
-      pageId: trimText(credential.pageId) || null,
-      sourceKey: buildCredentialSourceKey(credentialKey),
-      sourceLabel: normalizeCredentialSourceLabel(credentialKey, credential),
+  if (normalizedUserAccessToken) {
+    sources.push({
+      accessToken: normalizedUserAccessToken,
+      credentialKey: "meta-user-access-token",
+      externalAccountId: null,
+      graphApiBaseUrl: getMetaGraphRequestBaseUrl(),
+      instagramUserId: null,
+      pageId: null,
+      sourceKey: buildCredentialSourceKey("meta-user-access-token"),
+      sourceLabel: "META_USER_ACCESS_TOKEN",
       sourceType: "env",
-    };
-  });
+    });
+  }
+
+  return [
+    ...sources,
+    ...Object.entries(env.meta.destinationCredentials || {}).map(([credentialKey, credentialValue]) => {
+      const credential = normalizeSettings(credentialValue);
+
+      return {
+        accessToken: trimText(credential.accessToken) || null,
+        credentialKey,
+        externalAccountId: trimText(credential.externalAccountId) || null,
+        graphApiBaseUrl: getMetaGraphRequestBaseUrl(credential.graphApiBaseUrl),
+        instagramUserId: trimText(credential.instagramUserId) || null,
+        pageId: trimText(credential.pageId) || null,
+        sourceKey: buildCredentialSourceKey(credentialKey),
+        sourceLabel: normalizeCredentialSourceLabel(credentialKey, credential),
+        sourceType: "env",
+      };
+    }),
+  ];
 }
 
 function getMetaCredentialSourceByKey(sourceKey) {
@@ -312,9 +332,12 @@ function isAllowedFacebookPage(pageRecord) {
   const allowedPageIds = new Set((env.meta.allowedPageIds || []).map((value) => trimText(value)).filter(Boolean));
   const pageId = trimText(pageRecord?.id);
   const pageTasks = Array.isArray(pageRecord?.tasks) ? pageRecord.tasks : [];
-  const hasPublishingTask = pageTasks.some((task) => publishCapableFacebookPageTasks.has(trimText(task).toUpperCase()));
+  const normalizedPageTasks = new Set(pageTasks.map((task) => trimText(task).toUpperCase()).filter(Boolean));
+  const hasRequiredPublishingTasks = [...requiredFacebookPageTasks].every((task) =>
+    normalizedPageTasks.has(task),
+  );
 
-  if (!pageId || !hasPublishingTask) {
+  if (!pageId || !hasRequiredPublishingTasks) {
     return false;
   }
 
@@ -329,7 +352,7 @@ async function discoverAssetsFromSource(source) {
   if (!source?.accessToken) {
     throw createMetaDiscoveryError(
       source,
-      "No Meta access token is configured for this credential source. Add an access token in META_DESTINATION_CREDENTIALS_JSON first.",
+      "No Meta access token is configured for this discovery source. Set META_USER_ACCESS_TOKEN first.",
       { error: "meta_access_token_missing" },
       400,
     );
@@ -546,6 +569,7 @@ export function getMetaDestinationFormConfig() {
     }, {}),
     defaultGraphApiBaseUrl: getMetaGraphRequestBaseUrl(),
     hasAppCredentials: Boolean(env.meta.app.id && env.meta.app.secret),
+    hasDiscoveryAccessToken: Boolean(trimText(env.meta.userAccessToken)),
     socialGuardrails: getDestinationSocialGuardrailDefaults(),
   };
 }
@@ -659,7 +683,7 @@ export async function getMetaDiscoverySnapshot() {
   if (!sources.length) {
     errors.push({
       message:
-        "No Meta credential sources were found in META_DESTINATION_CREDENTIALS_JSON. Add an access token there to fetch connected pages and Instagram accounts automatically.",
+        "No Meta discovery access token is configured. Set META_USER_ACCESS_TOKEN to a long-lived User access token to fetch connected pages and Instagram accounts automatically.",
       sourceKey: null,
       sourceLabel: null,
     });
