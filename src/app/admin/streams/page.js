@@ -119,7 +119,7 @@ export default async function StreamsPage() {
         </SummaryCard>
       </SummaryGrid>
 
-      <SectionGrid>
+      <SectionGrid $wide>
         <Card>
           <CardHeader>
             <CardTitle>Configured streams</CardTitle>

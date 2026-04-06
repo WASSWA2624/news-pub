@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styled from "styled-components";
 
 import {
   ButtonRow,
@@ -28,6 +29,10 @@ import {
   getStreamValidationIssues,
   isDestinationKindAutoPublishCapable,
 } from "@/lib/validation/configuration";
+
+const StreamFieldGrid = styled(FieldGrid)`
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+`;
 
 function buildTemplateOptions(templateOptions, destination) {
   return templateOptions.map((option) => {
@@ -108,7 +113,7 @@ export default function StreamFormCard({
       {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
       <FormSection>
         <FormSectionTitle>Core setup</FormSectionTitle>
-        <FieldGrid>
+        <StreamFieldGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
             <Input defaultValue={stream?.name || ""} name="name" required />
@@ -198,7 +203,7 @@ export default function StreamFormCard({
               </SmallText>
             ) : null}
           </Field>
-        </FieldGrid>
+        </StreamFieldGrid>
         <Field>
           <FieldLabel>Description</FieldLabel>
           <Textarea defaultValue={stream?.description || ""} name="description" />
@@ -220,7 +225,7 @@ export default function StreamFormCard({
 
       <FormSection>
         <FormSectionTitle>Scheduling and limits</FormSectionTitle>
-        <FieldGrid>
+        <StreamFieldGrid>
           <Field>
             <FieldLabel>Schedule interval minutes</FieldLabel>
             <Input
@@ -257,7 +262,7 @@ export default function StreamFormCard({
               type="number"
             />
           </Field>
-        </FieldGrid>
+        </StreamFieldGrid>
       </FormSection>
 
       {selectedProvider?.providerKey ? (

@@ -3,10 +3,10 @@ import styled from "styled-components";
 
 export const AdminPage = styled.main`
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
   margin: 0 auto;
   max-width: 1380px;
-  padding: clamp(0.8rem, 2.6vw, 1.5rem);
+  padding: clamp(0.65rem, 2vw, 1.1rem);
   width: 100%;
 `;
 
@@ -16,16 +16,16 @@ export const AdminHero = styled.section`
     radial-gradient(circle at 86% 18%, rgba(224, 165, 58, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 249, 253, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 18px;
-  box-shadow: 0 18px 40px rgba(17, 31, 55, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 14px 32px rgba(17, 31, 55, 0.05);
   display: grid;
-  gap: 0.5rem;
-  padding: clamp(0.95rem, 3vw, 1.35rem);
+  gap: 0.35rem;
+  padding: clamp(0.75rem, 2.2vw, 1rem);
 `;
 
 export const AdminEyebrow = styled.p`
   color: rgba(14, 90, 122, 0.8);
-  font-size: 0.72rem;
+  font-size: 0.67rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   margin: 0;
@@ -34,23 +34,23 @@ export const AdminEyebrow = styled.p`
 
 export const AdminTitle = styled.h1`
   color: #162744;
-  font-size: clamp(1.45rem, 5vw, 2.45rem);
+  font-size: clamp(1.2rem, 4vw, 1.95rem);
   letter-spacing: -0.04em;
-  line-height: 0.98;
+  line-height: 1;
   margin: 0;
 `;
 
 export const AdminDescription = styled.p`
   color: rgba(72, 85, 108, 0.94);
-  font-size: 0.94rem;
-  line-height: 1.65;
+  font-size: 0.86rem;
+  line-height: 1.5;
   margin: 0;
-  max-width: 68ch;
+  max-width: 62ch;
 `;
 
 export const SummaryGrid = styled.div`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
 
   @media (min-width: 560px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -66,29 +66,29 @@ export const SummaryCard = styled.article`
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.95)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.06), transparent 46%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 14px 30px rgba(18, 34, 58, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(18, 34, 58, 0.04);
   display: grid;
-  gap: 0.22rem;
-  padding: 0.85rem 0.95rem;
+  gap: 0.18rem;
+  padding: 0.7rem 0.8rem;
 `;
 
 export const SummaryValue = styled.strong`
   color: #132949;
-  font-size: clamp(1.05rem, 3.5vw, 1.35rem);
+  font-size: clamp(0.96rem, 3vw, 1.18rem);
   letter-spacing: -0.03em;
 `;
 
 export const SummaryLabel = styled.span`
   color: rgba(73, 87, 112, 0.82);
-  font-size: 0.84rem;
-  line-height: 1.45;
+  font-size: 0.77rem;
+  line-height: 1.35;
 `;
 
 export const SectionGrid = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.95rem;
+  gap: 0.8rem;
 
   @media (min-width: 1080px) {
     grid-template-columns: ${({ $wide }) =>
@@ -98,42 +98,42 @@ export const SectionGrid = styled.div`
 
 export const SidebarStack = styled.div`
   display: grid;
-  gap: 0.95rem;
+  gap: 0.8rem;
 `;
 
 export const Card = styled.section`
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 18px;
-  box-shadow: 0 16px 34px rgba(18, 34, 58, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 12px 26px rgba(18, 34, 58, 0.045);
   display: grid;
-  gap: 0.85rem;
+  gap: 0.7rem;
   min-width: 0;
-  padding: clamp(0.9rem, 2.4vw, 1.15rem);
+  padding: clamp(0.75rem, 2vw, 0.95rem);
 `;
 
 export const CardHeader = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.22rem;
 `;
 
 export const CardTitle = styled.h2`
   color: #162744;
-  font-size: 1.06rem;
+  font-size: 0.96rem;
   letter-spacing: -0.03em;
   margin: 0;
 `;
 
 export const CardDescription = styled.p`
   color: rgba(72, 85, 108, 0.92);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.82rem;
+  line-height: 1.45;
   margin: 0;
 `;
 
 export const RecordStack = styled.div`
   display: grid;
-  gap: 0.8rem;
+  gap: 0.65rem;
 `;
 
 export const RecordCard = styled.article`
@@ -141,15 +141,15 @@ export const RecordCard = styled.article`
     linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.95)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 44%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
-  gap: 0.8rem;
-  padding: 0.85rem;
+  gap: 0.65rem;
+  padding: 0.75rem;
 `;
 
 export const RecordHeader = styled.div`
   display: grid;
-  gap: 0.55rem;
+  gap: 0.45rem;
 
   @media (min-width: 720px) {
     align-items: start;
@@ -165,7 +165,7 @@ export const RecordTitleBlock = styled.div`
 
 export const RecordTitle = styled.h3`
   color: #172844;
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   letter-spacing: -0.02em;
   margin: 0;
 `;
@@ -174,7 +174,7 @@ export const RecordMeta = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.35rem;
 `;
 
 export const MetaPill = styled.span`
@@ -184,18 +184,18 @@ export const MetaPill = styled.span`
   border-radius: 999px;
   color: #244b73;
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 28px;
-  padding: 0 0.66rem;
+  min-height: 24px;
+  padding: 0 0.55rem;
   text-transform: uppercase;
 `;
 
 export const FormSection = styled.div`
   display: grid;
-  gap: 0.75rem;
-  padding-top: 0.8rem;
+  gap: 0.6rem;
+  padding-top: 0.65rem;
 
   &:not(:first-child) {
     border-top: 1px solid rgba(16, 32, 51, 0.08);
@@ -204,7 +204,7 @@ export const FormSection = styled.div`
 
 export const FormSectionTitle = styled.h4`
   color: #21344f;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   margin: 0;
@@ -227,14 +227,14 @@ export const DataTable = styled.table`
   th,
   td {
     border-bottom: 1px solid rgba(16, 32, 51, 0.08);
-    padding: 0.72rem 0.45rem;
+    padding: 0.58rem 0.42rem;
     text-align: left;
     vertical-align: top;
   }
 
   th {
     color: rgba(60, 76, 104, 0.82);
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -242,8 +242,8 @@ export const DataTable = styled.table`
 
   td {
     color: #21344f;
-    font-size: 0.92rem;
-    line-height: 1.55;
+    font-size: 0.84rem;
+    line-height: 1.45;
   }
 
   tbody tr:last-child td {
@@ -266,7 +266,7 @@ export const DataTable = styled.table`
 
     tbody {
       display: grid;
-      gap: 0.75rem;
+      gap: 0.65rem;
     }
 
     tr {
@@ -274,11 +274,11 @@ export const DataTable = styled.table`
         linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(255, 255, 255, 0.96)),
         radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 48%);
       border: 1px solid rgba(16, 32, 51, 0.08);
-      border-radius: 16px;
+      border-radius: 14px;
       box-shadow: 0 12px 24px rgba(16, 32, 51, 0.04);
       display: grid;
-      gap: 0.55rem;
-      padding: 0.85rem;
+      gap: 0.45rem;
+      padding: 0.75rem;
     }
 
     th,
@@ -302,7 +302,7 @@ export const DataTable = styled.table`
 
 export const FieldGrid = styled.div`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.6rem;
 
   @media (min-width: 700px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -315,13 +315,13 @@ export const FieldGrid = styled.div`
 
 export const Field = styled.label`
   display: grid;
-  gap: 0.34rem;
+  gap: 0.28rem;
   min-width: 0;
 `;
 
 export const FieldLabel = styled.span`
   color: #22344f;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 `;
@@ -329,10 +329,11 @@ export const FieldLabel = styled.span`
 const fieldStyles = `
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
-  border-radius: 12px;
+  border-radius: 10px;
   color: #1f314b;
-  min-height: 42px;
-  padding: 0.7rem 0.82rem;
+  font-size: 0.88rem;
+  min-height: 38px;
+  padding: 0.58rem 0.72rem;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -362,14 +363,14 @@ export const Select = styled.select`
 
 export const Textarea = styled.textarea`
   ${fieldStyles}
-  min-height: 128px;
+  min-height: 108px;
   resize: vertical;
 `;
 
 export const CheckboxRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.45rem;
 `;
 
 export const CheckboxChip = styled.label`
@@ -380,11 +381,11 @@ export const CheckboxChip = styled.label`
   color: #22344f;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  gap: 0.45rem;
-  min-height: 38px;
-  padding: 0 0.78rem;
+  gap: 0.36rem;
+  min-height: 32px;
+  padding: 0 0.62rem;
 
   input {
     accent-color: var(--theme-primary);
@@ -396,7 +397,7 @@ export const ButtonRow = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.45rem;
 
   > form {
     display: inline-flex;
@@ -420,11 +421,11 @@ const buttonStyles = `
   border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 800;
   justify-content: center;
-  min-height: 40px;
-  padding: 0.66rem 0.95rem;
+  min-height: 34px;
+  padding: 0.52rem 0.8rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -518,11 +519,11 @@ export const StatusBadge = styled.span`
           ? "#8f630c"
           : "#30435f"};
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: 0.63rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 28px;
-  padding: 0 0.62rem;
+  min-height: 24px;
+  padding: 0 0.52rem;
   text-transform: uppercase;
   width: fit-content;
 `;
@@ -541,7 +542,7 @@ export const NoticeBanner = styled.div`
         : $tone === "warning"
           ? "rgba(168, 113, 12, 0.18)"
           : "rgba(176, 46, 34, 0.18)"};
-  border-radius: 14px;
+  border-radius: 12px;
   color: ${({ $tone }) =>
     $tone === "success"
       ? "#197341"
@@ -549,37 +550,39 @@ export const NoticeBanner = styled.div`
         ? "#8f630c"
         : "#a63725"};
   display: grid;
-  gap: 0.35rem;
-  padding: 0.8rem 0.9rem;
+  gap: 0.28rem;
+  padding: 0.68rem 0.78rem;
 `;
 
 export const NoticeTitle = styled.strong`
   color: inherit;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   letter-spacing: -0.01em;
 `;
 
 export const NoticeList = styled.ul`
   display: grid;
-  gap: 0.35rem;
+  gap: 0.28rem;
   margin: 0;
   padding-left: 1rem;
 `;
 
 export const NoticeItem = styled.li`
-  line-height: 1.5;
+  font-size: 0.82rem;
+  line-height: 1.4;
 `;
 
 export const EmptyState = styled.p`
   color: rgba(72, 85, 108, 0.9);
-  line-height: 1.6;
+  font-size: 0.84rem;
+  line-height: 1.45;
   margin: 0;
 `;
 
 export const SmallText = styled.p`
   color: rgba(72, 85, 108, 0.88);
-  font-size: 0.86rem;
-  line-height: 1.55;
+  font-size: 0.78rem;
+  line-height: 1.4;
   margin: 0;
 `;
 

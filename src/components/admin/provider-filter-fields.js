@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import styled from "styled-components";
 
 import {
   Field,
@@ -14,6 +15,10 @@ import {
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getProviderFormDefinition } from "@/lib/news/provider-definitions";
+
+const ProviderFieldGrid = styled(FieldGrid)`
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+`;
 
 function getFieldName(field, namePrefix = "") {
   if (!namePrefix) {
@@ -72,7 +77,7 @@ export default function ProviderFilterFields({
             <FormSectionTitle>{section.title}</FormSectionTitle>
             {section.description ? <SmallText>{section.description}</SmallText> : null}
             {standardFields.length ? (
-              <FieldGrid>
+              <ProviderFieldGrid>
                 {standardFields.map((field) => (
                   <Field key={field.key}>
                     <FieldLabel>{field.label}</FieldLabel>
@@ -101,7 +106,7 @@ export default function ProviderFilterFields({
                     {field.description ? <SmallText>{field.description}</SmallText> : null}
                   </Field>
                 ))}
-              </FieldGrid>
+              </ProviderFieldGrid>
             ) : null}
             {checkboxFields.map((field) => (
               <CheckboxSearchField

@@ -249,7 +249,7 @@ const TriggerButton = styled.button`
         : $open
           ? "rgba(15, 111, 141, 0.3)"
           : "var(--theme-border, #b8c8de)"};
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow:
     ${({ $open, $invalid }) =>
       $open
@@ -261,11 +261,11 @@ const TriggerButton = styled.button`
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
-  gap: 0.68rem;
+  gap: 0.55rem;
   justify-content: space-between;
-  min-height: 44px;
+  min-height: 38px;
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0.74rem 0.82rem;
+  padding: 0.58rem 0.72rem;
   text-align: left;
   transition:
     background 160ms ease,
@@ -315,6 +315,7 @@ const TriggerValue = styled.span`
 `;
 
 const TriggerLabel = styled.span`
+  font-size: 0.88rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -328,8 +329,8 @@ const PlaceholderText = styled(TriggerLabel)`
 
 const TriggerDescription = styled.span`
   color: var(--theme-muted, #54657f);
-  font-size: 0.72rem;
-  line-height: 1.35;
+  font-size: 0.67rem;
+  line-height: 1.28;
   overflow-wrap: break-word;
   word-break: normal;
 `;
@@ -350,13 +351,13 @@ const TriggerChip = styled.span`
   border-radius: 999px;
   color: ${({ $muted }) => ($muted ? "rgba(61, 76, 102, 0.9)" : "#244b73")};
   display: inline-flex;
-  font-size: 0.66rem;
+  font-size: 0.6rem;
   font-weight: 700;
   line-height: 1;
   overflow: hidden;
   max-width: 100%;
-  min-height: 24px;
-  padding: 0 0.5rem;
+  min-height: 21px;
+  padding: 0 0.42rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -365,7 +366,7 @@ const TriggerAdornment = styled.span`
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0.55rem;
+  gap: 0.42rem;
 
   @container (max-width: 220px) {
     margin-left: auto;
@@ -378,12 +379,12 @@ const TriggerBadge = styled.span`
   border-radius: 999px;
   color: #0f5f79;
   display: inline-flex;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   max-width: 6.8rem;
   overflow: hidden;
-  padding: 0.24rem 0.48rem;
+  padding: 0.2rem 0.4rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -404,18 +405,18 @@ const DropdownSurface = styled.div`
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 58%);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(24, 39, 66, 0.1);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow:
     0 28px 54px rgba(16, 32, 51, 0.14),
     0 6px 16px rgba(16, 32, 51, 0.05);
   animation: ${dropdownEnter} 180ms cubic-bezier(0.22, 1, 0.36, 1);
   display: grid;
-  gap: 0.58rem;
+  gap: 0.48rem;
   grid-template-rows: auto minmax(0, 1fr);
   left: ${({ $layout }) => `${$layout?.left || 0}px`};
   max-height: ${({ $layout }) => `${$layout?.maxHeight || DEFAULT_DROPDOWN_HEIGHT}px`};
   overflow: hidden;
-  padding: 0.62rem;
+  padding: 0.52rem;
   position: fixed;
   top: ${({ $layout }) => `${$layout?.top || 0}px`};
   transform-origin: ${({ $layout }) => getDropdownTransformOrigin($layout)};
@@ -428,10 +429,10 @@ const DropdownTop = styled.div`
     linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 55%);
   border: 1px solid rgba(24, 39, 66, 0.06);
-  border-radius: 14px;
+  border-radius: 12px;
   display: grid;
-  gap: 0.52rem;
-  padding: 0.62rem;
+  gap: 0.42rem;
+  padding: 0.52rem;
 `;
 
 const DropdownHeader = styled.div`
@@ -443,7 +444,7 @@ const DropdownHeader = styled.div`
 
 const DropdownEyebrow = styled.span`
   color: rgba(32, 51, 78, 0.94);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -457,11 +458,11 @@ const DropdownMeta = styled.span`
   color: #0f5f79;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 24px;
-  padding: 0 0.52rem;
+  min-height: 21px;
+  padding: 0 0.42rem;
   text-transform: uppercase;
 `;
 
@@ -469,12 +470,12 @@ const SearchWrap = styled.div`
   align-items: center;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(24, 39, 66, 0.08);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   flex: 0 0 auto;
-  gap: 0.55rem;
-  min-height: 40px;
-  padding: 0 0.72rem;
+  gap: 0.45rem;
+  min-height: 34px;
+  padding: 0 0.62rem;
 
   &:focus-within {
     border-color: rgba(15, 111, 141, 0.22);
@@ -509,7 +510,7 @@ const SearchInput = styled.input`
   border: none;
   color: var(--theme-text, #152844);
   flex: 1 1 auto;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   min-width: 0;
   outline: none;
   padding: 0;
@@ -524,7 +525,7 @@ const OptionList = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  gap: 0.36rem;
+  gap: 0.3rem;
   max-height: 100%;
   min-height: 0;
   overflow: auto;
@@ -559,19 +560,19 @@ const OptionButton = styled.button`
         : $active
           ? "rgba(36, 75, 115, 0.14)"
           : "rgba(24, 39, 66, 0.04)"};
-  border-radius: 13px;
+  border-radius: 11px;
   box-shadow: ${({ $selected }) =>
     $selected ? "0 10px 22px rgba(15, 96, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72)" : "none"};
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: grid;
   flex: 0 0 auto;
-  gap: 0.34rem;
+  gap: 0.24rem;
   height: auto;
-  min-height: 50px;
+  min-height: 42px;
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
   overflow: hidden;
-  padding: 0.72rem 0.78rem 0.72rem 0.88rem;
+  padding: 0.58rem 0.7rem 0.58rem 0.8rem;
   text-align: left;
   transition:
     background 160ms ease,
@@ -616,21 +617,21 @@ const OptionButton = styled.button`
 const OptionHeader = styled.div`
   align-items: start;
   display: grid;
-  gap: 0.48rem;
+  gap: 0.38rem;
   grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const OptionLabel = styled.div`
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  line-height: 1.28;
+  line-height: 1.22;
   overflow-wrap: anywhere;
 `;
 
 const OptionDescription = styled.div`
   color: var(--theme-muted, #54657f);
-  font-size: 0.74rem;
-  line-height: 1.45;
+  font-size: 0.68rem;
+  line-height: 1.32;
   overflow-wrap: anywhere;
 `;
 
@@ -638,9 +639,9 @@ const OptionMeta = styled.div`
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 0.38rem;
+  gap: 0.28rem;
   justify-self: end;
-  padding-top: 0.08rem;
+  padding-top: 0.04rem;
 `;
 
 const OptionBadge = styled.span`
@@ -650,12 +651,12 @@ const OptionBadge = styled.span`
   color: #244b73;
   display: inline-flex;
   flex: 0 1 auto;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   max-width: 8rem;
   overflow: hidden;
-  padding: 0.2rem 0.42rem;
+  padding: 0.16rem 0.34rem;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -697,14 +698,14 @@ const StateMessage = styled.div`
     linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 58%);
   border: 1px dashed rgba(36, 75, 115, 0.14);
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--theme-muted, #54657f);
   display: grid;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   justify-items: center;
   line-height: 1.55;
-  min-height: 92px;
-  padding: 1rem 0.8rem;
+  min-height: 78px;
+  padding: 0.85rem 0.72rem;
   text-align: center;
 `;
 
