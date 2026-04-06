@@ -28,6 +28,7 @@ import StreamFormCard from "@/components/admin/stream-form-card";
 import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import { getProviderDefinition } from "@/lib/news/provider-definitions";
 import { runStreamNowAction, saveStreamAction } from "../actions";
 
 const modeValues = ["AUTO_PUBLISH", "REVIEW_REQUIRED"];
@@ -69,8 +70,10 @@ export default async function StreamsPage() {
   }));
   const providerOptions = snapshot.providers.map((provider) => ({
     badge: provider.providerKey,
-    description: provider.description || provider.baseUrl || "Configured provider",
+    description: getProviderDefinition(provider.providerKey)?.docsUrl || "Configured provider",
+    docsUrl: getProviderDefinition(provider.providerKey)?.docsUrl || "",
     label: provider.label,
+    providerKey: provider.providerKey,
     value: provider.id,
   }));
   const templateOptions = [

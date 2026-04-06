@@ -20,7 +20,10 @@ import {
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import CheckboxSearchField from "@/components/admin/checkbox-search-field";
+import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import SearchableSelect from "@/components/common/searchable-select";
+import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
 import {
   getStreamValidationIssues,
   isDestinationKindAutoPublishCapable,
@@ -74,11 +77,15 @@ export default function StreamFormCard({
   submitLabel,
   templateOptions = [],
 }) {
+  const [activeProviderId, setActiveProviderId] = useState(
+    stream?.activeProviderId || providerOptions[0]?.value || "",
+  );
   const [destinationId, setDestinationId] = useState(stream?.destinationId || destinationOptions[0]?.value || "");
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
+  const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
   const issues = getStreamValidationIssues({
     destination: selectedDestination,
@@ -131,11 +138,17 @@ export default function StreamFormCard({
             <FieldLabel>Provider</FieldLabel>
             <SearchableSelect
               ariaLabel="Provider"
-              defaultValue={stream?.activeProviderId || providerOptions[0]?.value || ""}
               name="activeProviderId"
+              onChange={(value) => setActiveProviderId(`${value || ""}`)}
               options={providerOptions}
               placeholder="Select a provider"
+              value={activeProviderId}
             />
+            {selectedProvider?.docsUrl ? (
+              <SmallText>
+                Official docs: <a href={selectedProvider.docsUrl} rel="noreferrer" target="_blank">{selectedProvider.docsUrl}</a>
+              </SmallText>
+            ) : null}
           </Field>
           <Field as="div">
             <FieldLabel>Mode</FieldLabel>
@@ -247,6 +260,16 @@ export default function StreamFormCard({
         </FieldGrid>
       </FormSection>
 
+      {selectedProvider?.providerKey ? (
+        <ProviderFilterFields
+          key={`stream-provider-filters-${selectedProvider.providerKey}`}
+          namePrefix="providerFilter"
+          providerKey={selectedProvider.providerKey}
+          scope="stream"
+          values={getStreamProviderFormValues(stream)}
+        />
+      ) : null}
+
       <FormSection>
         <FormSectionTitle>Targeting rules</FormSectionTitle>
         <Field>
@@ -263,17 +286,13 @@ export default function StreamFormCard({
             name="excludeKeywordsJson"
           />
         </Field>
-        <Field as="div">
-          <FieldLabel>Categories</FieldLabel>
-          <SearchableSelect
-            ariaLabel="Stream categories"
-            defaultValue={stream?.streamCategories?.map((category) => category.id) || []}
-            multiple
-            name="categoryIds"
-            options={categoryOptions}
-            placeholder="Select one or more categories"
-          />
-        </Field>
+        <CheckboxSearchField
+          description="Assign internal NewsPub categories used for matching, landing pages, and publication organization."
+          name="categoryIds"
+          options={categoryOptions}
+          selectedValues={stream?.streamCategories?.map((category) => category.id) || []}
+          title="Categories"
+        />
         <ButtonRow>
           <PrimaryButton disabled={issues.length > 0} type="submit">
             {submitLabel}

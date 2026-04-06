@@ -13,12 +13,25 @@ import {
   FormSectionTitle,
   Input,
   PrimaryButton,
+  SecondaryButton,
   SmallText,
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getProviderRequestDefaultValues, listProviderDefinitions } from "@/lib/news/provider-definitions";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
+
+const providerDescriptions = Object.freeze({
+  mediastack: "Mediastack provider integration with the official live news filters.",
+  newsapi: "NewsAPI provider integration with official Top Headlines and Everything filters.",
+  newsdata: "NewsData provider integration with official Latest and Archive request filters.",
+});
+
+const providerBaseUrls = Object.freeze({
+  mediastack: "https://api.mediastack.com/v1/news",
+  newsapi: "https://newsapi.org/v2/top-headlines",
+  newsdata: "https://newsdata.io/api/1/latest",
+});
 
 export default function ProviderFormCard({
   action,
@@ -36,17 +49,32 @@ export default function ProviderFormCard({
     [providerDefinitions],
   );
   const [providerKey, setProviderKey] = useState(provider?.providerKey || providerDefinitions[0]?.key || "");
+  const [metadataResetKey, setMetadataResetKey] = useState(0);
+  const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
   const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
+  const isExistingProviderSelection = provider?.providerKey === providerKey;
+  const nextLabel = isExistingProviderSelection ? provider?.label || selectedDefinition?.label || "" : selectedDefinition?.label || "";
+  const nextBaseUrl = isExistingProviderSelection ? provider?.baseUrl || providerBaseUrls[providerKey] || "" : providerBaseUrls[providerKey] || "";
+  const nextDescription = isExistingProviderSelection
+    ? provider?.description || providerDescriptions[providerKey] || ""
+    : providerDescriptions[providerKey] || "";
+  const nextRequestDefaults = isExistingProviderSelection
+    ? getProviderRequestDefaultValues(provider)
+    : selectedDefinition?.defaultRequestDefaults || {};
 
   return (
     <form action={action}>
-      <FieldGrid>
+      <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
         <Field as="div">
           <FieldLabel>Provider Key</FieldLabel>
           <SearchableSelect
             ariaLabel="Provider key"
             name="providerKey"
-            onChange={(value) => setProviderKey(`${value || ""}`)}
+            onChange={(value) => {
+              setProviderKey(`${value || ""}`);
+              setMetadataResetKey((currentValue) => currentValue + 1);
+              setRequestDefaultsResetKey((currentValue) => currentValue + 1);
+            }}
             options={providerKeyOptions}
             placeholder="Select a provider"
             value={providerKey}
@@ -54,19 +82,27 @@ export default function ProviderFormCard({
         </Field>
         <Field>
           <FieldLabel>Label</FieldLabel>
-          <Input defaultValue={provider?.label || selectedDefinition?.label || ""} name="label" required />
+          <Input defaultValue={nextLabel} name="label" required />
         </Field>
         <Field>
           <FieldLabel>Base URL</FieldLabel>
-          <Input defaultValue={provider?.baseUrl || ""} name="baseUrl" />
+          <Input defaultValue={nextBaseUrl} name="baseUrl" />
         </Field>
       </FieldGrid>
 
-      <FormSection>
+      <FormSection key={`provider-notes-${providerKey}-${metadataResetKey}`}>
         <FormSectionTitle>Provider Notes</FormSectionTitle>
+        <ButtonRow>
+          <SecondaryButton
+            onClick={() => setMetadataResetKey((currentValue) => currentValue + 1)}
+            type="button"
+          >
+            Reset to defaults
+          </SecondaryButton>
+        </ButtonRow>
         <Field>
           <FieldLabel>Description</FieldLabel>
-          <Textarea defaultValue={provider?.description || ""} name="description" />
+          <Textarea defaultValue={nextDescription} name="description" />
         </Field>
         {selectedDefinition?.docsUrl ? (
           <SmallText>
@@ -75,12 +111,27 @@ export default function ProviderFormCard({
         ) : null}
       </FormSection>
 
+      <FormSection>
+        <FormSectionTitle>Request Defaults</FormSectionTitle>
+        <ButtonRow>
+          <SecondaryButton
+            onClick={() => setRequestDefaultsResetKey((currentValue) => currentValue + 1)}
+            type="button"
+          >
+            Reset request defaults
+          </SecondaryButton>
+        </ButtonRow>
+        <SmallText>
+          Restore the selected provider&apos;s default request settings before saving.
+        </SmallText>
+      </FormSection>
+
       <ProviderFilterFields
-        key={`provider-defaults-${providerKey}`}
+        key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}`}
         namePrefix="requestDefault"
         providerKey={providerKey}
         scope="provider"
-        values={getProviderRequestDefaultValues(provider)}
+        values={nextRequestDefaults}
       />
 
       <FormSection>

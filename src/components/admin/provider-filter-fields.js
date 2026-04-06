@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Field,
@@ -43,11 +43,14 @@ export default function ProviderFilterFields({
   scope,
   values = {},
 }) {
-  const [dynamicValues, setDynamicValues] = useState(values);
-
-  useEffect(() => {
-    setDynamicValues(values);
-  }, [providerKey, values]);
+  const [dynamicOverrides, setDynamicOverrides] = useState({});
+  const dynamicValues = useMemo(
+    () => ({
+      ...(values || {}),
+      ...(dynamicOverrides || {}),
+    }),
+    [dynamicOverrides, values],
+  );
 
   const definition = useMemo(
     () => getProviderFormDefinition(providerKey, scope, dynamicValues),
@@ -78,7 +81,7 @@ export default function ProviderFilterFields({
                         ariaLabel={field.label}
                         name={getFieldName(field, namePrefix)}
                         onChange={(value) =>
-                          setDynamicValues((currentValues) => ({
+                          setDynamicOverrides((currentValues) => ({
                             ...currentValues,
                             [field.key]: value,
                           }))

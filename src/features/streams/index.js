@@ -1,5 +1,6 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
+import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
@@ -157,8 +158,25 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       : Promise.resolve(null),
   ]);
 
+  const activeProvider = await db.newsProviderConfig.findUnique({
+    select: {
+      id: true,
+      providerKey: true,
+    },
+    where: {
+      id: input.activeProviderId,
+    },
+  });
+
   if (!destination) {
     throw new NewsPubError("The selected destination could not be found.", {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  if (!activeProvider) {
+    throw new NewsPubError("The selected provider could not be found.", {
       status: "stream_validation_failed",
       statusCode: 400,
     });
@@ -184,6 +202,16 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     });
   }
 
+  const providerFilters = sanitizeProviderFieldValues(
+    activeProvider.providerKey,
+    input.providerFilters,
+    {
+      preserveEmpty: true,
+    },
+  );
+  const countryAllowlistJson = normalizeKeywordList(input.countryAllowlistJson).map((value) => value.toLowerCase());
+  const languageAllowlistJson = normalizeKeywordList(input.languageAllowlistJson).map((value) => value.toLowerCase());
+
   const stream = await db.publishingStream.upsert({
     where: {
       slug,
@@ -196,6 +224,8 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       duplicateWindowHours: Number.parseInt(`${input.duplicateWindowHours || 48}`, 10) || 48,
       excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
       includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
+      countryAllowlistJson,
+      languageAllowlistJson,
       locale: trimText(input.locale),
       maxPostsPerRun: Number.parseInt(`${input.maxPostsPerRun || 5}`, 10) || 5,
       mode: trimText(input.mode) || "REVIEW_REQUIRED",
@@ -204,6 +234,9 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       retryLimit: Number.parseInt(`${input.retryLimit || 3}`, 10) || 3,
       scheduleExpression: trimText(input.scheduleExpression) || null,
       scheduleIntervalMinutes: Number.parseInt(`${input.scheduleIntervalMinutes || 60}`, 10) || 60,
+      settingsJson: {
+        providerFilters,
+      },
       status: trimText(input.status) || "ACTIVE",
       timezone: trimText(input.timezone) || "UTC",
     },
@@ -215,6 +248,8 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       duplicateWindowHours: Number.parseInt(`${input.duplicateWindowHours || 48}`, 10) || 48,
       excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
       includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
+      countryAllowlistJson,
+      languageAllowlistJson,
       locale: trimText(input.locale),
       maxPostsPerRun: Number.parseInt(`${input.maxPostsPerRun || 5}`, 10) || 5,
       mode: trimText(input.mode) || "REVIEW_REQUIRED",
@@ -224,6 +259,9 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       scheduleExpression: trimText(input.scheduleExpression) || null,
       scheduleIntervalMinutes: Number.parseInt(`${input.scheduleIntervalMinutes || 60}`, 10) || 60,
       slug,
+      settingsJson: {
+        providerFilters,
+      },
       status: trimText(input.status) || "ACTIVE",
       timezone: trimText(input.timezone) || "UTC",
     },
