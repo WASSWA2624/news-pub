@@ -192,6 +192,7 @@ const ProgressOverlay = styled.div`
   display: flex;
   inset: 0;
   justify-content: center;
+  overflow-y: auto;
   padding: 1rem;
   position: fixed;
   z-index: 1400;
@@ -207,8 +208,9 @@ const ProgressSurface = styled.section`
     0 32px 72px rgba(11, 18, 30, 0.24),
     0 12px 28px rgba(16, 32, 51, 0.1);
   display: grid;
-  gap: 1rem;
-  max-height: min(88dvh, 52rem);
+  gap: 0.9rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(calc(100dvh - 2rem), 52rem);
   overflow: hidden;
   padding: clamp(1rem, 2vw, 1.25rem);
   width: min(94vw, 44rem);
@@ -217,6 +219,55 @@ const ProgressSurface = styled.section`
 const ProgressHeader = styled.div`
   display: grid;
   gap: 0.35rem;
+`;
+
+const ProgressHeaderRow = styled.div`
+  align-items: start;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+`;
+
+const ProgressHeaderCopy = styled.div`
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+`;
+
+const ProgressCloseButton = styled.button`
+  align-items: center;
+  background: rgba(16, 32, 51, 0.05);
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  border-radius: 999px;
+  color: #22344f;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.2rem;
+  justify-content: center;
+  opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+  width: 2.2rem;
+
+  &:hover {
+    background: ${({ disabled }) =>
+      disabled ? "rgba(16, 32, 51, 0.05)" : "rgba(16, 32, 51, 0.08)"};
+    transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px rgba(15, 111, 141, 0.1);
+    outline: none;
+  }
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
+  }
 `;
 
 const ProgressEyebrow = styled.span`
@@ -245,6 +296,27 @@ const ProgressDescription = styled.p`
 const ProgressTrackFrame = styled.div`
   display: grid;
   gap: 0.45rem;
+`;
+
+const ProgressBody = styled.div`
+  display: grid;
+  gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(36, 75, 115, 0.26);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
 `;
 
 const ProgressMetaRow = styled.div`
@@ -314,22 +386,6 @@ const ProgressSummaryLabel = styled.span`
 const ProgressList = styled.div`
   display: grid;
   gap: 0.55rem;
-  max-height: min(34dvh, 18rem);
-  overflow-y: auto;
-  padding-right: 0.2rem;
-  scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
-  scrollbar-width: thin;
-
-  &::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(36, 75, 115, 0.26);
-    border: 3px solid transparent;
-    border-radius: 999px;
-    background-clip: padding-box;
-  }
 `;
 
 const ProgressItem = styled.article`
@@ -414,8 +470,11 @@ const ProgressItemText = styled.p`
 `;
 
 const ProgressFooter = styled.div`
+  align-items: center;
+  border-top: 1px solid rgba(16, 32, 51, 0.08);
   display: flex;
   justify-content: flex-end;
+  padding-top: 0.9rem;
 `;
 
 const ScopeHeader = styled.div`
@@ -980,93 +1039,113 @@ function RunProgressModal({ runState, onClose }) {
       : "Every requested stream finished. Review the brief report below, then close the modal when you are ready.";
 
   return createPortal(
-    <ProgressOverlay>
+    <ProgressOverlay
+      onClick={(event) => {
+        if (!isRunning && event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <ProgressSurface aria-busy={isRunning} aria-modal="true" role="dialog">
         <ProgressHeader>
-          <ProgressEyebrow>{isRunning ? "Stream progress" : "Run report"}</ProgressEyebrow>
-          <ProgressTitle>{modalTitle}</ProgressTitle>
-          <ProgressDescription>{modalDescription}</ProgressDescription>
+          <ProgressHeaderRow>
+            <ProgressHeaderCopy>
+              <ProgressEyebrow>{isRunning ? "Stream progress" : "Run report"}</ProgressEyebrow>
+              <ProgressTitle>{modalTitle}</ProgressTitle>
+              <ProgressDescription>{modalDescription}</ProgressDescription>
+            </ProgressHeaderCopy>
+            <ProgressCloseButton
+              aria-label={isRunning ? "Close disabled while run is active" : "Close run report"}
+              disabled={isRunning}
+              onClick={onClose}
+              type="button"
+            >
+              <AppIcon name="close" size={14} />
+            </ProgressCloseButton>
+          </ProgressHeaderRow>
         </ProgressHeader>
 
-        <ProgressTrackFrame>
-          <ProgressMetaRow>
-            <ProgressMetaText>
-              {isRunning
-                ? `Completed ${runState.completedCount} of ${runState.totalCount} stream${runState.totalCount === 1 ? "" : "s"}`
-                : `${runState.results.length} stream${runState.results.length === 1 ? "" : "s"} processed`}
-            </ProgressMetaText>
-            <ProgressMetaText>{Math.round(progress)}%</ProgressMetaText>
-          </ProgressMetaRow>
-          <ProgressTrack aria-hidden="true">
-            <ProgressFill $animated={isRunning} $progress={progress} />
-          </ProgressTrack>
-          {isRunning && runState.activeStreamName ? (
-            <ProgressDescription>
-              Working on <strong>{runState.activeStreamName}</strong>.
-            </ProgressDescription>
+        <ProgressBody>
+          <ProgressTrackFrame>
+            <ProgressMetaRow>
+              <ProgressMetaText>
+                {isRunning
+                  ? `Completed ${runState.completedCount} of ${runState.totalCount} stream${runState.totalCount === 1 ? "" : "s"}`
+                  : `${runState.results.length} stream${runState.results.length === 1 ? "" : "s"} processed`}
+              </ProgressMetaText>
+              <ProgressMetaText>{Math.round(progress)}%</ProgressMetaText>
+            </ProgressMetaRow>
+            <ProgressTrack aria-hidden="true">
+              <ProgressFill $animated={isRunning} $progress={progress} />
+            </ProgressTrack>
+            {isRunning && runState.activeStreamName ? (
+              <ProgressDescription>
+                Working on <strong>{runState.activeStreamName}</strong>.
+              </ProgressDescription>
+            ) : null}
+          </ProgressTrackFrame>
+
+          {!isRunning ? (
+            <ProgressSummaryGrid>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.completedRuns}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Completed runs</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.failedRuns}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Failed runs</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.publishedCount}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Published stories</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.heldCount}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Held for review</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.skippedCount + resultSummary.duplicateCount}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Skipped or duplicate</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+              <ProgressSummaryCard>
+                <ProgressSummaryValue>{resultSummary.failedPublishCount}</ProgressSummaryValue>
+                <ProgressSummaryLabel>Publish failures</ProgressSummaryLabel>
+              </ProgressSummaryCard>
+            </ProgressSummaryGrid>
           ) : null}
-        </ProgressTrackFrame>
 
-        {!isRunning ? (
-          <ProgressSummaryGrid>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.completedRuns}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Completed runs</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.failedRuns}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Failed runs</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.publishedCount}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Published stories</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.heldCount}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Held for review</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.skippedCount + resultSummary.duplicateCount}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Skipped or duplicate</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-            <ProgressSummaryCard>
-              <ProgressSummaryValue>{resultSummary.failedPublishCount}</ProgressSummaryValue>
-              <ProgressSummaryLabel>Publish failures</ProgressSummaryLabel>
-            </ProgressSummaryCard>
-          </ProgressSummaryGrid>
-        ) : null}
+          <ProgressList>
+            {runState.streams.map((stream) => {
+              const result = runState.results.find((entry) => entry.stream.id === stream.id) || {
+                stream,
+              };
+              const tone = getResultTone(result, runState.activeStreamId);
 
-        <ProgressList>
-          {runState.streams.map((stream) => {
-            const result = runState.results.find((entry) => entry.stream.id === stream.id) || {
-              stream,
-            };
-            const tone = getResultTone(result, runState.activeStreamId);
-
-            return (
-              <ProgressItem $tone={tone} key={stream.id}>
-                <ProgressItemHeader>
-                  <ProgressItemTitleBlock>
-                    <ProgressItemTitle>{stream.name}</ProgressItemTitle>
-                    <ProgressItemMeta>
-                      {stream.destinationName || "Unknown destination"} via {stream.providerLabel || "Unknown provider"}
-                    </ProgressItemMeta>
-                  </ProgressItemTitleBlock>
-                  <ProgressItemStatus $tone={tone === "idle" ? "idle" : tone}>
-                    {getResultLabel(result, runState.activeStreamId)}
-                  </ProgressItemStatus>
-                </ProgressItemHeader>
-                <ProgressItemText>
-                  {result.error
-                    ? result.error
-                    : result.run
-                      ? describeCompletedRun(result.run)
-                      : "Waiting for this stream to start."}
-                </ProgressItemText>
-              </ProgressItem>
-            );
-          })}
-        </ProgressList>
+              return (
+                <ProgressItem $tone={tone} key={stream.id}>
+                  <ProgressItemHeader>
+                    <ProgressItemTitleBlock>
+                      <ProgressItemTitle>{stream.name}</ProgressItemTitle>
+                      <ProgressItemMeta>
+                        {stream.destinationName || "Unknown destination"} via {stream.providerLabel || "Unknown provider"}
+                      </ProgressItemMeta>
+                    </ProgressItemTitleBlock>
+                    <ProgressItemStatus $tone={tone === "idle" ? "idle" : tone}>
+                      {getResultLabel(result, runState.activeStreamId)}
+                    </ProgressItemStatus>
+                  </ProgressItemHeader>
+                  <ProgressItemText>
+                    {result.error
+                      ? result.error
+                      : result.run
+                        ? describeCompletedRun(result.run)
+                        : "Waiting for this stream to start."}
+                  </ProgressItemText>
+                </ProgressItem>
+              );
+            })}
+          </ProgressList>
+        </ProgressBody>
 
         <ProgressFooter>
           <PrimaryButton disabled={isRunning} onClick={onClose} type="button">
