@@ -501,10 +501,8 @@ export default function DestinationFormCard({
   destination = null,
   kindOptions = [],
   metaConfig = {
-    appId: null,
     credentialDefaultsBySlug: {},
     defaultGraphApiBaseUrl: "https://graph.facebook.com/v25.0",
-    hasAppCredentials: false,
     hasDiscoveryAccessToken: false,
     socialGuardrails: {},
   },

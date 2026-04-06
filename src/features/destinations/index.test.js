@@ -38,17 +38,10 @@ describe("destination feature validation", () => {
 
   it("persists a discovered Meta page selection as destination settings and an encrypted token", async () => {
     process.env.META_USER_ACCESS_TOKEN = "env-user-token";
-    process.env.META_APP_ID = "1234567890";
-    process.env.META_APP_SECRET = "meta-secret";
 
     vi.stubGlobal(
       "fetch",
       vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { is_valid: true } }),
-        })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
@@ -97,7 +90,7 @@ describe("destination feature validation", () => {
       },
     );
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledTimes(1);
     expect(record.externalAccountId).toBe("page_1");
     expect(record.settingsJson).toMatchObject({

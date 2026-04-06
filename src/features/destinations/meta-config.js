@@ -1,5 +1,4 @@
 import { env } from "@/lib/env/server";
-import { getMetaAppAccessToken, getMetaAppSecretProof } from "@/lib/news/destination-runtime";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 
 const defaultGraphApiBaseUrl = "https://graph.facebook.com/v25.0";
@@ -91,23 +90,8 @@ function buildCredentialSourceKey(credentialKey) {
   return `env:${credentialKey}`;
 }
 
-function normalizeCredentialSourceLabel(credentialKey, credential = {}) {
-  return trimText(credential.label) || trimText(credentialKey) || "meta-credential";
-}
-
 function getMetaGraphRequestBaseUrl(value) {
   return trimText(value) || trimText(env.meta.graphApiBaseUrl) || defaultGraphApiBaseUrl;
-}
-
-function hasMetaCredentialDefaults(credential = {}) {
-  return Boolean(
-    trimText(credential?.accessToken)
-      || trimText(credential?.externalAccountId)
-      || trimText(credential?.graphApiBaseUrl)
-      || trimText(credential?.instagramUserId)
-      || trimText(credential?.pageId)
-      || trimText(credential?.profileId),
-  );
 }
 
 function getMetaCredentialSources() {
@@ -128,24 +112,7 @@ function getMetaCredentialSources() {
     });
   }
 
-  return [
-    ...sources,
-    ...Object.entries(env.meta.destinationCredentials || {}).map(([credentialKey, credentialValue]) => {
-      const credential = normalizeSettings(credentialValue);
-
-      return {
-        accessToken: trimText(credential.accessToken) || null,
-        credentialKey,
-        externalAccountId: trimText(credential.externalAccountId) || null,
-        graphApiBaseUrl: getMetaGraphRequestBaseUrl(credential.graphApiBaseUrl),
-        instagramUserId: trimText(credential.instagramUserId) || null,
-        pageId: trimText(credential.pageId) || null,
-        sourceKey: buildCredentialSourceKey(credentialKey),
-        sourceLabel: normalizeCredentialSourceLabel(credentialKey, credential),
-        sourceType: "env",
-      };
-    }),
-  ];
+  return sources;
 }
 
 function getMetaCredentialSourceByKey(sourceKey) {
@@ -197,12 +164,6 @@ async function getMetaGraphJson(source, path, values = {}) {
 
   url.searchParams.set("access_token", source.accessToken);
 
-  const appSecretProof = getMetaAppSecretProof(source.accessToken);
-
-  if (appSecretProof) {
-    url.searchParams.set("appsecret_proof", appSecretProof);
-  }
-
   const response = await fetch(url, {
     headers: {
       accept: "application/json",
@@ -221,53 +182,6 @@ async function getMetaGraphJson(source, path, values = {}) {
   }
 
   return payload || {};
-}
-
-async function validateMetaSourceToken(source) {
-  const appAccessToken = getMetaAppAccessToken();
-
-  if (!appAccessToken) {
-    return null;
-  }
-
-  const baseUrl = normalizeBaseUrl(source.graphApiBaseUrl || defaultGraphApiBaseUrl);
-  const url = new URL("debug_token", baseUrl);
-  const appSecretProof = getMetaAppSecretProof(appAccessToken);
-
-  url.searchParams.set("access_token", appAccessToken);
-  url.searchParams.set("input_token", source.accessToken);
-
-  if (appSecretProof) {
-    url.searchParams.set("appsecret_proof", appSecretProof);
-  }
-
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-    },
-    method: "GET",
-  });
-  const payload = await parseMetaJsonResponse(response);
-
-  if (!response.ok || payload?.error) {
-    throw createMetaDiscoveryError(
-      source,
-      payload?.error?.message || `Meta token validation failed with status ${response.status}.`,
-      payload,
-      response.status || 502,
-    );
-  }
-
-  if (payload?.data?.is_valid === false) {
-    throw createMetaDiscoveryError(
-      source,
-      "Meta rejected the configured access token for this credential source.",
-      payload,
-      400,
-    );
-  }
-
-  return payload?.data || null;
 }
 
 function buildInstagramDiscoveryRecord(instagramRecord, source, page = null, accessToken = null) {
@@ -357,8 +271,6 @@ async function discoverAssetsFromSource(source) {
       400,
     );
   }
-
-  await validateMetaSourceToken(source);
 
   let discoveredPages = [];
   let lastError = null;
@@ -547,28 +459,8 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
 
 export function getMetaDestinationFormConfig() {
   return {
-    appId: trimText(env.meta.app.id) || null,
-    credentialDefaultsBySlug: Object.entries(env.meta.destinationCredentials || {}).reduce((result, [slug, credentialValue]) => {
-      const credential = normalizeSettings(credentialValue);
-
-      if (!hasMetaCredentialDefaults(credential)) {
-        return result;
-      }
-
-      result[slug] = {
-        externalAccountId: trimText(credential.externalAccountId) || null,
-        graphApiBaseUrl: getMetaGraphRequestBaseUrl(credential.graphApiBaseUrl),
-        hasAccessToken: Boolean(trimText(credential.accessToken)),
-        instagramUserId: trimText(credential.instagramUserId) || null,
-        pageId: trimText(credential.pageId) || null,
-        profileId: trimText(credential.profileId) || null,
-        sourceLabel: normalizeCredentialSourceLabel(slug, credential),
-      };
-
-      return result;
-    }, {}),
+    credentialDefaultsBySlug: {},
     defaultGraphApiBaseUrl: getMetaGraphRequestBaseUrl(),
-    hasAppCredentials: Boolean(env.meta.app.id && env.meta.app.secret),
     hasDiscoveryAccessToken: Boolean(trimText(env.meta.userAccessToken)),
     socialGuardrails: getDestinationSocialGuardrailDefaults(),
   };
@@ -719,11 +611,9 @@ export async function getMetaDiscoverySnapshot() {
   }
 
   return {
-    appId: trimText(env.meta.app.id) || null,
     allowedPageIds: [...(env.meta.allowedPageIds || [])],
     defaultGraphApiBaseUrl: getMetaGraphRequestBaseUrl(),
     errors,
-    hasAppCredentials: Boolean(env.meta.app.id && env.meta.app.secret),
     instagramAccounts: [...instagramRecords.values()].sort((leftRecord, rightRecord) =>
       sortByLabel(
         leftRecord.username || leftRecord.connectedPageName || leftRecord.id,

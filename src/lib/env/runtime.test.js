@@ -17,11 +17,6 @@ describe("environment runtime schema", () => {
     expect(env.destinations.encryptionKey).toBe("destination-secret");
     expect(env.meta).toEqual({
       allowedPageIds: [],
-      app: {
-        id: null,
-        secret: null,
-      },
-      destinationCredentials: {},
       graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         duplicateCooldownHours: 72,
@@ -82,15 +77,7 @@ describe("environment runtime schema", () => {
     const env = parseServerEnv(
       createNewsPubTestEnv({
         META_USER_ACCESS_TOKEN: "user-token",
-        META_APP_ID: "1234567890",
-        META_APP_SECRET: "meta-secret",
         META_ALLOWED_PAGE_IDS: "123456789012345,234567890123456",
-        META_DESTINATION_CREDENTIALS_JSON: JSON.stringify({
-          "facebook-page": {
-            accessToken: "page-token",
-            pageId: "123456789012345",
-          },
-        }),
         META_FACEBOOK_MAX_POSTS_PER_24H: "10",
         META_GRAPH_API_BASE_URL: "https://graph.facebook.com/v25.0",
         META_INSTAGRAM_MAX_HASHTAGS: "6",
@@ -102,16 +89,6 @@ describe("environment runtime schema", () => {
 
     expect(env.meta).toEqual({
       allowedPageIds: ["123456789012345", "234567890123456"],
-      app: {
-        id: "1234567890",
-        secret: "meta-secret",
-      },
-      destinationCredentials: {
-        "facebook-page": {
-          accessToken: "page-token",
-          pageId: "123456789012345",
-        },
-      },
       graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         duplicateCooldownHours: 48,
@@ -122,13 +99,5 @@ describe("environment runtime schema", () => {
       },
       userAccessToken: "user-token",
     });
-  });
-
-  it("requires Meta app id and secret together", () => {
-    const env = createNewsPubTestEnv({
-      META_APP_ID: "1234567890",
-    });
-
-    expect(() => parseServerEnv(env)).toThrow(/META_APP_ID and META_APP_SECRET must be provided together/);
   });
 });

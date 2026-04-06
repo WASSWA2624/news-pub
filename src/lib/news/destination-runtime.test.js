@@ -19,14 +19,7 @@ describe("destination runtime resolution", () => {
     vi.resetModules();
   });
 
-  it("prefers env-backed Meta destination credentials over stored values", async () => {
-    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
-      "facebook-page": {
-        accessToken: "env-token",
-        pageId: "123456789012345",
-      },
-    });
-
+  it("relies on stored destination credentials for Meta publishing", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
     const encryptedToken = encryptSecretValue("stored-token");
@@ -45,45 +38,13 @@ describe("destination runtime resolution", () => {
     });
 
     expect(resolved).toMatchObject({
-      accessToken: "env-token",
-      accountId: "123456789012345",
-      effectiveConnectionStatus: "CONNECTED",
-      hasRuntimeCredentials: true,
-      isReadyToPublish: true,
-      usesEnvCredentials: true,
-    });
-  });
-
-  it("does not bypass a disconnected destination when env config only overrides the account id", async () => {
-    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
-      "facebook-page": {
-        pageId: "123456789012345",
-      },
-    });
-
-    const { encryptSecretValue } = await import("@/lib/security/secrets");
-    const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
-    const encryptedToken = encryptSecretValue("stored-token");
-
-    const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "DISCONNECTED",
-      encryptedTokenCiphertext: encryptedToken.ciphertext,
-      encryptedTokenIv: encryptedToken.iv,
-      encryptedTokenTag: encryptedToken.tag,
-      externalAccountId: "stale-external-id",
-      platform: "FACEBOOK",
-      settingsJson: {},
-      slug: "facebook-page",
-    });
-
-    expect(resolved).toMatchObject({
       accessToken: "stored-token",
-      accountId: "123456789012345",
+      accountId: "stale-external-id",
       effectiveConnectionStatus: "DISCONNECTED",
       hasCompleteEnvCredentials: false,
       hasRuntimeCredentials: true,
       isReadyToPublish: false,
-      usesEnvCredentials: true,
+      usesEnvCredentials: false,
     });
   });
 
@@ -115,14 +76,7 @@ describe("destination runtime resolution", () => {
     });
   });
 
-  it("lets destination credential overrides win over env defaults when explicitly enabled", async () => {
-    process.env.META_DESTINATION_CREDENTIALS_JSON = JSON.stringify({
-      "facebook-page": {
-        accessToken: "env-token",
-        pageId: "123456789012345",
-      },
-    });
-
+  it("uses stored override values when a destination was saved with them", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
     const encryptedToken = encryptSecretValue("override-token");
@@ -145,7 +99,7 @@ describe("destination runtime resolution", () => {
       accessToken: "override-token",
       accountId: "override-page-id",
       pageId: "override-page-id",
-      usesDestinationCredentialOverrides: true,
+      usesDestinationCredentialOverrides: false,
       usesEnvCredentials: false,
     });
   });

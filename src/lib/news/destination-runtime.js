@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 import { env } from "@/lib/env/server";
 import { trimText } from "@/lib/news/shared";
 import { decryptSecretValue } from "@/lib/security/secrets";
@@ -35,64 +33,28 @@ function decryptDestinationToken(destination) {
   }
 }
 
-/** Returns any env-backed credential override configured for the destination slug. */
-export function getMetaDestinationEnvCredential(destination = {}) {
-  if (!destination?.slug || !["FACEBOOK", "INSTAGRAM"].includes(destination?.platform)) {
-    return null;
-  }
-
-  const credential = env.meta.destinationCredentials?.[destination.slug];
-
-  return credential && typeof credential === "object" && !Array.isArray(credential) ? credential : null;
-}
-
 /** Builds the effective runtime connection details for one destination. */
 export function resolveDestinationRuntimeConnection(destination = {}) {
-  const envCredential = getMetaDestinationEnvCredential(destination) || {};
   const settings = normalizeSettings(destination?.settingsJson);
-  const useDestinationCredentialOverrides = settings.useDestinationCredentialOverrides === true;
   const storedToken = decryptDestinationToken(destination);
-  const envAccessToken = trimText(envCredential.accessToken) || null;
   const storedAccessToken = trimText(storedToken) || null;
-  const envGraphApiBaseUrl = trimText(envCredential.graphApiBaseUrl) || null;
-  const envExternalAccountId = trimText(envCredential.externalAccountId) || null;
-  const envPageId = trimText(envCredential.pageId) || null;
-  const envProfileId = trimText(envCredential.profileId) || null;
-  const envInstagramUserId = trimText(envCredential.instagramUserId) || null;
   const storedExternalAccountId = trimText(destination?.externalAccountId) || null;
   const storedGraphApiBaseUrl = trimText(settings.graphApiBaseUrl) || null;
   const storedPageId = trimText(settings.pageId) || null;
   const storedProfileId = trimText(settings.profileId) || null;
   const storedInstagramUserId = trimText(settings.instagramUserId) || null;
-  const accessToken = useDestinationCredentialOverrides
-    ? storedAccessToken || envAccessToken || null
-    : envAccessToken || storedAccessToken || null;
-  const envAccountId =
-    envExternalAccountId || envPageId || envProfileId || envInstagramUserId || null;
-  const storedAccountId =
-    storedExternalAccountId || storedPageId || storedProfileId || storedInstagramUserId || null;
-  const accountId = useDestinationCredentialOverrides
-    ? storedAccountId || envAccountId || null
-    : envAccountId || storedAccountId || null;
-  const graphApiBaseUrl = (
-    useDestinationCredentialOverrides
-      ? storedGraphApiBaseUrl || envGraphApiBaseUrl
-      : envGraphApiBaseUrl || storedGraphApiBaseUrl
-  )
+  const accessToken = storedAccessToken || null;
+  const accountId = storedExternalAccountId || storedPageId || storedProfileId || storedInstagramUserId || null;
+  const graphApiBaseUrl =
+    storedGraphApiBaseUrl
     || trimText(env.meta.graphApiBaseUrl)
     || "https://graph.facebook.com/v25.0";
-  const usesEnvCredentials = Boolean(
-    envAccessToken || envExternalAccountId || envPageId || envProfileId || envInstagramUserId,
-  ) && !useDestinationCredentialOverrides;
-  const hasCompleteEnvCredentials = Boolean(envAccessToken && envAccountId);
   const hasRuntimeCredentials =
     destination?.platform === "WEBSITE" ? true : Boolean(accessToken && accountId);
   const isReadyToPublish =
     destination?.platform === "WEBSITE"
       ? true
-      : hasCompleteEnvCredentials
-        ? hasRuntimeCredentials
-        : hasRuntimeCredentials && trimText(destination?.connectionStatus) === "CONNECTED";
+      : hasRuntimeCredentials && trimText(destination?.connectionStatus) === "CONNECTED";
   const effectiveConnectionStatus = isReadyToPublish
     ? "CONNECTED"
     : trimText(destination?.connectionStatus) || "DISCONNECTED";
@@ -101,22 +63,16 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
     accessToken,
     accountId,
     effectiveConnectionStatus,
-    externalAccountId: useDestinationCredentialOverrides
-      ? storedExternalAccountId || envExternalAccountId
-      : envExternalAccountId || storedExternalAccountId,
+    externalAccountId: storedExternalAccountId,
     graphApiBaseUrl,
     hasRuntimeCredentials,
-    hasCompleteEnvCredentials,
-    instagramUserId: useDestinationCredentialOverrides
-      ? storedInstagramUserId || envInstagramUserId
-      : envInstagramUserId || storedInstagramUserId,
+    hasCompleteEnvCredentials: false,
+    instagramUserId: storedInstagramUserId,
     isReadyToPublish,
-    pageId: useDestinationCredentialOverrides ? storedPageId || envPageId : envPageId || storedPageId,
-    profileId: useDestinationCredentialOverrides
-      ? storedProfileId || envProfileId
-      : envProfileId || storedProfileId,
-    usesDestinationCredentialOverrides: useDestinationCredentialOverrides,
-    usesEnvCredentials,
+    pageId: storedPageId,
+    profileId: storedProfileId,
+    usesDestinationCredentialOverrides: false,
+    usesEnvCredentials: false,
   };
 }
 
@@ -128,24 +84,4 @@ export function hasDestinationRuntimeCredentials(destination = {}) {
 /** Reports whether a destination is currently ready for outbound publication. */
 export function isDestinationRuntimeReady(destination = {}) {
   return resolveDestinationRuntimeConnection(destination).isReadyToPublish;
-}
-
-/** Returns the Meta app access token used for token validation calls. */
-export function getMetaAppAccessToken() {
-  if (!env.meta.app.id || !env.meta.app.secret) {
-    return null;
-  }
-
-  return `${env.meta.app.id}|${env.meta.app.secret}`;
-}
-
-/** Creates the Meta `appsecret_proof` value for the given user or page token. */
-export function getMetaAppSecretProof(accessToken) {
-  const token = trimText(accessToken);
-
-  if (!token || !env.meta.app.secret) {
-    return null;
-  }
-
-  return crypto.createHmac("sha256", env.meta.app.secret).update(token).digest("hex");
 }

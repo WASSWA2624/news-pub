@@ -220,11 +220,8 @@ const serverEnvSchema = sharedEnvSchema
     NEWSAPI_API_KEY: optionalString(),
     DESTINATION_TOKEN_ENCRYPTION_KEY: requiredString("DESTINATION_TOKEN_ENCRYPTION_KEY"),
     META_USER_ACCESS_TOKEN: optionalString(),
-    META_APP_ID: optionalString(),
-    META_APP_SECRET: optionalString(),
     META_GRAPH_API_BASE_URL: optionalUrlString("META_GRAPH_API_BASE_URL"),
     META_ALLOWED_PAGE_IDS: optionalCsvString("META_ALLOWED_PAGE_IDS"),
-    META_DESTINATION_CREDENTIALS_JSON: optionalJsonObjectString("META_DESTINATION_CREDENTIALS_JSON"),
     META_SOCIAL_MIN_POST_INTERVAL_MINUTES: optionalIntegerString("META_SOCIAL_MIN_POST_INTERVAL_MINUTES"),
     META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: optionalIntegerString("META_SOCIAL_DUPLICATE_COOLDOWN_HOURS"),
     META_FACEBOOK_MAX_POSTS_PER_24H: optionalIntegerString("META_FACEBOOK_MAX_POSTS_PER_24H"),
@@ -256,26 +253,6 @@ const serverEnvSchema = sharedEnvSchema
         path: ["MEDIA_DRIVER"],
         message: `MEDIA_DRIVER must be one of: ${supportedMediaDrivers.join(", ")}.`,
       });
-    }
-
-    if (Boolean(env.META_APP_ID) !== Boolean(env.META_APP_SECRET)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["META_APP_ID"],
-        message: "META_APP_ID and META_APP_SECRET must be provided together.",
-      });
-    }
-
-    if (env.META_DESTINATION_CREDENTIALS_JSON) {
-      for (const [slug, value] of Object.entries(env.META_DESTINATION_CREDENTIALS_JSON)) {
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["META_DESTINATION_CREDENTIALS_JSON", slug],
-            message: `META_DESTINATION_CREDENTIALS_JSON.${slug} must be an object.`,
-          });
-        }
-      }
     }
 
     if (env.MEDIA_DRIVER === "local") {
@@ -365,11 +342,6 @@ function mapServerEnv(parsedEnv) {
     },
     meta: {
       allowedPageIds: parsedEnv.META_ALLOWED_PAGE_IDS || [],
-      app: {
-        id: parsedEnv.META_APP_ID || null,
-        secret: parsedEnv.META_APP_SECRET || null,
-      },
-      destinationCredentials: parsedEnv.META_DESTINATION_CREDENTIALS_JSON || {},
       graphApiBaseUrl: parsedEnv.META_GRAPH_API_BASE_URL || "https://graph.facebook.com/v25.0",
       socialGuardrails: {
         facebookMaxPostsPer24Hours: parsedEnv.META_FACEBOOK_MAX_POSTS_PER_24H || 12,

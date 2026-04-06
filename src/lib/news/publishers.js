@@ -1,8 +1,4 @@
-import {
-  getMetaAppAccessToken,
-  getMetaAppSecretProof,
-  resolveDestinationRuntimeConnection,
-} from "@/lib/news/destination-runtime";
+import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
@@ -86,13 +82,6 @@ async function getGraphJson(runtimeConnection, path, values) {
     url.searchParams.set(key, `${value}`);
   });
 
-  const accessToken = trimText(values?.access_token);
-  const appSecretProof = getMetaAppSecretProof(accessToken);
-
-  if (appSecretProof) {
-    url.searchParams.set("appsecret_proof", appSecretProof);
-  }
-
   const response = await fetch(url, {
     headers: {
       accept: "application/json",
@@ -127,13 +116,6 @@ async function postGraphForm(runtimeConnection, path, values) {
 
     body.set(key, `${value}`);
   });
-
-  const accessToken = trimText(values?.access_token);
-  const appSecretProof = getMetaAppSecretProof(accessToken);
-
-  if (appSecretProof) {
-    body.set("appsecret_proof", appSecretProof);
-  }
 
   const response = await fetch(new URL(path.replace(/^\/+/, ""), baseUrl), {
     body,
@@ -173,34 +155,6 @@ function requireRuntimeAccessToken(runtimeConnection) {
   }
 
   return runtimeConnection.accessToken;
-}
-
-async function validateMetaAccessToken(runtimeConnection, accessToken) {
-  const appAccessToken = getMetaAppAccessToken();
-
-  if (!appAccessToken) {
-    return null;
-  }
-
-  const payload = await getGraphJson(runtimeConnection, "debug_token", {
-    access_token: appAccessToken,
-    input_token: accessToken,
-  });
-  const tokenData = payload?.data || null;
-
-  if (tokenData && tokenData.is_valid === false) {
-    throw new DestinationPublishError("Meta rejected the configured access token.", {
-      responseJson: {
-        error: "destination_token_invalid",
-        tokenData,
-      },
-      retryable: false,
-      status: "destination_token_invalid",
-      statusCode: 400,
-    });
-  }
-
-  return tokenData;
 }
 
 async function verifyFacebookDestination(runtimeConnection, accessToken) {
@@ -273,7 +227,6 @@ async function publishFacebookDestination(destination, payload) {
   }
 
   const accessToken = requireRuntimeAccessToken(runtimeConnection);
-  const tokenMetadata = await validateMetaAccessToken(runtimeConnection, accessToken);
   const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
   const message = buildFacebookMessage(payload);
 
@@ -292,7 +245,6 @@ async function publishFacebookDestination(destination, payload) {
         responseJson: {
           channel: "facebook_photo",
           targetId: verifiedDestination?.id || targetId,
-          tokenMetadata,
           ...photoPayload,
         },
       };
@@ -316,7 +268,6 @@ async function publishFacebookDestination(destination, payload) {
           fallbackResponse: feedPayload,
           photoError: error.responseJson,
           targetId: verifiedDestination?.id || targetId,
-          tokenMetadata,
         },
       };
     }
@@ -334,7 +285,6 @@ async function publishFacebookDestination(destination, payload) {
     responseJson: {
       channel: "facebook_feed",
       targetId: verifiedDestination?.id || targetId,
-      tokenMetadata,
       ...feedPayload,
     },
   };
@@ -384,7 +334,6 @@ async function publishInstagramDestination(destination, payload) {
   }
 
   const accessToken = requireRuntimeAccessToken(runtimeConnection);
-  const tokenMetadata = await validateMetaAccessToken(runtimeConnection, accessToken);
   const verifiedDestination = await verifyInstagramDestination(runtimeConnection, accessToken);
   const accountType = normalizeMetaAccountType(verifiedDestination?.account_type);
 
@@ -422,7 +371,6 @@ async function publishInstagramDestination(destination, payload) {
       creation: creationPayload,
       publish: publishPayload,
       targetId: verifiedDestination?.id || targetId,
-      tokenMetadata,
     },
   };
 }

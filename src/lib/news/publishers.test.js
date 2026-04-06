@@ -177,31 +177,13 @@ describe("news publishers", () => {
     });
   });
 
-  it("resolves Meta destination credentials from environment variables and adds app secret proof", async () => {
-    process.env = {
-      ...process.env,
-      META_APP_ID: "1234567890",
-      META_APP_SECRET: "meta-secret",
-      META_DESTINATION_CREDENTIALS_JSON: JSON.stringify({
-        "facebook-page": {
-          accessToken: "env-facebook-token",
-          pageId: "123456789012345",
-        },
-      }),
-    };
-
-    vi.resetModules();
-
+  it("publishes using stored destination credentials without app-secret validation", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { publishExternalDestination } = await import("./publishers");
-
+    const encryptedToken = encryptSecretValue("env-facebook-token");
     vi.stubGlobal(
       "fetch",
       vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { is_valid: true } }),
-        })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
@@ -216,11 +198,13 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        externalAccountId: "stale-page-id",
+        encryptedTokenCiphertext: encryptedToken.ciphertext,
+        encryptedTokenIv: encryptedToken.iv,
+        encryptedTokenTag: encryptedToken.tag,
+        externalAccountId: "123456789012345",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
         settingsJson: {},
-        slug: "facebook-page",
       },
       payload: {
         canonicalUrl: "https://example.com/en/news/breaking-story",
@@ -231,11 +215,9 @@ describe("news publishers", () => {
       },
     });
 
-    expect(fetch).toHaveBeenCalledTimes(3);
-    expect(`${fetch.mock.calls[0][0]}`).toContain("/debug_token");
-    expect(`${fetch.mock.calls[1][0]}`).toContain("/123456789012345");
-    expect(`${fetch.mock.calls[2][0]}`).toContain("/123456789012345/feed");
-    expect(`${fetch.mock.calls[2][1].body}`).toContain("appsecret_proof=");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(`${fetch.mock.calls[0][0]}`).toContain("/123456789012345");
+    expect(`${fetch.mock.calls[1][0]}`).toContain("/123456789012345/feed");
     expect(result).toMatchObject({
       remoteId: "feed_post_1",
       responseJson: expect.objectContaining({
