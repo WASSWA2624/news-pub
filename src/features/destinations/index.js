@@ -25,6 +25,16 @@ export async function getDestinationManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const destinations = await db.destination.findMany({
     include: {
+      articleMatches: {
+        select: {
+          id: true,
+        },
+      },
+      publishAttempts: {
+        select: {
+          id: true,
+        },
+      },
       streams: {
         orderBy: {
           name: "asc",
@@ -50,6 +60,9 @@ export async function getDestinationManagementSnapshot(prisma) {
         hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
         socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
         hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
+        articleMatchCount: destination.articleMatches.length,
+        publishAttemptCount: destination.publishAttempts.length,
+        streamCount: destination.streams.length,
         usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
         usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
         validationIssues: getDestinationValidationIssues(destination),
@@ -180,4 +193,61 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
   );
 
   return destination;
+}
+
+export async function deleteDestinationRecord(id, { actorId } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const destination = await db.destination.findUnique({
+    include: {
+      articleMatches: {
+        select: {
+          id: true,
+        },
+      },
+      publishAttempts: {
+        select: {
+          id: true,
+        },
+      },
+      streams: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    where: {
+      id,
+    },
+  });
+
+  if (!destination) {
+    throw new NewsPubError("Destination not found.", {
+      status: "destination_not_found",
+      statusCode: 404,
+    });
+  }
+
+  const deletedDestination = await db.destination.delete({
+    where: {
+      id: destination.id,
+    },
+  });
+
+  await createAuditEventRecord(
+    {
+      action: "DESTINATION_DELETED",
+      actorId,
+      entityId: deletedDestination.id,
+      entityType: "destination",
+      payloadJson: {
+        kind: deletedDestination.kind,
+        platform: deletedDestination.platform,
+        slug: deletedDestination.slug,
+      },
+    },
+    db,
+  );
+
+  return deletedDestination;
 }

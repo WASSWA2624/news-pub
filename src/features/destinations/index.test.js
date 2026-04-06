@@ -153,4 +153,115 @@ describe("destination feature validation", () => {
       }),
     ).toBe("override-token");
   });
+
+  it("deletes destinations when they have no linked streams or publish history", async () => {
+    const { deleteDestinationRecord } = await import("./index");
+    const deleteMock = vi.fn(async ({ where }) => ({
+      id: where.id,
+      kind: "FACEBOOK_PAGE",
+      platform: "FACEBOOK",
+      slug: "delete-me",
+    }));
+
+    const record = await deleteDestinationRecord(
+      "destination_3",
+      {},
+      {
+        auditEvent: {
+          create: vi.fn(),
+        },
+        destination: {
+          delete: deleteMock,
+          findUnique: vi.fn(async () => ({
+            articleMatches: [],
+            id: "destination_3",
+            name: "Delete Me",
+            publishAttempts: [],
+            slug: "delete-me",
+            streams: [],
+          })),
+        },
+      },
+    );
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(record).toMatchObject({
+      id: "destination_3",
+      slug: "delete-me",
+    });
+  });
+
+  it("deletes destinations even when linked streams exist", async () => {
+    const { deleteDestinationRecord } = await import("./index");
+    const deleteMock = vi.fn(async ({ where }) => ({
+      id: where.id,
+      kind: "FACEBOOK_PAGE",
+      platform: "FACEBOOK",
+      slug: "active-destination",
+    }));
+
+    const record = await deleteDestinationRecord(
+      "destination_4",
+      {},
+      {
+        auditEvent: {
+          create: vi.fn(),
+        },
+        destination: {
+          delete: deleteMock,
+          findUnique: vi.fn(async () => ({
+            articleMatches: [],
+            id: "destination_4",
+            name: "Active Destination",
+            publishAttempts: [],
+            slug: "active-destination",
+            streams: [{ id: "stream_1", name: "Main Stream" }],
+          })),
+        },
+      },
+    );
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(record).toMatchObject({
+      id: "destination_4",
+      slug: "active-destination",
+    });
+  });
+
+  it("deletes destinations even when publishing history exists", async () => {
+    const { deleteDestinationRecord } = await import("./index");
+    const deleteMock = vi.fn(async ({ where }) => ({
+      id: where.id,
+      kind: "FACEBOOK_PAGE",
+      platform: "FACEBOOK",
+      slug: "historical-destination",
+    }));
+
+    const record = await deleteDestinationRecord(
+      "destination_5",
+      {},
+      {
+        auditEvent: {
+          create: vi.fn(),
+        },
+        destination: {
+          delete: deleteMock,
+          findUnique: vi.fn(async () => ({
+            articleMatches: [{ id: "match_1" }],
+            id: "destination_5",
+            name: "Historical Destination",
+            publishAttempts: [],
+            slug: "historical-destination",
+            streams: [],
+          })),
+        },
+      },
+    );
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(record).toMatchObject({
+      id: "destination_5",
+      slug: "historical-destination",
+    });
+  });
 });

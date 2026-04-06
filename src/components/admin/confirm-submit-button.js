@@ -43,8 +43,9 @@ const TriggerButton = styled.button`
   }
 
   &:disabled {
-    cursor: wait;
-    opacity: 0.7;
+    cursor: not-allowed;
+    opacity: 0.62;
+    transform: none;
   }
 `;
 

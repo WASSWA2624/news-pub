@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardDescription,
   MetaPill,
+  NoticeBanner,
+  NoticeTitle,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -26,13 +28,14 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
+import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import DestinationFormCard from "@/components/admin/destination-form-card";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { getMetaDestinationFormConfig } from "@/features/destinations/meta-config";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import styled from "styled-components";
-import { saveDestinationAction } from "../actions";
+import { deleteDestinationAction, saveDestinationAction } from "../actions";
 
 const DestinationGrid = styled(SectionGrid)`
   @media (min-width: 1080px) {
@@ -79,6 +82,17 @@ const DestinationRecord = styled(RecordCard)`
 const RecordLead = styled.div`
   display: grid;
   gap: 0.35rem;
+`;
+
+const ActionCluster = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+
+  > form {
+    display: inline-flex;
+  }
 `;
 
 const RouteRail = styled.div`
@@ -166,13 +180,34 @@ function getTone(status) {
   return "warning";
 }
 
-export default async function DestinationsPage() {
+function getDeleteDescription(destination) {
+  const relatedStreamText = destination.streamCount
+    ? `${destination.streamCount} stream${destination.streamCount === 1 ? "" : "s"}`
+    : null;
+  const relatedHistoryCount = destination.articleMatchCount + destination.publishAttemptCount;
+  const relatedHistoryText = relatedHistoryCount
+    ? `${relatedHistoryCount} related publishing record${relatedHistoryCount === 1 ? "" : "s"}`
+    : null;
+
+  if (relatedStreamText || relatedHistoryText) {
+    return `This will permanently remove ${destination.name} and also delete ${[relatedStreamText, relatedHistoryText]
+      .filter(Boolean)
+      .join(" and ")} linked to it.`;
+  }
+
+  return `This will permanently remove ${destination.name}. Saved tokens, routing details, and connection notes will be deleted.`;
+}
+
+export default async function DestinationsPage({ searchParams }) {
+  const resolvedSearchParams = await searchParams;
   const metaConfig = getMetaDestinationFormConfig();
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
     getDestinationManagementSnapshot(),
   ]);
   const copy = messages.admin.destinations;
+  const pageError =
+    typeof resolvedSearchParams?.error === "string" ? resolvedSearchParams.error.trim() : "";
 
   return (
     <AdminPage>
@@ -180,6 +215,12 @@ export default async function DestinationsPage() {
         <AdminEyebrow>{messages.admin.title}</AdminEyebrow>
         <AdminHeroHeading description={copy.description} icon="destinations" title={copy.title} />
       </AdminHero>
+
+      {pageError ? (
+        <NoticeBanner $tone="danger">
+          <NoticeTitle>{pageError}</NoticeTitle>
+        </NoticeBanner>
+      ) : null}
 
       <SummaryGrid>
         <AdminMetricCard icon="destinations" label="Total destinations" value={snapshot.summary.totalCount} />
@@ -231,7 +272,7 @@ export default async function DestinationsPage() {
                       ? "Meta runtime credentials are currently sourced from environment variables for this destination."
                       : "Identity, routing, credentials, and operational notes open in a focused modal with room for longer configurations."}
                   </SmallText>
-                  <ButtonRow>
+                  <ButtonRow as={ActionCluster}>
                     <AdminFormModal
                       description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."
                       mountOnOpen
@@ -250,6 +291,16 @@ export default async function DestinationsPage() {
                         submitLabel="Save destination"
                       />
                     </AdminFormModal>
+                    <form action={deleteDestinationAction}>
+                      <input name="id" type="hidden" value={destination.id} />
+                      <ConfirmSubmitButton
+                        confirmLabel="Delete destination"
+                        description={getDeleteDescription(destination)}
+                        title="Delete this destination?"
+                      >
+                        Delete
+                      </ConfirmSubmitButton>
+                    </form>
                   </ButtonRow>
                 </DestinationRecord>
               );

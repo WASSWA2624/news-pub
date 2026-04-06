@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import {
@@ -35,6 +35,22 @@ import {
 
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeDisplayText(value) {
+  return trimText(value).replace(/\s+/g, " ");
+}
+
+function createDestinationSlug(value, fallback = "destination") {
+  const normalized = normalizeDisplayText(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
 }
 
 function normalizeSettings(value) {
@@ -533,11 +549,17 @@ export default function DestinationFormCard({
       useDestinationCredentialOverrides: initialCredentialState.useDestinationCredentialOverrides,
     };
   }, [destination, metaConfig]);
+  const [name, setName] = useState(`${destination?.name || ""}`);
   const [slug, setSlug] = useState(`${destination?.slug || ""}`);
   const [platform, setPlatform] = useState(`${destination?.platform || "WEBSITE"}`);
   const [kind, setKind] = useState(`${destination?.kind || "WEBSITE"}`);
   const [connectionStatus, setConnectionStatus] = useState(`${destination?.connectionStatus || "DISCONNECTED"}`);
   const [accountHandle, setAccountHandle] = useState(`${destination?.accountHandle || ""}`);
+  const [nameWasEdited, setNameWasEdited] = useState(Boolean(trimText(destination?.name)));
+  const [slugWasEdited, setSlugWasEdited] = useState(Boolean(trimText(destination?.slug)));
+  const [accountHandleWasEdited, setAccountHandleWasEdited] = useState(
+    Boolean(trimText(destination?.accountHandle)),
+  );
   const [useDestinationCredentialOverrides, setUseDestinationCredentialOverrides] = useState(
     initialSettings.useDestinationCredentialOverrides,
   );
@@ -672,6 +694,28 @@ export default function DestinationFormCard({
     setSelectedInstagramAccount("");
   }
 
+  const applyIdentitySuggestion = useCallback(
+    ({ handle = "", label = "" } = {}) => {
+      const normalizedLabel = normalizeDisplayText(label);
+      const normalizedHandle = trimText(handle);
+      let nextSlugSource = "";
+
+      if ((!nameWasEdited || !trimText(name)) && normalizedLabel) {
+        setName(normalizedLabel);
+        nextSlugSource = normalizedLabel;
+      }
+
+      if ((!slugWasEdited || !trimText(slug)) && nextSlugSource) {
+        setSlug(createDestinationSlug(nextSlugSource));
+      }
+
+      if ((!accountHandleWasEdited || !trimText(accountHandle)) && normalizedHandle) {
+        setAccountHandle(normalizedHandle);
+      }
+    },
+    [accountHandle, accountHandleWasEdited, name, nameWasEdited, slug, slugWasEdited],
+  );
+
   useEffect(() => {
     if (!destination) {
       return;
@@ -796,9 +840,13 @@ export default function DestinationFormCard({
     if (!trimText(pageId)) {
       setPageId(nextOption.pageId);
       setExternalAccountId(nextOption.pageId);
-      setAccountHandle(formatAccountHandle(nextOption.username, nextOption.label));
     }
-  }, [facebookPageOptions, pageId, selectedFacebookPage, shouldShowFacebookDiscovery]);
+
+    applyIdentitySuggestion({
+      handle: formatAccountHandle(nextOption.username, nextOption.label),
+      label: nextOption.label,
+    });
+  }, [applyIdentitySuggestion, facebookPageOptions, pageId, selectedFacebookPage, shouldShowFacebookDiscovery]);
 
   useEffect(() => {
     if (!shouldShowInstagramDiscovery || selectedInstagramAccount || !instagramAccountOptions.length) {
@@ -822,9 +870,12 @@ export default function DestinationFormCard({
       setInstagramUserId(selection.targetId);
       setExternalAccountId(selection.targetId);
       setPageId(nextOption.connectedPageId || "");
-      setAccountHandle(formatAccountHandle(nextOption.username, nextOption.label));
     }
-  }, [instagramAccountOptions, instagramUserId, selectedInstagramAccount, shouldShowInstagramDiscovery]);
+    applyIdentitySuggestion({
+      handle: formatAccountHandle(nextOption.username, nextOption.label),
+      label: nextOption.label,
+    });
+  }, [applyIdentitySuggestion, instagramAccountOptions, instagramUserId, selectedInstagramAccount, shouldShowInstagramDiscovery]);
 
   function handleSubmit(event) {
     if (!hasFormErrors) {
@@ -860,24 +911,6 @@ export default function DestinationFormCard({
       {socialGuardrailFieldDefinitions.map((field) => (
         <input key={field.key} name={`socialGuardrail.${field.key}`} type="hidden" value={socialGuardrails[field.key] || ""} />
       ))}
-
-      <SectionSurface>
-        <FormSectionTitle>Identity</FormSectionTitle>
-        <WideGrid>
-          <Field>
-            <FieldLabel>Name</FieldLabel>
-            <Input defaultValue={destination?.name || ""} name="name" required />
-          </Field>
-          <Field>
-            <FieldLabel>Slug</FieldLabel>
-            <Input name="slug" onChange={(event) => setSlug(event.target.value)} required value={slug} />
-          </Field>
-          <Field>
-            <FieldLabel>Account handle</FieldLabel>
-            <Input name="accountHandle" onChange={(event) => setAccountHandle(event.target.value)} value={accountHandle} />
-          </Field>
-        </WideGrid>
-      </SectionSurface>
 
       <SectionSurface>
         <FormSectionTitle>Routing and status</FormSectionTitle>
@@ -922,6 +955,53 @@ export default function DestinationFormCard({
             <StatusHint>
               <StatusChip $tone={getStatusTone(connectionStatus)}>{formatEnumLabel(connectionStatus)}</StatusChip>
             </StatusHint>
+          </Field>
+        </WideGrid>
+      </SectionSurface>
+
+      <SectionSurface>
+        <FormSectionTitle>Identity</FormSectionTitle>
+        <WideGrid>
+          <Field>
+            <FieldLabel>Name</FieldLabel>
+            <Input
+              name="name"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+
+                setName(nextValue);
+                setNameWasEdited(true);
+
+                if (!slugWasEdited) {
+                  setSlug(createDestinationSlug(nextValue));
+                }
+              }}
+              required
+              value={name}
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Slug</FieldLabel>
+            <Input
+              name="slug"
+              onChange={(event) => {
+                setSlug(event.target.value);
+                setSlugWasEdited(true);
+              }}
+              required
+              value={slug}
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Account handle</FieldLabel>
+            <Input
+              name="accountHandle"
+              onChange={(event) => {
+                setAccountHandle(event.target.value);
+                setAccountHandleWasEdited(true);
+              }}
+              value={accountHandle}
+            />
           </Field>
         </WideGrid>
       </SectionSurface>
@@ -1056,7 +1136,10 @@ export default function DestinationFormCard({
 
                 setPageId(selectedOption.pageId);
                 setExternalAccountId(selectedOption.pageId);
-                setAccountHandle(formatAccountHandle(selectedOption.username, selectedOption.label));
+                applyIdentitySuggestion({
+                  handle: formatAccountHandle(selectedOption.username, selectedOption.label),
+                  label: selectedOption.label,
+                });
               }}
               options={facebookPageOptions}
               placeholder="Select a connected Facebook page"
@@ -1086,7 +1169,10 @@ export default function DestinationFormCard({
                 setInstagramUserId(selection.targetId);
                 setExternalAccountId(selection.targetId);
                 setPageId(selectedOption.connectedPageId || "");
-                setAccountHandle(formatAccountHandle(selectedOption.username, selectedOption.label));
+                applyIdentitySuggestion({
+                  handle: formatAccountHandle(selectedOption.username, selectedOption.label),
+                  label: selectedOption.label,
+                });
               }}
               options={instagramAccountOptions}
               placeholder="Select a connected Instagram account"

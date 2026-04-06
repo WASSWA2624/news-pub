@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { deleteCategoryRecord, saveCategoryRecord } from "@/features/categories";
-import { saveDestinationRecord } from "@/features/destinations";
+import { deleteDestinationRecord, saveDestinationRecord } from "@/features/destinations";
 import { uploadMediaAsset } from "@/features/media";
 import { saveTemplateRecord } from "@/features/templates";
 import { getSettingsSnapshot } from "@/features/settings";
@@ -151,6 +151,29 @@ export async function saveDestinationAction(formData) {
       actorId: getActorId(auth),
     },
   );
+
+  redirectToPath("/admin/destinations");
+}
+
+export async function deleteDestinationAction(formData) {
+  const auth = await requireAdminPageSession("/admin/destinations");
+  const destinationId = trimText(formData.get("id"));
+
+  try {
+    if (destinationId) {
+      await deleteDestinationRecord(destinationId, {
+        actorId: getActorId(auth),
+      });
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error && trimText(error.message)
+        ? trimText(error.message)
+        : "Destination deletion failed.";
+
+    revalidatePath("/admin/destinations");
+    redirect(`/admin/destinations?error=${encodeURIComponent(message)}`);
+  }
 
   redirectToPath("/admin/destinations");
 }
