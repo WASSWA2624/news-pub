@@ -86,7 +86,9 @@ describe("destination meta configuration", () => {
 
     expect(config.credentialDefaultsBySlug).toEqual({});
     expect(config.defaultGraphApiBaseUrl).toBe("https://graph.facebook.com/v25.0");
+    expect(config.facebookPublishStrategyLabel).toMatch(/Refreshable long-lived user token/);
     expect(config.hasDiscoveryAccessToken).toBe(true);
+    expect(config.hasSystemUserAccessToken).toBe(false);
     expect(config).not.toHaveProperty("appId");
     expect(config).not.toHaveProperty("hasAppCredentials");
     expect(JSON.stringify(config)).not.toContain("env-user-token");

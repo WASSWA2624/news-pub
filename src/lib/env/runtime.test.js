@@ -16,6 +16,8 @@ describe("environment runtime schema", () => {
     expect(env.auth.session.maxAgeSeconds).toBe(3600);
     expect(env.destinations.encryptionKey).toBe("destination-secret");
     expect(env.meta).toEqual({
+      appId: null,
+      appSecret: null,
       allowedPageIds: [],
       graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
@@ -25,6 +27,7 @@ describe("environment runtime schema", () => {
         instagramMaxPostsPer24Hours: 20,
         minPostIntervalMinutes: 90,
       },
+      systemUserAccessToken: null,
       userAccessToken: null,
     });
     expect(env.media).toMatchObject({
@@ -78,16 +81,21 @@ describe("environment runtime schema", () => {
       createNewsPubTestEnv({
         META_USER_ACCESS_TOKEN: "user-token",
         META_ALLOWED_PAGE_IDS: "123456789012345,234567890123456",
+        META_APP_ID: "app-id",
+        META_APP_SECRET: "app-secret",
         META_FACEBOOK_MAX_POSTS_PER_24H: "10",
         META_GRAPH_API_BASE_URL: "https://graph.facebook.com/v25.0",
         META_INSTAGRAM_MAX_HASHTAGS: "6",
         META_INSTAGRAM_MAX_POSTS_PER_24H: "18",
         META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: "48",
         META_SOCIAL_MIN_POST_INTERVAL_MINUTES: "120",
+        META_SYSTEM_USER_ACCESS_TOKEN: "system-user-token",
       }),
     );
 
     expect(env.meta).toEqual({
+      appId: "app-id",
+      appSecret: "app-secret",
       allowedPageIds: ["123456789012345", "234567890123456"],
       graphApiBaseUrl: "https://graph.facebook.com/v25.0",
       socialGuardrails: {
@@ -97,6 +105,7 @@ describe("environment runtime schema", () => {
         instagramMaxPostsPer24Hours: 18,
         minPostIntervalMinutes: 120,
       },
+      systemUserAccessToken: "system-user-token",
       userAccessToken: "user-token",
     });
   });

@@ -1,5 +1,10 @@
 import { env } from "@/lib/env/server";
 import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
+import {
+  isMetaTokenExpiredError,
+  refreshFacebookPublishCredential,
+  resolveFacebookPublishCredential,
+} from "@/lib/news/meta-credentials";
 import { resolveSocialPostLinkPlacement } from "@/lib/news/social-post";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
@@ -385,6 +390,68 @@ function requireRuntimeAccessToken(runtimeConnection) {
   return runtimeConnection.accessToken;
 }
 
+function classifyMetaPublishFailure(error) {
+  const responseError = error?.responseJson?.error || error?.responseJson || {};
+  const responseMessage = trimText(responseError?.message || error?.message).toLowerCase();
+  const responseCode = Number(responseError?.code || 0);
+
+  if (responseCode === 190) {
+    if (responseMessage.includes("revoked") || responseMessage.includes("invalidated")) {
+      return {
+        status: "destination_token_revoked",
+        statusCode: 401,
+      };
+    }
+
+    return {
+      status: "destination_token_expired_reconnect_required",
+      statusCode: 401,
+    };
+  }
+
+  if (
+    [10, 200].includes(responseCode)
+    || responseMessage.includes("permission")
+    || responseMessage.includes("not authorized")
+  ) {
+    return {
+      status: "destination_page_permission_missing",
+      statusCode: 403,
+    };
+  }
+
+  if (
+    responseCode === 803
+    || responseMessage.includes("unsupported get request")
+    || responseMessage.includes("object does not exist")
+  ) {
+    return {
+      status: "destination_account_missing",
+      statusCode: 400,
+    };
+  }
+
+  return {
+    status: error?.status || "destination_publish_failed",
+    statusCode: error?.statusCode || 502,
+  };
+}
+
+function createActionableMetaPublishError(error) {
+  if (!(error instanceof DestinationPublishError)) {
+    return error;
+  }
+
+  const classification = classifyMetaPublishFailure(error);
+
+  return new DestinationPublishError(error.message, {
+    responseJson: error.responseJson,
+    retryable: error.retryable,
+    status: classification.status,
+    statusCode: classification.statusCode,
+  });
+}
+
 async function verifyFacebookDestination(runtimeConnection, accessToken) {
   return getGraphJson(runtimeConnection, `${runtimeConnection.accountId}`, {
     access_token: accessToken,
@@ -399,75 +466,10 @@ async function verifyInstagramDestination(runtimeConnection, accessToken) {
   });
 }
 
-export function buildFacebookMessage(payload) {
-  const extraLinkSection = getFacebookExtraLinkSection(payload);
-  const extraLinkPlacement = resolveSocialPostLinkPlacement(payload.extraLinkPlacement);
-  const bodySections = extractFacebookBodySections(payload);
-  const summarySections = splitBodySections(payload.summary);
-  const contentSections = bodySections.length ? bodySections : summarySections;
-  const canonicalSection = trimText(payload.canonicalUrl)
-    ? `Read more: ${trimText(payload.canonicalUrl)}`
-    : "";
-
-  return joinPublishText([
-    formatFacebookTitle(payload.title),
-    extraLinkPlacement === "BELOW_TITLE" ? extraLinkSection : "",
-    ...contentSections,
-    canonicalSection,
-    extraLinkPlacement === "END" ? extraLinkSection : "",
-    payload.sourceReference,
-  ]);
-}
-
-function buildInstagramCaption(payload) {
-  return joinPublishText(
-    [
-      payload.title,
-      payload.summary,
-      payload.sourceReference,
-      payload.canonicalUrl,
-      payload.hashtags,
-    ],
-    2200,
-  );
-}
-
-function normalizeMetaAccountType(value) {
-  return trimText(value).toUpperCase();
-}
-
-async function publishFacebookDestination(destination, payload) {
-  if (destination.kind === "FACEBOOK_PROFILE") {
-    throw new DestinationPublishError(
-      "Facebook profile destinations cannot be published automatically. Use a Facebook page destination instead.",
-      {
-        responseJson: {
-          error: "facebook_profile_not_supported",
-        },
-        retryable: false,
-        status: "facebook_profile_not_supported",
-        statusCode: 400,
-      },
-    );
-  }
-
-  const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+async function executeFacebookPublish(runtimeConnection, accessToken, destination, payload) {
   const targetId = runtimeConnection.accountId;
   const canonicalUrlResolution = resolveMetaPublishUrl(payload.canonicalUrl);
   const mediaUrlResolution = resolveMetaPublishUrl(payload.mediaUrl);
-
-  if (!targetId) {
-    throw new DestinationPublishError("Facebook destinations require an external account or page ID.", {
-      responseJson: {
-        error: "destination_account_missing",
-      },
-      retryable: false,
-      status: "destination_account_missing",
-      statusCode: 400,
-    });
-  }
-
-  const accessToken = requireRuntimeAccessToken(runtimeConnection);
   const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
   const normalizedPayload = {
     ...payload,
@@ -497,6 +499,10 @@ async function publishFacebookDestination(destination, payload) {
       };
     } catch (error) {
       if (!(error instanceof DestinationPublishError)) {
+        throw error;
+      }
+
+      if (isMetaTokenExpiredError(error)) {
         throw error;
       }
 
@@ -543,6 +549,111 @@ async function publishFacebookDestination(destination, payload) {
       ...feedPayload,
     },
   };
+}
+
+export function buildFacebookMessage(payload) {
+  const extraLinkSection = getFacebookExtraLinkSection(payload);
+  const extraLinkPlacement = resolveSocialPostLinkPlacement(payload.extraLinkPlacement);
+  const bodySections = extractFacebookBodySections(payload);
+  const summarySections = splitBodySections(payload.summary);
+  const contentSections = bodySections.length ? bodySections : summarySections;
+  const canonicalSection = trimText(payload.canonicalUrl)
+    ? `Read more: ${trimText(payload.canonicalUrl)}`
+    : "";
+
+  return joinPublishText([
+    formatFacebookTitle(payload.title),
+    extraLinkPlacement === "BELOW_TITLE" ? extraLinkSection : "",
+    ...contentSections,
+    canonicalSection,
+    extraLinkPlacement === "END" ? extraLinkSection : "",
+    payload.sourceReference,
+  ]);
+}
+
+function buildInstagramCaption(payload) {
+  return joinPublishText(
+    [
+      payload.title,
+      payload.summary,
+      payload.sourceReference,
+      payload.canonicalUrl,
+      payload.hashtags,
+    ],
+    2200,
+  );
+}
+
+function normalizeMetaAccountType(value) {
+  return trimText(value).toUpperCase();
+}
+
+async function publishFacebookDestination(destination, payload, prisma) {
+  if (destination.kind === "FACEBOOK_PROFILE") {
+    throw new DestinationPublishError(
+      "Facebook profile destinations cannot be published automatically. Use a Facebook page destination instead.",
+      {
+        responseJson: {
+          error: "facebook_profile_not_supported",
+        },
+        retryable: false,
+        status: "facebook_profile_not_supported",
+        statusCode: 400,
+      },
+    );
+  }
+
+  const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+  const targetId = runtimeConnection.accountId;
+
+  if (!targetId) {
+    throw new DestinationPublishError("Facebook destinations require an external account or page ID.", {
+      responseJson: {
+        error: "destination_account_missing",
+      },
+      retryable: false,
+      status: "destination_account_missing",
+      statusCode: 400,
+    });
+  }
+
+  let credential = await resolveFacebookPublishCredential(destination, prisma);
+
+  try {
+    return await executeFacebookPublish(
+      {
+        ...runtimeConnection,
+        accessToken: credential.accessToken,
+        accountId: credential.accountId || runtimeConnection.accountId,
+        graphApiBaseUrl: credential.graphApiBaseUrl || runtimeConnection.graphApiBaseUrl,
+      },
+      credential.accessToken,
+      destination,
+      payload,
+    );
+  } catch (error) {
+    if (!isMetaTokenExpiredError(error)) {
+      throw createActionableMetaPublishError(error);
+    }
+
+    credential = await refreshFacebookPublishCredential(destination, prisma);
+
+    try {
+      return await executeFacebookPublish(
+        {
+          ...runtimeConnection,
+          accessToken: credential.accessToken,
+          accountId: credential.accountId || runtimeConnection.accountId,
+          graphApiBaseUrl: credential.graphApiBaseUrl || runtimeConnection.graphApiBaseUrl,
+        },
+        credential.accessToken,
+        destination,
+        payload,
+      );
+    } catch (retryError) {
+      throw createActionableMetaPublishError(retryError);
+    }
+  }
 }
 
 async function publishInstagramDestination(destination, payload) {
@@ -642,7 +753,7 @@ async function publishInstagramDestination(destination, payload) {
  * Validation happens first so unsupported platform or destination combinations
  * fail before any outbound Meta requests are attempted.
  */
-export async function publishExternalDestination({ destination, payload }) {
+export async function publishExternalDestination({ destination, payload, prisma = null }) {
   const validationIssues = getDestinationValidationIssues(destination);
 
   if (validationIssues.length) {
@@ -658,7 +769,7 @@ export async function publishExternalDestination({ destination, payload }) {
   }
 
   if (destination?.platform === "FACEBOOK") {
-    return publishFacebookDestination(destination, payload);
+    return publishFacebookDestination(destination, payload, prisma);
   }
 
   if (destination?.platform === "INSTAGRAM") {

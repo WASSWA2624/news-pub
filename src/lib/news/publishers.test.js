@@ -469,6 +469,22 @@ describe("news publishers", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
+          text: async () =>
+            JSON.stringify({
+              data: [
+                {
+                  access_token: "fresh-page-token",
+                  id: "123456789012345",
+                  name: "Env Page",
+                  tasks: ["CREATE_CONTENT", "MANAGE", "MODERATE"],
+                  username: "env.page",
+                },
+              ],
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
           text: async () => JSON.stringify({ id: "123456789012345", name: "Env Page" }),
         })
         .mockResolvedValueOnce({
@@ -495,15 +511,177 @@ describe("news publishers", () => {
       },
     });
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch.mock.calls[0][0].searchParams.get("access_token")).toBe("env-user-token");
-    expect(fetch.mock.calls[1][1].body.get("access_token")).toBe("env-user-token");
+    expect(fetch.mock.calls[2][1].body.get("access_token")).toBe("fresh-page-token");
     expect(result).toMatchObject({
       remoteId: "feed_post_env_1",
       responseJson: expect.objectContaining({
         channel: "facebook_feed",
         targetId: "123456789012345",
       }),
+    });
+    expect(JSON.stringify(result.responseJson)).not.toContain("fresh-page-token");
+  });
+
+  it("publishes facebook page posts with META_SYSTEM_USER_ACCESS_TOKEN and no stored destination token", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        META_SYSTEM_USER_ACCESS_TOKEN: "system-user-token",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { publishExternalDestination } = await import("./publishers");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "123456789012345", name: "System Page" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "feed_post_system_1" }),
+        }),
+    );
+
+    const result = await publishExternalDestination({
+      destination: {
+        externalAccountId: "123456789012345",
+        kind: "FACEBOOK_PAGE",
+        platform: "FACEBOOK",
+        settingsJson: {
+          pageId: "123456789012345",
+        },
+      },
+      payload: {
+        canonicalUrl: "https://example.com/en/news/breaking-story",
+        sourceReference: "Source: Example Source - https://example.com/story",
+        summary: "Breaking story summary",
+        title: "Breaking story",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[0][0].searchParams.get("access_token")).toBe("system-user-token");
+    expect(fetch.mock.calls[1][1].body.get("access_token")).toBe("system-user-token");
+    expect(result.remoteId).toBe("feed_post_system_1");
+  });
+
+  it("re-resolves facebook credentials after a token-expired verify failure and retries once", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        META_USER_ACCESS_TOKEN: "env-user-token",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { publishExternalDestination } = await import("./publishers");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              data: [
+                {
+                  access_token: "stale-page-token",
+                  id: "123456789012345",
+                  name: "Env Page",
+                  tasks: ["CREATE_CONTENT", "MANAGE", "MODERATE"],
+                },
+              ],
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({ error: { code: 190, message: "Invalid OAuth 2.0 Access Token" } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () =>
+            JSON.stringify({
+              data: [
+                {
+                  access_token: "fresh-page-token",
+                  id: "123456789012345",
+                  name: "Env Page",
+                  tasks: ["CREATE_CONTENT", "MANAGE", "MODERATE"],
+                },
+              ],
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "123456789012345", name: "Env Page" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "feed_post_retry_1" }),
+        }),
+    );
+
+    const result = await publishExternalDestination({
+      destination: {
+        externalAccountId: "123456789012345",
+        id: "destination_retry_1",
+        kind: "FACEBOOK_PAGE",
+        platform: "FACEBOOK",
+        settingsJson: {
+          metaCredentialSourceKey: "env:meta-user-access-token",
+          pageId: "123456789012345",
+        },
+      },
+      payload: {
+        canonicalUrl: "https://example.com/en/news/breaking-story",
+        sourceReference: "Source: Example Source - https://example.com/story",
+        summary: "Breaking story summary",
+        title: "Breaking story",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(5);
+    expect(fetch.mock.calls[4][1].body.get("access_token")).toBe("fresh-page-token");
+    expect(result.remoteId).toBe("feed_post_retry_1");
+  });
+
+  it("returns a precise actionable error when facebook credential refresh is impossible", async () => {
+    const { publishExternalDestination } = await import("./publishers");
+
+    await expect(
+      publishExternalDestination({
+        destination: {
+          externalAccountId: "123456789012345",
+          kind: "FACEBOOK_PAGE",
+          platform: "FACEBOOK",
+          settingsJson: {
+            pageId: "123456789012345",
+          },
+        },
+        payload: {
+          canonicalUrl: "https://example.com/en/news/breaking-story",
+          sourceReference: "Source: Example Source - https://example.com/story",
+          summary: "Breaking story summary",
+          title: "Breaking story",
+        },
+      }),
+    ).rejects.toMatchObject({
+      status: "destination_meta_env_missing",
     });
   });
 

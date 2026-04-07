@@ -1,13 +1,15 @@
 import { env } from "@/lib/env/server";
+import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
 import { trimText } from "@/lib/news/shared";
 import { decryptSecretValue } from "@/lib/security/secrets";
 
 /**
  * Resolves NewsPub destination credentials into the runtime shape used by Meta publishers.
  *
- * Stored destination credentials are preferred when present. When they are not
- * available, NewsPub can fall back to the env-backed Meta user access token so
- * localhost and lightly configured installs can still attempt publication.
+ * Runtime strategy order:
+ * 1. Meta system-user token for Facebook Page automation
+ * 2. Refreshable Meta user-token source that can derive a fresh Page token
+ * 3. Legacy stored destination token fallback
  */
 function normalizeSettings(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -44,16 +46,36 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
   const storedPageId = trimText(settings.pageId) || null;
   const storedProfileId = trimText(settings.profileId) || null;
   const storedInstagramUserId = trimText(settings.instagramUserId) || null;
-  const envMetaAccessToken =
+  const envMetaUserAccessToken =
     ["FACEBOOK", "INSTAGRAM"].includes(platform) ? trimText(env.meta.userAccessToken) || null : null;
-  const accessToken = storedAccessToken || envMetaAccessToken || null;
+  const envMetaSystemUserAccessToken = platform === "FACEBOOK" ? trimText(env.meta.systemUserAccessToken) || null : null;
   const accountId = storedExternalAccountId || storedPageId || storedProfileId || storedInstagramUserId || null;
   const graphApiBaseUrl =
     storedGraphApiBaseUrl
     || trimText(env.meta.graphApiBaseUrl)
     || "https://graph.facebook.com/v25.0";
+  const preferredMetaAuthStrategy =
+    platform === "FACEBOOK" && envMetaSystemUserAccessToken
+      ? META_AUTH_STRATEGIES.SYSTEM_USER
+      : platform === "FACEBOOK" && envMetaUserAccessToken && accountId
+        ? META_AUTH_STRATEGIES.REFRESHABLE_USER_DERIVED
+        : storedAccessToken
+          ? META_AUTH_STRATEGIES.LEGACY_STORED_TOKEN
+          : null;
+  const accessToken =
+    preferredMetaAuthStrategy === META_AUTH_STRATEGIES.SYSTEM_USER
+      ? envMetaSystemUserAccessToken
+      : preferredMetaAuthStrategy === META_AUTH_STRATEGIES.LEGACY_STORED_TOKEN
+        ? storedAccessToken
+        : platform === "INSTAGRAM"
+          ? storedAccessToken || envMetaUserAccessToken || null
+          : null;
   const hasRuntimeCredentials =
-    platform === "WEBSITE" ? true : Boolean(accessToken && accountId);
+    platform === "WEBSITE"
+      ? true
+      : platform === "FACEBOOK"
+        ? Boolean(accountId && (envMetaSystemUserAccessToken || envMetaUserAccessToken || storedAccessToken))
+        : Boolean(accessToken && accountId);
   const isReadyToPublish = platform === "WEBSITE" ? true : hasRuntimeCredentials;
   const effectiveConnectionStatus = isReadyToPublish
     ? "CONNECTED"
@@ -66,13 +88,14 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
     externalAccountId: storedExternalAccountId,
     graphApiBaseUrl,
     hasRuntimeCredentials,
-    hasCompleteEnvCredentials: Boolean(envMetaAccessToken && accountId),
+    hasCompleteEnvCredentials: Boolean((envMetaSystemUserAccessToken || envMetaUserAccessToken) && accountId),
     instagramUserId: storedInstagramUserId,
     isReadyToPublish,
+    metaAuthStrategy: preferredMetaAuthStrategy,
     pageId: storedPageId,
     profileId: storedProfileId,
     usesDestinationCredentialOverrides: settings.useDestinationCredentialOverrides === true,
-    usesEnvCredentials: Boolean(envMetaAccessToken && !storedAccessToken),
+    usesEnvCredentials: Boolean((envMetaSystemUserAccessToken || envMetaUserAccessToken) && !storedAccessToken),
   };
 }
 

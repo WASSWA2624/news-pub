@@ -1,4 +1,6 @@
 import { createAuditEventRecord } from "@/lib/analytics";
+import { env } from "@/lib/env/server";
+import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
 import { isDestinationRuntimeReady, resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { decryptSecretValue, encryptSecretValue } from "@/lib/security/secrets";
@@ -11,6 +13,16 @@ import {
   usesDestinationCredentialOverrides,
 } from "./meta-config";
 
+const managedMetaCredentialSettingKeys = Object.freeze([
+  "metaAuthStrategy",
+  "metaCredentialSourceKey",
+  "metaCredentialSourceLabel",
+  "metaLastRefreshAttemptAt",
+  "metaLastRefreshError",
+  "metaTokenExpiresAt",
+  "metaTokenLastValidatedAt",
+]);
+
 function createTokenHint(value) {
   const normalizedValue = trimText(value);
 
@@ -19,6 +31,24 @@ function createTokenHint(value) {
   }
 
   return normalizedValue.slice(-4);
+}
+
+function normalizeSettings(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function pickManagedMetaCredentialSettings(...settingsValues) {
+  return settingsValues.reduce((result, settingsValue) => {
+    const settings = normalizeSettings(settingsValue);
+
+    managedMetaCredentialSettingKeys.forEach((key) => {
+      if (settings[key] !== undefined) {
+        result[key] = settings[key];
+      }
+    });
+
+    return result;
+  }, {});
 }
 
 export async function getDestinationManagementSnapshot(prisma) {
@@ -109,6 +139,15 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
     });
   }
 
+  const existingDestination = await db.destination.findUnique({
+    where: {
+      slug,
+    },
+    select: {
+      settingsJson: true,
+    },
+  });
+
   const resolvedSelection = await resolveMetaDiscoverySelection({
     sourceKey: input.metaDiscoverySourceKey,
     targetId: input.metaDiscoveryTargetId,
@@ -128,15 +167,44 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
     socialGuardrails: input.socialGuardrails,
     useDestinationCredentialOverrides: inputSettingsJson.useDestinationCredentialOverrides === true,
   });
+  const useDestinationCredentialOverrides = inputSettingsJson.useDestinationCredentialOverrides === true;
   const nextToken = trimText(input.token);
   const discoveredToken = !nextToken && !input.clearToken ? trimText(resolvedSelection?.accessToken) : "";
-  const tokenToEncrypt = nextToken || discoveredToken;
+  const shouldPersistResolvedSelectionToken = useDestinationCredentialOverrides && Boolean(discoveredToken);
+  const tokenToEncrypt = nextToken || (shouldPersistResolvedSelectionToken ? discoveredToken : "");
   const encryptedToken = tokenToEncrypt ? encryptSecretValue(tokenToEncrypt) : null;
   const nextExternalAccountId =
     trimText(input.externalAccountId) || trimText(resolvedSelection?.externalAccountId) || null;
   const nextAccountHandle =
     trimText(input.accountHandle) || trimText(resolvedSelection?.accountHandle) || null;
-  const shouldPersistToken = Boolean(nextToken || discoveredToken || input.clearToken);
+  const shouldPersistToken = Boolean(nextToken || shouldPersistResolvedSelectionToken || input.clearToken);
+  const nextMetaAuthStrategy =
+    platform === "FACEBOOK" && kind === "FACEBOOK_PAGE" && trimText(env.meta.systemUserAccessToken)
+      ? META_AUTH_STRATEGIES.SYSTEM_USER
+      : platform === "FACEBOOK" && kind === "FACEBOOK_PAGE" && trimText(resolvedSelection?.sourceKey || "")
+        ? META_AUTH_STRATEGIES.REFRESHABLE_USER_DERIVED
+        : tokenToEncrypt
+          ? META_AUTH_STRATEGIES.LEGACY_STORED_TOKEN
+          : pickManagedMetaCredentialSettings(existingDestination?.settingsJson, inputSettingsJson).metaAuthStrategy || null;
+  const credentialMetadataSettings = {
+    ...pickManagedMetaCredentialSettings(existingDestination?.settingsJson, inputSettingsJson),
+    ...(resolvedSelection?.sourceKey
+      ? {
+          metaCredentialSourceKey: resolvedSelection.sourceKey,
+          metaCredentialSourceLabel: resolvedSelection.sourceLabel || null,
+        }
+      : {}),
+    ...(nextMetaAuthStrategy
+      ? {
+          metaAuthStrategy: nextMetaAuthStrategy,
+        }
+      : {}),
+    metaLastRefreshError: null,
+  };
+  const nextSettingsJsonWithMetadata = {
+    ...nextSettingsJson,
+    ...credentialMetadataSettings,
+  };
   const destination = await db.destination.upsert({
     where: {
       slug,
@@ -154,7 +222,7 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
         trimText(input.connectionStatus) === "CONNECTED" ? new Date() : input.lastConnectedAt || null,
       name,
       platform,
-      settingsJson: nextSettingsJson,
+      settingsJson: nextSettingsJsonWithMetadata,
       tokenHint: tokenToEncrypt ? createTokenHint(tokenToEncrypt) : input.clearToken ? null : undefined,
     },
     create: {
@@ -169,7 +237,7 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
       lastConnectedAt: trimText(input.connectionStatus) === "CONNECTED" ? new Date() : null,
       name,
       platform,
-      settingsJson: nextSettingsJson,
+      settingsJson: nextSettingsJsonWithMetadata,
       slug,
       tokenHint: createTokenHint(tokenToEncrypt),
     },

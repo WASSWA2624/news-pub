@@ -22,6 +22,13 @@ const socialGuardrailFieldMapping = Object.freeze({
 const knownMetaSettingKeys = Object.freeze([
   "graphApiBaseUrl",
   "instagramUserId",
+  "metaAuthStrategy",
+  "metaCredentialSourceKey",
+  "metaCredentialSourceLabel",
+  "metaLastRefreshAttemptAt",
+  "metaLastRefreshError",
+  "metaTokenExpiresAt",
+  "metaTokenLastValidatedAt",
   "pageId",
   "profileId",
   "socialGuardrails",
@@ -86,17 +93,32 @@ function normalizeAccountHandle(value, fallbackValue = "") {
   return `@${normalizedValue}`;
 }
 
-function buildCredentialSourceKey(credentialKey) {
+export function buildCredentialSourceKey(credentialKey) {
   return `env:${credentialKey}`;
 }
 
-function getMetaGraphRequestBaseUrl(value) {
+export function getMetaGraphRequestBaseUrl(value) {
   return trimText(value) || trimText(env.meta.graphApiBaseUrl) || defaultGraphApiBaseUrl;
 }
 
-function getMetaCredentialSources() {
+export function getMetaCredentialSources() {
   const sources = [];
+  const normalizedSystemUserAccessToken = trimText(env.meta.systemUserAccessToken);
   const normalizedUserAccessToken = trimText(env.meta.userAccessToken);
+
+  if (normalizedSystemUserAccessToken) {
+    sources.push({
+      accessToken: normalizedSystemUserAccessToken,
+      credentialKey: "meta-system-user-access-token",
+      externalAccountId: null,
+      graphApiBaseUrl: getMetaGraphRequestBaseUrl(),
+      instagramUserId: null,
+      pageId: null,
+      sourceKey: buildCredentialSourceKey("meta-system-user-access-token"),
+      sourceLabel: "META_SYSTEM_USER_ACCESS_TOKEN",
+      sourceType: "env-system-user",
+    });
+  }
 
   if (normalizedUserAccessToken) {
     sources.push({
@@ -115,7 +137,7 @@ function getMetaCredentialSources() {
   return sources;
 }
 
-function getMetaCredentialSourceByKey(sourceKey) {
+export function getMetaCredentialSourceByKey(sourceKey) {
   return getMetaCredentialSources().find((source) => source.sourceKey === trimText(sourceKey)) || null;
 }
 
@@ -262,7 +284,7 @@ function isAllowedFacebookPage(pageRecord) {
   return allowedPageIds.has(pageId);
 }
 
-async function discoverAssetsFromSource(source) {
+export async function discoverAssetsFromSource(source) {
   if (!source?.accessToken) {
     throw createMetaDiscoveryError(
       source,
@@ -458,10 +480,19 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
 }
 
 export function getMetaDestinationFormConfig() {
+  const hasSystemUserAccessToken = Boolean(trimText(env.meta.systemUserAccessToken));
+  const hasDiscoveryAccessToken = Boolean(trimText(env.meta.userAccessToken));
+
   return {
     credentialDefaultsBySlug: {},
     defaultGraphApiBaseUrl: getMetaGraphRequestBaseUrl(),
-    hasDiscoveryAccessToken: Boolean(trimText(env.meta.userAccessToken)),
+    facebookPublishStrategyLabel: hasSystemUserAccessToken
+      ? "System-user token with automatic fallback to refreshable user-derived page credentials."
+      : hasDiscoveryAccessToken
+        ? "Refreshable long-lived user token that resolves a fresh page credential at publish time."
+        : "Manual destination-specific token override or legacy stored token fallback.",
+    hasDiscoveryAccessToken,
+    hasSystemUserAccessToken,
     socialGuardrails: getDestinationSocialGuardrailDefaults(),
   };
 }
@@ -567,7 +598,7 @@ export function buildDestinationSettingsPayload({
 }
 
 export async function getMetaDiscoverySnapshot() {
-  const sources = getMetaCredentialSources();
+  const sources = getMetaCredentialSources().filter((source) => source.sourceType === "env");
   const pageRecords = new Map();
   const instagramRecords = new Map();
   const errors = [];
@@ -647,6 +678,16 @@ export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targe
     );
   }
 
+  if (source.sourceType !== "env") {
+    throw new NewsPubError(
+      "The selected Meta credential source does not support connected asset discovery. Use a refreshable Meta user token source instead.",
+      {
+        status: "destination_meta_source_not_supported",
+        statusCode: 400,
+      },
+    );
+  }
+
   const discoveredAssets = await discoverAssetsFromSource(source);
 
   if (normalizedTargetType === "FACEBOOK_PAGE") {
@@ -666,6 +707,8 @@ export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targe
       accessToken: trimText(pageRecord.accessToken) || source.accessToken,
       accountHandle: normalizeAccountHandle(pageRecord.username, pageRecord.name),
       externalAccountId: pageRecord.id,
+      sourceKey: source.sourceKey,
+      sourceLabel: source.sourceLabel,
       settingsJsonPatch: sanitizeDestinationSettingsByKind(
         {
           graphApiBaseUrl: source.graphApiBaseUrl,
@@ -693,6 +736,8 @@ export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targe
       accessToken: trimText(instagramRecord.accessToken) || source.accessToken,
       accountHandle: normalizeAccountHandle(instagramRecord.username, instagramRecord.connectedPageName),
       externalAccountId: instagramRecord.id,
+      sourceKey: source.sourceKey,
+      sourceLabel: source.sourceLabel,
       settingsJsonPatch: sanitizeDestinationSettingsByKind(
         {
           graphApiBaseUrl: source.graphApiBaseUrl,

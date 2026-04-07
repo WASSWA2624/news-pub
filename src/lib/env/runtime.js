@@ -219,6 +219,9 @@ const serverEnvSchema = sharedEnvSchema
     NEWSDATA_API_KEY: optionalString(),
     NEWSAPI_API_KEY: optionalString(),
     DESTINATION_TOKEN_ENCRYPTION_KEY: requiredString("DESTINATION_TOKEN_ENCRYPTION_KEY"),
+    META_APP_ID: optionalString(),
+    META_APP_SECRET: optionalString(),
+    META_SYSTEM_USER_ACCESS_TOKEN: optionalString(),
     META_USER_ACCESS_TOKEN: optionalString(),
     META_GRAPH_API_BASE_URL: optionalUrlString("META_GRAPH_API_BASE_URL"),
     META_ALLOWED_PAGE_IDS: optionalCsvString("META_ALLOWED_PAGE_IDS"),
@@ -341,6 +344,8 @@ function mapServerEnv(parsedEnv) {
       encryptionKey: parsedEnv.DESTINATION_TOKEN_ENCRYPTION_KEY,
     },
     meta: {
+      appId: parsedEnv.META_APP_ID || null,
+      appSecret: parsedEnv.META_APP_SECRET || null,
       allowedPageIds: parsedEnv.META_ALLOWED_PAGE_IDS || [],
       graphApiBaseUrl: parsedEnv.META_GRAPH_API_BASE_URL || "https://graph.facebook.com/v25.0",
       socialGuardrails: {
@@ -350,6 +355,7 @@ function mapServerEnv(parsedEnv) {
         minPostIntervalMinutes: parsedEnv.META_SOCIAL_MIN_POST_INTERVAL_MINUTES || 90,
         duplicateCooldownHours: parsedEnv.META_SOCIAL_DUPLICATE_COOLDOWN_HOURS || 72,
       },
+      systemUserAccessToken: parsedEnv.META_SYSTEM_USER_ACCESS_TOKEN || null,
       userAccessToken: parsedEnv.META_USER_ACCESS_TOKEN || null,
     },
     media: {

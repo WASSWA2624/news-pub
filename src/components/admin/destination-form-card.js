@@ -1020,7 +1020,7 @@ export default function DestinationFormCard({
       <SectionSurface>
         <FormSectionTitle>Connection details</FormSectionTitle>
         <SmallText>
-          Connect supported Meta pages or accounts here. When you pick one, NewsPub stores the selected token and IDs with that destination.
+          Connect supported Meta pages or accounts here. NewsPub stores the selected page or account identity and resolves a fresh publish credential at runtime when possible.
         </SmallText>
         {isMetaPlatform ? (
           <>
@@ -1043,8 +1043,8 @@ export default function DestinationFormCard({
                 : metaDiscovery.data
                   ? `${metaDiscovery.data.pages.length} publish-ready Facebook page${metaDiscovery.data.pages.length === 1 ? "" : "s"} and ${metaDiscovery.data.instagramAccounts.length} Instagram account${metaDiscovery.data.instagramAccounts.length === 1 ? "" : "s"} discovered.`
                   : metaConfig?.hasDiscoveryAccessToken
-                    ? "META_USER_ACCESS_TOKEN is configured. Refresh connected Meta assets to prefill supported destinations automatically."
-                    : "Set META_USER_ACCESS_TOKEN to load connected Meta pages and Instagram accounts automatically."}
+                    ? "A refreshable Meta discovery source is configured. Refresh connected assets to prefill supported destinations automatically."
+                    : "Set META_SYSTEM_USER_ACCESS_TOKEN and/or META_USER_ACCESS_TOKEN to support automatic Meta credential resolution."}
             </SmallText>
             {metaDiscovery.error ? (
               <NoticeBanner $tone="danger">
@@ -1083,6 +1083,9 @@ export default function DestinationFormCard({
                       ? `Credential source: ${credentialDefaults.sourceLabel}.`
                       : "The environment-backed credential defaults are resolved server-side."}
                   </SmallText>
+                  {metaConfig?.facebookPublishStrategyLabel ? (
+                    <SmallText>Facebook publish strategy: {metaConfig.facebookPublishStrategyLabel}</SmallText>
+                  ) : null}
                   <ExampleBlock>{credentialDefaultsPreview}</ExampleBlock>
                 </FieldHelp>
               </NoticeBanner>
@@ -1317,12 +1320,12 @@ export default function DestinationFormCard({
                   ? "Using access token from environment-backed Meta defaults"
                   : destination?.tokenHint
                     ? `Stored token ending ${destination.tokenHint}`
-                    : "Paste a new token"
+                    : "Paste a manual override token"
               }
               value={tokenValue}
             />
             <SmallText>
-              Environment access tokens stay server-side. Paste a token here only when this destination should keep its own override.
+              Environment credentials stay server-side. Paste a token here only for a manual destination-specific override or legacy fallback.
             </SmallText>
           </Field>
         </WideGrid>
@@ -1433,7 +1436,7 @@ export default function DestinationFormCard({
           </SmallText>
         ) : (
           <SmallText>
-            New destinations can be configured here with connected Meta assets, token storage, and per-destination publishing guardrails.
+            New destinations can be configured here with connected Meta assets, runtime credential resolution, and per-destination publishing guardrails.
           </SmallText>
         )}
       </FormSection>

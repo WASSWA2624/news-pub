@@ -876,6 +876,7 @@ async function executePublishAttempt(
       publishResult = await publishExternalDestination({
         destination,
         payload,
+        prisma: db,
       });
     }
   } catch (error) {

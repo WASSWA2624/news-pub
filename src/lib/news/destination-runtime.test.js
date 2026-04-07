@@ -44,6 +44,7 @@ describe("destination runtime resolution", () => {
       hasCompleteEnvCredentials: false,
       hasRuntimeCredentials: true,
       isReadyToPublish: true,
+      metaAuthStrategy: "legacy-stored-token-fallback",
       usesEnvCredentials: false,
     });
   });
@@ -72,6 +73,7 @@ describe("destination runtime resolution", () => {
       hasCompleteEnvCredentials: false,
       hasRuntimeCredentials: true,
       isReadyToPublish: true,
+      metaAuthStrategy: "legacy-stored-token-fallback",
       usesEnvCredentials: false,
     });
   });
@@ -98,6 +100,7 @@ describe("destination runtime resolution", () => {
     expect(resolved).toMatchObject({
       accessToken: "override-token",
       accountId: "override-page-id",
+      metaAuthStrategy: "legacy-stored-token-fallback",
       pageId: "override-page-id",
       usesDestinationCredentialOverrides: true,
       usesEnvCredentials: false,
@@ -125,13 +128,44 @@ describe("destination runtime resolution", () => {
     });
 
     expect(resolved).toMatchObject({
-      accessToken: "env-user-token",
+      accessToken: null,
       accountId: "env-page-id",
       effectiveConnectionStatus: "CONNECTED",
       hasCompleteEnvCredentials: true,
       hasRuntimeCredentials: true,
       isReadyToPublish: true,
+      metaAuthStrategy: "refreshable-user-derived",
       usesEnvCredentials: true,
+    });
+  });
+
+  it("prefers the system-user strategy for facebook page automation when configured", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        META_SYSTEM_USER_ACCESS_TOKEN: "system-user-token",
+        META_USER_ACCESS_TOKEN: "env-user-token",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
+
+    const resolved = resolveDestinationRuntimeConnection({
+      connectionStatus: "DISCONNECTED",
+      externalAccountId: "env-page-id",
+      platform: "FACEBOOK",
+      settingsJson: {
+        pageId: "env-page-id",
+      },
+      slug: "facebook-page",
+    });
+
+    expect(resolved).toMatchObject({
+      accessToken: "system-user-token",
+      accountId: "env-page-id",
+      metaAuthStrategy: "system-user",
     });
   });
 });
