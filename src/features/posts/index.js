@@ -1,6 +1,6 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { createAuditEventRecord } from "@/lib/analytics";
+import { createAuditEventRecord, serializeAuditEvent } from "@/lib/analytics";
 import {
   buildStoryStructuredArticle,
   createContentHash,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/news/shared";
 import { createSlug } from "@/lib/normalization";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
-import { manualRepostArticleMatch, publishArticleMatch } from "@/lib/news/workflows";
+import { manualRepostArticleMatch, publishArticleMatch, refreshArticleMatchOptimization } from "@/lib/news/workflows";
 
 /**
  * Admin post inventory, editor, and publication-control helpers for canonical NewsPub stories.
@@ -180,12 +180,15 @@ function mapPublishAttempt(attempt) {
   return {
     completedAt: serializeDate(attempt.completedAt),
     createdAt: serializeDate(attempt.createdAt),
+    diagnostics: attempt.diagnosticsJson || null,
+    errorCode: attempt.errorCode || null,
     errorMessage: attempt.errorMessage || null,
     id: attempt.id,
     platform: attempt.platform,
     publishedAt: serializeDate(attempt.publishedAt),
     queuedAt: serializeDate(attempt.queuedAt),
     remoteId: attempt.remoteId || null,
+    retryable: Boolean(attempt.retryable),
     retryCount: attempt.retryCount,
     status: attempt.status,
   };
@@ -193,6 +196,7 @@ function mapPublishAttempt(attempt) {
 
 function mapArticleMatch(match) {
   return {
+    banRiskScore: match.banRiskScore ?? null,
     destination: match.destination
       ? {
           id: match.destination.id,
@@ -215,10 +219,18 @@ function mapArticleMatch(match) {
       : null,
     holdReasons: Array.isArray(match.holdReasonsJson) ? match.holdReasonsJson : [],
     id: match.id,
+    lastOptimizedAt: serializeDate(match.lastOptimizedAt),
+    lastPolicyCheckedAt: serializeDate(match.lastPolicyCheckedAt),
+    optimizationStatus: match.optimizationStatus || "NOT_REQUESTED",
+    optimizedPayload: match.optimizedPayloadJson || null,
+    policyReasons: Array.isArray(match.policyReasonsJson) ? match.policyReasonsJson : [],
+    policyStatus: match.policyStatus || "PASS",
     publishAttempts: (match.publishAttempts || []).map(mapPublishAttempt),
     publishedAt: serializeDate(match.publishedAt),
     queuedAt: serializeDate(match.queuedAt),
+    readinessChecks: Array.isArray(match.readinessChecksJson) ? match.readinessChecksJson : [],
     reasons: Array.isArray(match.filterReasonsJson) ? match.filterReasonsJson : [],
+    reviewNotes: match.reviewNotes || null,
     status: match.status,
     stream: match.stream
       ? {
@@ -229,11 +241,13 @@ function mapArticleMatch(match) {
           status: match.stream.status,
         }
       : null,
+    workflowStage: match.workflowStage || "INGESTED",
   };
 }
 
 function mapInventoryPost(post, locale = defaultLocale) {
   const translation = selectTranslation(post, locale);
+  const primaryArticleMatch = post.articleMatches?.[0] || null;
   const websitePublished = (post.publishAttempts || []).some(
     (attempt) => attempt.platform === "WEBSITE" && attempt.status === "SUCCEEDED",
   );
@@ -249,6 +263,9 @@ function mapInventoryPost(post, locale = defaultLocale) {
     path: buildLocalizedPath(translation?.locale || locale, publicRouteSegments.newsPost(post.slug)),
     providerKey: post.providerKey,
     publishedAt: serializeDate(post.publishedAt),
+    reviewWorkflowStage: primaryArticleMatch?.workflowStage || "INGESTED",
+    reviewPolicyStatus: primaryArticleMatch?.policyStatus || "PASS",
+    reviewOptimizationStatus: primaryArticleMatch?.optimizationStatus || "NOT_REQUESTED",
     scheduledPublishAt: serializeDate(post.scheduledPublishAt),
     slug: post.slug,
     sourceName: post.sourceName,
@@ -362,12 +379,15 @@ const postInventoryInclude = Object.freeze({
         select: {
           completedAt: true,
           createdAt: true,
+          diagnosticsJson: true,
+          errorCode: true,
           errorMessage: true,
           id: true,
           platform: true,
           publishedAt: true,
           queuedAt: true,
           remoteId: true,
+          retryable: true,
           retryCount: true,
           status: true,
         },
@@ -426,12 +446,15 @@ const postInventoryInclude = Object.freeze({
     select: {
       completedAt: true,
       createdAt: true,
+      diagnosticsJson: true,
+      errorCode: true,
       errorMessage: true,
       id: true,
       platform: true,
       publishedAt: true,
       queuedAt: true,
       remoteId: true,
+      retryable: true,
       retryCount: true,
       status: true,
     },
@@ -580,6 +603,31 @@ async function syncPostCategories(db, postId, categoryIds) {
       },
     });
   }
+}
+
+async function invalidateLinkedArticleMatchOptimizations(db, postId) {
+  await db.articleMatch.updateMany({
+    data: {
+      banRiskScore: null,
+      holdReasonsJson: [],
+      lastOptimizedAt: null,
+      optimizationCacheId: null,
+      optimizationHash: null,
+      optimizationStatus: "NOT_REQUESTED",
+      optimizedPayloadJson: null,
+      policyReasonsJson: null,
+      policyStatus: "PASS",
+      readinessChecksJson: null,
+      status: "ELIGIBLE",
+      workflowStage: "INGESTED",
+    },
+    where: {
+      canonicalPostId: postId,
+      status: {
+        not: "PUBLISHED",
+      },
+    },
+  });
 }
 
 function selectPublishableArticleMatch(post, articleMatchId = null) {
@@ -824,19 +872,43 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
     });
   }
 
-  const categories = await db.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-    },
-  });
+  const [categories, auditEvents] = await Promise.all([
+    db.category.findMany({
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    }),
+    db.auditEvent.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      take: 12,
+      where: {
+        OR: [
+          {
+            entityId: post.id,
+          },
+          {
+            entityId: {
+              in: post.articleMatches.map((match) => match.id),
+            },
+          },
+          {
+            entityId: {
+              in: (post.publishAttempts || []).map((attempt) => attempt.id),
+            },
+          },
+        ],
+      },
+    }),
+  ]);
   const activeTranslation = selectTranslation(post, locale);
 
   return {
+    auditEvents: auditEvents.map(serializeAuditEvent),
     categories: categories.map((category) => mapCategory(category, locale)),
     editorialStageValues: editorialStageOrder,
     post: {
@@ -959,6 +1031,7 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
   const post = await db.post.create({
     data: {
       authorId: actorId || null,
+      canonicalContentHash: createContentHash(title, summary, contentMd, sourceUrl),
       excerpt: summary,
       providerKey: manualProviderKey,
       slug,
@@ -1064,11 +1137,20 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
   const nextSlug = input.slug ? await createUniquePostSlug(db, input.slug, post.id) : post.slug;
   const requestedStatus = trimText(input.status).toUpperCase();
   const publishAt = parsePublishAt(input.publishAt);
+  const shouldApprove = action === "approve";
+  const shouldOptimize = action === "optimize";
+  const shouldReject = action === "reject";
   const shouldSchedule = action === "schedule" || (!action && requestedStatus === "SCHEDULED");
   const shouldPublish =
     shouldSchedule ||
     action === "publish" ||
     (!action && requestedStatus === "PUBLISHED");
+  const shouldInvalidateOptimizations =
+    input.slug !== undefined ||
+    input.title !== undefined ||
+    input.summary !== undefined ||
+    input.contentMd !== undefined ||
+    Array.isArray(input.categoryIds);
 
   if (shouldSchedule && (!publishAt || publishAt <= new Date())) {
     throw new NewsPubError("Choose a future publish time to schedule the story.", {
@@ -1117,6 +1199,24 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     },
   );
 
+  await db.post.update({
+    where: {
+      id: post.id,
+    },
+    data: {
+      canonicalContentHash: createContentHash(
+        trimText(input.title) || selectTranslation(post, locale)?.title || post.slug,
+        trimText(input.summary) || post.excerpt,
+        trimText(input.contentMd) || selectTranslation(post, locale)?.contentMd || post.excerpt,
+        post.sourceUrl,
+      ),
+    },
+  });
+
+  if (shouldInvalidateOptimizations) {
+    await invalidateLinkedArticleMatchOptimizations(db, post.id);
+  }
+
   await createAuditEventRecord(
     {
       action: "POST_EDITOR_UPDATED",
@@ -1132,6 +1232,68 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     },
     db,
   );
+
+  const targetArticleMatch = selectPublishableArticleMatch(post, input.articleMatchId);
+
+  if (shouldReject) {
+    if (!targetArticleMatch) {
+      throw new NewsPubError("Select a destination match before rejecting publication for this story.", {
+        status: "article_match_not_found",
+        statusCode: 400,
+      });
+    }
+
+    await db.articleMatch.update({
+      where: {
+        id: targetArticleMatch.id,
+      },
+      data: {
+        holdReasonsJson: dedupeStrings(["rejected_by_editor"]),
+        reviewNotes: "Rejected during editor review.",
+        status: "HELD_FOR_REVIEW",
+        workflowStage: "HELD",
+      },
+    });
+  }
+
+  if (shouldOptimize) {
+    if (!targetArticleMatch) {
+      throw new NewsPubError("Select a destination match before running optimization.", {
+        status: "article_match_not_found",
+        statusCode: 400,
+      });
+    }
+
+    await refreshArticleMatchOptimization(targetArticleMatch.id, { force: true }, db);
+  }
+
+  if (shouldApprove) {
+    if (!targetArticleMatch) {
+      throw new NewsPubError("Select a destination match before approving this story.", {
+        status: "article_match_not_found",
+        statusCode: 400,
+      });
+    }
+
+    if (targetArticleMatch.policyStatus === "BLOCK") {
+      throw new NewsPubError("Blocked policy findings must be fixed or re-optimized before approval.", {
+        status: "article_match_policy_blocked",
+        statusCode: 400,
+      });
+    }
+
+    await db.articleMatch.update({
+      where: {
+        id: targetArticleMatch.id,
+      },
+      data: {
+        holdReasonsJson: [],
+        reviewNotes: "Approved during editor review.",
+        status: "ELIGIBLE",
+        workflowStage: "APPROVED",
+      },
+    });
+  }
 
   if (shouldPublish) {
     const refreshedPost = await db.post.findUnique({

@@ -139,7 +139,7 @@ const HeaderMeta = styled.div`
       linear-gradient(135deg, rgba(var(--theme-surface-rgb), 0.99), rgba(255, 255, 255, 0.97)),
       radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.14), transparent 52%);
     border: 1px solid rgba(var(--theme-primary-rgb), 0.14);
-    border-radius: 24px;
+    border-radius: 0;
     box-shadow:
       0 16px 30px rgba(var(--theme-primary-rgb), 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.78);
@@ -183,7 +183,7 @@ const MobileActionButton = styled.button`
       ? "rgba(var(--theme-primary-rgb), 0.24)"
       : "rgba(var(--theme-border-rgb), 0.85)"
   )};
-  border-radius: 16px;
+  border-radius: 0;
   box-shadow: ${({ $tone }) => (
     $tone === "solid"
       ? "0 16px 30px rgba(var(--theme-primary-rgb), 0.24)"
@@ -275,7 +275,7 @@ const DropdownSummary = styled.summary`
     $open || $active ? "rgba(var(--theme-primary-rgb), 0.12)" : "rgba(var(--theme-primary-rgb), 0.05)"
   )};
   border: 1px solid ${({ $active }) => ($active ? "rgba(var(--theme-primary-rgb), 0.42)" : "rgba(var(--theme-border-rgb), 0.85)")};
-  border-radius: 999px;
+  border-radius: 0;
   color: ${({ $active, $open }) => ($open || $active ? "var(--theme-primary)" : "var(--theme-text)")};
   cursor: pointer;
   display: inline-flex;
@@ -386,7 +386,7 @@ const DropdownLabel = styled.span`
 
 const CountryFlag = styled.img`
   border: 1px solid rgba(var(--theme-border-rgb), 0.8);
-  border-radius: 2px;
+  border-radius: 0;
   display: inline-flex;
   height: 14px;
   object-fit: cover;
@@ -485,7 +485,7 @@ const MobileDialogCloseButton = styled.button`
   align-items: center;
   background: rgba(var(--theme-primary-rgb), 0.05);
   border: 1px solid rgba(var(--theme-border-rgb), 0.84);
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--theme-text);
   cursor: pointer;
   display: inline-flex;
@@ -526,7 +526,7 @@ const MobileDialogBody = styled.div`
     background: rgba(var(--theme-primary-rgb), 0.24);
     background-clip: padding-box;
     border: 3px solid transparent;
-    border-radius: 999px;
+    border-radius: 0;
   }
 `;
 
@@ -535,7 +535,7 @@ const MobileMenuSurface = styled.section`
     linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.985)),
     radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.82);
-  border-radius: 28px 0 0 28px;
+  border-radius: 0;
   box-shadow:
     -18px 0 42px rgba(9, 17, 28, 0.12),
     0 32px 84px rgba(9, 17, 28, 0.28);
@@ -552,7 +552,7 @@ const MobileSearchSurface = styled.section`
     linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.988)),
     radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.82);
-  border-radius: 28px;
+  border-radius: 0;
   box-shadow:
     0 24px 64px rgba(9, 17, 28, 0.22),
     0 8px 18px rgba(var(--theme-primary-rgb), 0.08);
@@ -576,7 +576,7 @@ const MobileQuickLink = styled(Link)`
   border: 1px solid ${({ $active }) => (
     $active ? "rgba(var(--theme-primary-rgb), 0.24)" : "rgba(var(--theme-border-rgb), 0.78)"
   )};
-  border-radius: 18px;
+  border-radius: 0;
   color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
   display: inline-flex;
   font-size: 0.92rem;
@@ -606,7 +606,7 @@ const MobileSectionStack = styled.div`
 const MobileDisclosure = styled.details`
   background: rgba(var(--theme-surface-rgb), 0.78);
   border: 1px solid rgba(var(--theme-border-rgb), 0.8);
-  border-radius: 20px;
+  border-radius: 0;
   overflow: hidden;
 `;
 
@@ -644,7 +644,7 @@ const MobileDisclosureMeta = styled.span`
 const MobileCountPill = styled.span`
   background: rgba(var(--theme-primary-rgb), 0.08);
   border: 1px solid rgba(var(--theme-primary-rgb), 0.14);
-  border-radius: 999px;
+  border-radius: 0;
   color: rgba(var(--theme-primary-rgb), 0.92);
   display: inline-flex;
   font-size: 0.73rem;
@@ -680,7 +680,7 @@ const MobileListLink = styled(Link)`
   align-items: center;
   background: rgba(var(--theme-primary-rgb), 0.04);
   border: 1px solid rgba(var(--theme-border-rgb), 0.74);
-  border-radius: 16px;
+  border-radius: 0;
   color: var(--theme-text);
   display: flex;
   font-size: 0.9rem;
@@ -726,7 +726,7 @@ const MobileFooterLink = styled(Link)`
   align-items: center;
   background: rgba(var(--theme-primary-rgb), 0.04);
   border: 1px solid rgba(var(--theme-border-rgb), 0.78);
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--theme-text);
   display: inline-flex;
   font-size: 0.84rem;

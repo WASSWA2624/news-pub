@@ -27,11 +27,19 @@ import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 
 function getTone(status) {
+  if (["PUBLISHED", "APPROVED", "PASS", "OPTIMIZED"].includes(status)) {
+    return "success";
+  }
+
+  if (["FAILED", "BLOCK"].includes(status)) {
+    return "danger";
+  }
+
   if (status === "SCHEDULED") {
     return "warning";
   }
 
-  return "success";
+  return "warning";
 }
 
 export default async function ReviewQueuePage({ searchParams }) {
@@ -79,7 +87,8 @@ export default async function ReviewQueuePage({ searchParams }) {
                 <tr>
                   <th>Story</th>
                   <th>Status</th>
-                  <th>Editorial stage</th>
+                  <th>Workflow</th>
+                  <th>Policy</th>
                   <th>Source</th>
                   <th>Scheduled</th>
                   <th>Action</th>
@@ -95,7 +104,16 @@ export default async function ReviewQueuePage({ searchParams }) {
                     <td data-label="Status">
                       <StatusBadge $tone={getTone(item.status)}>{item.status}</StatusBadge>
                     </td>
-                    <td data-label="Editorial stage">{item.editorialStage}</td>
+                    <td data-label="Workflow">
+                      <StatusBadge $tone={getTone(item.reviewWorkflowStage)}>
+                        {item.reviewWorkflowStage}
+                      </StatusBadge>
+                    </td>
+                    <td data-label="Policy">
+                      <StatusBadge $tone={getTone(item.reviewPolicyStatus)}>
+                        {item.reviewPolicyStatus}
+                      </StatusBadge>
+                    </td>
                     <td data-label="Source">{item.sourceName}</td>
                     <td data-label="Scheduled">{formatDateTime(item.scheduledPublishAt)}</td>
                     <td data-label="Action">

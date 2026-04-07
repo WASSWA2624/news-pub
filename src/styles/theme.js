@@ -16,9 +16,9 @@ export const lightTheme = {
     shellMaxWidth: "1480px",
   },
   radius: {
-    lg: "28px",
-    md: "18px",
-    sm: "12px",
+    lg: "2px",
+    md: "1px",
+    sm: "0px",
   },
   spacing: {
     lg: "16px",

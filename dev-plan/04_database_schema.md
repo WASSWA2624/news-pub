@@ -11,12 +11,12 @@ Implement the full Prisma schema for NewsPub Release 1.
 ## Reuse First
 
 - Keep compatible core models such as `Locale`, `User`, `AdminSession`, `Category`, `Post`, `PostTranslation`, `MediaAsset`, `MediaVariant`, `SEORecord`, `ViewEvent`, and `AuditEvent`.
-- Replace incompatible equipment, manufacturer, AI, prompt, generation, and comment models instead of layering new models on top of them.
+- Replace incompatible equipment, manufacturer, prompt-lab, generation, and comment models instead of layering new models on top of them, while adding the bounded AI optimization cache and policy-review persistence required by the current write-up.
 
 ## Implement
 
-1. Add or repurpose the core NewsPub models: `NewsProviderConfig`, `Destination`, `PublishingStream`, `StreamCategory`, `ProviderFetchCheckpoint`, `FetchedArticle`, `ArticleMatch`, `DestinationTemplate`, and `PublishAttempt`.
-2. Define the exact enum families listed in section `8`.
+1. Add or repurpose the core NewsPub models: `NewsProviderConfig`, `Destination`, `PublishingStream`, `StreamCategory`, `ProviderFetchCheckpoint`, `FetchedArticle`, `ArticleMatch`, `OptimizationCache`, `DestinationTemplate`, and `PublishAttempt`.
+2. Define the exact enum families listed in section `8`, including workflow, optimization, and policy-review enums.
 3. Add the required joins and uniqueness rules:
    - one checkpoint per stream
    - one `ArticleMatch` per `FetchedArticle` and stream
@@ -37,7 +37,7 @@ Implement the full Prisma schema for NewsPub Release 1.
 - `prisma validate` passes
 - migration from an empty database succeeds
 - every model, enum, and join described in section `8` exists
-- no retired AI, equipment, manufacturer, or comment schema objects remain active
+- no retired equipment, manufacturer, open-ended generation, or comment schema objects remain active and the required optimization-cache or policy fields are present
 
 ## Exit Criteria
 

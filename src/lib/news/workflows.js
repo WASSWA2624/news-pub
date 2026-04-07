@@ -1,4 +1,5 @@
 import { createAuditEventRecord, recordObservabilityEvent } from "@/lib/analytics";
+import { optimizeDestinationPayload } from "@/lib/ai";
 import { getDestinationSocialGuardrails } from "@/features/destinations/meta-config";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { discoverRemoteImageUrl } from "@/lib/media";
@@ -448,12 +449,18 @@ async function upsertCanonicalPost(
   let featuredImageId = existingPost?.featuredImageId || null;
 
   const post = existingPost
-    ? await db.post.update({
+      ? await db.post.update({
         where: {
           id: existingPost.id,
         },
         data: {
           authorId: actorId || existingPost.authorId,
+          canonicalContentHash: createContentHash(
+            article.title,
+            article.summary || article.title,
+            article.body || article.summary || article.title,
+            article.sourceUrl,
+          ),
           excerpt: article.summary || article.title,
           featuredImageId,
           providerKey: stream.activeProvider.providerKey,
@@ -462,9 +469,15 @@ async function upsertCanonicalPost(
           sourceUrl: article.sourceUrl,
         },
       })
-    : await db.post.create({
+      : await db.post.create({
         data: {
           authorId: actorId || null,
+          canonicalContentHash: createContentHash(
+            article.title,
+            article.summary || article.title,
+            article.body || article.summary || article.title,
+            article.sourceUrl,
+          ),
           excerpt: article.summary || article.title,
           featuredImageId,
           providerKey: stream.activeProvider.providerKey,
@@ -589,6 +602,111 @@ function buildTemplateContext({ articleMatch, post, stream, template, translatio
     summary: translation?.summary || post.excerpt,
     title: translation?.title || post.slug,
   };
+}
+
+function getPolicyReasonCodes(reasons = []) {
+  return (Array.isArray(reasons) ? reasons : [])
+    .map((reason) => trimText(reason?.code || reason))
+    .filter(Boolean);
+}
+
+function getHoldReasonCodes({ policy, stream }) {
+  const reasonCodes = getPolicyReasonCodes(policy?.reasons);
+
+  if (policy?.status === "BLOCK" || policy?.status === "HOLD") {
+    reasonCodes.push(`policy_${policy.status.toLowerCase()}`);
+  }
+
+  if (stream?.mode === "REVIEW_REQUIRED") {
+    reasonCodes.push("review_required_stream_mode");
+  }
+
+  return dedupeStrings(reasonCodes);
+}
+
+async function applyWebsiteOptimizedPayloadToPost(db, { payload, post, stream, translation }) {
+  if (!post?.id || !payload) {
+    return;
+  }
+
+  const title = trimText(payload.title) || translation?.title || post.slug;
+  const summary = trimText(payload.summary) || translation?.summary || post.excerpt || title;
+  const contentMd = trimText(payload.body) || translation?.contentMd || summary;
+  const article = buildStoryStructuredArticle({
+    body: contentMd,
+    categoryNames: [],
+    sourceName: post.sourceName,
+    sourceUrl: post.sourceUrl,
+    summary,
+    title,
+  });
+
+  const nextTranslation = await db.postTranslation.upsert({
+    where: {
+      postId_locale: {
+        locale: stream.locale,
+        postId: post.id,
+      },
+    },
+    update: {
+      contentHtml: article.contentHtml,
+      contentMd,
+      sourceAttribution: payload.sourceAttribution || translation?.sourceAttribution || `Source: ${post.sourceName} - ${post.sourceUrl}`,
+      structuredContentJson: article.article,
+      summary,
+      title,
+    },
+    create: {
+      contentHtml: article.contentHtml,
+      contentMd,
+      locale: stream.locale,
+      postId: post.id,
+      sourceAttribution: payload.sourceAttribution || `Source: ${post.sourceName} - ${post.sourceUrl}`,
+      structuredContentJson: article.article,
+      summary,
+      title,
+    },
+  });
+
+  await db.sEORecord.upsert({
+    where: {
+      postTranslationId: nextTranslation.id,
+    },
+    update: {
+      canonicalUrl: payload.canonicalUrl || translation?.seoRecord?.canonicalUrl || toAbsoluteUrl(buildLocalizedPath(stream.locale, publicRouteSegments.newsPost(post.slug))),
+      keywordsJson: dedupeStrings(translation?.seoRecord?.keywordsJson || []),
+      metaDescription: trimText(payload.metaDescription) || summary,
+      metaTitle: trimText(payload.metaTitle) || title,
+      ogDescription: trimText(payload.metaDescription) || summary,
+      ogImageId: post.featuredImageId || translation?.seoRecord?.ogImageId || null,
+      ogTitle: trimText(payload.metaTitle) || title,
+      twitterDescription: trimText(payload.metaDescription) || summary,
+      twitterTitle: trimText(payload.metaTitle) || title,
+    },
+    create: {
+      authorsJson: ["NewsPub Editorial"],
+      canonicalUrl: payload.canonicalUrl || toAbsoluteUrl(buildLocalizedPath(stream.locale, publicRouteSegments.newsPost(post.slug))),
+      keywordsJson: dedupeStrings(translation?.seoRecord?.keywordsJson || []),
+      metaDescription: trimText(payload.metaDescription) || summary,
+      metaTitle: trimText(payload.metaTitle) || title,
+      ogDescription: trimText(payload.metaDescription) || summary,
+      ogImageId: post.featuredImageId || null,
+      ogTitle: trimText(payload.metaTitle) || title,
+      postTranslationId: nextTranslation.id,
+      twitterDescription: trimText(payload.metaDescription) || summary,
+      twitterTitle: trimText(payload.metaTitle) || title,
+    },
+  });
+
+  await db.post.update({
+    where: {
+      id: post.id,
+    },
+    data: {
+      canonicalContentHash: createContentHash(title, summary, contentMd, payload.sourceAttribution || ""),
+      excerpt: summary,
+    },
+  });
 }
 
 function getRecentAttemptPayload(payloadJson) {
@@ -761,6 +879,102 @@ export async function applySocialPublishingGuardrails({
   };
 }
 
+export async function refreshArticleMatchOptimization(
+  articleMatchId,
+  { force = false } = {},
+  prisma,
+) {
+  const db = await resolvePrismaClient(prisma);
+  const articleMatch = await db.articleMatch.findUnique({
+    include: {
+      canonicalPost: {
+        include: {
+          featuredImage: true,
+          sourceArticle: {
+            select: {
+              body: true,
+              imageUrl: true,
+              summary: true,
+            },
+          },
+          translations: {
+            include: {
+              seoRecord: {
+                include: {
+                  ogImage: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      destination: true,
+      stream: {
+        include: {
+          destination: true,
+        },
+      },
+    },
+    where: {
+      id: articleMatchId,
+    },
+  });
+
+  if (!articleMatch?.canonicalPost) {
+    throw new NewsPubError("Article match does not have a canonical post.", {
+      status: "post_not_ready_for_optimization",
+      statusCode: 400,
+    });
+  }
+
+  const translation = pickTranslation(
+    articleMatch.canonicalPost.translations || [],
+    articleMatch.stream.locale,
+  );
+  const template = await resolveTemplate(db, articleMatch.stream);
+  const optimization = await optimizeDestinationPayload(
+    {
+      articleMatch,
+      destination: articleMatch.destination,
+      force,
+      post: articleMatch.canonicalPost,
+      stream: articleMatch.stream,
+      template,
+      translation,
+    },
+    db,
+  );
+  const shouldHold =
+    articleMatch.stream.mode === "REVIEW_REQUIRED" ||
+    ["BLOCK", "HOLD"].includes(optimization.policy.status);
+
+  const updatedArticleMatch = await db.articleMatch.update({
+    where: {
+      id: articleMatch.id,
+    },
+    data: {
+      holdReasonsJson: shouldHold ? getHoldReasonCodes({ policy: optimization.policy, stream: articleMatch.stream }) : [],
+      optimizationStatus: optimization.cacheRecord.status,
+      optimizedPayloadJson: optimization.payload,
+      policyReasonsJson: optimization.policy.reasons,
+      policyStatus: optimization.policy.status,
+      readinessChecksJson: optimization.policy.readinessChecks,
+      status: shouldHold ? "HELD_FOR_REVIEW" : "ELIGIBLE",
+      workflowStage:
+        optimization.policy.status === "BLOCK" || optimization.policy.status === "HOLD"
+          ? "HELD"
+          : articleMatch.stream.mode === "REVIEW_REQUIRED"
+            ? "REVIEW_REQUIRED"
+            : "OPTIMIZED",
+    },
+  });
+
+  return {
+    ...optimization,
+    articleMatch: updatedArticleMatch,
+  };
+}
+
 async function executePublishAttempt(
   db,
   attemptId,
@@ -833,6 +1047,7 @@ async function executePublishAttempt(
     });
   }
 
+  const optimization = await refreshArticleMatchOptimization(attempt.articleMatchId, {}, db);
   const context = buildTemplateContext({
     articleMatch: attempt.articleMatch,
     post: attempt.post,
@@ -840,18 +1055,35 @@ async function executePublishAttempt(
     template,
     translation,
   });
+  const optimizedPayload = optimization.payload || {};
   let payload = {
-    body: renderTemplateString(template?.bodyTemplate, context),
-    canonicalUrl: context.canonicalUrl,
+    body: trimText(optimizedPayload.body) || renderTemplateString(template?.bodyTemplate, context),
+    canonicalUrl: optimizedPayload.canonicalUrl || context.canonicalUrl,
+    caption: trimText(optimizedPayload.caption),
     destinationKind: destination.kind,
     extraLinkPlacement: context.postLinkPlacement,
     extraLinkUrl: context.postLinkUrl,
-    hashtags: renderTemplateString(template?.hashtagsTemplate, context),
-    mediaUrl: context.imageUrl,
+    hashtags:
+      Array.isArray(optimizedPayload.hashtags) && optimizedPayload.hashtags.length
+        ? optimizedPayload.hashtags.join(" ")
+        : renderTemplateString(template?.hashtagsTemplate, context),
+    mediaUrl: optimizedPayload.mediaUrl || context.imageUrl,
+    metaDescription: trimText(optimizedPayload.metaDescription),
+    metaTitle: trimText(optimizedPayload.metaTitle),
     platform: attempt.platform,
+    sourceAttribution:
+      optimizedPayload.sourceAttribution
+      || `Source: ${context.sourceName}${context.sourceUrl ? ` - ${context.sourceUrl}` : ""}`,
     sourceReference: `Source: ${context.sourceName}${context.sourceUrl ? ` - ${context.sourceUrl}` : ""}`,
-    summary: renderTemplateString(template?.summaryTemplate, context) || context.summary,
-    title: renderTemplateString(template?.titleTemplate, context) || context.title,
+    summary:
+      trimText(optimizedPayload.summary)
+      || renderTemplateString(template?.summaryTemplate, context)
+      || context.summary,
+    title:
+      trimText(optimizedPayload.title)
+      || renderTemplateString(template?.titleTemplate, context)
+      || context.title,
+    warnings: optimizedPayload.policyWarnings || optimizedPayload.warnings || [],
   };
 
   await db.publishAttempt.update({
@@ -859,6 +1091,16 @@ async function executePublishAttempt(
       id: attempt.id,
     },
     data: {
+      diagnosticsJson: {
+        cacheHit: optimization.cacheHit,
+        optimizationCacheId: optimization.cacheRecord?.id || null,
+        optimizationHash: optimization.optimizationHash,
+        policyReasons: optimization.policy.reasons,
+        policyStatus: optimization.policy.status,
+        policyWarnings: optimization.policy.warnings,
+        readinessChecks: optimization.policy.readinessChecks,
+        riskScore: optimization.policy.riskScore,
+      },
       payloadJson: payload,
       startedAt: new Date(),
       status: "RUNNING",
@@ -908,6 +1150,13 @@ async function executePublishAttempt(
   let publishResult;
 
   try {
+    if (optimization.policy.status === "BLOCK") {
+      throw new NewsPubError("This post is blocked by the current destination policy checks and must be edited before publishing.", {
+        status: "destination_policy_review_blocked",
+        statusCode: 400,
+      });
+    }
+
     if (destination.platform !== "WEBSITE") {
       const guardrailResult = await applySocialPublishingGuardrails({
         bypassDuplicateCooldown: bypassSocialDuplicateCooldown,
@@ -934,6 +1183,12 @@ async function executePublishAttempt(
     }
 
     if (attempt.platform === "WEBSITE") {
+      await applyWebsiteOptimizedPayloadToPost(db, {
+        payload,
+        post: attempt.post,
+        stream: attempt.stream,
+        translation,
+      });
       const remoteId = `${destination.platform.toLowerCase()}_${createContentHash(
         attempt.id,
         context.title,
@@ -964,6 +1219,24 @@ async function executePublishAttempt(
       },
       data: {
         completedAt: failedAt,
+        diagnosticsJson: {
+          cacheHit: optimization.cacheHit,
+          errorDetails:
+            error instanceof DestinationPublishError
+              ? error.responseJson || null
+              : null,
+          optimizationCacheId: optimization.cacheRecord?.id || null,
+          optimizationHash: optimization.optimizationHash,
+          policyReasons: optimization.policy.reasons,
+          policyStatus: optimization.policy.status,
+          policyWarnings: optimization.policy.warnings,
+          readinessChecks: optimization.policy.readinessChecks,
+          riskScore: optimization.policy.riskScore,
+        },
+        errorCode:
+          trimText(error?.status)
+          || trimText(error?.responseJson?.error)
+          || "destination_publish_failed",
         errorMessage: error instanceof Error ? error.message : "Destination publication failed.",
         responseJson:
           error instanceof DestinationPublishError
@@ -976,6 +1249,7 @@ async function executePublishAttempt(
                 retryable: false,
                 status: "destination_publish_failed",
               },
+        retryable: error instanceof DestinationPublishError ? error.retryable : false,
         status: "FAILED",
       },
     });
@@ -987,6 +1261,7 @@ async function executePublishAttempt(
       data: {
         failedAt,
         status: "FAILED",
+        workflowStage: "FAILED",
       },
     });
 
@@ -1013,29 +1288,41 @@ async function executePublishAttempt(
     where: {
       id: attempt.id,
     },
-    data: {
-      completedAt: publishedAt,
-      publishedAt,
-      remoteId: publishResult.remoteId,
-      responseJson: publishResult.responseJson || {
-        canonicalUrl: context.canonicalUrl,
-        remoteId: publishResult.remoteId || null,
-        status: "ok",
+      data: {
+        completedAt: publishedAt,
+        diagnosticsJson: {
+          cacheHit: optimization.cacheHit,
+          optimizationCacheId: optimization.cacheRecord?.id || null,
+          optimizationHash: optimization.optimizationHash,
+          policyReasons: optimization.policy.reasons,
+          policyStatus: optimization.policy.status,
+          policyWarnings: optimization.policy.warnings,
+          readinessChecks: optimization.policy.readinessChecks,
+          riskScore: optimization.policy.riskScore,
+        },
+        publishedAt,
+        remoteId: publishResult.remoteId,
+        responseJson: publishResult.responseJson || {
+          canonicalUrl: context.canonicalUrl,
+          remoteId: publishResult.remoteId || null,
+          status: "ok",
+        },
+        retryable: false,
+        status: "SUCCEEDED",
       },
-      status: "SUCCEEDED",
-    },
-  });
+    });
 
   await db.articleMatch.update({
     where: {
       id: attempt.articleMatchId,
     },
-    data: {
-      publishedAt,
-      queuedAt: attempt.queuedAt || new Date(),
-      status: "PUBLISHED",
-    },
-  });
+      data: {
+        publishedAt,
+        queuedAt: attempt.queuedAt || new Date(),
+        status: "PUBLISHED",
+        workflowStage: "PUBLISHED",
+      },
+    });
 
   await db.post.update({
     where: {
@@ -1100,6 +1387,9 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
       articleMatchId,
       attemptNumber: attemptCount + 1,
       destinationId: stream.destinationId,
+      diagnosticsJson: {
+        scheduledFor: publishAt ? publishAt.toISOString() : null,
+      },
       idempotencyKey: createContentHash(articleMatchId, platform, attemptCount + 1).slice(0, 36),
       platform,
       postId,
@@ -1152,6 +1442,16 @@ export async function publishArticleMatch(articleMatchId, { publishAt } = {}, pr
         status: "SCHEDULED",
       },
     });
+    await db.articleMatch.update({
+      where: {
+        id: articleMatch.id,
+      },
+      data: {
+        queuedAt: new Date(),
+        status: "HELD_FOR_REVIEW",
+        workflowStage: "SCHEDULED",
+      },
+    });
 
     return createPublishAttempt(db, {
       articleMatchId: articleMatch.id,
@@ -1167,6 +1467,19 @@ export async function publishArticleMatch(articleMatchId, { publishAt } = {}, pr
     platform: articleMatch.destination.platform,
     postId: articleMatch.canonicalPostId,
     stream: articleMatch.stream,
+  });
+
+  await db.articleMatch.update({
+    where: {
+      id: articleMatch.id,
+    },
+    data: {
+      queuedAt: new Date(),
+      workflowStage:
+        articleMatch.workflowStage === "HELD" && articleMatch.policyStatus === "BLOCK"
+          ? "HELD"
+          : "APPROVED",
+    },
   });
 
   return executePublishAttempt(db, attempt.id);
@@ -1424,10 +1737,13 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
       stream,
     });
     const summary = {
+      aiCacheHitCount: 0,
+      blockedCount: 0,
       duplicateCount: 0,
       failedCount: 0,
       fetchedCount: providerResult.fetchedCount,
       heldCount: 0,
+      optimizedCount: 0,
       publishedCount: 0,
       publishableCount: 0,
       queuedCount: 0,
@@ -1542,10 +1858,25 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         },
       });
 
-      summary.publishableCount += 1;
+      const optimization = await refreshArticleMatchOptimization(articleMatch.id, {}, db);
+      const shouldHoldForReview =
+        stream.mode === "REVIEW_REQUIRED" ||
+        ["BLOCK", "HOLD"].includes(optimization.policy.status);
 
-      if (evaluation.status === "HELD_FOR_REVIEW") {
+      summary.publishableCount += 1;
+      summary.optimizedCount += 1;
+
+      if (optimization.cacheHit) {
+        summary.aiCacheHitCount += 1;
+      }
+
+      if (shouldHoldForReview) {
         summary.heldCount += 1;
+
+        if (optimization.policy.status !== "PASS") {
+          summary.blockedCount += 1;
+        }
+
         continue;
       }
 
@@ -1597,11 +1928,14 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         id: fetchRun.id,
       },
       data: {
+        aiCacheHitCount: summary.aiCacheHitCount,
+        blockedCount: summary.blockedCount,
         duplicateCount: summary.duplicateCount,
         failedCount: summary.failedCount,
         fetchedCount: summary.fetchedCount,
         finishedAt: new Date(),
         heldCount: summary.heldCount,
+        optimizedCount: summary.optimizedCount,
         providerCursorAfterJson: providerResult.cursor || null,
         providerCursorBeforeJson: checkpoint?.cursorJson || null,
         publishableCount: summary.publishableCount,
@@ -1630,10 +1964,13 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         entityId: completedRun.id,
         entityType: "fetch_run",
         payloadJson: {
+          aiCacheHitCount: summary.aiCacheHitCount,
+          blockedCount: summary.blockedCount,
           duplicateCount: summary.duplicateCount,
           failedCount: summary.failedCount,
           fetchedCount: summary.fetchedCount,
           heldCount: summary.heldCount,
+          optimizedCount: summary.optimizedCount,
           publishableCount: summary.publishableCount,
           publishedCount: summary.publishedCount,
           skippedCount: summary.skippedCount,

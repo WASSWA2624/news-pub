@@ -1,8 +1,8 @@
 # NewsPub
 
-`news-pub` is a specification-first project for building a reuse-first news ingestion, review, scheduling, and publishing platform.
+`news-pub` is a specification-first project for building a reuse-first news ingestion, review, AI-assisted optimization, scheduling, and publishing platform.
 
-Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, and schedules, fetch news from supported external APIs, filter it locally, and publish qualifying stories to the website, Facebook, and Instagram.
+Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, safety guardrails, and schedules, fetch news from supported external APIs, filter it locally, optimize eligible stories with a bounded AI layer, and publish qualifying stories to the website, Facebook, and Instagram.
 
 ## Current Status
 
@@ -31,11 +31,12 @@ NewsPub Release 1 includes:
 - locale-prefixed public routes with `en` as the default active locale
 - admin authentication with RBAC
 - env-based credential resolution for `mediastack`, `newsdata`, and `newsapi`
+- AI SDK-based optimization for eligible posts with deterministic cache reuse, policy checks, and fallback formatting
 - website, Facebook, and Instagram publishing
 - stream-based scheduling, filtering, deduplication, retries, and auditability
 - SEO metadata, sitemap, robots, search, analytics, and operational reporting
 
-Release 1 is not an AI content-generation product.
+Release 1 is not an open-ended AI content-generation product. AI is used only for bounded rewriting, SEO packaging, destination-specific formatting, and policy pre-checks. The app must preserve factual meaning, keep source attribution visible, validate structured output, and fall back safely when AI is unavailable.
 
 ## Public And Admin Surfaces
 

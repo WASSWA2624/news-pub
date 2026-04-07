@@ -22,6 +22,9 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
 2. Aggregate dashboard metrics for:
    - fetch counts
    - publishable counts
+   - optimized counts
+   - optimization cache reuses
+   - blocked-before-publish counts
    - published counts
    - failed runs
    - retry counts
@@ -39,7 +42,7 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
 
 ## Verify
 
-- dashboard cards reflect current NewsPub operational metrics
+- dashboard cards reflect current NewsPub operational and optimization metrics
 - top-story and traffic widgets use persisted `ViewEvent` data
 - analytics-restricted users see the intended limited dashboard state
 - the dashboard no longer reports generation-job or equipment-specific metrics

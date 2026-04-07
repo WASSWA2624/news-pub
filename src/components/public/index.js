@@ -246,7 +246,7 @@ const SummaryGrid = styled.div`
 const SummaryCard = styled.article`
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 10px;
+  border-radius: 0;
   display: grid;
   gap: 0.04rem;
   padding: 0.34rem 0.46rem;
@@ -262,7 +262,7 @@ const SummaryIconBadge = styled.span`
   align-items: center;
   background: rgba(var(--theme-primary-rgb), 0.08);
   border: 1px solid rgba(var(--theme-primary-rgb), 0.12);
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--theme-primary);
   display: inline-flex;
   flex: 0 0 auto;
@@ -300,7 +300,7 @@ const ContentGrid = styled.div`
 const Panel = styled.section`
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 18px;
+  border-radius: 0;
   box-shadow: 0 18px 42px rgba(18, 34, 58, 0.06);
   display: grid;
   gap: 0.72rem;
@@ -349,7 +349,7 @@ const StoryCard = styled.article`
     linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(246, 249, 255, 0.94)),
     radial-gradient(circle at top right, rgba(11, 107, 139, 0.08), transparent 48%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+  border-radius: 0;
   display: grid;
   gap: ${({ $hasMedia }) => ($hasMedia ? "0.62rem" : "0.26rem")};
   overflow: hidden;
@@ -358,7 +358,7 @@ const StoryCard = styled.article`
 const StoryImageWrap = styled.div`
   background: linear-gradient(180deg, rgba(17, 43, 67, 0.04), rgba(17, 43, 67, 0.08));
   aspect-ratio: 16 / 9;
-  border-radius: 18px;
+  border-radius: 0;
   min-height: 210px;
   overflow: hidden;
   position: relative;
@@ -556,7 +556,7 @@ const ChipRow = styled.div`
 const ChipLink = styled(Link)`
   background: rgba(15, 103, 133, 0.08);
   border: 1px solid rgba(15, 103, 133, 0.12);
-  border-radius: 999px;
+  border-radius: 0;
   color: #0d6685;
   font-size: 0.72rem;
   font-weight: 700;
@@ -601,7 +601,7 @@ const PaginationRow = styled.div`
 const PaginationLink = styled(Link)`
   background: rgba(16, 32, 51, 0.04);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 999px;
+  border-radius: 0;
   color: #152744;
   font-weight: 700;
   padding: 0.44rem 0.76rem;
@@ -620,7 +620,7 @@ const SearchField = styled.label`
   align-items: center;
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
-  border-radius: 12px;
+  border-radius: 0;
   display: flex;
   gap: 0.46rem;
   min-height: 42px;
@@ -660,7 +660,7 @@ const SearchSelect = styled(SearchableSelect)`
   width: 100%;
 
   button {
-    border-radius: 12px;
+    border-radius: 0;
     min-height: 42px;
     padding: 0.52rem 0.7rem;
   }
@@ -670,7 +670,7 @@ const ActionButton = styled.button`
   align-items: center;
   background: linear-gradient(135deg, #0f6e8d 0%, #0b5871 100%);
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   color: white;
   cursor: pointer;
   display: inline-flex;
@@ -751,7 +751,7 @@ const StoryHeroStatus = styled.div`
 
 const StoryStatusDot = styled.span`
   background: linear-gradient(135deg, var(--theme-accent) 0%, var(--theme-story-accent) 100%);
-  border-radius: 999px;
+  border-radius: 0;
   box-shadow: 0 0 0 5px rgba(var(--theme-accent-rgb), 0.16);
   display: inline-flex;
   height: 0.52rem;
@@ -876,7 +876,7 @@ const StoryActionLink = styled.a`
   border: 1px solid
     ${({ $secondary }) =>
       $secondary ? "rgba(var(--theme-story-accent-rgb), 0.14)" : "rgba(var(--theme-primary-rgb), 0.18)"};
-  border-radius: 999px;
+  border-radius: 0;
   color: ${({ $secondary }) => ($secondary ? "var(--theme-story-accent)" : "#fffaf2")};
   display: inline-flex;
   font-size: 0.82rem;
@@ -1349,7 +1349,7 @@ const StoryContent = styled.div`
   blockquote {
     background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(var(--theme-story-paper-alt-rgb), 0.98));
     border-left: 4px solid rgba(var(--theme-story-accent-rgb), 0.72);
-    border-radius: 0 22px 22px 0;
+    border-radius: 0;
     color: rgba(var(--theme-story-ink-rgb), 0.92);
     margin: 1.45rem 0;
     padding: 1.05rem 1.15rem;
@@ -1417,7 +1417,7 @@ const StoryShareLink = styled.a`
   align-items: center;
   background: rgba(var(--theme-story-accent-rgb), 0.06);
   border: 1px solid rgba(var(--theme-story-accent-rgb), 0.14);
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--theme-story-accent);
   display: inline-flex;
   font-size: 0.8rem;

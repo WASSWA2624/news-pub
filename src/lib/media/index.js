@@ -277,6 +277,130 @@ export function extractRemoteImageUrlFromHtml(html, pageUrl = "") {
   return candidates[0] || "";
 }
 
+/**
+ * Validates a remote media URL without downloading the full asset so publish
+ * workflows can safely decide whether a destination should use or hold media.
+ */
+export async function validateRemoteMediaUrl(url, options = {}) {
+  const safeUrl = sanitizeMediaUrl(url);
+
+  if (!safeUrl) {
+    return {
+      errorCode: "media_url_invalid",
+      message: "The media URL is missing or invalid.",
+      ok: false,
+      url: null,
+    };
+  }
+
+  if (safeUrl.startsWith("data:image/")) {
+    return {
+      contentLength: null,
+      mimeType: "image/data-url",
+      ok: true,
+      url: safeUrl,
+    };
+  }
+
+  const maxBytes = Number.isFinite(options.maxBytes) ? Math.max(1, Math.trunc(options.maxBytes)) : 5 * 1024 * 1024;
+  const requestHeaders = {
+    accept: "image/*,*/*;q=0.8",
+    "user-agent": "NewsPub/1.0 (+media-validation)",
+  };
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(options.timeoutMs || 8000)
+      : undefined;
+
+  async function inspectResponse(response) {
+    const mimeType = trimText(response.headers.get("content-type") || "").toLowerCase();
+    const contentLength = Number.parseInt(response.headers.get("content-length") || "", 10);
+
+    if (!response.ok) {
+      return {
+        errorCode: "media_unreachable",
+        message: `The media URL returned ${response.status}.`,
+        ok: false,
+        statusCode: response.status,
+        url: safeUrl,
+      };
+    }
+
+    if (mimeType && !mimeType.startsWith("image/")) {
+      return {
+        contentLength: Number.isFinite(contentLength) ? contentLength : null,
+        errorCode: "media_type_invalid",
+        message: `Expected an image response but received "${mimeType}".`,
+        mimeType,
+        ok: false,
+        url: safeUrl,
+      };
+    }
+
+    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      return {
+        contentLength,
+        errorCode: "media_too_large",
+        message: `The media file exceeds the ${maxBytes}-byte limit.`,
+        mimeType: mimeType || null,
+        ok: false,
+        url: safeUrl,
+      };
+    }
+
+    return {
+      contentLength: Number.isFinite(contentLength) ? contentLength : null,
+      mimeType: mimeType || null,
+      ok: true,
+      statusCode: response.status,
+      url: safeUrl,
+    };
+  }
+
+  try {
+    const headResponse = await fetch(safeUrl, {
+      headers: requestHeaders,
+      method: "HEAD",
+      next: {
+        revalidate: 0,
+      },
+      redirect: "follow",
+      signal: options.signal || timeoutSignal,
+    });
+    const inspectedHead = await inspectResponse(headResponse);
+
+    if (inspectedHead.ok || inspectedHead.errorCode === "media_type_invalid" || inspectedHead.errorCode === "media_too_large") {
+      return inspectedHead;
+    }
+  } catch {
+    // Some providers reject HEAD requests. Fall back to a small ranged GET.
+  }
+
+  try {
+    const getResponse = await fetch(safeUrl, {
+      headers: {
+        ...requestHeaders,
+        range: "bytes=0-0",
+      },
+      method: "GET",
+      next: {
+        revalidate: 0,
+      },
+      redirect: "follow",
+      signal: options.signal || timeoutSignal,
+    });
+
+    return inspectResponse(getResponse);
+  } catch {
+    return {
+      errorCode: "media_unreachable",
+      message: "The media URL could not be reached.",
+      ok: false,
+      url: safeUrl,
+    };
+  }
+}
+
 export async function discoverRemoteImageUrl(pageUrl, options = {}) {
   const safePageUrl = sanitizeMediaUrl(pageUrl);
 

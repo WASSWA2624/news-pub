@@ -15,12 +15,12 @@ Define the complete NewsPub runtime environment contract before database work an
 
 ## Implement
 
-1. Remove AI-provider, prompt, and comment-specific env keys from the parser and docs.
+1. Remove legacy open-ended AI, prompt-lab, and comment-specific env keys from the parser and docs while keeping only the bounded optimization-layer keys required by the current write-up.
 2. Add explicit provider credential keys for `mediastack`, `newsdata`, and `newsapi`.
 3. Add env support for destination-token encryption, social app configuration, and any secure callback or verification secrets required by destination integrations.
 4. Add schedule defaults such as the default timezone and initial backfill window.
 5. Keep media-driver, auth, cron, and revalidation settings from the existing parser where they still apply.
-6. Update `.env.example`, runtime validation, and tests so missing provider credentials fail clearly and early.
+6. Update `.env.example`, runtime validation, and tests so missing provider credentials fail clearly and early and new AI optimization or policy-threshold settings remain validated.
 7. Document which env values are public-safe, server-only, env-only, or encrypted-after-ingest.
 
 ## Required Outputs
@@ -33,7 +33,7 @@ Define the complete NewsPub runtime environment contract before database work an
 ## Verify
 
 - every env key required by section `7` is validated in code
-- AI and comment env keys are gone from the active runtime contract
+- only the bounded NewsPub AI optimization env keys remain in the active runtime contract
 - missing credentials for the selected provider produce a clear startup or runtime validation failure
 - public-safe env values are the only values exposed to the browser
 

@@ -7,6 +7,7 @@ import { ADMIN_PERMISSIONS, getRequiredPermissionsForPostUpdate } from "@/lib/au
 import { idParamSchema, validateJsonRequest, validateParams } from "@/lib/validation/api-placeholders";
 
 const updatePostSchema = z.object({
+  action: z.string().trim().optional(),
   articleMatchId: z.string().trim().optional(),
   categoryIds: z.array(z.string().trim().min(1)).optional(),
   contentMd: z.string().optional(),

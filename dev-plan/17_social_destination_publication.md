@@ -15,12 +15,12 @@ Implement NewsPub publishing to Facebook and Instagram with full attempt history
 
 ## Implement
 
-1. Build destination formatters for Facebook and Instagram using the template system from section `16`.
+1. Build destination formatters for Facebook and Instagram using the template system from section `16` together with the bounded optimization layer.
 2. Create outbound publisher adapters for supported Facebook and Instagram destination kinds.
 3. Persist every outbound action as a `PublishAttempt` with request, response, status, retry count, and remote identifier metadata.
-4. Block social publishing when the destination is disconnected, missing required scopes, or fails platform-specific validation.
-5. Add manual retry and history visibility in the admin workspace.
-6. Keep platform-specific quirks in the integration layer only.
+4. Block or hold social publishing when the destination is disconnected, missing required scopes, fails platform-specific validation, or trips policy and guardrail checks.
+5. Add manual retry, optimization preview, and history visibility in the admin workspace.
+6. Keep platform-specific quirks, rate limiting, duplicate cooldowns, hashtag caps, and safety checks in the integration layer only.
 
 ## Required Outputs
 
@@ -34,7 +34,7 @@ Implement NewsPub publishing to Facebook and Instagram with full attempt history
 - no social publish attempt starts without a connected destination
 - every social publish produces a persisted `PublishAttempt`
 - retrying a failed attempt does not duplicate already-succeeded publications
-- platform errors appear in admin logs with actionable detail
+- platform errors and policy blocks appear in admin logs with actionable detail
 
 ## Exit Criteria
 

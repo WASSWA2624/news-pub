@@ -18,7 +18,7 @@ export const AdminHero = styled.section`
     radial-gradient(circle at 86% 18%, rgba(224, 165, 58, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 249, 253, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: 0;
   box-shadow: 0 14px 32px rgba(17, 31, 55, 0.05);
   display: grid;
   gap: 0.28rem;
@@ -74,7 +74,7 @@ export const AdminIconBadge = styled.span`
             : $tone === "muted"
               ? "rgba(16, 32, 51, 0.08)"
               : "rgba(15, 111, 141, 0.18)"};
-  border-radius: ${({ $size }) => ($size === "1.9rem" ? "12px" : "16px")};
+  border-radius: 1px;
   color: ${({ $tone }) =>
     $tone === "accent"
       ? "#8f630c"
@@ -174,7 +174,7 @@ export const SummaryCard = styled.article`
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.95)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.06), transparent 46%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+  border-radius: 0;
   box-shadow: 0 10px 22px rgba(18, 34, 58, 0.04);
   display: grid;
   gap: 0.12rem;
@@ -212,7 +212,7 @@ export const SidebarStack = styled.div`
 export const Card = styled.section`
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: 0;
   box-shadow: 0 12px 26px rgba(18, 34, 58, 0.045);
   display: grid;
   gap: 0.55rem;
@@ -264,7 +264,7 @@ export const RecordCard = styled.article`
     linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(255, 255, 255, 0.95)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 44%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 14px;
+  border-radius: 0;
   display: grid;
   gap: 0.5rem;
   padding: 0.62rem;
@@ -304,7 +304,7 @@ export const MetaPill = styled.span`
   align-items: center;
   background: rgba(36, 75, 115, 0.08);
   border: 1px solid rgba(36, 75, 115, 0.12);
-  border-radius: 999px;
+  border-radius: 0;
   color: #244b73;
   display: inline-flex;
   font-size: 0.64rem;
@@ -397,7 +397,7 @@ export const DataTable = styled.table`
         linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(255, 255, 255, 0.96)),
         radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 48%);
       border: 1px solid rgba(16, 32, 51, 0.08);
-      border-radius: 14px;
+      border-radius: 0;
       box-shadow: 0 12px 24px rgba(16, 32, 51, 0.04);
       display: grid;
       gap: 0.34rem;
@@ -452,7 +452,7 @@ export const FieldLabel = styled.span`
 const fieldStyles = `
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
-  border-radius: 10px;
+  border-radius: 0;
   color: #1f314b;
   font-size: 0.88rem;
   min-height: 34px;
@@ -500,7 +500,7 @@ export const CheckboxChip = styled.label`
   align-items: center;
   background: rgba(16, 32, 51, 0.04);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 999px;
+  border-radius: 0;
   color: #22344f;
   cursor: pointer;
   display: inline-flex;
@@ -554,7 +554,7 @@ export const ButtonIcon = styled.span`
 
 const buttonStyles = `
   align-items: center;
-  border-radius: 999px;
+  border-radius: 0;
   cursor: pointer;
   display: inline-flex;
   font-size: 0.8rem;
@@ -646,7 +646,7 @@ export const StatusBadge = styled.span`
           : $tone === "warning"
             ? "rgba(168, 113, 12, 0.2)"
             : "rgba(16, 32, 51, 0.08)"};
-  border-radius: 999px;
+  border-radius: 0;
   color: ${({ $tone }) =>
     $tone === "success"
       ? "#197341"
@@ -679,7 +679,7 @@ export const NoticeBanner = styled.div`
         : $tone === "warning"
           ? "rgba(168, 113, 12, 0.18)"
           : "rgba(176, 46, 34, 0.18)"};
-  border-radius: 12px;
+  border-radius: 0;
   color: ${({ $tone }) =>
     $tone === "success"
       ? "#197341"

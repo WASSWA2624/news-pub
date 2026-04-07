@@ -80,6 +80,12 @@ export default async function AdminDashboardPage() {
         <AdminMetricCard icon="refresh" label="Retry count" tone="accent" value={snapshot.summary.retryCount7d} />
       </SummaryGrid>
 
+      <SummaryGrid>
+        <AdminMetricCard icon="sparkles" label="Optimized stories" value={snapshot.summary.optimizedCount7d} />
+        <AdminMetricCard icon="refresh" label="AI cache reuses" tone="accent" value={snapshot.summary.aiCacheHitCount7d} />
+        <AdminMetricCard icon="shield" label="Blocked before publish" tone="warning" value={snapshot.summary.blockedBeforePublish7d} />
+      </SummaryGrid>
+
       <SectionGrid $wide>
         <Card>
           <AdminSectionTitle icon="refresh">Recent fetch runs</AdminSectionTitle>
@@ -90,11 +96,12 @@ export default async function AdminDashboardPage() {
                   <tr>
                     <th>Stream</th>
                     <th>Status</th>
-                    <th>Fetched</th>
-                    <th>Publishable</th>
-                    <th>Published</th>
-                    <th>Started</th>
-                  </tr>
+                  <th>Fetched</th>
+                  <th>Publishable</th>
+                  <th>Optimized</th>
+                  <th>Published</th>
+                  <th>Started</th>
+                </tr>
                 </thead>
                 <tbody>
                   {snapshot.recentFetchRuns.map((run) => (
@@ -108,6 +115,7 @@ export default async function AdminDashboardPage() {
                       </td>
                       <td data-label="Fetched">{run.fetchedCount}</td>
                       <td data-label="Publishable">{run.publishableCount}</td>
+                      <td data-label="Optimized">{run.optimizedCount}</td>
                       <td data-label="Published">{run.publishedCount}</td>
                       <td data-label="Started">{formatDateTime(run.startedAt)}</td>
                     </tr>

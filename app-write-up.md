@@ -2,11 +2,11 @@
 
 ## 1. Product Overview
 
-`NewsPub` is a reuse-first news ingestion, review, scheduling, and publishing app.
+`NewsPub` is a reuse-first news ingestion, review, AI-assisted optimization, scheduling, and publishing app.
 
-The product consumes third-party news APIs, normalizes provider payloads into a shared internal article format, filters those articles against per-destination stream rules, stores only publishable or published records, and publishes qualifying stories to the website, Facebook, and Instagram.
+The product consumes third-party news APIs, normalizes provider payloads into a shared internal article format, filters those articles against per-destination stream rules, runs a minimal AI-assisted optimization layer on eligible items, stores only publishable or published records, and publishes qualifying stories to the website, Facebook, and Instagram.
 
-Release 1 is not an AI writing product. The implementation must remove the existing AI generation architecture and replace it with provider-fed, source-attributed article ingestion.
+Release 1 is not an open-ended AI writing product. The AI layer is limited to formatting, rewriting, SEO packaging, platform-policy pre-checks, and destination-specific output preparation. It must preserve factual meaning, never invent facts, keep source attribution visible, and remain auditable.
 
 ## 2. Release 1 Goals
 
@@ -15,6 +15,7 @@ Release 1 must:
 - let an authenticated admin configure providers, destinations, streams, templates, schedules, and review rules without code changes
 - fetch broadly within the incremental window, then filter locally
 - persist only publishable or published normalized articles plus operational logs
+- optimize eligible stories with a cached AI layer before review approval or publication
 - support both `AUTO_PUBLISH` and `REVIEW_REQUIRED` stream modes
 - publish to the website, Facebook, and Instagram with shared canonical render artifacts and destination-specific formatting
 - keep source attribution, compliance controls, retry behavior, and auditability visible in the admin workspace
@@ -25,7 +26,8 @@ Release 1 must:
 - Reuse the current admin and public shells as the visual baseline. `app-layouts/admin-layout-*.png` and `app-layouts/public-layout-*.png` remain the reference layout direction.
 - Reuse the current auth and session structure, env parsing pattern, storage adapter abstraction, admin screen composition style, and searchable select component.
 - Reuse the existing `Post`, `PostTranslation`, `MediaAsset`, `SEORecord`, `ViewEvent`, and `AuditEvent` patterns where they still fit the NewsPub domain.
-- Remove or fully replace equipment-specific, manufacturer-specific, AI, prompt, research, generation, and public comment features. Partial coexistence with the old product is not allowed.
+- Remove or fully replace equipment-specific, manufacturer-specific, research, open-ended generation, and public comment features. Partial coexistence with the old product is not allowed.
+- Keep only a bounded AI optimization layer that operates after provider ingestion and before review approval or publication.
 - New product rules must favor adapting existing modules over introducing a parallel architecture.
 
 ## 4. Fixed Stack And Baseline Modules
@@ -39,10 +41,11 @@ Release 1 keeps these baseline runtime choices:
 - Redux Toolkit `2.11.2` for admin-facing client state only
 - Zod `4.3.6` for env, API, and workflow validation
 - Vitest `4.1.2` for automated verification
+- Vercel AI SDK with an OpenAI provider for structured optimization output
 - `sharp` for media optimization
 - local or S3-compatible storage through the existing storage adapter abstraction
 
-The implementation must remove the Vercel AI SDK and any AI provider dependencies from the runtime contract. No model catalogs, prompt templates, or AI generation services belong in NewsPub Release 1.
+The implementation must keep the AI layer small, cheap-first, and auditable. No free-form article invention, prompt playground, or multi-model management surface belongs in NewsPub Release 1.
 
 ### Documentation Standards
 
@@ -107,6 +110,7 @@ The environment contract must cover:
 - per-provider credentials for `mediastack`, `newsdata`, and `newsapi`
 - destination auth secrets or encryption keys for persisted destination tokens
 - media driver configuration
+- AI provider credentials, model choice, optimization toggle, and policy thresholds
 - cron secret and revalidation secret
 - optional analytics and metrics toggles
 - default schedule timezone and safe initial backfill window settings
@@ -144,6 +148,7 @@ Release 1 introduces or repurposes these NewsPub-specific models:
 - `ProviderFetchCheckpoint`
 - `FetchedArticle`
 - `ArticleMatch`
+- `OptimizationCache`
 - `DestinationTemplate`
 - `PublishAttempt`
 
@@ -152,6 +157,9 @@ Expected enum families:
 - `UserRole`: `SUPER_ADMIN`, `EDITOR`
 - `PostStatus`: `DRAFT`, `SCHEDULED`, `PUBLISHED`, `ARCHIVED`
 - `EditorialStage`: `INGESTED`, `REVIEWED`, `EDITED`, `APPROVED`
+- `WorkflowStage`: `INGESTED`, `OPTIMIZED`, `HELD`, `REVIEW_REQUIRED`, `APPROVED`, `SCHEDULED`, `PUBLISHED`, `FAILED`
+- `OptimizationStatus`: `NOT_REQUESTED`, `PENDING`, `COMPLETED`, `FALLBACK`, `SKIPPED`, `FAILED`
+- `PolicyReviewStatus`: `PASS`, `HOLD`, `BLOCK`
 - `DestinationPlatform`: `WEBSITE`, `FACEBOOK`, `INSTAGRAM`
 - `DestinationKind`: `WEBSITE`, `FACEBOOK_PROFILE`, `FACEBOOK_PAGE`, `INSTAGRAM_PERSONAL`, `INSTAGRAM_BUSINESS`
 - `ConnectionStatus`: `DISCONNECTED`, `CONNECTED`, `ERROR`
@@ -170,6 +178,7 @@ Model responsibilities:
 - `ProviderFetchCheckpoint` stores the previous successful fetch timestamp and provider cursor metadata per stream.
 - `FetchedArticle` stores only publishable or published normalized provider items, raw provider payload JSON when needed for audit, dedupe fingerprints, source attribution, and normalized content fields.
 - `ArticleMatch` stores the evaluated relationship between a normalized article and a publishing stream, including filter reasons, duplicate decisions, hold reasons, publish timestamps, and the linked canonical `Post` when one exists.
+- `OptimizationCache` stores deterministic optimization results keyed by content hash and destination settings hash so unchanged stories can reuse prior AI or fallback output.
 - `DestinationTemplate` stores reusable formatting templates per platform, optional category, and locale.
 - `Post` and `PostTranslation` remain the canonical rendered article layer reused for website output and review workflows across destinations.
 - `PublishAttempt` stores every outbound publish attempt per destination, including formatted payloads, remote identifiers, response metadata, status, retries, and error messages.
@@ -236,9 +245,10 @@ Every scheduled or manual run follows this order:
 7. store only publishable or published normalized articles
 8. deduplicate before queueing or publishing
 9. create or update the canonical `Post` render artifact when needed
-10. queue website or social publication attempts
-11. update the stream checkpoint only after a successful run
-12. emit admin-visible logs and summary metrics
+10. optimize eligible destination payloads with cache reuse, fallback formatting, and policy review
+11. queue website or social publication attempts
+12. update the stream checkpoint only after a successful run
+13. emit admin-visible logs and summary metrics
 
 The normalized article contract must include at least:
 
@@ -305,6 +315,7 @@ Workflow rules:
 
 - `AUTO_PUBLISH` may create or refresh the canonical `Post`, queue a `PublishAttempt`, and publish immediately if all validations pass
 - `REVIEW_REQUIRED` must create or update the canonical `Post` in a held state with `PostStatus.DRAFT` and `EditorialStage.INGESTED`, then stop until an admin approves publication
+- AI optimization runs after filtering and before approval or publication. It may move a destination match into `WorkflowStage.OPTIMIZED`, `WorkflowStage.REVIEW_REQUIRED`, or `WorkflowStage.HELD` depending on policy results and stream mode.
 - editors work from the reused post inventory and post editor surfaces
 - the canonical `Post` is the editable render artifact that feeds website and social formatting
 - publishing state and editorial stage remain separate fields
@@ -329,9 +340,8 @@ Formatting is destination aware.
 
 Website formatter output must include:
 
-- title
-- summary
-- body
+- rephrased title below 15 words
+- rephrased summary and body suitable for website publication
 - featured image
 - source attribution
 - category
@@ -344,14 +354,15 @@ Website formatter output must include:
 
 Facebook formatter output must include:
 
-- intro or caption text
+- a bold-style headline of at most 10 words
+- a body between 20 and 100 words
 - source link
 - optional media attachment
 - platform-specific copy constraints
 
 Instagram formatter output must include:
 
-- caption
+- concise caption
 - optional hashtags
 - optional media attachment
 - source reference when required by policy
@@ -423,6 +434,9 @@ Release 1 must expose:
 - total published items per destination
 - failed fetches
 - failed publish attempts
+- optimized items
+- optimization cache reuses
+- items blocked before publish by policy or guardrails
 - duplicate skips
 - retry counts
 - stream connection health
@@ -442,7 +456,7 @@ Security rules:
 - public routes never expose provider secrets, destination tokens, or raw internal error payloads
 - remote media ingestion must validate URL protocol, content type, and safe storage behavior
 - publishing code must respect target platform policies, rate limits, and auth scopes
-- Release 1 must not ship the old AI provider, prompt, or model-management flows
+- AI optimization must preserve facts, keep attribution, validate structured output, and degrade safely to deterministic formatting
 
 ## 23. Repo Reshape And Module Reuse Map
 
@@ -462,6 +476,7 @@ Retain and rebrand:
 - `src/lib/storage/index.js`
 - `src/lib/seo/*`
 - `src/lib/analytics/*`
+- `src/lib/ai/*`
 - `src/lib/revalidation/*`
 - `src/lib/jobs/*`
 - `src/features/posts/*`
@@ -482,7 +497,6 @@ Repurpose:
 
 Remove or fully replace:
 
-- `src/lib/ai/*`
 - `src/lib/generation/*`
 - `src/lib/research/*`
 - equipment-specific normalization and equipment or manufacturer discovery modules
@@ -496,9 +510,10 @@ Remove or fully replace:
 Release 1 is complete only when:
 
 - the repo is rebranded from the old equipment app to `NewsPub`
-- the AI and equipment-generation architecture is removed
+- the old equipment-generation architecture is removed while the new bounded AI optimization layer is documented and operational
 - every public and admin route listed in this document exists
 - provider, destination, stream, fetch, filter, dedupe, review, publish, retry, SEO, analytics, and audit flows are implemented
+- AI optimization, policy review, and cache-reuse flows are implemented and auditable
 - only publishable or published normalized articles are persisted
 - provider credential resolution is env-based
 - destination publish history is stored and queryable

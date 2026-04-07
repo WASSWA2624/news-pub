@@ -55,6 +55,8 @@ function sumCounts(items, key) {
 
 function mapFetchRun(run) {
   return {
+    aiCacheHitCount: run.aiCacheHitCount,
+    blockedCount: run.blockedCount,
     createdAt: serializeDate(run.createdAt),
     duplicateCount: run.duplicateCount,
     failedCount: run.failedCount,
@@ -62,6 +64,7 @@ function mapFetchRun(run) {
     finishedAt: serializeDate(run.finishedAt),
     heldCount: run.heldCount,
     id: run.id,
+    optimizedCount: run.optimizedCount,
     provider: run.providerConfig
       ? {
           id: run.providerConfig.id,
@@ -343,10 +346,13 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       total: streams.length,
     },
     summary: {
+      aiCacheHitCount7d: sumCounts(fetchRuns, "aiCacheHitCount"),
+      blockedBeforePublish7d: sumCounts(fetchRuns, "blockedCount"),
       duplicateCount7d: sumCounts(fetchRuns, "duplicateCount"),
       failedFetchRuns7d: fetchRuns.filter((run) => run.status === "FAILED").length,
       failedPublishAttempts7d: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
       fetchRunCount7d: fetchRuns.length,
+      optimizedCount7d: sumCounts(fetchRuns, "optimizedCount"),
       publishAttemptCount7d: publishAttempts.length,
       publishableCount7d: sumCounts(fetchRuns, "publishableCount"),
       publishedCount7d: sumCounts(fetchRuns, "publishedCount"),

@@ -230,6 +230,14 @@ const serverEnvSchema = sharedEnvSchema
     META_FACEBOOK_MAX_POSTS_PER_24H: optionalIntegerString("META_FACEBOOK_MAX_POSTS_PER_24H"),
     META_INSTAGRAM_MAX_POSTS_PER_24H: optionalIntegerString("META_INSTAGRAM_MAX_POSTS_PER_24H"),
     META_INSTAGRAM_MAX_HASHTAGS: optionalIntegerString("META_INSTAGRAM_MAX_HASHTAGS"),
+    OPENAI_API_KEY: optionalString(),
+    AI_MODEL: optionalString(),
+    AI_OPTIMIZATION_ENABLED: booleanString("AI_OPTIMIZATION_ENABLED"),
+    AI_MAX_SOURCE_CHARS: optionalIntegerString("AI_MAX_SOURCE_CHARS"),
+    AI_REQUEST_TIMEOUT_MS: optionalIntegerString("AI_REQUEST_TIMEOUT_MS"),
+    PLATFORM_POLICY_BLOCKLIST: optionalCsvString("PLATFORM_POLICY_BLOCKLIST"),
+    PLATFORM_POLICY_HOLD_SCORE: optionalIntegerString("PLATFORM_POLICY_HOLD_SCORE"),
+    PLATFORM_POLICY_BLOCK_SCORE: optionalIntegerString("PLATFORM_POLICY_BLOCK_SCORE"),
     MEDIA_DRIVER: requiredString("MEDIA_DRIVER"),
     LOCAL_MEDIA_BASE_PATH: optionalString(),
     LOCAL_MEDIA_BASE_URL: optionalString(),
@@ -324,6 +332,13 @@ function mapSharedEnv(parsedEnv) {
 function mapServerEnv(parsedEnv) {
   return {
     ...mapSharedEnv(parsedEnv),
+    ai: {
+      enabled: parsedEnv.AI_OPTIMIZATION_ENABLED,
+      maxSourceChars: parsedEnv.AI_MAX_SOURCE_CHARS || 6000,
+      model: parsedEnv.AI_MODEL || "gpt-4.1-mini",
+      openaiApiKey: parsedEnv.OPENAI_API_KEY || null,
+      requestTimeoutMs: parsedEnv.AI_REQUEST_TIMEOUT_MS || 20000,
+    },
     auth: {
       adminSeed: {
         email: parsedEnv.ADMIN_SEED_EMAIL,
@@ -377,6 +392,19 @@ function mapServerEnv(parsedEnv) {
     observability: {
       analyticsEnabled: parsedEnv.ENABLE_ANALYTICS,
       metricsEnabled: parsedEnv.ENABLE_METRICS,
+    },
+    policy: {
+      blockScore: parsedEnv.PLATFORM_POLICY_BLOCK_SCORE || 70,
+      blocklist:
+        parsedEnv.PLATFORM_POLICY_BLOCKLIST || [
+          "act now",
+          "click here",
+          "guaranteed",
+          "hate",
+          "violent threat",
+          "you won't believe",
+        ],
+      holdScore: parsedEnv.PLATFORM_POLICY_HOLD_SCORE || 45,
     },
     providers: {
       credentials: {

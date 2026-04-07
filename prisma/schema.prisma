@@ -25,6 +25,32 @@ enum EditorialStage {
   APPROVED
 }
 
+enum WorkflowStage {
+  INGESTED
+  OPTIMIZED
+  HELD
+  REVIEW_REQUIRED
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum OptimizationStatus {
+  NOT_REQUESTED
+  PENDING
+  COMPLETED
+  FALLBACK
+  SKIPPED
+  FAILED
+}
+
+enum PolicyReviewStatus {
+  PASS
+  HOLD
+  BLOCK
+}
+
 enum DestinationPlatform {
   WEBSITE
   FACEBOOK
@@ -96,6 +122,7 @@ model Locale {
   updatedAt            DateTime              @updatedAt
   postTranslations     PostTranslation[]
   destinationTemplates DestinationTemplate[]
+  optimizationCaches   OptimizationCache[]
   publishingStreams    PublishingStream[]
   viewEvents           ViewEvent[]
 }
@@ -278,6 +305,7 @@ model Post {
   slug               String          @unique @db.VarChar(191)
   status             PostStatus      @default(DRAFT)
   editorialStage     EditorialStage  @default(INGESTED)
+  canonicalContentHash String?       @db.VarChar(64)
   sourceName         String          @db.VarChar(191)
   sourceUrl          String          @db.VarChar(2048)
   providerKey        String          @db.VarChar(64)
@@ -386,7 +414,19 @@ model ArticleMatch {
   streamId            String
   destinationId       String
   canonicalPostId     String?
+  optimizationCacheId String?
   status              ArticleMatchStatus
+  workflowStage       WorkflowStage      @default(INGESTED)
+  optimizationStatus  OptimizationStatus @default(NOT_REQUESTED)
+  policyStatus        PolicyReviewStatus @default(PASS)
+  optimizationHash    String?            @db.VarChar(64)
+  optimizedPayloadJson Json?
+  policyReasonsJson   Json?
+  readinessChecksJson Json?
+  banRiskScore        Int?
+  lastOptimizedAt     DateTime?
+  lastPolicyCheckedAt DateTime?
+  reviewNotes         String?            @db.LongText
   filterReasonsJson   Json?
   holdReasonsJson     Json?
   duplicateOfMatchId  String?
@@ -401,14 +441,44 @@ model ArticleMatch {
   stream              PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
   destination         Destination        @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   canonicalPost       Post?              @relation(fields: [canonicalPostId], references: [id], onDelete: SetNull)
+  optimizationCache   OptimizationCache? @relation(fields: [optimizationCacheId], references: [id], onDelete: SetNull)
   duplicateOf         ArticleMatch?      @relation("DuplicateArticleMatch", fields: [duplicateOfMatchId], references: [id], onDelete: SetNull)
   duplicates          ArticleMatch[]     @relation("DuplicateArticleMatch")
   publishAttempts     PublishAttempt[]
 
   @@unique([fetchedArticleId, streamId])
   @@index([streamId, status])
+  @@index([streamId, workflowStage])
   @@index([destinationId, status])
+  @@index([destinationId, policyStatus])
   @@index([canonicalPostId])
+}
+
+model OptimizationCache {
+  id               String             @id @default(cuid())
+  cacheKey         String             @unique @db.VarChar(191)
+  contentHash      String             @db.VarChar(64)
+  settingsHash     String             @db.VarChar(64)
+  optimizationHash String             @db.VarChar(64)
+  locale           String?            @db.VarChar(16)
+  platform         DestinationPlatform
+  destinationKind  DestinationKind
+  status           OptimizationStatus @default(PENDING)
+  policyStatus     PolicyReviewStatus @default(PASS)
+  provider         String?            @db.VarChar(64)
+  model            String?            @db.VarChar(128)
+  usedFallback     Boolean            @default(false)
+  banRiskScore     Int?
+  resultJson       Json?
+  warningsJson     Json?
+  errorMessage     String?            @db.LongText
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  localeRecord     Locale?            @relation(fields: [locale], references: [code], onDelete: SetNull)
+  articleMatches   ArticleMatch[]
+
+  @@index([platform, destinationKind, locale])
+  @@index([status, updatedAt])
 }
 
 model DestinationTemplate {
@@ -514,8 +584,11 @@ model PublishAttempt {
   idempotencyKey String               @unique @db.VarChar(191)
   payloadJson    Json?
   responseJson   Json?
+  diagnosticsJson Json?
   remoteId       String?              @db.VarChar(191)
+  errorCode      String?              @db.VarChar(128)
   errorMessage   String?              @db.LongText
+  retryable      Boolean              @default(false)
   queuedAt       DateTime             @default(now())
   startedAt      DateTime?
   completedAt    DateTime?
@@ -547,6 +620,9 @@ model FetchRun {
   duplicateCount          Int                @default(0)
   skippedCount            Int                @default(0)
   queuedCount             Int                @default(0)
+  optimizedCount          Int                @default(0)
+  blockedCount            Int                @default(0)
+  aiCacheHitCount         Int                @default(0)
   publishedCount          Int                @default(0)
   failedCount             Int                @default(0)
   errorMessage            String?            @db.LongText

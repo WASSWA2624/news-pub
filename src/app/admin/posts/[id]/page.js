@@ -11,6 +11,7 @@ import {
   CardDescription,
   DataTable,
   DataTableWrap,
+  EmptyState,
   Field,
   FieldGrid,
   FieldLabel,
@@ -18,11 +19,16 @@ import {
   FormSectionTitle,
   Input,
   LinkButton,
+  NoticeBanner,
+  NoticeItem,
+  NoticeList,
+  NoticeTitle,
   SectionGrid,
   SidebarStack,
   SmallText,
   StatusBadge,
   PrimaryButton,
+  SecondaryButton,
   Textarea,
   formatDateTime,
   formatEnumLabel,
@@ -36,18 +42,30 @@ import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { NewsPubError } from "@/lib/news/shared";
 import { notFound } from "next/navigation";
-import { repostPostAction, updatePostEditorAction } from "../../actions";
+import { repostPostAction, retryPublishAttemptAction, updatePostEditorAction } from "../../actions";
 
 function getTone(status) {
-  if (["PUBLISHED", "SUCCEEDED", "APPROVED"].includes(status)) {
+  if (["PUBLISHED", "SUCCEEDED", "APPROVED", "PASS", "OPTIMIZED"].includes(status)) {
     return "success";
   }
 
-  if (["FAILED", "ARCHIVED"].includes(status)) {
+  if (["FAILED", "ARCHIVED", "BLOCK"].includes(status)) {
     return "danger";
   }
 
   return "warning";
+}
+
+function renderPreviewBody(payload) {
+  if (!payload) {
+    return "No optimized payload has been generated yet.";
+  }
+
+  if (payload.caption) {
+    return payload.caption;
+  }
+
+  return payload.body || payload.summary || "No optimized payload body is available yet.";
 }
 
 export default async function PostEditorPage({ params }) {
@@ -72,6 +90,8 @@ export default async function PostEditorPage({ params }) {
   const defaultArticleMatch = snapshot.post.articleMatches.find(
     (match) => match.destination?.platform === "WEBSITE",
   ) || snapshot.post.articleMatches[0];
+  const latestAttempt = defaultArticleMatch?.publishAttempts?.[0] || null;
+  const optimizedPayload = defaultArticleMatch?.optimizedPayload || null;
   const statusOptions = snapshot.statusValues.map((value) => ({
     description: `${formatEnumLabel(value)} story state`,
     label: formatEnumLabel(value),
@@ -213,6 +233,39 @@ export default async function PostEditorPage({ params }) {
                 <AdminModalFooterActions>
                   <PendingSubmitButton
                     form={postEditorFormId}
+                    icon="sparkles"
+                    name="intent"
+                    pendingLabel="Optimizing preview..."
+                    tone="secondary"
+                    type="submit"
+                    value="optimize"
+                  >
+                    Optimize now
+                  </PendingSubmitButton>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
+                    icon="badge-check"
+                    name="intent"
+                    pendingLabel="Approving story..."
+                    tone="secondary"
+                    type="submit"
+                    value="approve"
+                  >
+                    Approve
+                  </PendingSubmitButton>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
+                    icon="warning"
+                    name="intent"
+                    pendingLabel="Holding story..."
+                    tone="secondary"
+                    type="submit"
+                    value="reject"
+                  >
+                    Reject
+                  </PendingSubmitButton>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
                     icon="save"
                     name="intent"
                     pendingLabel="Saving story..."
@@ -268,6 +321,11 @@ export default async function PostEditorPage({ params }) {
             <ButtonRow>
               <StatusBadge $tone={getTone(snapshot.post.status)}>{snapshot.post.status}</StatusBadge>
               <StatusBadge $tone={getTone(snapshot.post.editorialStage)}>{snapshot.post.editorialStage}</StatusBadge>
+              {defaultArticleMatch ? (
+                <StatusBadge $tone={getTone(defaultArticleMatch.workflowStage)}>
+                  {defaultArticleMatch.workflowStage}
+                </StatusBadge>
+              ) : null}
             </ButtonRow>
             <SmallText>Published: {formatDateTime(snapshot.post.publishedAt)}</SmallText>
             <SmallText>Scheduled: {formatDateTime(snapshot.post.scheduledPublishAt)}</SmallText>
@@ -302,6 +360,18 @@ export default async function PostEditorPage({ params }) {
             ) : (
               <SmallText>No linked destination match is available for repost yet.</SmallText>
             )}
+            {latestAttempt?.status === "FAILED" && latestAttempt.retryable ? (
+              <form action={retryPublishAttemptAction}>
+                <input name="attemptId" type="hidden" value={latestAttempt.id} />
+                <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
+                <SecondaryButton type="submit">
+                  <ButtonIcon>
+                    <ActionIcon name="refresh" />
+                  </ButtonIcon>
+                  Retry failed publish
+                </SecondaryButton>
+              </form>
+            ) : null}
           </Card>
 
           <Card>
@@ -313,8 +383,67 @@ export default async function PostEditorPage({ params }) {
             <SmallText>{snapshot.post.sourceArticle?.sourceName || "Unknown source"}</SmallText>
             <SmallText>{snapshot.post.sourceArticle?.sourceUrl || "No source URL"}</SmallText>
           </Card>
+
+          <Card>
+            <AdminSectionTitle icon="shield">Policy review</AdminSectionTitle>
+            {defaultArticleMatch ? (
+              <>
+                <ButtonRow>
+                  <StatusBadge $tone={getTone(defaultArticleMatch.policyStatus)}>
+                    {defaultArticleMatch.policyStatus}
+                  </StatusBadge>
+                  <StatusBadge $tone={getTone(defaultArticleMatch.optimizationStatus)}>
+                    {defaultArticleMatch.optimizationStatus}
+                  </StatusBadge>
+                </ButtonRow>
+                <SmallText>Risk score: {defaultArticleMatch.banRiskScore ?? "Not scored yet"}</SmallText>
+                <SmallText>Optimized: {formatDateTime(defaultArticleMatch.lastOptimizedAt)}</SmallText>
+                {defaultArticleMatch.policyReasons.length ? (
+                  <NoticeBanner $tone={defaultArticleMatch.policyStatus === "BLOCK" ? "danger" : "warning"}>
+                    <NoticeTitle>Review findings</NoticeTitle>
+                    <NoticeList>
+                      {defaultArticleMatch.policyReasons.map((reason) => (
+                        <NoticeItem key={reason.code || reason.message}>
+                          {reason.message || reason.code}
+                        </NoticeItem>
+                      ))}
+                    </NoticeList>
+                  </NoticeBanner>
+                ) : (
+                  <SmallText>No active policy warnings are recorded for the default match.</SmallText>
+                )}
+              </>
+            ) : (
+              <SmallText>No destination match is available to score yet.</SmallText>
+            )}
+          </Card>
         </SidebarStack>
       </SectionGrid>
+
+      <Card>
+        <AdminSectionTitle icon="sparkles">Canonical vs optimized preview</AdminSectionTitle>
+        <SectionGrid $wide>
+          <Card>
+            <AdminSectionTitle icon="news">Canonical</AdminSectionTitle>
+            <SmallText>{translation?.title || snapshot.post.slug}</SmallText>
+            <Textarea defaultValue={translation?.contentMd || snapshot.post.excerpt} readOnly style={{ minHeight: "220px" }} />
+          </Card>
+          <Card>
+            <AdminSectionTitle icon="destinations">Destination preview</AdminSectionTitle>
+            {optimizedPayload ? (
+              <>
+                <SmallText>{optimizedPayload.title || "Untitled optimized payload"}</SmallText>
+                <Textarea defaultValue={renderPreviewBody(optimizedPayload)} readOnly style={{ minHeight: "220px" }} />
+                {optimizedPayload.hashtags?.length ? (
+                  <SmallText>{optimizedPayload.hashtags.join(" ")}</SmallText>
+                ) : null}
+              </>
+            ) : (
+              <EmptyState>Run optimization to generate the current destination preview.</EmptyState>
+            )}
+          </Card>
+        </SectionGrid>
+      </Card>
 
       <Card>
         <AdminSectionTitle icon="destinations">Destination matches and publish history</AdminSectionTitle>
@@ -325,6 +454,8 @@ export default async function PostEditorPage({ params }) {
                 <tr>
                   <th>Destination</th>
                   <th>Status</th>
+                  <th>Workflow</th>
+                  <th>Policy</th>
                   <th>Queued</th>
                   <th>Published</th>
                   <th>Attempts</th>
@@ -341,23 +472,50 @@ export default async function PostEditorPage({ params }) {
                     <td data-label="Status">
                       <StatusBadge $tone={getTone(match.status)}>{match.status}</StatusBadge>
                     </td>
+                    <td data-label="Workflow">
+                      <StatusBadge $tone={getTone(match.workflowStage)}>{match.workflowStage}</StatusBadge>
+                    </td>
+                    <td data-label="Policy">
+                      <StatusBadge $tone={getTone(match.policyStatus)}>{match.policyStatus}</StatusBadge>
+                    </td>
                     <td data-label="Queued">{formatDateTime(match.queuedAt)}</td>
                     <td data-label="Published">{formatDateTime(match.publishedAt)}</td>
-                    <td data-label="Attempts">{match.publishAttempts.length}</td>
+                    <td data-label="Attempts">
+                      <strong>{match.publishAttempts.length}</strong>
+                      {match.publishAttempts[0]?.errorMessage ? (
+                        <SmallText>
+                          {match.publishAttempts[0].errorCode || "Failure"}: {match.publishAttempts[0].errorMessage}
+                        </SmallText>
+                      ) : null}
+                    </td>
                     <td data-label="Action">
-                      <form action={repostPostAction}>
-                        <input name="articleMatchId" type="hidden" value={match.id} />
-                        <input name="postId" type="hidden" value={snapshot.post.id} />
-                        <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
-                        <PendingSubmitButton
-                          icon="refresh"
-                          pendingLabel="Reposting..."
-                          tone="secondary"
-                          type="submit"
-                        >
-                          Repost now
-                        </PendingSubmitButton>
-                      </form>
+                      <ButtonRow>
+                        <form action={repostPostAction}>
+                          <input name="articleMatchId" type="hidden" value={match.id} />
+                          <input name="postId" type="hidden" value={snapshot.post.id} />
+                          <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
+                          <PendingSubmitButton
+                            icon="refresh"
+                            pendingLabel="Reposting..."
+                            tone="secondary"
+                            type="submit"
+                          >
+                            Repost now
+                          </PendingSubmitButton>
+                        </form>
+                        {match.publishAttempts[0]?.status === "FAILED" && match.publishAttempts[0]?.retryable ? (
+                          <form action={retryPublishAttemptAction}>
+                            <input name="attemptId" type="hidden" value={match.publishAttempts[0].id} />
+                            <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
+                            <SecondaryButton type="submit">
+                              <ButtonIcon>
+                                <ActionIcon name="refresh" />
+                              </ButtonIcon>
+                              Retry
+                            </SecondaryButton>
+                          </form>
+                        ) : null}
+                      </ButtonRow>
                     </td>
                   </tr>
                 ))}
@@ -366,6 +524,34 @@ export default async function PostEditorPage({ params }) {
           </DataTableWrap>
         ) : (
           <SmallText>No destination matches are linked to this story yet.</SmallText>
+        )}
+      </Card>
+
+      <Card>
+        <AdminSectionTitle icon="dashboard">Audit timeline</AdminSectionTitle>
+        {snapshot.auditEvents.length ? (
+          <DataTableWrap>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Entity</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshot.auditEvents.map((event) => (
+                  <tr key={event.id}>
+                    <td data-label="Action">{event.action}</td>
+                    <td data-label="Entity">{event.entityType}</td>
+                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </DataTableWrap>
+        ) : (
+          <EmptyState>No audit events have been recorded for this story yet.</EmptyState>
         )}
       </Card>
     </AdminPage>

@@ -554,10 +554,9 @@ export function buildFacebookMessage(payload) {
 function buildInstagramCaption(payload) {
   return joinPublishText(
     [
-      payload.title,
-      payload.summary,
-      payload.sourceReference,
-      payload.canonicalUrl,
+      payload.caption || payload.body || payload.summary || payload.title,
+      payload.sourceAttribution || payload.sourceReference,
+      payload.canonicalUrl || payload.extraLinkUrl,
       payload.hashtags,
     ],
     2200,

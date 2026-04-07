@@ -68,8 +68,8 @@ Step 24 is incomplete if any of the following remain unmapped:
 - a required public or admin route
 - a required env key or secret-handling rule
 - a required database model or enum
-- a required provider, destination, stream, fetch, filter, dedupe, review, publish, retry, SEO, analytics, or audit workflow
-- a legacy AI or equipment-specific module that the write-up says must be removed
+- a required provider, destination, stream, fetch, filter, dedupe, AI optimization, review, publish, retry, SEO, analytics, or audit workflow
+- a legacy equipment-specific module that the write-up says must be removed or a required bounded AI optimization module that the write-up says must exist
 
 ## Final Completeness Rule
 
@@ -78,4 +78,4 @@ Implementation is complete only if step 24 proves:
 - full traceability to the current `app-write-up.md`
 - no contradiction between `dev-plan` and `app-write-up.md`
 - the JSDoc and inline-comment standard from `app-write-up.md` was applied to implemented runtime code
-- no remaining active architecture from the retired equipment and AI product
+- no remaining active architecture from the retired equipment product and a clearly bounded AI optimization layer that matches the write-up
