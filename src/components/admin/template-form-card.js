@@ -1,28 +1,32 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import styled from "styled-components";
 
 import {
   ActionIcon,
-  ButtonRow,
   ButtonIcon,
   Field,
+  FieldErrorText,
   FieldGrid,
+  FieldHint,
   FieldLabel,
-  FormSection,
-  FormSectionTitle,
   Input,
   NoticeBanner,
   NoticeItem,
   NoticeList,
   NoticeTitle,
-  PrimaryButton,
   SmallText,
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import {
+  AdminDisclosureSection,
+  AdminValidationSummary,
+  scrollToFirstBlockingField,
+} from "@/components/admin/admin-form-primitives";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
+import { PendingSubmitButton } from "@/components/admin/pending-action";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getTemplateValidationIssues } from "@/lib/validation/configuration";
 
@@ -105,28 +109,6 @@ const ContentGrid = styled.div`
   gap: 0.75rem;
 `;
 
-const TemplateCanvas = styled.div`
-  background:
-    linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(255, 255, 255, 0.96)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 54%);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: var(--theme-radius-lg, 2px);
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.85rem;
-`;
-
-const CanvasHeader = styled.div`
-  display: grid;
-  gap: 0.24rem;
-`;
-
-const CanvasTitle = styled.strong`
-  color: #162744;
-  font-size: 0.92rem;
-  letter-spacing: -0.02em;
-`;
-
 const TokenGrid = styled.div`
   display: grid;
   gap: 0.45rem;
@@ -160,7 +142,7 @@ const TokenDescription = styled.p`
 `;
 
 const TemplateTextarea = styled(Textarea)`
-  min-height: ${({ $compact }) => ($compact ? "96px" : "180px")};
+  min-height: ${({ $compact }) => ($compact ? "120px" : "220px")};
 `;
 
 const CheckboxPill = styled.label`
@@ -172,21 +154,13 @@ const CheckboxPill = styled.label`
   cursor: pointer;
   display: inline-flex;
   gap: 0.5rem;
-  min-height: 40px;
+  min-height: calc(var(--admin-control-min-height) - 4px);
   padding: 0 0.85rem;
 
   input {
     accent-color: #0f6f8d;
     margin: 0;
   }
-`;
-
-const TemplateFooter = styled.div`
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  justify-content: space-between;
 `;
 
 const visibleTokenCards = [
@@ -230,6 +204,12 @@ function buildPlatformOptions(platformOptions, linkedPlatforms = []) {
   });
 }
 
+/**
+ * Renders the template editor used by the admin template workspace modal.
+ *
+ * @param {object} props - Template form configuration props.
+ * @returns {JSX.Element} The template editor form.
+ */
 export default function TemplateFormCard({
   action,
   categoryOptions = [],
@@ -239,6 +219,7 @@ export default function TemplateFormCard({
 }) {
   const [platform, setPlatform] = useState(`${template?.platform || "WEBSITE"}`);
   const formId = useId();
+  const formRef = useRef(null);
   const linkedPlatforms = [
     ...new Set(
       (template?.streams || [])
@@ -258,11 +239,13 @@ export default function TemplateFormCard({
     }
 
     event.preventDefault();
+    scrollToFirstBlockingField(formRef.current);
   }
 
   return (
-    <TemplateForm action={action} id={formId} onSubmit={handleSubmit}>
+    <TemplateForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
       {template ? <input name="id" type="hidden" value={template.id} /> : null}
+
       <RuleBanner>
         <RuleHeader>
           <RuleEyebrow>{template ? "Template editing" : "New template"}</RuleEyebrow>
@@ -289,12 +272,31 @@ export default function TemplateFormCard({
         </RuleGrid>
       </RuleBanner>
 
-      <FormSection>
-        <FormSectionTitle>Resolution rules</FormSectionTitle>
+      <AdminValidationSummary
+        items={issues.map((issue) => issue.message)}
+        title="Fix the highlighted template sections before saving."
+      />
+
+      <AdminDisclosureSection
+        defaultOpen
+        errorCount={issues.length}
+        meta={[
+          {
+            label: formatEnumLabel(platform),
+            tone: "muted",
+          },
+          ...(linkedPlatforms.length
+            ? [{ label: `${linkedPlatforms.length} linked platform${linkedPlatforms.length === 1 ? "" : "s"}`, tone: "warning" }]
+            : []),
+        ]}
+        summary="Define where this template applies before editing the destination-specific content blocks."
+        title="Resolution rules"
+      >
         <FieldGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
             <Input defaultValue={template?.name || ""} name="name" required />
+            <FieldHint>Name the template for the editorial use case it solves, not just the platform it belongs to.</FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Platform</FieldLabel>
@@ -308,16 +310,18 @@ export default function TemplateFormCard({
               value={platform}
             />
             {linkedPlatforms.length ? (
-              <SmallText>
+              <FieldHint>
                 Linked stream platforms: {linkedPlatforms.map((value) => formatEnumLabel(value)).join(", ")}
-              </SmallText>
+              </FieldHint>
             ) : (
-              <SmallText>Choose the publishing surface this copy structure is optimized for.</SmallText>
+              <FieldHint>Choose the publishing surface this copy structure is optimized for.</FieldHint>
             )}
+            {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
           </Field>
           <Field>
             <FieldLabel>Locale override</FieldLabel>
             <Input defaultValue={template?.locale || ""} name="locale" placeholder="en, en-UG, fr" />
+            <FieldHint>Leave blank to let the template apply across all locales for the selected platform.</FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Category override</FieldLabel>
@@ -328,31 +332,27 @@ export default function TemplateFormCard({
               options={categoryOptions}
               placeholder="Select a category override"
             />
+            <FieldHint>Use a category override only when a coverage lane truly needs different copy or compliance rules.</FieldHint>
           </Field>
         </FieldGrid>
-      </FormSection>
+      </AdminDisclosureSection>
 
-      {issues.length ? (
-        <FormSection>
-          <NoticeBanner $tone="danger">
-            <NoticeTitle>Incompatible template configuration</NoticeTitle>
-            <NoticeList>
-              {issues.map((issue) => (
-                <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
-              ))}
-            </NoticeList>
-          </NoticeBanner>
-        </FormSection>
-      ) : null}
-
-      <ContentGrid>
-        <TemplateCanvas>
-          <CanvasHeader>
-            <FormSectionTitle>{template ? "Content blocks" : "Compose template"}</FormSectionTitle>
-            <CanvasTitle>Structure the final payload with reusable story tokens.</CanvasTitle>
-            <SmallText>Leave optional fields blank when the destination only needs a body message.</SmallText>
-          </CanvasHeader>
-
+      <AdminDisclosureSection
+        defaultOpen
+        meta={[
+          {
+            label: "Reusable tokens",
+            tone: "accent",
+          },
+          {
+            label: template?.isDefault ? "Platform default" : "Optional override",
+            tone: template?.isDefault ? "success" : "muted",
+          },
+        ]}
+        summary="Compose the final payload with reusable story tokens so fallback and platform-specific copy stay bounded and predictable."
+        title="Content blocks"
+      >
+        <ContentGrid>
           <TokenGrid>
             {visibleTokenCards.map((token) => (
               <TokenCard key={token.label}>
@@ -371,6 +371,7 @@ export default function TemplateFormCard({
                 name="titleTemplate"
                 placeholder="{{title}}"
               />
+              <FieldHint>Leave this blank when the destination should keep the optimized or canonical title unchanged.</FieldHint>
             </Field>
             <Field>
               <FieldLabel>Summary template</FieldLabel>
@@ -380,6 +381,7 @@ export default function TemplateFormCard({
                 name="summaryTemplate"
                 placeholder="{{summary}}"
               />
+              <FieldHint>Use the summary block for concise destination previews or SEO helper copy.</FieldHint>
             </Field>
             <Field>
               <FieldLabel>Hashtags template</FieldLabel>
@@ -389,6 +391,7 @@ export default function TemplateFormCard({
                 name="hashtagsTemplate"
                 placeholder="#news #update"
               />
+              <FieldHint>Keep hashtag defaults deterministic so runtime publishing stays bounded and reviewable.</FieldHint>
             </Field>
           </FieldGrid>
 
@@ -399,29 +402,42 @@ export default function TemplateFormCard({
               name="bodyTemplate"
               placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
             />
+            <FieldHint>The body template is the last deterministic fallback when no destination-specific optimized payload is available.</FieldHint>
           </Field>
-        </TemplateCanvas>
 
-        <TemplateFooter>
-          <div>
-            <CheckboxPill>
-              <input defaultChecked={template?.isDefault} name="isDefault" type="checkbox" />
-              Default for this platform
-            </CheckboxPill>
-          </div>
-        </TemplateFooter>
+          <CheckboxPill>
+            <input defaultChecked={template?.isDefault} name="isDefault" type="checkbox" />
+            Default for this platform
+          </CheckboxPill>
+        </ContentGrid>
+      </AdminDisclosureSection>
 
-        <SmallText>
-          Linked streams: {(template?.streams || []).map((stream) => stream.name).join(", ") || "None"}
-        </SmallText>
-      </ContentGrid>
+      {issues.length ? (
+        <NoticeBanner $tone="danger">
+          <NoticeTitle>Template compatibility needs attention</NoticeTitle>
+          <NoticeList>
+            {issues.map((issue) => (
+              <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
+            ))}
+          </NoticeList>
+        </NoticeBanner>
+      ) : null}
+
+      <SmallText>
+        Linked streams: {(template?.streams || []).map((stream) => stream.name).join(", ") || "None"}
+      </SmallText>
+
       <AdminModalFooterActions>
-        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
-          <ButtonIcon>
-            <ActionIcon name={template ? "save" : "plus"} />
-          </ButtonIcon>
+        <PendingSubmitButton
+          disabled={issues.length > 0}
+          form={formId}
+          icon={template ? "save" : "plus"}
+          pendingLabel={template ? "Saving template..." : "Creating template..."}
+          tone="primary"
+          type="submit"
+        >
           {submitLabel}
-        </PrimaryButton>
+        </PendingSubmitButton>
       </AdminModalFooterActions>
     </TemplateForm>
   );

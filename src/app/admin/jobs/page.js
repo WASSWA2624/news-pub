@@ -40,6 +40,12 @@ function getTone(status) {
   return "warning";
 }
 
+/**
+ * Renders the admin job history page for fetch runs, publish attempts, and audit events.
+ *
+ * @param {object} props - Search param props for filtering the logs.
+ * @returns {Promise<JSX.Element>} The jobs page.
+ */
 export default async function JobsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const [messages, snapshot] = await Promise.all([
@@ -108,12 +114,13 @@ export default async function JobsPage({ searchParams }) {
             <DataTableWrap>
               <DataTable>
                 <thead>
-                  <tr>
-                    <th>Destination</th>
-                    <th>Status</th>
-                    <th>Remote id</th>
-                    <th>Queued</th>
-                    <th>Actions</th>
+                <tr>
+                  <th>Destination</th>
+                  <th>Status</th>
+                  <th>AI</th>
+                  <th>Remote id</th>
+                  <th>Queued</th>
+                  <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -125,6 +132,18 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
+                      </td>
+                      <td data-label="AI">
+                        {attempt.optimizationStatus ? (
+                          <StatusBadge $tone={getTone(attempt.optimizationStatus)}>
+                            {attempt.optimizationStatus}
+                          </StatusBadge>
+                        ) : (
+                          <SmallText>Not recorded</SmallText>
+                        )}
+                        {attempt.aiResolution?.reasonMessage ? (
+                          <SmallText>{attempt.aiResolution.reasonMessage}</SmallText>
+                        ) : null}
                       </td>
                       <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
                       <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
@@ -193,6 +212,9 @@ export default async function JobsPage({ searchParams }) {
                     <td data-label="Entity">
                       <strong>{event.entityType}</strong>
                       <SmallText>{event.entityId}</SmallText>
+                      {event.payload?.reasonMessage ? (
+                        <SmallText>{event.payload.reasonMessage}</SmallText>
+                      ) : null}
                     </td>
                     <td data-label="Created">{formatDateTime(event.createdAt)}</td>
                   </tr>

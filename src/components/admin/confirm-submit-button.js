@@ -25,8 +25,8 @@ const TriggerButton = styled.button`
   font-weight: 800;
   gap: 0.42rem;
   justify-content: center;
-  min-height: 40px;
-  padding: 0.66rem 0.95rem;
+  min-height: var(--admin-button-min-height);
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -107,15 +107,22 @@ const DialogButtonRow = styled.div`
 `;
 
 const SecondaryButton = styled(BaseSecondaryButton)`
-  min-height: 40px;
-  padding: 0.66rem 0.95rem;
+  min-height: var(--admin-button-min-height);
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
 `;
 
 const ConfirmButton = styled(BaseDangerButton)`
-  min-height: 40px;
-  padding: 0.66rem 0.95rem;
+  min-height: var(--admin-button-min-height);
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
 `;
 
+/**
+ * Confirms a destructive or high-impact form submission before forwarding it to
+ * the linked form element.
+ *
+ * @param {object} props - Trigger, dialog, and submit wiring props.
+ * @returns {JSX.Element} A confirmation trigger plus hidden submit control.
+ */
 export default function ConfirmSubmitButton({
   cancelLabel = "Cancel",
   children,

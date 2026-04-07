@@ -91,9 +91,37 @@ function buildFallbackBody(sourceText, minWords, maxWords) {
   return truncateWords(selected.join(" ") || sourceText, maxWords);
 }
 
-function buildFallbackOptimization(input) {
+function buildAiResolution({
+  errorMessage = null,
+  model = null,
+  provider = null,
+  reasonCode,
+  reasonMessage,
+  status,
+}) {
+  return {
+    errorMessage,
+    model,
+    provider,
+    reasonCode,
+    reasonMessage,
+    status,
+    usedDeterministicFallback: status !== "COMPLETED",
+  };
+}
+
+function getFallbackWarning(aiResolution) {
+  if (aiResolution?.status === "SKIPPED") {
+    return "AI optimization was skipped, so NewsPub used a deterministic formatter.";
+  }
+
+  return "AI optimization was unavailable, so NewsPub used a deterministic fallback formatter.";
+}
+
+function buildFallbackOptimization(input, { aiResolution = null, includeFallbackWarning = true } = {}) {
   const baseBody = input.sourceBody || input.summary || input.title;
   const hashtags = normalizeHashtags(input.seedHashtags, input.platform === "INSTAGRAM" ? 6 : 4);
+  const warnings = includeFallbackWarning ? [getFallbackWarning(aiResolution)] : [];
 
   if (input.platform === "FACEBOOK") {
     return {
@@ -104,7 +132,7 @@ function buildFallbackOptimization(input) {
       slug: input.slugSeed,
       summary: truncateWords(input.summary || baseBody, 36),
       title: truncateWords(input.title, 10),
-      warnings: ["AI optimization was unavailable, so NewsPub used a deterministic fallback formatter."],
+      warnings,
     };
   }
 
@@ -129,7 +157,7 @@ function buildFallbackOptimization(input) {
       slug: input.slugSeed,
       summary: truncateWords(input.summary || baseBody, 36),
       title: truncateWords(input.title, 12),
-      warnings: ["AI optimization was unavailable, so NewsPub used a deterministic fallback formatter."],
+      warnings,
     };
   }
 
@@ -141,12 +169,15 @@ function buildFallbackOptimization(input) {
     slug: input.slugSeed,
     summary: truncateWords(input.summary || baseBody, 42),
     title: truncateWords(input.title, 14),
-    warnings: ["AI optimization was unavailable, so NewsPub used a deterministic fallback formatter."],
+    warnings,
   };
 }
 
-function normalizeGeneratedPayload(input, candidate) {
-  const fallback = buildFallbackOptimization(input);
+function normalizeGeneratedPayload(input, candidate, { aiResolution = null, usedFallback = false } = {}) {
+  const fallback = buildFallbackOptimization(input, {
+    aiResolution,
+    includeFallbackWarning: usedFallback,
+  });
   const resolved = {
     ...fallback,
     ...(candidate || {}),
@@ -168,7 +199,7 @@ function normalizeGeneratedPayload(input, candidate) {
       sourceAttribution: input.sourceAttribution,
       summary: truncateWords(resolved.summary || fallback.summary, 36),
       title: truncateWords(resolved.title || fallback.title, 10),
-      warnings: dedupeStrings([...(fallback.warnings || []), ...(resolved.warnings || [])]),
+      warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
     };
   }
 
@@ -188,7 +219,7 @@ function normalizeGeneratedPayload(input, candidate) {
       sourceAttribution: input.sourceAttribution,
       summary: truncateWords(resolved.summary || fallback.summary, 36),
       title: truncateWords(resolved.title || fallback.title, 12),
-      warnings: dedupeStrings([...(fallback.warnings || []), ...(resolved.warnings || [])]),
+      warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
     };
   }
 
@@ -202,8 +233,119 @@ function normalizeGeneratedPayload(input, candidate) {
     sourceAttribution: input.sourceAttribution,
     summary: truncateWords(resolved.summary || fallback.summary, 42),
     title: truncateWords(resolved.title || fallback.title, 14),
-    warnings: dedupeStrings([...(fallback.warnings || []), ...(resolved.warnings || [])]),
+    warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
   };
+}
+
+function resolveAiSkipResolution() {
+  if (!env.ai.enabled) {
+    return buildAiResolution({
+      provider: "disabled",
+      reasonCode: "ai_disabled",
+      reasonMessage: "AI optimization is disabled, so NewsPub used deterministic formatting instead.",
+      status: "SKIPPED",
+    });
+  }
+
+  if (!env.ai.openaiApiKey) {
+    return buildAiResolution({
+      model: env.ai.model,
+      provider: "disabled",
+      reasonCode: "ai_credentials_missing",
+      reasonMessage: "AI credentials are missing, so NewsPub used deterministic formatting instead.",
+      status: "SKIPPED",
+    });
+  }
+
+  return null;
+}
+
+function classifyAiFailure(error) {
+  const errorMessage = error instanceof Error ? error.message : "AI optimization failed.";
+  const normalizedMessage = trimText(errorMessage).toLowerCase();
+
+  if (normalizedMessage.includes("timed out")) {
+    return buildAiResolution({
+      errorMessage,
+      model: env.ai.model,
+      provider: "fallback",
+      reasonCode: "ai_timeout",
+      reasonMessage: "AI optimization timed out, so NewsPub used deterministic fallback formatting instead.",
+      status: "FALLBACK",
+    });
+  }
+
+  if (
+    normalizedMessage.includes("schema")
+    || normalizedMessage.includes("structured")
+    || normalizedMessage.includes("validation")
+  ) {
+    return buildAiResolution({
+      errorMessage,
+      model: env.ai.model,
+      provider: "fallback",
+      reasonCode: "ai_invalid_structured_output",
+      reasonMessage: "AI optimization returned invalid structured output, so NewsPub used deterministic fallback formatting instead.",
+      status: "FALLBACK",
+    });
+  }
+
+  if (normalizedMessage.includes("rate limit") || normalizedMessage.includes("too many requests")) {
+    return buildAiResolution({
+      errorMessage,
+      model: env.ai.model,
+      provider: "fallback",
+      reasonCode: "ai_rate_limited",
+      reasonMessage: "AI optimization was rate limited, so NewsPub used deterministic fallback formatting instead.",
+      status: "FALLBACK",
+    });
+  }
+
+  return buildAiResolution({
+    errorMessage,
+    model: env.ai.model,
+    provider: "fallback",
+    reasonCode: "ai_unavailable",
+    reasonMessage: "AI optimization was unavailable, so NewsPub used deterministic fallback formatting instead.",
+    status: "FALLBACK",
+  });
+}
+
+function buildCachedAiResolution(cacheRecord) {
+  const existingResolution = cacheRecord?.resultJson?.aiResolution;
+
+  if (existingResolution?.status) {
+    return existingResolution;
+  }
+
+  if (cacheRecord?.status === "SKIPPED") {
+    return buildAiResolution({
+      model: cacheRecord?.model || null,
+      provider: cacheRecord?.provider || "disabled",
+      reasonCode: "cached_ai_skip",
+      reasonMessage: "NewsPub reused cached deterministic content from an AI-skipped optimization run.",
+      status: "SKIPPED",
+    });
+  }
+
+  if (cacheRecord?.status === "FALLBACK") {
+    return buildAiResolution({
+      errorMessage: cacheRecord?.errorMessage || null,
+      model: cacheRecord?.model || null,
+      provider: cacheRecord?.provider || "fallback",
+      reasonCode: "cached_ai_fallback",
+      reasonMessage: "NewsPub reused cached deterministic content from an AI fallback optimization run.",
+      status: "FALLBACK",
+    });
+  }
+
+  return buildAiResolution({
+    model: cacheRecord?.model || null,
+    provider: cacheRecord?.provider || "openai",
+    reasonCode: "ai_completed",
+    reasonMessage: "AI-assisted optimization completed successfully.",
+    status: "COMPLETED",
+  });
 }
 
 function buildOptimizationPrompt(input) {
@@ -337,10 +479,6 @@ async function runWithTimeout(task, timeoutMs) {
 }
 
 async function generateAiPayload(input) {
-  if (!env.ai.enabled || !env.ai.openaiApiKey) {
-    return null;
-  }
-
   const [{ generateObject }, { createOpenAI }] = await Promise.all([
     import("ai"),
     import("@ai-sdk/openai"),
@@ -367,7 +505,7 @@ async function generateAiPayload(input) {
 
 /**
  * Returns a cached or freshly generated destination payload together with
- * policy scoring and media-readiness checks.
+ * policy scoring, skip-or-fallback AI state, and media-readiness checks.
  */
 export async function optimizeDestinationPayload(
   {
@@ -401,11 +539,17 @@ export async function optimizeDestinationPayload(
       : null;
 
   if (existingCache?.resultJson) {
+    const aiResolution = buildCachedAiResolution(existingCache);
+
     return {
+      aiResolution,
       cacheHit: true,
       cacheRecord: existingCache,
       optimizationHash: input.optimizationHash,
-      payload: existingCache.resultJson,
+      payload: {
+        ...existingCache.resultJson,
+        aiResolution,
+      },
       policy: {
         readinessChecks: existingCache.resultJson?.readinessChecks || [],
         reasons: Array.isArray(existingCache.resultJson?.policyReasons) ? existingCache.resultJson.policyReasons : [],
@@ -452,32 +596,47 @@ export async function optimizeDestinationPayload(
         })
       : null;
   let generatedPayload = null;
-  let usedFallback = false;
+  let aiResolution = null;
   let provider = null;
   let model = null;
   let errorMessage = null;
+  const skippedResolution = resolveAiSkipResolution();
 
-  try {
-    generatedPayload = await generateAiPayload(input);
-
-    if (generatedPayload) {
+  if (skippedResolution) {
+    aiResolution = skippedResolution;
+    generatedPayload = buildFallbackOptimization(input, {
+      aiResolution,
+    });
+    provider = aiResolution.provider;
+    model = aiResolution.model;
+  } else {
+    try {
+      generatedPayload = await generateAiPayload(input);
       provider = "openai";
       model = env.ai.model;
-    } else {
-      usedFallback = true;
-      generatedPayload = buildFallbackOptimization(input);
-      provider = env.ai.enabled ? "fallback" : "disabled";
-      model = env.ai.enabled ? env.ai.model : null;
+      aiResolution = buildAiResolution({
+        model,
+        provider,
+        reasonCode: "ai_completed",
+        reasonMessage: "AI-assisted optimization completed successfully.",
+        status: "COMPLETED",
+      });
+    } catch (error) {
+      aiResolution = classifyAiFailure(error);
+      generatedPayload = buildFallbackOptimization(input, {
+        aiResolution,
+      });
+      provider = aiResolution.provider;
+      model = aiResolution.model;
+      errorMessage = aiResolution.errorMessage;
     }
-  } catch (error) {
-    usedFallback = true;
-    errorMessage = error instanceof Error ? error.message : "AI optimization failed.";
-    generatedPayload = buildFallbackOptimization(input);
-    provider = "fallback";
-    model = env.ai.model;
   }
 
-  const normalizedPayload = normalizeGeneratedPayload(input, generatedPayload);
+  const usedFallback = aiResolution.status !== "COMPLETED";
+  const normalizedPayload = normalizeGeneratedPayload(input, generatedPayload, {
+    aiResolution,
+    usedFallback,
+  });
   const policy = evaluateDestinationPolicy({
     destination,
     mediaValidation,
@@ -489,6 +648,7 @@ export async function optimizeDestinationPayload(
     platform: input.platform,
   });
   const resultPayload = {
+    aiResolution,
     ...normalizedPayload,
     cacheKey,
     canonicalUrl: input.canonicalUrl,
@@ -511,7 +671,7 @@ export async function optimizeDestinationPayload(
           policyStatus: policy.status,
           provider,
           resultJson: resultPayload,
-          status: usedFallback ? "FALLBACK" : "COMPLETED",
+          status: aiResolution.status,
           usedFallback,
           warningsJson: policy.warnings,
         },
@@ -524,7 +684,7 @@ export async function optimizeDestinationPayload(
         policyStatus: policy.status,
         provider,
         resultJson: resultPayload,
-        status: usedFallback ? "FALLBACK" : "COMPLETED",
+        status: aiResolution.status,
         usedFallback,
         warningsJson: policy.warnings,
       };
@@ -540,7 +700,7 @@ export async function optimizeDestinationPayload(
         lastPolicyCheckedAt: new Date(),
         optimizationCacheId: cacheRecord.id,
         optimizationHash: input.optimizationHash,
-        optimizationStatus: usedFallback ? "FALLBACK" : "COMPLETED",
+        optimizationStatus: aiResolution.status,
         optimizedPayloadJson: resultPayload,
         policyReasonsJson: policy.reasons,
         policyStatus: policy.status,
@@ -556,6 +716,7 @@ export async function optimizeDestinationPayload(
   }
 
   return {
+    aiResolution,
     cacheHit: false,
     cacheRecord,
     optimizationHash: input.optimizationHash,

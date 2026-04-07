@@ -6,7 +6,7 @@
 
 The product consumes third-party news APIs, normalizes provider payloads into a shared internal article format, filters those articles against per-destination stream rules, runs a minimal AI-assisted optimization layer on eligible items, stores only publishable or published records, and publishes qualifying stories to the website, Facebook, and Instagram.
 
-Release 1 is not an open-ended AI writing product. The AI layer is limited to formatting, rewriting, SEO packaging, platform-policy pre-checks, and destination-specific output preparation. It must preserve factual meaning, never invent facts, keep source attribution visible, and remain auditable.
+Release 1 is not an open-ended AI writing product. The AI layer is limited to formatting, rewriting, SEO packaging, platform-policy pre-checks, and destination-specific output preparation. It must preserve factual meaning, never invent facts, keep source attribution visible, and remain auditable. AI is assistive only and optional at runtime.
 
 ## 2. Release 1 Goals
 
@@ -19,6 +19,7 @@ Release 1 must:
 - support both `AUTO_PUBLISH` and `REVIEW_REQUIRED` stream modes
 - publish to the website, Facebook, and Instagram with shared canonical render artifacts and destination-specific formatting
 - keep source attribution, compliance controls, retry behavior, and auditability visible in the admin workspace
+- keep deterministic formatting and manual editorial flow operational when AI is disabled, misconfigured, unhealthy, rate limited, timing out, or returning invalid structured output
 
 ## 3. Reuse-First Architecture Constraints
 
@@ -46,6 +47,26 @@ Release 1 keeps these baseline runtime choices:
 - local or S3-compatible storage through the existing storage adapter abstraction
 
 The implementation must keep the AI layer small, cheap-first, and auditable. No free-form article invention, prompt playground, or multi-model management surface belongs in NewsPub Release 1.
+
+### AI Runtime Contract
+
+Optional AI failures must never become hidden blockers for valid NewsPub work.
+
+- missing AI credentials, disabled AI, model unavailability, rate limiting, timeouts, or invalid structured output must resolve to `OptimizationStatus.SKIPPED` or `OptimizationStatus.FALLBACK` rather than stopping fetch, review, scheduling, retry, or publication flows that can still proceed deterministically
+- deterministic fallback payloads remain valid review and publish inputs when platform and policy requirements are otherwise satisfied
+- machine-readable `aiResolution` metadata and reason details must persist on optimization results, article-match review data, publish-attempt diagnostics, and relevant audit events
+- cached optimization results must preserve their AI resolution state so repeated work stays auditable
+- optional AI health issues may change optimization quality or visibility, but they must not corrupt queue state or block manual editorial decisions
+
+### Admin UX Consistency Standards
+
+Release 1 admin forms and editors must reuse one shared interaction language across provider, destination, stream, template, settings, and post-editing surfaces.
+
+- shared field labels, helper text, error text, validation summaries, and pending-action buttons must behave consistently across the admin workspace
+- shared disclosure sections must expose a title, summary, and status metadata while collapsed, auto-open when they contain blocking errors or missing required data, and remain keyboard accessible with correct `aria-expanded` behavior
+- shared control sizing tokens must keep primary buttons, secondary buttons, destructive buttons, icon buttons, compact pills, and select triggers aligned across cards, tables, toolbars, and modal footers
+- submit failures must scroll and focus the first blocking form control instead of leaving operators to search for the error manually
+- modal editing flows must preserve header context, keep footer actions stable, and avoid nested scroll traps during long edits
 
 ### Documentation Standards
 
@@ -185,6 +206,8 @@ Model responsibilities:
 
 Persistence rule: non-publishable articles are never stored as full `FetchedArticle` rows in Release 1. Only aggregate fetch counts and failure logs may exist for rejected items.
 
+Operational rule: optional AI outages or misconfiguration should normally be represented as `SKIPPED` or `FALLBACK`. `FAILED` is reserved for broader workflow or persistence failure states, not for healthy deterministic degradation.
+
 ## 9. Authentication And RBAC
 
 Admin auth remains email and password with server-side sessions. There is no public authoring, no guest comments, and no public login flow in Release 1.
@@ -249,6 +272,8 @@ Every scheduled or manual run follows this order:
 11. queue website or social publication attempts
 12. update the stream checkpoint only after a successful run
 13. emit admin-visible logs and summary metrics
+
+Optimization rule: when the AI layer is disabled, missing credentials, unavailable, rate limited, timing out, or returning invalid structured output, the workflow must persist a structured reason, set the optimization outcome to `SKIPPED` or `FALLBACK`, and continue with deterministic formatting or manual review instead of treating the run as a hard AI failure.
 
 The normalized article contract must include at least:
 
@@ -316,6 +341,7 @@ Workflow rules:
 - `AUTO_PUBLISH` may create or refresh the canonical `Post`, queue a `PublishAttempt`, and publish immediately if all validations pass
 - `REVIEW_REQUIRED` must create or update the canonical `Post` in a held state with `PostStatus.DRAFT` and `EditorialStage.INGESTED`, then stop until an admin approves publication
 - AI optimization runs after filtering and before approval or publication. It may move a destination match into `WorkflowStage.OPTIMIZED`, `WorkflowStage.REVIEW_REQUIRED`, or `WorkflowStage.HELD` depending on policy results and stream mode.
+- review queues, the post editor, and publish diagnostics must expose optimization status and reason details so editors can distinguish successful AI output from `SKIPPED` or `FALLBACK` deterministic handling without losing publish control
 - editors work from the reused post inventory and post editor surfaces
 - the canonical `Post` is the editable render artifact that feeds website and social formatting
 - publishing state and editorial stage remain separate fields
@@ -410,6 +436,7 @@ Scheduling rules:
 - retries must apply to publish attempts and transient provider failures
 - retry behavior must be stored in stream or attempt metadata and visible in the admin workspace
 - repeated failures must pause automatic re-execution only when the configured retry ceiling is reached or an admin manually pauses the stream
+- optional AI degradation must not advance a healthy stream run into a failed retry loop when deterministic or manual handling remains available
 
 ## 20. SEO, Search, And Public Discovery
 
@@ -436,6 +463,7 @@ Release 1 must expose:
 - failed publish attempts
 - optimized items
 - optimization cache reuses
+- AI optimization skip and fallback outcomes with machine-readable reason codes and operator-facing reason messages
 - items blocked before publish by policy or guardrails
 - duplicate skips
 - retry counts
@@ -443,6 +471,8 @@ Release 1 must expose:
 - website view analytics
 - top published stories
 - structured audit events for provider, stream, article, post, and publish operations
+
+Operational visibility must include the recent publish-attempt diagnostics, review-surface optimization details, and audit events that explain when AI optimization was skipped or when deterministic fallback was used.
 
 `AuditEvent` remains the central append-only operational log. `ViewEvent` remains the public analytics event store.
 
@@ -467,6 +497,8 @@ Retain and rebrand:
 - `src/components/layout/admin-shell.js`
 - `src/components/layout/site-shell.js`
 - `src/components/admin/*`
+- `src/components/admin/admin-form-primitives.js`
+- `src/components/admin/admin-ui-contract.js`
 - `src/components/public/*`
 - `src/components/common/searchable-select.js`
 - `src/components/common/notice-page.js`
@@ -523,11 +555,13 @@ Release 1 is complete only when:
 - every public and admin route listed in this document exists
 - provider, destination, stream, fetch, filter, dedupe, review, publish, retry, SEO, analytics, and audit flows are implemented
 - AI optimization, policy review, and cache-reuse flows are implemented and auditable
+- AI-disabled, AI-misconfigured, AI-timeout, rate-limit, and invalid-structured-output paths degrade to `SKIPPED` or `FALLBACK` instead of blocking the product
 - only publishable or published normalized articles are persisted
 - provider credential resolution is env-based
 - destination publish history is stored and queryable
 - website, Facebook, and Instagram publication paths are all supported
 - implementation modules are documented with current JSDoc and targeted inline comments that explain file purpose, exported behavior, and non-obvious workflow logic
+- shared admin disclosure, validation, modal, and control-sizing primitives are applied across the major admin forms and editorial surfaces
 - README, app write-up, and dev plan reflect the real repo structure without references to a missing `docs/` tree
 - automated checks and manual verification cover the end-to-end workflow
 

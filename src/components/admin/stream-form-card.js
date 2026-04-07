@@ -1,27 +1,27 @@
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import {
   ActionIcon,
-  ButtonRow,
   ButtonIcon,
   Field,
+  FieldErrorText,
   FieldGrid,
+  FieldHint,
   FieldLabel,
-  FormSection,
-  FormSectionTitle,
   Input,
-  NoticeBanner,
-  NoticeItem,
-  NoticeList,
-  NoticeTitle,
   SecondaryButton,
   SmallText,
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import {
+  AdminDisclosureSection,
+  AdminValidationSummary,
+  scrollToFirstBlockingField,
+} from "@/components/admin/admin-form-primitives";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
@@ -36,11 +36,16 @@ import {
   isDestinationKindAutoPublishCapable,
 } from "@/lib/validation/configuration";
 
+const StreamForm = styled.form`
+  display: grid;
+  gap: 0.95rem;
+`;
+
 const StreamFieldGrid = styled(FieldGrid)`
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 `;
 
-const HelperRow = styled(SmallText)`
+const HelperRow = styled(FieldHint)`
   align-items: center;
   display: inline-flex;
   gap: 0.38rem;
@@ -156,6 +161,12 @@ const socialPostLinkPlacementOptions = [
   },
 ];
 
+/**
+ * Renders the stream editor used by the admin streams workspace modal.
+ *
+ * @param {object} props - Stream form configuration props.
+ * @returns {JSX.Element} The stream editor form.
+ */
 export default function StreamFormCard({
   action,
   categoryOptions = [],
@@ -184,9 +195,7 @@ export default function StreamFormCard({
   const initialSlug = stream?.slug || initialSuggestedIdentity.slug;
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
-  const [activeProviderId, setActiveProviderId] = useState(
-    initialActiveProviderId,
-  );
+  const [activeProviderId, setActiveProviderId] = useState(initialActiveProviderId);
   const [destinationId, setDestinationId] = useState(initialDestinationId);
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
@@ -202,6 +211,7 @@ export default function StreamFormCard({
     Boolean(trimFieldValue(initialSlug) && trimFieldValue(initialSlug) !== initialSuggestedIdentity.slug),
   );
   const formId = useId();
+  const formRef = useRef(null);
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
@@ -238,13 +248,38 @@ export default function StreamFormCard({
     }
 
     event.preventDefault();
+    scrollToFirstBlockingField(formRef.current);
   }
 
   return (
-    <form action={action} id={formId} onSubmit={handleSubmit}>
+    <StreamForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
       {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
-      <FormSection>
-        <FormSectionTitle>Core setup</FormSectionTitle>
+
+      <AdminValidationSummary
+        items={issues.map((issue) => issue.message)}
+        title="Fix the highlighted stream sections before saving."
+      />
+
+      <AdminDisclosureSection
+        defaultOpen
+        errorCount={issues.length}
+        meta={[
+          {
+            label: selectedDestination?.platform ? formatEnumLabel(selectedDestination.platform) : "Destination pending",
+            tone: selectedDestination?.platform ? "muted" : "warning",
+          },
+          {
+            label: formatEnumLabel(mode),
+            tone: mode === "AUTO_PUBLISH" ? "accent" : "warning",
+          },
+          {
+            label: formatEnumLabel(status),
+            tone: status === "ACTIVE" ? "success" : "warning",
+          },
+        ]}
+        summary="Choose the destination, provider, workflow mode, and template compatibility before editing targeting rules."
+        title="Core setup"
+      >
         <StreamFieldGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
@@ -267,6 +302,7 @@ export default function StreamFormCard({
               required
               value={name}
             />
+            <FieldHint>Use a stream name operators can recognize immediately in the dashboard, jobs page, and review flows.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Slug</FieldLabel>
@@ -311,7 +347,9 @@ export default function StreamFormCard({
                 <AppIcon name={getDestinationPlatformIcon(selectedDestination.platform)} size={12} />
                 Platform: {formatEnumLabel(selectedDestination.platform)} | Kind: {formatEnumLabel(selectedDestination.kind)}
               </HelperRow>
-            ) : null}
+            ) : (
+              <FieldHint>Select the publishing destination this stream should feed.</FieldHint>
+            )}
           </Field>
           <Field as="div">
             <FieldLabel>Provider</FieldLabel>
@@ -335,7 +373,9 @@ export default function StreamFormCard({
                 <AppIcon name="server" size={12} />
                 Official docs: <a href={selectedProvider.docsUrl} rel="noreferrer" target="_blank">{selectedProvider.docsUrl}</a>
               </HelperRow>
-            ) : null}
+            ) : (
+              <FieldHint>Choose the source provider whose normalized stories should enter this workflow.</FieldHint>
+            )}
           </Field>
           <Field as="div">
             <FieldLabel>Mode</FieldLabel>
@@ -348,6 +388,7 @@ export default function StreamFormCard({
               placeholder="Select a mode"
               value={mode}
             />
+            <FieldHint>Review Required keeps stories held for editors. Auto Publish only works for compatible destinations.</FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Status</FieldLabel>
@@ -359,14 +400,17 @@ export default function StreamFormCard({
               placeholder="Select a status"
               value={status}
             />
+            <FieldHint>Pause a stream when it should stay configured but stop manual and scheduled execution.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Locale</FieldLabel>
             <Input defaultValue={stream?.locale || "en"} name="locale" required />
+            <FieldHint>The locale controls translation, SEO path generation, and template resolution.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Timezone</FieldLabel>
             <Input defaultValue={stream?.timezone || "UTC"} name="timezone" required />
+            <FieldHint>Use the stream timezone for scheduling, publish windows, and operator-facing run timing.</FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Default template</FieldLabel>
@@ -384,30 +428,34 @@ export default function StreamFormCard({
                 <AppIcon name="layout" size={12} />
                 Compatible template platform: {formatEnumLabel(selectedDestination.platform)}
               </HelperRow>
-            ) : null}
+            ) : (
+              <FieldHint>Leave the template unset to let NewsPub resolve the best platform-aware fallback automatically.</FieldHint>
+            )}
+            {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
           </Field>
         </StreamFieldGrid>
         <Field>
           <FieldLabel>Description</FieldLabel>
           <Textarea defaultValue={stream?.description || ""} name="description" />
+          <FieldHint>Describe the stream in operator language so future edits are faster and safer.</FieldHint>
         </Field>
-      </FormSection>
+      </AdminDisclosureSection>
 
-      {issues.length ? (
-        <FormSection>
-          <NoticeBanner $tone="danger">
-            <NoticeTitle>Incompatible stream configuration</NoticeTitle>
-            <NoticeList>
-              {issues.map((issue) => (
-                <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
-              ))}
-            </NoticeList>
-          </NoticeBanner>
-        </FormSection>
-      ) : null}
-
-      <FormSection>
-        <FormSectionTitle>Scheduling and limits</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen={false}
+        meta={[
+          {
+            label: `${stream?.scheduleIntervalMinutes ?? 60} min cadence`,
+            tone: "muted",
+          },
+          {
+            label: `${stream?.retryLimit ?? 3} retries`,
+            tone: "muted",
+          },
+        ]}
+        summary="Set the run cadence, result limits, duplicate window, and retry policy that shape end-to-end automation."
+        title="Scheduling and limits"
+      >
         <StreamFieldGrid>
           <Field>
             <FieldLabel>Schedule interval minutes</FieldLabel>
@@ -425,6 +473,7 @@ export default function StreamFormCard({
           <Field>
             <FieldLabel>Max posts per run</FieldLabel>
             <Input defaultValue={stream?.maxPostsPerRun ?? 5} name="maxPostsPerRun" type="number" />
+            <FieldHint>Keep fetch runs bounded so queues stay responsive on slower destinations and lower-end devices.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Duplicate window hours</FieldLabel>
@@ -433,10 +482,12 @@ export default function StreamFormCard({
               name="duplicateWindowHours"
               type="number"
             />
+            <FieldHint>Stories published inside this cooldown stay blocked unless a manual repost bypass is requested.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Retry limit</FieldLabel>
             <Input defaultValue={stream?.retryLimit ?? 3} name="retryLimit" type="number" />
+            <FieldHint>Retryable publish attempts stop once this limit is reached.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Retry backoff minutes</FieldLabel>
@@ -445,15 +496,25 @@ export default function StreamFormCard({
               name="retryBackoffMinutes"
               type="number"
             />
+            <FieldHint>Use a modest backoff so flaky destinations recover without overwhelming downstream APIs.</FieldHint>
           </Field>
         </StreamFieldGrid>
-      </FormSection>
+      </AdminDisclosureSection>
 
-      <FormSection>
-        <FormSectionTitle>Social post options</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen={false}
+        meta={[
+          {
+            label: postLinkPlacement === "RANDOM" ? "Random placement" : formatEnumLabel(postLinkPlacement),
+            tone: "muted",
+          },
+        ]}
+        summary="Control the optional plain-text CTA link inserted into supported social destination payloads."
+        title="Social post options"
+      >
         <StreamFieldGrid>
           <Field>
-            <FieldLabel>Post Link URL</FieldLabel>
+            <FieldLabel>Post link URL</FieldLabel>
             <Input
               defaultValue={socialPostSettings.linkUrl || ""}
               name="postLinkUrl"
@@ -466,7 +527,7 @@ export default function StreamFormCard({
             </HelperRow>
           </Field>
           <Field as="div">
-            <FieldLabel>Post Link Placement</FieldLabel>
+            <FieldLabel>Post link placement</FieldLabel>
             <SearchableSelect
               ariaLabel="Post link placement"
               name="postLinkPlacement"
@@ -475,28 +536,51 @@ export default function StreamFormCard({
               placeholder="Select placement"
               value={postLinkPlacement}
             />
+            <FieldHint>Choose whether the plain-text link sits below the title, near the CTA, or alternates automatically.</FieldHint>
           </Field>
         </StreamFieldGrid>
-      </FormSection>
+      </AdminDisclosureSection>
 
       {selectedProvider?.providerKey ? (
-        <ProviderFilterFields
-          key={`stream-provider-filters-${selectedProvider.providerKey}`}
-          namePrefix="providerFilter"
-          providerKey={selectedProvider.providerKey}
-          scope="stream"
-          values={getStreamProviderFormValues(stream)}
-        />
+        <AdminDisclosureSection
+          defaultOpen={false}
+          meta={[
+            {
+              label: selectedProvider.providerKey,
+              tone: "accent",
+            },
+          ]}
+          summary="Override provider-specific request filters only when this stream needs narrower fetch behavior than the saved provider defaults."
+          title="Provider request filters"
+        >
+          <ProviderFilterFields
+            key={`stream-provider-filters-${selectedProvider.providerKey}`}
+            namePrefix="providerFilter"
+            providerKey={selectedProvider.providerKey}
+            scope="stream"
+            values={getStreamProviderFormValues(stream)}
+          />
+        </AdminDisclosureSection>
       ) : null}
 
-      <FormSection>
-        <FormSectionTitle>Targeting rules</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen
+        meta={[
+          {
+            label: `${categoryOptions.length} available categor${categoryOptions.length === 1 ? "y" : "ies"}`,
+            tone: "muted",
+          },
+        ]}
+        summary="Apply keyword filters and category targeting so fetched stories stay within the editorial lane this destination expects."
+        title="Targeting rules"
+      >
         <Field>
           <FieldLabel>Include keywords</FieldLabel>
           <Textarea
             defaultValue={(stream?.includeKeywordsJson || []).join(", ")}
             name="includeKeywordsJson"
           />
+          <FieldHint>Use comma-separated terms that must appear in the normalized source article before the stream accepts it.</FieldHint>
         </Field>
         <Field>
           <FieldLabel>Exclude keywords</FieldLabel>
@@ -504,6 +588,7 @@ export default function StreamFormCard({
             defaultValue={(stream?.excludeKeywordsJson || []).join(", ")}
             name="excludeKeywordsJson"
           />
+          <FieldHint>Use comma-separated terms that should immediately disqualify a fetched story from this stream.</FieldHint>
         </Field>
         <CheckboxSearchField
           description="Assign internal NewsPub categories used for matching, landing pages, and publication organization."
@@ -521,7 +606,8 @@ export default function StreamFormCard({
             New streams can be created with schedule, retry, and targeting rules in a single pass.
           </SmallText>
         )}
-      </FormSection>
+      </AdminDisclosureSection>
+
       <AdminModalFooterActions>
         {stream ? (
           <SecondaryButton
@@ -546,6 +632,6 @@ export default function StreamFormCard({
           {submitLabel}
         </PendingSubmitButton>
       </AdminModalFooterActions>
-    </form>
+    </StreamForm>
   );
 }

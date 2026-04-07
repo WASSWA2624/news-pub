@@ -206,6 +206,40 @@ function mapPublishAttempt(attempt) {
   };
 }
 
+function mapOptimizationDetails(match) {
+  const aiResolution = match?.optimizedPayloadJson?.aiResolution;
+
+  if (aiResolution?.status) {
+    return aiResolution;
+  }
+
+  if (match?.optimizationStatus === "SKIPPED") {
+    return {
+      errorMessage: null,
+      model: null,
+      provider: "disabled",
+      reasonCode: "cached_ai_skip",
+      reasonMessage: "AI optimization was skipped and NewsPub kept deterministic content.",
+      status: "SKIPPED",
+      usedDeterministicFallback: true,
+    };
+  }
+
+  if (match?.optimizationStatus === "FALLBACK") {
+    return {
+      errorMessage: null,
+      model: null,
+      provider: "fallback",
+      reasonCode: "cached_ai_fallback",
+      reasonMessage: "AI optimization fell back to deterministic content.",
+      status: "FALLBACK",
+      usedDeterministicFallback: true,
+    };
+  }
+
+  return null;
+}
+
 function mapArticleMatch(match) {
   return {
     banRiskScore: match.banRiskScore ?? null,
@@ -231,6 +265,7 @@ function mapArticleMatch(match) {
       : null,
     holdReasons: Array.isArray(match.holdReasonsJson) ? match.holdReasonsJson : [],
     id: match.id,
+    optimizationDetails: mapOptimizationDetails(match),
     lastOptimizedAt: serializeDate(match.lastOptimizedAt),
     lastPolicyCheckedAt: serializeDate(match.lastPolicyCheckedAt),
     optimizationStatus: match.optimizationStatus || "NOT_REQUESTED",
@@ -278,6 +313,7 @@ function mapInventoryPost(post, locale = defaultLocale) {
     reviewWorkflowStage: primaryArticleMatch?.workflowStage || "INGESTED",
     reviewPolicyStatus: primaryArticleMatch?.policyStatus || "PASS",
     reviewOptimizationStatus: primaryArticleMatch?.optimizationStatus || "NOT_REQUESTED",
+    reviewOptimizationDetails: mapOptimizationDetails(primaryArticleMatch),
     scheduledPublishAt: serializeDate(post.scheduledPublishAt),
     slug: post.slug,
     sourceName: post.sourceName,

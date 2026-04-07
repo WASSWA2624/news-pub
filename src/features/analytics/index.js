@@ -90,6 +90,7 @@ function mapFetchRun(run) {
 
 function mapPublishAttempt(attempt) {
   return {
+    aiResolution: attempt.diagnosticsJson?.aiResolution || null,
     articleMatchId: attempt.articleMatchId,
     createdAt: serializeDate(attempt.createdAt),
     destination: attempt.destination
@@ -108,6 +109,7 @@ function mapPublishAttempt(attempt) {
           slug: attempt.post.slug,
         }
       : null,
+    optimizationStatus: attempt.diagnosticsJson?.optimizationStatus || null,
     publishedAt: serializeDate(attempt.publishedAt),
     queuedAt: serializeDate(attempt.queuedAt),
     remoteId: attempt.remoteId || null,

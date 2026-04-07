@@ -130,7 +130,7 @@ const SummaryPill = styled.span`
   font-size: 0.68rem;
   font-weight: 800;
   gap: 0.35rem;
-  min-height: 30px;
+  min-height: calc(var(--admin-control-min-height) - 8px);
   padding: 0 0.62rem;
 `;
 
@@ -150,9 +150,9 @@ const PrimaryActionButton = styled.button`
   font-size: 0.76rem;
   font-weight: 800;
   gap: 0.42rem;
-  min-height: 36px;
+  min-height: var(--admin-button-min-height);
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0 0.82rem;
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
   transition:
     box-shadow 160ms ease,
     transform 160ms ease;
@@ -243,14 +243,14 @@ const ProgressCloseButton = styled.button`
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
   flex: 0 0 auto;
-  height: 2.2rem;
+  height: var(--admin-icon-button-size);
   justify-content: center;
   opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
   transition:
     background 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
-  width: 2.2rem;
+  width: var(--admin-icon-button-size);
 
   &:hover {
     background: ${({ disabled }) =>
@@ -457,7 +457,7 @@ const ProgressItemStatus = styled.span`
   flex: 0 0 auto;
   font-size: 0.68rem;
   font-weight: 800;
-  min-height: 24px;
+  min-height: var(--admin-compact-pill-min-height);
   padding: 0 0.55rem;
   text-transform: uppercase;
 `;
@@ -565,7 +565,7 @@ const ScopeActionButton = styled.button`
   display: inline-flex;
   font-size: 0.66rem;
   font-weight: 800;
-  min-height: 28px;
+  min-height: calc(var(--admin-control-min-height) - 8px);
   opacity: ${({ disabled }) => (disabled ? 0.52 : 1)};
   padding: 0 0.62rem;
   transition:
@@ -694,7 +694,7 @@ const ScopeCount = styled.span`
   flex: 0 0 auto;
   font-size: 0.62rem;
   font-weight: 800;
-  min-height: 20px;
+  min-height: var(--admin-compact-pill-min-height);
   padding: 0 0.42rem;
 `;
 

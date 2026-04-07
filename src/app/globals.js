@@ -1,5 +1,7 @@
 import { createGlobalStyle } from "styled-components";
 
+import { adminUiSizingContract } from "@/components/admin/admin-ui-contract";
+
 /**
  * Converts a hex color string into a CSS RGB channel list.
  *
@@ -81,6 +83,13 @@ const GlobalStyles = createGlobalStyle`
     --theme-story-paper-rgb: ${({ theme }) => toRgbChannels(theme?.story?.paper || "#fffdf8")};
     --theme-story-paper-alt: ${({ theme }) => theme?.story?.paperAlt || "#f5efe4"};
     --theme-story-paper-alt-rgb: ${({ theme }) => toRgbChannels(theme?.story?.paperAlt || "#f5efe4")};
+    --admin-button-min-height: ${adminUiSizingContract.buttonMinHeight};
+    --admin-compact-pill-min-height: ${adminUiSizingContract.compactPillMinHeight};
+    --admin-control-gap: ${adminUiSizingContract.controlGap};
+    --admin-control-min-height: ${adminUiSizingContract.controlMinHeight};
+    --admin-control-padding-block: ${adminUiSizingContract.controlPaddingBlock};
+    --admin-control-padding-inline: ${adminUiSizingContract.controlPaddingInline};
+    --admin-icon-button-size: ${adminUiSizingContract.iconButtonSize};
   }
 
   * {

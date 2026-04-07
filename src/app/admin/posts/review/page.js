@@ -42,6 +42,12 @@ function getTone(status) {
   return "warning";
 }
 
+/**
+ * Renders the admin review queue for draft and scheduled stories.
+ *
+ * @param {object} props - Search param props for filtering the queue.
+ * @returns {Promise<JSX.Element>} The review queue page.
+ */
 export default async function ReviewQueuePage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const [messages, snapshot] = await Promise.all([
@@ -88,6 +94,7 @@ export default async function ReviewQueuePage({ searchParams }) {
                   <th>Story</th>
                   <th>Status</th>
                   <th>Workflow</th>
+                  <th>AI</th>
                   <th>Policy</th>
                   <th>Source</th>
                   <th>Scheduled</th>
@@ -108,6 +115,14 @@ export default async function ReviewQueuePage({ searchParams }) {
                       <StatusBadge $tone={getTone(item.reviewWorkflowStage)}>
                         {item.reviewWorkflowStage}
                       </StatusBadge>
+                    </td>
+                    <td data-label="AI">
+                      <StatusBadge $tone={getTone(item.reviewOptimizationStatus)}>
+                        {item.reviewOptimizationStatus}
+                      </StatusBadge>
+                      {item.reviewOptimizationDetails?.reasonMessage ? (
+                        <SmallText>{item.reviewOptimizationDetails.reasonMessage}</SmallText>
+                      ) : null}
                     </td>
                     <td data-label="Policy">
                       <StatusBadge $tone={getTone(item.reviewPolicyStatus)}>

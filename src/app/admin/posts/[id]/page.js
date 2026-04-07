@@ -15,8 +15,6 @@ import {
   Field,
   FieldGrid,
   FieldLabel,
-  FormSection,
-  FormSectionTitle,
   Input,
   LinkButton,
   NoticeBanner,
@@ -33,6 +31,7 @@ import {
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import { AdminDisclosureSection } from "@/components/admin/admin-form-primitives";
 import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
@@ -68,6 +67,12 @@ function renderPreviewBody(payload) {
   return payload.body || payload.summary || "No optimized payload body is available yet.";
 }
 
+/**
+ * Renders the canonical story editor and destination publish review workspace.
+ *
+ * @param {object} props - Route props containing the post id param.
+ * @returns {Promise<JSX.Element>} The admin editor page for one story.
+ */
 export default async function PostEditorPage({ params }) {
   const { id } = await params;
   const messages = await getMessages(defaultLocale);
@@ -152,8 +157,15 @@ export default async function PostEditorPage({ params }) {
               <form action={updatePostEditorAction} id={postEditorFormId}>
                 <input name="locale" type="hidden" value={translation?.locale || defaultLocale} />
                 <input name="postId" type="hidden" value={snapshot.post.id} />
-                <FormSection>
-                  <FormSectionTitle>Editorial settings</FormSectionTitle>
+                <AdminDisclosureSection
+                  defaultOpen
+                  meta={[
+                    { label: snapshot.post.status, tone: getTone(snapshot.post.status) },
+                    { label: snapshot.post.editorialStage, tone: getTone(snapshot.post.editorialStage) },
+                  ]}
+                  summary="Choose the editorial stage, canonical slug, and destination match that the workflow actions should target."
+                  title="Editorial settings"
+                >
                   <FieldGrid>
                     <Field>
                       <FieldLabel>Slug</FieldLabel>
@@ -190,10 +202,17 @@ export default async function PostEditorPage({ params }) {
                       />
                     </Field>
                   </FieldGrid>
-                </FormSection>
+                </AdminDisclosureSection>
 
-                <FormSection>
-                  <FormSectionTitle>Story copy</FormSectionTitle>
+                <AdminDisclosureSection
+                  defaultOpen
+                  meta={[
+                    { label: translation?.locale || defaultLocale, tone: "muted" },
+                    { label: translation?.title ? "Copy loaded" : "Needs copy", tone: translation?.title ? "success" : "warning" },
+                  ]}
+                  summary="Edit the canonical title, summary, and body that feed both the website rendering path and destination optimization."
+                  title="Story copy"
+                >
                   <Field>
                     <FieldLabel>Title</FieldLabel>
                     <Input defaultValue={translation?.title || ""} name="title" required />
@@ -210,10 +229,17 @@ export default async function PostEditorPage({ params }) {
                       style={{ minHeight: "280px" }}
                     />
                   </Field>
-                </FormSection>
+                </AdminDisclosureSection>
 
-                <FormSection>
-                  <FormSectionTitle>Publishing</FormSectionTitle>
+                <AdminDisclosureSection
+                  defaultOpen={false}
+                  meta={[
+                    { label: defaultArticleMatch?.optimizationStatus || "NOT_REQUESTED", tone: getTone(defaultArticleMatch?.optimizationStatus) },
+                    { label: defaultArticleMatch?.policyStatus || "PASS", tone: getTone(defaultArticleMatch?.policyStatus) },
+                  ]}
+                  summary="Set categories, schedule publication, and run the editorial actions that approve, optimize, hold, or publish this story."
+                  title="Publishing"
+                >
                   <Field as="div">
                     <FieldLabel>Categories</FieldLabel>
                     <SearchableSelect
@@ -229,7 +255,7 @@ export default async function PostEditorPage({ params }) {
                     <FieldLabel>Schedule publish time</FieldLabel>
                     <Input name="publishAt" type="datetime-local" />
                   </Field>
-                </FormSection>
+                </AdminDisclosureSection>
                 <AdminModalFooterActions>
                   <PendingSubmitButton
                     form={postEditorFormId}
@@ -398,6 +424,9 @@ export default async function PostEditorPage({ params }) {
                 </ButtonRow>
                 <SmallText>Risk score: {defaultArticleMatch.banRiskScore ?? "Not scored yet"}</SmallText>
                 <SmallText>Optimized: {formatDateTime(defaultArticleMatch.lastOptimizedAt)}</SmallText>
+                {defaultArticleMatch.optimizationDetails?.reasonMessage ? (
+                  <SmallText>{defaultArticleMatch.optimizationDetails.reasonMessage}</SmallText>
+                ) : null}
                 {defaultArticleMatch.policyReasons.length ? (
                   <NoticeBanner $tone={defaultArticleMatch.policyStatus === "BLOCK" ? "danger" : "warning"}>
                     <NoticeTitle>Review findings</NoticeTitle>
@@ -455,6 +484,7 @@ export default async function PostEditorPage({ params }) {
                   <th>Destination</th>
                   <th>Status</th>
                   <th>Workflow</th>
+                  <th>AI</th>
                   <th>Policy</th>
                   <th>Queued</th>
                   <th>Published</th>
@@ -474,6 +504,12 @@ export default async function PostEditorPage({ params }) {
                     </td>
                     <td data-label="Workflow">
                       <StatusBadge $tone={getTone(match.workflowStage)}>{match.workflowStage}</StatusBadge>
+                    </td>
+                    <td data-label="AI">
+                      <StatusBadge $tone={getTone(match.optimizationStatus)}>{match.optimizationStatus}</StatusBadge>
+                      {match.optimizationDetails?.reasonMessage ? (
+                        <SmallText>{match.optimizationDetails.reasonMessage}</SmallText>
+                      ) : null}
                     </td>
                     <td data-label="Policy">
                       <StatusBadge $tone={getTone(match.policyStatus)}>{match.policyStatus}</StatusBadge>

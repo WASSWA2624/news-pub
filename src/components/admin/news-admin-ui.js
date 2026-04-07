@@ -320,15 +320,15 @@ export const MetaPill = styled.span`
   font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 22px;
+  min-height: var(--admin-compact-pill-min-height);
   padding: 0 0.46rem;
   text-transform: uppercase;
 `;
 
 export const FormSection = styled.div`
   display: grid;
-  gap: 0.45rem;
-  padding-top: 0.5rem;
+  gap: 0.55rem;
+  padding-top: 0.58rem;
 
   &:not(:first-child) {
     border-top: 1px solid rgba(16, 32, 51, 0.08);
@@ -450,7 +450,7 @@ export const FieldGrid = styled.div`
 
 export const Field = styled.label`
   display: grid;
-  gap: 0.22rem;
+  gap: 0.3rem;
   min-width: 0;
 `;
 
@@ -461,6 +461,21 @@ export const FieldLabel = styled.span`
   letter-spacing: 0.01em;
 `;
 
+export const FieldHint = styled.p`
+  color: rgba(72, 85, 108, 0.88);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin: 0;
+`;
+
+export const FieldErrorText = styled.p`
+  color: #a63725;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+`;
+
 const fieldStyles = css`
   ${controlSurfaceCss}
   ${focusRingCss}
@@ -468,8 +483,8 @@ const fieldStyles = css`
   border-radius: 0;
   color: #1f314b;
   font-size: 0.88rem;
-  min-height: 34px;
-  padding: 0.48rem 0.62rem;
+  min-height: var(--admin-control-min-height);
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -520,7 +535,7 @@ export const CheckboxChip = styled.label`
   font-size: 0.76rem;
   font-weight: 600;
   gap: 0.28rem;
-  min-height: 28px;
+  min-height: calc(var(--admin-control-min-height) - 8px);
   padding: 0 0.52rem;
 
   input {
@@ -572,10 +587,10 @@ const buttonStyles = css`
   display: inline-flex;
   font-size: 0.8rem;
   font-weight: 800;
-  gap: 0.32rem;
+  gap: var(--admin-control-gap);
   justify-content: center;
-  min-height: 31px;
-  padding: 0.44rem 0.68rem;
+  min-height: var(--admin-button-min-height);
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -691,7 +706,7 @@ export const StatusBadge = styled.span`
   font-size: 0.63rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  min-height: 22px;
+  min-height: var(--admin-compact-pill-min-height);
   padding: 0 0.44rem;
   text-transform: uppercase;
   width: fit-content;

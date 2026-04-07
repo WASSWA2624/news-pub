@@ -1,7 +1,7 @@
 # 09 Admin Information Architecture
 
 Source sections: 3, 6, 9, 11, 14, 21, 23, 24.
-Atomic aspect: admin routes, navigation, and surface ownership only.
+Atomic aspect: admin routes, navigation, surface ownership, and shared screen interaction contracts only.
 Prerequisite: step 08.
 
 ## Goal
@@ -38,11 +38,13 @@ Turn the current admin workspace into a NewsPub operations console with stable r
    - analytics dashboard for NewsPub operations
 4. Remove prompt, localization, manufacturer, generation, and comment screens from the active admin IA.
 5. Ensure each admin route has a single owning screen or feature module.
+6. Apply one shared admin interaction contract across the major route owners so long-form forms and editors reuse the same disclosure, validation, and button-sizing language.
 
 ## Required Outputs
 
 - `src/app/admin/*`
 - `src/components/layout/admin-shell.js`
+- shared admin form or disclosure primitives used by owning screens
 - admin screen route wrappers
 - navigation and route ownership docs in code or ADRs
 
@@ -52,6 +54,7 @@ Turn the current admin workspace into a NewsPub operations console with stable r
 - admin navigation matches the route map across all breakpoints
 - no retired AI, manufacturer, localization, or comment screens remain in active navigation
 - each page has a clear module owner
+- provider, destination, stream, template, and post-editor screens use the same section, validation, and action sizing vocabulary
 
 ## Exit Criteria
 

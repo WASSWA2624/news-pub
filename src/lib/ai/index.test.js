@@ -138,7 +138,11 @@ describe("destination optimization", () => {
     const result = await optimizeDestinationPayload(createOptimizationFixture(), db);
 
     expect(result.cacheHit).toBe(true);
-    expect(result.payload).toEqual(cachedPayload);
+    expect(result.aiResolution).toMatchObject({
+      reasonCode: "ai_completed",
+      status: "COMPLETED",
+    });
+    expect(result.payload).toMatchObject(cachedPayload);
     expect(result.policy).toEqual({
       readinessChecks: [],
       reasons: [],
@@ -166,12 +170,35 @@ describe("destination optimization", () => {
     );
 
     expect(result.cacheHit).toBe(false);
-    expect(result.cacheRecord.status).toBe("FALLBACK");
+    expect(result.cacheRecord.status).toBe("SKIPPED");
+    expect(result.aiResolution).toMatchObject({
+      reasonCode: "ai_disabled",
+      status: "SKIPPED",
+    });
     expect(countWords(result.payload.title)).toBeLessThan(15);
     expect(countWords(result.payload.body)).toBeGreaterThanOrEqual(100);
     expect(countWords(result.payload.body)).toBeLessThanOrEqual(500);
     expect(result.payload.metaTitle).toBeTruthy();
     expect(result.payload.metaDescription).toBeTruthy();
+  });
+
+  it("marks the optimization as skipped when AI is enabled but credentials are missing", async () => {
+    process.env.AI_OPTIMIZATION_ENABLED = "true";
+    process.env.OPENAI_API_KEY = "";
+
+    const db = createOptimizationDb();
+    const { optimizeDestinationPayload } = await import("./index");
+    const result = await optimizeDestinationPayload(createOptimizationFixture(), db);
+
+    expect(result.cacheRecord.status).toBe("SKIPPED");
+    expect(result.aiResolution).toMatchObject({
+      reasonCode: "ai_credentials_missing",
+      status: "SKIPPED",
+    });
+    expect(result.payload.aiResolution).toMatchObject({
+      reasonCode: "ai_credentials_missing",
+      status: "SKIPPED",
+    });
   });
 
   it("normalizes facebook AI output back into the supported title and body bounds", async () => {
@@ -265,12 +292,55 @@ describe("destination optimization", () => {
     const result = await optimizeDestinationPayload(createOptimizationFixture(), db);
 
     expect(result.cacheRecord.status).toBe("FALLBACK");
+    expect(result.aiResolution).toMatchObject({
+      reasonCode: "ai_invalid_structured_output",
+      status: "FALLBACK",
+    });
     expect(result.cacheRecord.errorMessage).toBe("AI response failed schema validation.");
     expect(result.payload.warnings).toEqual(
       expect.arrayContaining([
         expect.stringContaining("deterministic fallback formatter"),
       ]),
     );
+  });
+
+  it("falls back safely when the AI request times out", async () => {
+    process.env.OPENAI_API_KEY = "openai-key";
+    process.env.AI_REQUEST_TIMEOUT_MS = "1";
+
+    vi.doMock("ai", () => ({
+      generateObject: vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                object: {
+                  body: "Slow response body",
+                  title: "Slow response title",
+                  warnings: [],
+                },
+              });
+            }, 25);
+          }),
+      ),
+    }));
+    vi.doMock("@ai-sdk/openai", () => ({
+      createOpenAI: () => () => "mock-model",
+    }));
+
+    const db = createOptimizationDb();
+    const { optimizeDestinationPayload } = await import("./index");
+    const result = await optimizeDestinationPayload(createOptimizationFixture(), db);
+
+    expect(result.cacheRecord.status).toBe("FALLBACK");
+    expect(result.aiResolution).toMatchObject({
+      reasonCode: "ai_timeout",
+      status: "FALLBACK",
+    });
+    expect(result.payload.aiResolution).toMatchObject({
+      reasonCode: "ai_timeout",
+      status: "FALLBACK",
+    });
   });
 
   it("blocks policy-unsafe content before publication continues downstream", async () => {

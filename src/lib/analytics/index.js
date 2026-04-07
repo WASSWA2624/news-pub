@@ -27,6 +27,8 @@ export const observabilityFailureActionValues = Object.freeze([
 ]);
 
 export const observabilityWarningActionValues = Object.freeze([
+  "AI_OPTIMIZATION_FALLBACK_USED",
+  "AI_OPTIMIZATION_SKIPPED",
   "FETCH_RUN_WARNING",
   "PUBLISH_ATTEMPT_WARNING",
 ]);

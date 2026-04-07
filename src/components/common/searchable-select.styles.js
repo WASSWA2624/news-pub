@@ -52,11 +52,11 @@ export const TriggerButton = styled.button`
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
-  gap: 0.42rem;
+  gap: var(--admin-control-gap);
   justify-content: space-between;
-  min-height: 34px;
+  min-height: var(--admin-control-min-height);
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0.46rem 0.58rem;
+  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
   text-align: left;
   transition:
     background 160ms ease,
@@ -275,7 +275,7 @@ export const SearchWrap = styled.div`
   display: flex;
   flex: 0 0 auto;
   gap: 0.32rem;
-  min-height: 30px;
+  min-height: calc(var(--admin-control-min-height) - 8px);
   padding: 0 0.48rem;
 `;
 

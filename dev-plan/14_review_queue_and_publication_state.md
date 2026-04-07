@@ -24,6 +24,7 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
    - `REVIEW_REQUIRED` creates or updates a draft post in the review queue
 6. Support manual review, optimize, approve, reject, schedule, publish, retry, and archive actions from the post editor.
 7. Keep the canonical post linked to the originating normalized article and its destination matches.
+8. Show per-match optimization state and reason details in the review queue, post editor, and publish diagnostics so optional AI skip or fallback outcomes stay visible without blocking manual publication.
 
 ## Required Outputs
 
@@ -37,6 +38,7 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
 - published stories appear only in the published inventory
 - status and editorial stage remain separate persisted values
 - manual optimize, approve, reject, publish, and schedule actions update the correct queue states and surface policy or optimization diagnostics clearly
+- `SKIPPED` and `FALLBACK` optimization states remain visible to editors and do not remove manual approval or publish controls
 
 ## Exit Criteria
 

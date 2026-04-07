@@ -30,8 +30,9 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
    - retry counts
    - top stories
    - connection health summaries
-3. Keep analytics visibility behind RBAC where required.
-4. Show recent operational status and public traffic in the same admin dashboard without mixing raw logs into KPI cards.
+3. Preserve optimization diagnostics on recent publish-attempt reporting so admin reporting surfaces can distinguish completed AI output from `SKIPPED` or `FALLBACK` handling.
+4. Keep analytics visibility behind RBAC where required.
+5. Show recent operational status and public traffic in the same admin dashboard without mixing raw logs into KPI cards.
 
 ## Required Outputs
 
@@ -46,6 +47,7 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
 - top-story and traffic widgets use persisted `ViewEvent` data
 - analytics-restricted users see the intended limited dashboard state
 - the dashboard no longer reports generation-job or equipment-specific metrics
+- recent publish reporting preserves optimization status and AI resolution diagnostics for operator review
 
 ## Exit Criteria
 

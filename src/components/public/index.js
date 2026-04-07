@@ -7,7 +7,6 @@ import SearchableSelect from "@/components/common/searchable-select";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
 import { publicPageUtils } from "@/components/public/public-page-utils";
-import ShareActions from "@/components/public/share-actions";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 const {
   createShareLinks,
@@ -99,57 +98,42 @@ const Description = styled.p`
   max-width: none;
 `;
 
-const SummaryGrid = styled.div`
-  display: grid;
-  gap: 0.3rem;
-
-  @media (min-width: 760px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-`;
-
-const SummaryCard = styled.article`
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 0;
-  display: grid;
-  gap: 0.04rem;
-  padding: 0.34rem 0.46rem;
-`;
-
-const SummaryCardHeader = styled.div`
+const HeroAdPlaceholder = styled.section`
   align-items: center;
-  display: flex;
-  gap: 0.4rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 252, 0.92)),
+    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.1), transparent 44%);
+  border: 1px dashed rgba(var(--theme-primary-rgb), 0.2);
+  display: grid;
+  gap: 0.36rem;
+  justify-items: center;
+  min-height: 110px;
+  padding: clamp(0.8rem, 2vw, 1rem);
+  text-align: center;
 `;
 
-const SummaryIconBadge = styled.span`
-  align-items: center;
-  background: rgba(var(--theme-primary-rgb), 0.08);
-  border: 1px solid rgba(var(--theme-primary-rgb), 0.12);
-  border-radius: 0;
-  color: var(--theme-primary);
-  display: inline-flex;
-  flex: 0 0 auto;
-  height: 1.8rem;
-  justify-content: center;
-  width: 1.8rem;
-
-  svg {
-    display: block;
-    height: 0.84rem;
-    width: 0.84rem;
-  }
+const HeroAdEyebrow = styled.p`
+  color: rgba(var(--theme-primary-rgb), 0.74);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  margin: 0;
+  text-transform: uppercase;
 `;
 
-const SummaryValue = styled.strong`
+const HeroAdTitle = styled.h2`
   color: #132949;
-  font-size: 0.82rem;
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
 `;
 
-const SummaryLabel = styled.span`
-  color: rgba(74, 88, 113, 0.82);
-  font-size: 0.66rem;
+const HeroAdText = styled.p`
+  color: rgba(74, 88, 113, 0.84);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
 `;
 
 const ContentGrid = styled.div`
@@ -170,6 +154,53 @@ const Panel = styled.section`
   display: grid;
   gap: 0.72rem;
   padding: clamp(0.78rem, 1.9vw, 1rem);
+`;
+
+const AdPlaceholderPanel = styled(Panel)`
+  background:
+    linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(244, 248, 252, 0.96)),
+    radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.08), transparent 54%);
+  border-style: dashed;
+  min-height: 240px;
+  place-items: center;
+  text-align: center;
+`;
+
+const AdPlaceholderFrame = styled.div`
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px dashed rgba(var(--theme-primary-rgb), 0.22);
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  min-height: 180px;
+  padding: 1rem;
+  width: 100%;
+`;
+
+const AdPlaceholderLabel = styled.p`
+  color: rgba(var(--theme-primary-rgb), 0.74);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  margin: 0;
+  text-transform: uppercase;
+`;
+
+const AdPlaceholderTitle = styled.h3`
+  color: #1a2946;
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+`;
+
+const AdPlaceholderText = styled.p`
+  color: rgba(var(--theme-muted-rgb), 0.9);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 20rem;
 `;
 
 const SectionTitle = styled.h2`
@@ -1460,35 +1491,13 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
           </HeroTitleRow>
         </Title>
         <Description>{pageContent.description}</Description>
-        <SummaryGrid>
-          <SummaryCard>
-            <SummaryCardHeader>
-              <SummaryIconBadge>
-                <AppIcon name="news" size={14} />
-              </SummaryIconBadge>
-              <SummaryLabel>{common.resultsLabel || "Published stories"}</SummaryLabel>
-            </SummaryCardHeader>
-            <SummaryValue>{pageData.summary.publishedStoryCount}</SummaryValue>
-          </SummaryCard>
-          <SummaryCard>
-            <SummaryCardHeader>
-              <SummaryIconBadge>
-                <AppIcon name="tag" size={14} />
-              </SummaryIconBadge>
-              <SummaryLabel>{common.topCategoriesTitle || "Top categories"}</SummaryLabel>
-            </SummaryCardHeader>
-            <SummaryValue>{pageData.summary.categoryCount}</SummaryValue>
-          </SummaryCard>
-          <SummaryCard>
-            <SummaryCardHeader>
-              <SummaryIconBadge>
-                <AppIcon name="clock" size={14} />
-              </SummaryIconBadge>
-              <SummaryLabel>{common.latestPostsTitle || "Latest stories"}</SummaryLabel>
-            </SummaryCardHeader>
-            <SummaryValue>{pageData.summary.latestStoryCount ?? pageData.latestStories.length}</SummaryValue>
-          </SummaryCard>
-        </SummaryGrid>
+        <HeroAdPlaceholder aria-label="Advertisement placeholder">
+          <HeroAdEyebrow>Advertisement</HeroAdEyebrow>
+          <HeroAdTitle>Advertise here</HeroAdTitle>
+          <HeroAdText>
+            Put your brand in front of our readers. Contact us to book this homepage banner placement.
+          </HeroAdText>
+        </HeroAdPlaceholder>
       </Hero>
 
       <ContentGrid>
@@ -1550,13 +1559,15 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
           </Panel>
 
           {pageData.featuredStory ? (
-            <ShareActions
-              compact
-              description={common.shareDescription || "Share this story with your audience."}
-              heading={common.shareTitle || "Share"}
-              shareTitle={pageData.featuredStory.title}
-              url={pageData.featuredStory.path}
-            />
+            <AdPlaceholderPanel aria-label="Advertisement placeholder">
+              <AdPlaceholderFrame>
+                <AdPlaceholderLabel>Advertisement</AdPlaceholderLabel>
+                <AdPlaceholderTitle>Advertise here</AdPlaceholderTitle>
+                <AdPlaceholderText>
+                  Reach engaged readers in this featured slot. Contact us to place your advert here.
+                </AdPlaceholderText>
+              </AdPlaceholderFrame>
+            </AdPlaceholderPanel>
           ) : null}
         </div>
       </ContentGrid>

@@ -121,7 +121,7 @@ const CloseButton = styled.button`
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 1.1rem;
-  height: 2.2rem;
+  height: var(--admin-icon-button-size);
   justify-content: center;
   line-height: 1;
   transition:
@@ -129,7 +129,7 @@ const CloseButton = styled.button`
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
-  width: 2.2rem;
+  width: var(--admin-icon-button-size);
 
   &:hover {
     border-color: rgba(15, 111, 141, 0.18);
@@ -144,8 +144,11 @@ const CloseButton = styled.button`
 
 const Body = styled.div`
   min-height: 0;
+  overscroll-behavior: contain;
   overflow-y: auto;
   padding: clamp(0.75rem, 1.7vw, 0.95rem);
+  scroll-padding-block-end: 7rem;
+  scrollbar-gutter: stable;
   scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
   scrollbar-width: thin;
 
@@ -239,6 +242,13 @@ const TriggerSecondary = styled(SecondaryButton)`
   width: ${({ $fullWidth }) => ($fullWidth ? "100%" : "fit-content")};
 `;
 
+/**
+ * Wraps long-form admin workflows in a consistent modal shell with stable
+ * header context and footer-mounted actions.
+ *
+ * @param {object} props - Modal content, trigger, and layout props.
+ * @returns {JSX.Element} Modal trigger plus the portal-backed dialog surface.
+ */
 export default function AdminFormModal({
   autoOpen = false,
   cancelLabel = "Cancel",
@@ -381,6 +391,13 @@ export default function AdminFormModal({
   );
 }
 
+/**
+ * Mounts form actions into the persistent modal footer so long forms keep their
+ * primary actions visible without duplicating button rows inside the body.
+ *
+ * @param {object} props - Portal content props.
+ * @returns {React.ReactPortal|null} Footer-mounted action content.
+ */
 export function AdminModalFooterActions({ children }) {
   const target = useContext(FooterPortalContext);
 

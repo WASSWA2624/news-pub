@@ -13,8 +13,6 @@ import {
   Field,
   FieldGrid,
   FieldLabel,
-  FormSection,
-  FormSectionTitle,
   Input,
   LinkButton,
   NoticeBanner,
@@ -29,12 +27,18 @@ import {
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import { AdminDisclosureSection } from "@/components/admin/admin-form-primitives";
 import SearchableSelect from "@/components/common/searchable-select";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { getManualPostCreationSnapshot } from "@/features/posts";
 import { createManualPostAction } from "../../actions";
 
+/**
+ * Renders the manual story creation page for the admin editorial workspace.
+ *
+ * @returns {Promise<JSX.Element>} The manual story composer page.
+ */
 export default async function NewManualPostPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
@@ -76,8 +80,14 @@ export default async function NewManualPostPage() {
 
           {availableStreams.length ? (
             <form action={createManualPostAction}>
-              <FormSection>
-                <FormSectionTitle>Routing</FormSectionTitle>
+              <AdminDisclosureSection
+                defaultOpen
+                meta={[
+                  { label: snapshot.defaultStreamId ? "Stream ready" : "Pick stream", tone: snapshot.defaultStreamId ? "success" : "warning" },
+                ]}
+                summary="Choose the website stream and optional slug that should own the manual story."
+                title="Routing"
+              >
                 <FieldGrid>
                   <Field as="div">
                     <FieldLabel>Website stream</FieldLabel>
@@ -94,10 +104,14 @@ export default async function NewManualPostPage() {
                     <Input name="slug" placeholder="optional-custom-slug" />
                   </Field>
                 </FieldGrid>
-              </FormSection>
+              </AdminDisclosureSection>
 
-              <FormSection>
-                <FormSectionTitle>Source attribution</FormSectionTitle>
+              <AdminDisclosureSection
+                defaultOpen={false}
+                meta={[{ label: "Required attribution", tone: "muted" }]}
+                summary="Store the human-visible source attribution that NewsPub keeps attached to the canonical story."
+                title="Source attribution"
+              >
                 <FieldGrid>
                   <Field>
                     <FieldLabel>Source name</FieldLabel>
@@ -108,10 +122,14 @@ export default async function NewManualPostPage() {
                     <Input name="sourceUrl" placeholder="https://example.com/source-story" required type="url" />
                   </Field>
                 </FieldGrid>
-              </FormSection>
+              </AdminDisclosureSection>
 
-              <FormSection>
-                <FormSectionTitle>Story copy</FormSectionTitle>
+              <AdminDisclosureSection
+                defaultOpen
+                meta={[{ label: "Editorial draft", tone: "accent" }]}
+                summary="Enter the canonical copy that the website stream, editor, and publish history will continue to manage."
+                title="Story copy"
+              >
                 <Field>
                   <FieldLabel>Title</FieldLabel>
                   <Input name="title" required />
@@ -122,12 +140,16 @@ export default async function NewManualPostPage() {
                 </Field>
                 <Field>
                   <FieldLabel>Body markdown</FieldLabel>
-                  <Textarea name="contentMd" required style={{ minHeight: "320px" }} />
-                </Field>
-              </FormSection>
+                    <Textarea name="contentMd" required style={{ minHeight: "320px" }} />
+                  </Field>
+              </AdminDisclosureSection>
 
-              <FormSection>
-                <FormSectionTitle>Publishing</FormSectionTitle>
+              <AdminDisclosureSection
+                defaultOpen={false}
+                meta={[{ label: "Draft, schedule, or publish", tone: "muted" }]}
+                summary="Assign categories, choose an optional publish time, and decide whether this story should save, schedule, or publish immediately."
+                title="Publishing"
+              >
                 <Field as="div">
                   <FieldLabel>Categories</FieldLabel>
                   <SearchableSelect
@@ -162,7 +184,7 @@ export default async function NewManualPostPage() {
                     Publish now
                   </PrimaryButton>
                 </ButtonRow>
-              </FormSection>
+              </AdminDisclosureSection>
             </form>
           ) : (
             <EmptyState>

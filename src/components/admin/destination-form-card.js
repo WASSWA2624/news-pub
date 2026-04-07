@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import {
@@ -9,23 +9,28 @@ import {
   ButtonRow,
   CheckboxChip,
   CheckboxRow,
+  FieldErrorText,
   Field,
   FieldGrid,
+  FieldHint,
   FieldLabel,
-  FormSection,
-  FormSectionTitle,
   Input,
   NoticeBanner,
   NoticeItem,
   NoticeList,
   NoticeTitle,
-  PrimaryButton,
   SecondaryButton,
   SmallText,
   Textarea,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import {
+  AdminDisclosureSection,
+  AdminValidationSummary,
+  scrollToFirstBlockingField,
+} from "@/components/admin/admin-form-primitives";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
+import { PendingSubmitButton } from "@/components/admin/pending-action";
 import {
   destinationFormUtils,
   socialGuardrailFieldDefinitions,
@@ -46,6 +51,7 @@ const {
   createDestinationSlug,
   decodeDiscoveryValue,
   formatAccountHandle,
+  getPrimaryAccountIdForKind,
   hasMetaCredentialDefaults,
   normalizeMetaCredentialDefaults,
   normalizeDisplayText,
@@ -59,15 +65,6 @@ const {
 const DestinationForm = styled.form`
   display: grid;
   gap: 0.95rem;
-`;
-
-const SectionSurface = styled.div`
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: var(--theme-radius-lg, 2px);
-  display: grid;
-  gap: 0.7rem;
-  padding: 0.9rem;
 `;
 
 const WideGrid = styled(FieldGrid)`
@@ -140,6 +137,12 @@ function getStatusTone(status) {
   return "warning";
 }
 
+/**
+ * Renders the destination editor used by the admin destinations workspace modal.
+ *
+ * @param {object} props - Destination form configuration props.
+ * @returns {JSX.Element} The destination editor form.
+ */
 export default function DestinationFormCard({
   action,
   connectionStatusOptions = [],
@@ -299,7 +302,35 @@ export default function DestinationFormCard({
       targetType: "",
     };
   }, [activeFacebookSelection.sourceKey, activeFacebookSelection.targetId, activeInstagramSelection.sourceKey, activeInstagramSelection.targetId, kind]);
+  const formRef = useRef(null);
   const hasFormErrors = issues.length > 0 || Boolean(parsedAdvancedSettings.error) || socialGuardrailErrors.length > 0;
+  const socialGuardrailErrorMap = useMemo(
+    () =>
+      socialGuardrailFieldDefinitions.reduce((result, field) => {
+        if (!toPositiveInteger(socialGuardrails[field.key])) {
+          result[field.key] = `${field.label} must be greater than 0.`;
+        }
+
+        return result;
+      }, {}),
+    [socialGuardrails],
+  );
+  const validationMessages = useMemo(
+    () => [
+      ...issues.map((issue) => issue.message),
+      ...socialGuardrailErrors,
+      ...(parsedAdvancedSettings.error ? [parsedAdvancedSettings.error] : []),
+    ],
+    [issues, parsedAdvancedSettings.error, socialGuardrailErrors],
+  );
+  const metaDiscoveryWarnings = useMemo(
+    () => [
+      ...(metaDiscovery.error ? [metaDiscovery.error] : []),
+      ...((metaDiscovery.data?.errors || []).map((error) =>
+        `${error.sourceLabel ? `${error.sourceLabel}: ` : ""}${error.message}`)),
+    ],
+    [metaDiscovery.data?.errors, metaDiscovery.error],
+  );
 
   function activateCredentialOverrides() {
     if (hasCredentialDefaults && !useDestinationCredentialOverrides) {
@@ -512,10 +543,11 @@ export default function DestinationFormCard({
     }
 
     event.preventDefault();
+    scrollToFirstBlockingField(formRef.current);
   }
 
   return (
-    <DestinationForm action={action} id={formId} onSubmit={handleSubmit}>
+    <DestinationForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
       <input name="externalAccountId" type="hidden" value={submittedExternalAccountId} />
       <input name="graphApiBaseUrl" type="hidden" value={submittedGraphApiBaseUrl} />
       <input name="instagramUserId" type="hidden" value={submittedInstagramUserId} />
@@ -541,8 +573,27 @@ export default function DestinationFormCard({
         <input key={field.key} name={`socialGuardrail.${field.key}`} type="hidden" value={socialGuardrails[field.key] || ""} />
       ))}
 
-      <SectionSurface>
-        <FormSectionTitle>Routing and status</FormSectionTitle>
+      <AdminValidationSummary
+        items={validationMessages}
+        title="Fix the highlighted destination sections before saving."
+      />
+
+      <AdminDisclosureSection
+        defaultOpen
+        errorCount={issues.length}
+        meta={[
+          {
+            label: formatEnumLabel(platform),
+            tone: "muted",
+          },
+          {
+            label: formatEnumLabel(connectionStatus),
+            tone: getStatusTone(connectionStatus),
+          },
+        ]}
+        summary="Choose the platform, compatible destination kind, and the connection state operators should see in the admin directory."
+        title="Routing and status"
+      >
         <WideGrid>
           <Field as="div">
             <FieldLabel>Platform</FieldLabel>
@@ -555,6 +606,7 @@ export default function DestinationFormCard({
               placeholder="Select a platform"
               value={platform}
             />
+            <FieldHint>Choose the publishing surface before selecting the destination kind.</FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Kind</FieldLabel>
@@ -567,9 +619,10 @@ export default function DestinationFormCard({
               placeholder="Select a destination kind"
               value={kind}
             />
-            <SmallText>
+            <FieldHint>
               Compatible kinds for {formatEnumLabel(platform)}: {allowedKinds.join(", ") || "Choose a platform first."}
-            </SmallText>
+            </FieldHint>
+            {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
           </Field>
           <Field as="div">
             <FieldLabel>Connection status</FieldLabel>
@@ -584,12 +637,23 @@ export default function DestinationFormCard({
             <StatusHint>
               <StatusChip $tone={getStatusTone(connectionStatus)}>{formatEnumLabel(connectionStatus)}</StatusChip>
             </StatusHint>
+            <FieldHint>Set the live connection state shown across directory cards, review surfaces, and job history.</FieldHint>
           </Field>
         </WideGrid>
-      </SectionSurface>
+      </AdminDisclosureSection>
 
-      <SectionSurface>
-        <FormSectionTitle>Identity</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen
+        meta={[
+          {
+            label: name ? "Named" : "Needs name",
+            tone: name ? "success" : "warning",
+          },
+          ...(slug ? [{ label: slug, tone: "muted" }] : []),
+        ]}
+        summary="Define the saved name, stable slug, and public-facing account handle used throughout the admin workspace."
+        title="Identity"
+      >
         <WideGrid>
           <Field>
             <FieldLabel>Name</FieldLabel>
@@ -608,6 +672,7 @@ export default function DestinationFormCard({
               required
               value={name}
             />
+            <FieldHint>The saved destination name appears in stream forms, review queues, and publish attempt history.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Slug</FieldLabel>
@@ -620,6 +685,7 @@ export default function DestinationFormCard({
               required
               value={slug}
             />
+            <FieldHint>Use a stable slug when you want environment-backed Meta defaults to match this destination reliably.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Account handle</FieldLabel>
@@ -631,26 +697,30 @@ export default function DestinationFormCard({
               }}
               value={accountHandle}
             />
+            <FieldHint>Store the human-readable page or profile handle operators expect to recognize quickly.</FieldHint>
           </Field>
         </WideGrid>
-      </SectionSurface>
+      </AdminDisclosureSection>
 
-      {issues.length ? (
-        <NoticeBanner $tone="danger">
-          <NoticeTitle>Incompatible destination configuration</NoticeTitle>
-          <NoticeList>
-            {issues.map((issue) => (
-              <NoticeItem key={issue.code}>{issue.message}</NoticeItem>
-            ))}
-          </NoticeList>
-        </NoticeBanner>
-      ) : null}
-
-      <SectionSurface>
-        <FormSectionTitle>Connection details</FormSectionTitle>
-        <SmallText>
+      <AdminDisclosureSection
+        defaultOpen
+        meta={[
+          {
+            label: isMetaPlatform ? "Meta runtime" : "Website runtime",
+            tone: "muted",
+          },
+          ...(credentialInputsDisabled ? [{ label: "Env defaults active", tone: "success" }] : []),
+          ...(metaDiscovery.loading ? [{ label: "Refreshing discovery", tone: "warning" }] : []),
+          ...(metaDiscoveryWarnings.length
+            ? [{ label: `${metaDiscoveryWarnings.length} discovery notice${metaDiscoveryWarnings.length === 1 ? "" : "s"}`, tone: "warning" }]
+            : []),
+        ]}
+        summary="Connect supported Meta assets, confirm the publish target ids, and decide whether this destination should inherit environment-backed credentials or store local overrides."
+        title="Connection details"
+      >
+        <FieldHint>
           Connect supported Meta pages or accounts here. NewsPub stores the selected page or account identity and resolves a fresh publish credential at runtime when possible.
-        </SmallText>
+        </FieldHint>
         {isMetaPlatform ? (
           <>
             <ButtonRow>
@@ -666,7 +736,7 @@ export default function DestinationFormCard({
                 </SecondaryButton>
               ) : null}
             </ButtonRow>
-            <SmallText>
+            <FieldHint>
               {metaDiscovery.loading
                 ? "Loading connected Meta pages and accounts..."
                 : metaDiscovery.data
@@ -674,7 +744,7 @@ export default function DestinationFormCard({
                   : metaConfig?.hasDiscoveryAccessToken
                     ? "A refreshable Meta discovery source is configured. Refresh connected assets to prefill supported destinations automatically."
                     : "Set META_SYSTEM_USER_ACCESS_TOKEN and/or META_USER_ACCESS_TOKEN to support automatic Meta credential resolution."}
-            </SmallText>
+            </FieldHint>
             {metaDiscovery.error ? (
               <NoticeBanner $tone="danger">
                 <NoticeTitle>Meta discovery failed</NoticeTitle>
@@ -749,11 +819,11 @@ export default function DestinationFormCard({
           </>
         ) : null}
         {shouldShowFacebookDiscovery ? (
-          <Field as="div">
-            <FieldLabel>Connected Facebook page</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Connected Facebook page"
-              emptyMessage="No publish-ready Facebook pages were discovered from the configured Meta access token."
+              <Field as="div">
+                <FieldLabel>Connected Facebook page</FieldLabel>
+                <SearchableSelect
+                  ariaLabel="Connected Facebook page"
+                  emptyMessage="No publish-ready Facebook pages were discovered from the configured Meta access token."
               loading={metaDiscovery.loading}
               loadingMessage="Loading connected Facebook pages..."
               onChange={(value) => {
@@ -774,11 +844,12 @@ export default function DestinationFormCard({
                 });
               }}
               options={facebookPageOptions}
-              placeholder="Select a connected Facebook page"
-              value={selectedFacebookPage}
-            />
-          </Field>
-        ) : null}
+                  placeholder="Select a connected Facebook page"
+                  value={selectedFacebookPage}
+                />
+                <FieldHint>Select a discovered page to prefill the publish target ids without retyping them.</FieldHint>
+              </Field>
+            ) : null}
         {shouldShowInstagramDiscovery ? (
           <Field as="div">
             <FieldLabel>Connected Instagram account</FieldLabel>
@@ -810,6 +881,7 @@ export default function DestinationFormCard({
               placeholder="Select a connected Instagram account"
               value={selectedInstagramAccount}
             />
+            <FieldHint>Select a discovered Instagram account to prefill the connected publish ids automatically.</FieldHint>
           </Field>
         ) : null}
         <WideGrid>
@@ -850,11 +922,11 @@ export default function DestinationFormCard({
               }}
               value={externalAccountId}
             />
-            <SmallText>
+            <FieldHint>
               {hasCredentialDefaults && !useDestinationCredentialOverrides
                 ? "Currently inherited from environment-backed Meta defaults."
                 : "The primary publish target ID used by the runtime publisher."}
-            </SmallText>
+            </FieldHint>
           </Field>
           {kind === "FACEBOOK_PAGE" || kind === "INSTAGRAM_BUSINESS" ? (
             <Field>
@@ -877,11 +949,11 @@ export default function DestinationFormCard({
                 }}
                 value={pageId}
               />
-              <SmallText>
+              <FieldHint>
                 {kind === "INSTAGRAM_BUSINESS"
                   ? "Optional linked Facebook page ID for the connected Instagram business account."
                   : "The Facebook page ID published to by this destination."}
-              </SmallText>
+              </FieldHint>
             </Field>
           ) : null}
           {kind === "FACEBOOK_PROFILE" ? (
@@ -898,6 +970,7 @@ export default function DestinationFormCard({
                 }}
                 value={profileId}
               />
+              <FieldHint>The profile id is stored for reference when a non-page Facebook destination is tracked manually.</FieldHint>
             </Field>
           ) : null}
           {["INSTAGRAM_BUSINESS", "INSTAGRAM_PERSONAL"].includes(kind) ? (
@@ -918,6 +991,7 @@ export default function DestinationFormCard({
                 }}
                 value={instagramUserId}
               />
+              <FieldHint>Store the runtime instagram user id that the destination publisher resolves at publish time.</FieldHint>
             </Field>
           ) : null}
           <Field>
@@ -931,9 +1005,9 @@ export default function DestinationFormCard({
               placeholder={metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v25.0"}
               value={graphApiBaseUrl}
             />
-            <SmallText>
+            <FieldHint>
               Defaults to {metaConfig?.defaultGraphApiBaseUrl || "https://graph.facebook.com/v25.0"} when no override is stored.
-            </SmallText>
+            </FieldHint>
           </Field>
           <Field>
             <FieldLabel>Update token</FieldLabel>
@@ -953,9 +1027,9 @@ export default function DestinationFormCard({
               }
               value={tokenValue}
             />
-            <SmallText>
+            <FieldHint>
               Environment credentials stay server-side. Paste a token here only for a manual destination-specific override or legacy fallback.
-            </SmallText>
+            </FieldHint>
           </Field>
         </WideGrid>
         <CheckboxRow>
@@ -975,11 +1049,24 @@ export default function DestinationFormCard({
             Clear stored destination token
           </CheckboxChip>
         </CheckboxRow>
-      </SectionSurface>
+      </AdminDisclosureSection>
 
       {isMetaPlatform ? (
-        <SectionSurface>
-          <FormSectionTitle>Publishing guardrails</FormSectionTitle>
+        <AdminDisclosureSection
+          defaultOpen
+          errorCount={socialGuardrailErrors.length}
+          meta={[
+            {
+              label: `${socialGuardrailFieldDefinitions.length} guardrail field${socialGuardrailFieldDefinitions.length === 1 ? "" : "s"}`,
+              tone: "muted",
+            },
+            ...(socialGuardrailErrors.length
+              ? [{ label: `${socialGuardrailErrors.length} issue${socialGuardrailErrors.length === 1 ? "" : "s"}`, tone: "danger" }]
+              : []),
+          ]}
+          summary="Tune the per-destination Meta publishing limits that sit on top of the environment defaults."
+          title="Publishing guardrails"
+        >
           <ButtonRow>
             <SecondaryButton
               onClick={() => setSocialGuardrails(buildInitialSocialGuardrails({}, metaConfig?.socialGuardrails || {}))}
@@ -993,6 +1080,7 @@ export default function DestinationFormCard({
               <Field key={field.key}>
                 <FieldLabel>{field.label}</FieldLabel>
                 <Input
+                  aria-invalid={socialGuardrailErrorMap[field.key] ? "true" : undefined}
                   min="1"
                   onChange={(event) =>
                     setSocialGuardrails((currentValues) => ({
@@ -1003,9 +1091,12 @@ export default function DestinationFormCard({
                   type="number"
                   value={socialGuardrails[field.key] || ""}
                 />
-                <SmallText>
+                {socialGuardrailErrorMap[field.key] ? (
+                  <FieldErrorText>{socialGuardrailErrorMap[field.key]}</FieldErrorText>
+                ) : null}
+                <FieldHint>
                   Default: {metaConfig?.socialGuardrails?.[field.key]} {field.suffix}. Backed by {field.envField}.
-                </SmallText>
+                </FieldHint>
               </Field>
             ))}
           </WideGrid>
@@ -1019,11 +1110,20 @@ export default function DestinationFormCard({
               </NoticeList>
             </NoticeBanner>
           ) : null}
-        </SectionSurface>
+        </AdminDisclosureSection>
       ) : null}
 
-      <SectionSurface>
-        <FormSectionTitle>Operational notes</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen={false}
+        meta={[
+          {
+            label: destination?.connectionError ? "Issue recorded" : "No saved issue",
+            tone: destination?.connectionError ? "warning" : "success",
+          },
+        ]}
+        summary="Store operator-facing notes about connection health without changing the runtime routing values."
+        title="Operational notes"
+      >
         <Field>
           <FieldLabel>Connection error</FieldLabel>
           <Textarea
@@ -1032,20 +1132,35 @@ export default function DestinationFormCard({
             placeholder="Graph API returned 190: Invalid OAuth 2.0 Access Token on 2026-04-06. Reconnect with a fresh token."
           />
           <FieldHelp>
-            <SmallText>Leave blank when the destination is healthy or the issue has been resolved.</SmallText>
+            <FieldHint>Leave blank when the destination is healthy or the issue has been resolved.</FieldHint>
           </FieldHelp>
         </Field>
-      </SectionSurface>
+      </AdminDisclosureSection>
 
-      <SectionSurface>
-        <FormSectionTitle>Advanced settings</FormSectionTitle>
+      <AdminDisclosureSection
+        defaultOpen={Boolean(parsedAdvancedSettings.error)}
+        errorCount={parsedAdvancedSettings.error ? 1 : 0}
+        meta={[
+          {
+            label: parsedAdvancedSettings.error ? "JSON invalid" : "JSON ready",
+            tone: parsedAdvancedSettings.error ? "danger" : "success",
+          },
+        ]}
+        summary="Store extra platform-specific settings only when they do not belong in the structured routing and credential fields above."
+        title="Advanced settings"
+      >
         <Field>
           <FieldLabel>Additional settings JSON</FieldLabel>
-          <Textarea onChange={(event) => setAdvancedSettingsJson(event.target.value)} placeholder="{}" value={advancedSettingsJson} />
+          <Textarea
+            aria-invalid={parsedAdvancedSettings.error ? "true" : undefined}
+            onChange={(event) => setAdvancedSettingsJson(event.target.value)}
+            placeholder="{}"
+            value={advancedSettingsJson}
+          />
           <FieldHelp>
-            <SmallText>
+            <FieldHint>
               Only add extra platform-specific keys here. Graph API base URL, discovered IDs, and guardrail overrides are managed above.
-            </SmallText>
+            </FieldHint>
             {parsedAdvancedSettings.error ? (
               <NoticeBanner $tone="danger">
                 <NoticeTitle>Advanced settings are invalid</NoticeTitle>
@@ -1056,27 +1171,29 @@ export default function DestinationFormCard({
             <ExampleBlock>{JSON.stringify(JSON.parse(settingsJsonValue || "{}"), null, 2)}</ExampleBlock>
           </FieldHelp>
         </Field>
-      </SectionSurface>
+      </AdminDisclosureSection>
 
-      <FormSection>
-        {destination ? (
-          <SmallText>
-            Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
-          </SmallText>
-        ) : (
-          <SmallText>
-            New destinations can be configured here with connected Meta assets, runtime credential resolution, and per-destination publishing guardrails.
-          </SmallText>
-        )}
-      </FormSection>
+      {destination ? (
+        <SmallText>
+          Streams linked: {(destination.streams || []).map((stream) => stream.name).join(", ") || "None"}
+        </SmallText>
+      ) : (
+        <SmallText>
+          New destinations can be configured here with connected Meta assets, runtime credential resolution, and per-destination publishing guardrails.
+        </SmallText>
+      )}
 
       <AdminModalFooterActions>
-        <PrimaryButton disabled={hasFormErrors} form={formId} type="submit">
-          <ButtonIcon>
-            <ActionIcon name={destination ? "save" : "plus"} />
-          </ButtonIcon>
+        <PendingSubmitButton
+          disabled={hasFormErrors}
+          form={formId}
+          icon={destination ? "save" : "plus"}
+          pendingLabel={destination ? "Saving destination..." : "Creating destination..."}
+          tone="primary"
+          type="submit"
+        >
           {submitLabel}
-        </PrimaryButton>
+        </PendingSubmitButton>
       </AdminModalFooterActions>
     </DestinationForm>
   );

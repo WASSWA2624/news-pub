@@ -2,7 +2,7 @@
 
 `news-pub` is a specification-first project for building a reuse-first news ingestion, review, AI-assisted optimization, scheduling, and publishing platform.
 
-Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, safety guardrails, and schedules, fetch news from supported external APIs, filter it locally, optimize eligible stories with a bounded AI layer, and publish qualifying stories to the website, Facebook, and Instagram.
+Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, safety guardrails, and schedules, fetch news from supported external APIs, filter it locally, optimize eligible stories with a bounded AI layer, and publish qualifying stories to the website, Facebook, and Instagram without treating AI health as a hidden prerequisite for the rest of the workflow.
 
 ## Current Status
 
@@ -28,12 +28,12 @@ NewsPub Release 1 includes:
 - locale-prefixed public routes with `en` as the default active locale
 - admin authentication with RBAC
 - env-based credential resolution for `mediastack`, `newsdata`, and `newsapi`
-- AI SDK-based optimization for eligible posts with deterministic cache reuse, policy checks, and fallback formatting
+- AI SDK-based optimization for eligible posts with deterministic cache reuse, policy checks, and non-blocking `SKIPPED` or `FALLBACK` outcomes when AI is disabled, misconfigured, or unhealthy
 - website, Facebook, and Instagram publishing
 - stream-based scheduling, filtering, deduplication, retries, and auditability
 - SEO metadata, sitemap, robots, search, analytics, and operational reporting
 
-Release 1 is not an open-ended AI content-generation product. AI is used only for bounded rewriting, SEO packaging, destination-specific formatting, and policy pre-checks. The app must preserve factual meaning, keep source attribution visible, validate structured output, and fall back safely when AI is unavailable.
+Release 1 is not an open-ended AI content-generation product. AI is used only for bounded rewriting, SEO packaging, destination-specific formatting, and policy pre-checks. The app must preserve factual meaning, keep source attribution visible, validate structured output, and fall back safely when AI is unavailable. Skipped or fallback AI states must remain visible in review queues, post editor surfaces, job history, and audit logs.
 
 ## Public And Admin Surfaces
 
@@ -65,6 +65,16 @@ Required admin route families:
 - `/admin/jobs`
 - `/admin/seo`
 - `/admin/settings`
+
+## Admin UX Standards
+
+Release 1 admin forms share one interaction contract across provider, destination, stream, template, modal, and editorial screens.
+
+- shared control sizing tokens keep primary buttons, secondary buttons, icon buttons, compact pills, and select triggers aligned across cards, tables, toolbars, and modal footers
+- shared disclosure sections show a section title, summary, and blocking state even while collapsed, and auto-open when a section contains validation errors or missing required data
+- shared validation summaries and field-level helper or error text keep problems close to the relevant section and field
+- submit failures scroll and focus the first blocking field so keyboard-only editors can recover quickly
+- modal editors keep header context stable, contain overscroll, and keep footer actions reachable during long edits
 
 ## Source Of Truth Rules
 

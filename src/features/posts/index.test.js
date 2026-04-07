@@ -794,4 +794,38 @@ describe("post image fallbacks", () => {
       entityType: "publish_attempt",
     });
   });
+
+  it("surfaces skipped AI reasons in editor snapshots so admins can see why deterministic content was used", async () => {
+    const { getPostEditorSnapshot } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [
+        createEditorArticleMatch({
+          optimizationStatus: "SKIPPED",
+          optimizedPayloadJson: {
+            aiResolution: {
+              reasonCode: "ai_credentials_missing",
+              reasonMessage: "AI credentials are missing, so NewsPub used deterministic formatting instead.",
+              status: "SKIPPED",
+              usedDeterministicFallback: true,
+            },
+            body: "Deterministic website body",
+            title: "Deterministic title",
+          },
+        }),
+      ],
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+
+    expect(snapshot.post.articleMatches[0].optimizationDetails).toMatchObject({
+      reasonCode: "ai_credentials_missing",
+      status: "SKIPPED",
+      usedDeterministicFallback: true,
+    });
+  });
 });

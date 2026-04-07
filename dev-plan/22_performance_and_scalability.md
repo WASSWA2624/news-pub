@@ -22,6 +22,7 @@ Harden NewsPub for realistic batch sizes, public traffic, and repeated scheduled
 5. Reuse stored media variants instead of regenerating them per request.
 6. Validate that the indexes from step `05` support the hottest operational queries.
 7. Add batch-size guards and timeout protections for scheduled runs.
+8. Extract shared admin field, disclosure, and action primitives where they reduce component nesting and rerender churn without adding new client-only layers unnecessarily.
 
 ## Required Outputs
 
@@ -36,6 +37,7 @@ Harden NewsPub for realistic batch sizes, public traffic, and repeated scheduled
 - admin queues remain paginated and responsive
 - scheduled runs honor configured bounds and do not process unbounded batches
 - repeated media usage does not trigger avoidable reprocessing
+- reused admin UI primitives simplify long-form screens without regressing responsiveness on lower-end devices
 
 ## Exit Criteria
 

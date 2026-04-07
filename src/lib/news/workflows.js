@@ -624,6 +624,18 @@ function getHoldReasonCodes({ policy, stream }) {
   return dedupeStrings(reasonCodes);
 }
 
+function getOptimizationAuditAction(status) {
+  if (status === "SKIPPED") {
+    return "AI_OPTIMIZATION_SKIPPED";
+  }
+
+  if (status === "FALLBACK") {
+    return "AI_OPTIMIZATION_FALLBACK_USED";
+  }
+
+  return null;
+}
+
 async function applyWebsiteOptimizedPayloadToPost(db, { payload, post, stream, translation }) {
   if (!post?.id || !payload) {
     return;
@@ -879,6 +891,16 @@ export async function applySocialPublishingGuardrails({
   };
 }
 
+/**
+ * Refreshes one article match optimization and records any non-blocking AI skip
+ * or fallback outcome without interrupting the publish workflow.
+ *
+ * @param {string} articleMatchId - Article match id to re-optimize.
+ * @param {object} [options] - Refresh options.
+ * @param {boolean} [options.force=false] - When true, bypasses cache reuse.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Optimization result plus the updated article match.
+ */
 export async function refreshArticleMatchOptimization(
   articleMatchId,
   { force = false } = {},
@@ -968,6 +990,31 @@ export async function refreshArticleMatchOptimization(
             : "OPTIMIZED",
     },
   });
+
+  const optimizationAuditAction = !optimization.cacheHit
+    ? getOptimizationAuditAction(optimization.cacheRecord?.status)
+    : null;
+
+  if (optimizationAuditAction) {
+    await createAuditEventRecord(
+      {
+        action: optimizationAuditAction,
+        entityId: articleMatch.id,
+        entityType: "article_match",
+        payloadJson: {
+          articleMatchId: articleMatch.id,
+          cacheHit: optimization.cacheHit,
+          destinationId: articleMatch.destinationId,
+          optimizationCacheId: optimization.cacheRecord?.id || null,
+          optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
+          reasonCode: optimization.aiResolution?.reasonCode || null,
+          reasonMessage: optimization.aiResolution?.reasonMessage || null,
+          streamId: articleMatch.streamId,
+        },
+      },
+      db,
+    );
+  }
 
   return {
     ...optimization,
@@ -1092,9 +1139,11 @@ async function executePublishAttempt(
     },
     data: {
       diagnosticsJson: {
+        aiResolution: optimization.aiResolution || null,
         cacheHit: optimization.cacheHit,
         optimizationCacheId: optimization.cacheRecord?.id || null,
         optimizationHash: optimization.optimizationHash,
+        optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
         policyReasons: optimization.policy.reasons,
         policyStatus: optimization.policy.status,
         policyWarnings: optimization.policy.warnings,
@@ -1220,6 +1269,7 @@ async function executePublishAttempt(
       data: {
         completedAt: failedAt,
         diagnosticsJson: {
+          aiResolution: optimization.aiResolution || null,
           cacheHit: optimization.cacheHit,
           errorDetails:
             error instanceof DestinationPublishError
@@ -1227,6 +1277,7 @@ async function executePublishAttempt(
               : null,
           optimizationCacheId: optimization.cacheRecord?.id || null,
           optimizationHash: optimization.optimizationHash,
+          optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
           policyReasons: optimization.policy.reasons,
           policyStatus: optimization.policy.status,
           policyWarnings: optimization.policy.warnings,
@@ -1291,9 +1342,11 @@ async function executePublishAttempt(
       data: {
         completedAt: publishedAt,
         diagnosticsJson: {
+          aiResolution: optimization.aiResolution || null,
           cacheHit: optimization.cacheHit,
           optimizationCacheId: optimization.cacheRecord?.id || null,
           optimizationHash: optimization.optimizationHash,
+          optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
           policyReasons: optimization.policy.reasons,
           policyStatus: optimization.policy.status,
           policyWarnings: optimization.policy.warnings,
