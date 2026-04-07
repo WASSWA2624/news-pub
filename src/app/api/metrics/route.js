@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAdminDashboardSnapshot } from "@/features/analytics";
 import { requireAdminApiPermission } from "@/lib/auth/api";
+import { createApiErrorResponse } from "@/lib/errors";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
 export async function GET(request) {
@@ -18,14 +19,7 @@ export async function GET(request) {
       data: snapshot,
       success: true,
     });
-  } catch {
-    return NextResponse.json(
-      {
-        message: "Unable to load admin metrics.",
-        status: "internal_error",
-        success: false,
-      },
-      { status: 500 },
-    );
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load admin metrics.");
   }
 }

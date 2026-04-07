@@ -1,6 +1,6 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { createAuditEventRecord, serializeAuditEvent } from "@/lib/analytics";
+import { createAuditEventRecord } from "@/lib/analytics";
 import {
   buildStoryStructuredArticle,
   createContentHash,
@@ -28,6 +28,18 @@ const manualProviderKey = "manual";
 
 function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
+}
+
+function mapAuditEvent(event) {
+  return {
+    action: event.action,
+    actorId: event.actorId || null,
+    createdAt: serializeDate(event.createdAt),
+    entityId: event.entityId,
+    entityType: event.entityType,
+    id: event.id,
+    payload: event.payloadJson || null,
+  };
 }
 
 function trimText(value) {
@@ -606,6 +618,10 @@ async function syncPostCategories(db, postId, categoryIds) {
 }
 
 async function invalidateLinkedArticleMatchOptimizations(db, postId) {
+  if (typeof db.articleMatch?.updateMany !== "function") {
+    return;
+  }
+
   await db.articleMatch.updateMany({
     data: {
       banRiskScore: null,
@@ -883,32 +899,34 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
         slug: true,
       },
     }),
-    db.auditEvent.findMany({
-      orderBy: [{ createdAt: "desc" }],
-      take: 12,
-      where: {
-        OR: [
-          {
-            entityId: post.id,
+    typeof db.auditEvent?.findMany === "function"
+      ? db.auditEvent.findMany({
+          orderBy: [{ createdAt: "desc" }],
+          take: 12,
+          where: {
+            OR: [
+              {
+                entityId: post.id,
+              },
+              {
+                entityId: {
+                  in: post.articleMatches.map((match) => match.id),
+                },
+              },
+              {
+                entityId: {
+                  in: (post.publishAttempts || []).map((attempt) => attempt.id),
+                },
+              },
+            ],
           },
-          {
-            entityId: {
-              in: post.articleMatches.map((match) => match.id),
-            },
-          },
-          {
-            entityId: {
-              in: (post.publishAttempts || []).map((attempt) => attempt.id),
-            },
-          },
-        ],
-      },
-    }),
+        })
+      : Promise.resolve([]),
   ]);
   const activeTranslation = selectTranslation(post, locale);
 
   return {
-    auditEvents: auditEvents.map(serializeAuditEvent),
+    auditEvents: auditEvents.map(mapAuditEvent),
     categories: categories.map((category) => mapCategory(category, locale)),
     editorialStageValues: editorialStageOrder,
     post: {

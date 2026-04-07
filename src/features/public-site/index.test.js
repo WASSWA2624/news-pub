@@ -140,6 +140,18 @@ describe("public site data", () => {
       path: "/en/category/technology",
       slug: "technology",
     });
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          posts: expect.any(Object),
+        }),
+      }),
+    );
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        include: expect.anything(),
+      }),
+    );
   });
 
   it("loads the first five latest stories after the featured item", async () => {
@@ -263,6 +275,13 @@ describe("public site data", () => {
       currentPage: 1,
       totalItems: 1,
     });
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          translations: expect.any(Object),
+        }),
+      }),
+    );
     expect(snapshot.items[0]).toMatchObject({
       path: "/en/news/breaking-story",
       sourceName: "Example Source",

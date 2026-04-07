@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import {
-  createLocalizedContentErrorPayload,
   getPublishedPostTranslationBySlug,
 } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
+import { createApiErrorResponse } from "@/lib/errors";
 import {
   slugParamSchema,
   validateParams,
@@ -41,8 +41,6 @@ export async function GET(request, { params }) {
       success: true,
     });
   } catch (error) {
-    const payload = createLocalizedContentErrorPayload(error);
-
-    return NextResponse.json(payload.body, { status: payload.statusCode });
+    return createApiErrorResponse(error, "Unable to load the published story.");
   }
 }

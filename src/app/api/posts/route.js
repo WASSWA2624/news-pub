@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createManualPostRecord, getPostEditorSnapshot, getPostInventorySnapshot } from "@/features/posts";
 import { ensureAdminApiPermission, requireAdminApiPermission, requireAdminApiSession } from "@/lib/auth/api";
+import { createApiErrorResponse } from "@/lib/errors";
 import { ADMIN_PERMISSIONS, getRequiredPermissionsForPostUpdate } from "@/lib/auth/rbac";
 import { validateJsonRequest } from "@/lib/validation/api-placeholders";
 
@@ -33,16 +34,20 @@ export async function GET(request) {
     return auth.response;
   }
 
-  const snapshot = await getPostInventorySnapshot({
-    page: request.nextUrl.searchParams.get("page") || undefined,
-    scope: request.nextUrl.searchParams.get("scope") || undefined,
-    search: request.nextUrl.searchParams.get("search") || undefined,
-  });
+  try {
+    const snapshot = await getPostInventorySnapshot({
+      page: request.nextUrl.searchParams.get("page") || undefined,
+      scope: request.nextUrl.searchParams.get("scope") || undefined,
+      search: request.nextUrl.searchParams.get("search") || undefined,
+    });
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load the post inventory.");
+  }
 }
 
 export async function POST(request) {
@@ -77,19 +82,23 @@ export async function POST(request) {
     }
   }
 
-  const createdRecord = await createManualPostRecord(
-    permissionPayload,
-    {
-      actorId: auth.user.id,
-    },
-  );
-  const snapshot = await getPostEditorSnapshot(createdRecord);
+  try {
+    const createdRecord = await createManualPostRecord(
+      permissionPayload,
+      {
+        actorId: auth.user.id,
+      },
+    );
+    const snapshot = await getPostEditorSnapshot(createdRecord);
 
-  return NextResponse.json(
-    {
-      data: snapshot,
-      success: true,
-    },
-    { status: 201 },
-  );
+    return NextResponse.json(
+      {
+        data: snapshot,
+        success: true,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to create the manual story.");
+  }
 }

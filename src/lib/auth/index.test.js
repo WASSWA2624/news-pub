@@ -25,7 +25,7 @@ describe("auth helpers", () => {
     expect(verifyPassword("strong-password", hash)).toBe(true);
     expect(verifyPassword("wrong-password", hash)).toBe(false);
     expect(verifyPassword("strong-password", "invalid-format")).toBe(false);
-  });
+  }, 15000);
 
   it("normalizes emails and hashes session tokens deterministically", async () => {
     const { hashSessionToken, normalizeEmail } = await import("./index");

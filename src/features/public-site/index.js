@@ -443,42 +443,101 @@ function buildPublishedLocaleWhere(locale, extraWhere = {}) {
   });
 }
 
-const publicPostInclude = Object.freeze({
+const mediaAssetSelect = Object.freeze({
+  alt: true,
+  caption: true,
+  height: true,
+  publicUrl: true,
+  sourceUrl: true,
+  width: true,
+});
+
+const publicPostSelect = Object.freeze({
   categories: {
-    include: {
-      category: true,
+    select: {
+      category: {
+        select: {
+          description: true,
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      categoryId: true,
     },
   },
-  featuredImage: true,
+  excerpt: true,
+  featuredImage: {
+    select: mediaAssetSelect,
+  },
+  id: true,
+  providerKey: true,
   publishAttempts: {
+    select: {
+      id: true,
+      platform: true,
+      status: true,
+    },
     where: {
       platform: "WEBSITE",
       status: "SUCCEEDED",
     },
   },
+  publishedAt: true,
+  slug: true,
   sourceArticle: {
     select: {
       imageUrl: true,
     },
   },
+  sourceName: true,
+  sourceUrl: true,
   translations: {
-    include: {
-      seoRecord: true,
-    },
     orderBy: {
       locale: "asc",
     },
+    select: {
+      contentHtml: true,
+      contentMd: true,
+      locale: true,
+      seoRecord: {
+        select: {
+          canonicalUrl: true,
+          keywordsJson: true,
+          metaDescription: true,
+          metaTitle: true,
+          ogImage: {
+            select: mediaAssetSelect,
+          },
+        },
+      },
+      sourceAttribution: true,
+      structuredContentJson: true,
+      summary: true,
+      title: true,
+    },
   },
+  updatedAt: true,
 });
 
 async function getPublishedCategoryCounts(db) {
   const categories = await db.category.findMany({
-    include: {
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      description: true,
+      id: true,
+      name: true,
       posts: {
-        include: {
+        select: {
           post: {
-            include: {
+            select: {
+              status: true,
               publishAttempts: {
+                select: {
+                  id: true,
+                },
                 where: {
                   platform: "WEBSITE",
                   status: "SUCCEEDED",
@@ -488,9 +547,7 @@ async function getPublishedCategoryCounts(db) {
           },
         },
       },
-    },
-    orderBy: {
-      name: "asc",
+      slug: true,
     },
   });
 
@@ -549,8 +606,8 @@ async function getLatestPublishedPosts(
   { skip = 0, take = publicHomeLatestInitialCount + 1 } = {},
 ) {
   return db.post.findMany({
-    include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select: publicPostSelect,
     skip,
     take,
     where: buildPublishedLocaleWhere(locale),
@@ -648,8 +705,8 @@ export async function getPublishedNewsIndexData({ locale = defaultLocale, page =
   });
   const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
   const posts = await db.post.findMany({
-    include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select: publicPostSelect,
     skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
     take: pagination.pageSize,
     where: buildPublishedWebsiteWhere({
@@ -698,8 +755,8 @@ export async function getPublishedCategoryPageData({ locale = defaultLocale, pag
   const totalItems = await db.post.count({ where });
   const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
   const posts = await db.post.findMany({
-    include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select: publicPostSelect,
     skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
     take: pagination.pageSize,
     where,
@@ -821,8 +878,8 @@ export async function searchPublishedStories(
   const totalItems = await db.post.count({ where });
   const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
   const posts = await db.post.findMany({
-    include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select: publicPostSelect,
     skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
     take: pagination.pageSize,
     where,
@@ -840,7 +897,7 @@ export async function searchPublishedStories(
 export async function getPublishedStoryPageData({ locale = defaultLocale, slug } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const post = await db.post.findFirst({
-    include: publicPostInclude,
+    select: publicPostSelect,
     where: buildPublishedWebsiteWhere({
       slug,
     }),
@@ -857,8 +914,8 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
   }
 
   const relatedPosts = await db.post.findMany({
-    include: publicPostInclude,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select: publicPostSelect,
     take: 4,
     where: buildPublishedWebsiteWhere({
       id: {

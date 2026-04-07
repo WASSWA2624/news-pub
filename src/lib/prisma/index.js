@@ -1,4 +1,6 @@
-import "server-only";
+if (process.env.NODE_ENV !== "test") {
+  await import("server-only");
+}
 
 import { createRequire } from "node:module";
 

@@ -252,7 +252,7 @@ export default function AdminFormModal({
   const dialogRef = useRef(null);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
   const [isOpen, setIsOpen] = useState(autoOpen);
-  const [canRenderDialog, setCanRenderDialog] = useState(false);
+  const canRenderDialog = typeof document !== "undefined";
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
@@ -264,10 +264,6 @@ export default function AdminFormModal({
   function openDialog() {
     setIsOpen(true);
   }
-
-  useEffect(() => {
-    setCanRenderDialog(true);
-  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;

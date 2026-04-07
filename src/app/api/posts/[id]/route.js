@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { getPostEditorSnapshot, updatePostEditorialRecord } from "@/features/posts";
 import { ensureAdminApiPermission, requireAdminApiSession } from "@/lib/auth/api";
+import { createApiErrorResponse } from "@/lib/errors";
 import { ADMIN_PERMISSIONS, getRequiredPermissionsForPostUpdate } from "@/lib/auth/rbac";
 import { idParamSchema, validateJsonRequest, validateParams } from "@/lib/validation/api-placeholders";
 
@@ -40,15 +41,19 @@ export async function GET(request, { params }) {
     return authorizationResponse;
   }
 
-  const snapshot = await getPostEditorSnapshot({
-    locale: request.nextUrl.searchParams.get("locale") || undefined,
-    postId: validatedParams.data.id,
-  });
+  try {
+    const snapshot = await getPostEditorSnapshot({
+      locale: request.nextUrl.searchParams.get("locale") || undefined,
+      postId: validatedParams.data.id,
+    });
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load the story editor snapshot.");
+  }
 }
 
 export async function PATCH(request, { params }) {
@@ -79,18 +84,22 @@ export async function PATCH(request, { params }) {
     }
   }
 
-  const record = await updatePostEditorialRecord(
-    {
-      postId: validatedParams.data.id,
-      ...validatedBody.data,
-    },
-    {
-      actorId: auth.user.id,
-    },
-  );
+  try {
+    const record = await updatePostEditorialRecord(
+      {
+        postId: validatedParams.data.id,
+        ...validatedBody.data,
+      },
+      {
+        actorId: auth.user.id,
+      },
+    );
 
-  return NextResponse.json({
-    data: record,
-    success: true,
-  });
+    return NextResponse.json({
+      data: record,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to update the story.");
+  }
 }

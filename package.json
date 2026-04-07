@@ -31,6 +31,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-redux": "^9.2.0",
+    "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "styled-components": "^6.3.12",
     "zod": "^4.3.6"

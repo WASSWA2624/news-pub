@@ -1,5 +1,3 @@
-import { generateObject } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 
 import { evaluateDestinationPolicy } from "@/lib/content/policy";
@@ -343,6 +341,10 @@ async function generateAiPayload(input) {
     return null;
   }
 
+  const [{ generateObject }, { createOpenAI }] = await Promise.all([
+    import("ai"),
+    import("@ai-sdk/openai"),
+  ]);
   const openai = createOpenAI({
     apiKey: env.ai.openaiApiKey,
   });
@@ -387,13 +389,16 @@ export async function optimizeDestinationPayload(
     translation,
   });
   const cacheKey = input.optimizationHash;
+  const hasOptimizationCacheDelegate = typeof db.optimizationCache?.findUnique === "function";
   const existingCache = force
     ? null
-    : await db.optimizationCache.findUnique({
+    : hasOptimizationCacheDelegate
+      ? await db.optimizationCache.findUnique({
         where: {
           cacheKey,
         },
-      });
+      })
+      : null;
 
   if (existingCache?.resultJson) {
     return {
@@ -411,8 +416,9 @@ export async function optimizeDestinationPayload(
     };
   }
 
-  const pendingCache = existingCache
-    ? await db.optimizationCache.update({
+  const pendingCache = hasOptimizationCacheDelegate
+    ? existingCache
+      ? await db.optimizationCache.update({
         where: {
           id: existingCache.id,
         },
@@ -421,7 +427,7 @@ export async function optimizeDestinationPayload(
           status: "PENDING",
         },
       })
-    : await db.optimizationCache.create({
+      : await db.optimizationCache.create({
         data: {
           cacheKey,
           contentHash: input.contentHash,
@@ -432,7 +438,11 @@ export async function optimizeDestinationPayload(
           settingsHash: input.settingsHash,
           status: "PENDING",
         },
-      });
+      })
+    : {
+        id: null,
+        status: "PENDING",
+      };
 
   const mediaValidation =
     input.mediaUrl
@@ -489,22 +499,35 @@ export async function optimizeDestinationPayload(
     readinessChecks: policy.readinessChecks,
     sourceAttribution: input.sourceAttribution,
   };
-  const cacheRecord = await db.optimizationCache.update({
-    where: {
-      id: pendingCache.id,
-    },
-    data: {
-      banRiskScore: policy.riskScore,
-      errorMessage,
-      model,
-      policyStatus: policy.status,
-      provider,
-      resultJson: resultPayload,
-      status: usedFallback ? "FALLBACK" : "COMPLETED",
-      usedFallback,
-      warningsJson: policy.warnings,
-    },
-  });
+  const cacheRecord = hasOptimizationCacheDelegate
+    ? await db.optimizationCache.update({
+        where: {
+          id: pendingCache.id,
+        },
+        data: {
+          banRiskScore: policy.riskScore,
+          errorMessage,
+          model,
+          policyStatus: policy.status,
+          provider,
+          resultJson: resultPayload,
+          status: usedFallback ? "FALLBACK" : "COMPLETED",
+          usedFallback,
+          warningsJson: policy.warnings,
+        },
+      })
+    : {
+        ...pendingCache,
+        banRiskScore: policy.riskScore,
+        errorMessage,
+        model,
+        policyStatus: policy.status,
+        provider,
+        resultJson: resultPayload,
+        status: usedFallback ? "FALLBACK" : "COMPLETED",
+        usedFallback,
+        warningsJson: policy.warnings,
+      };
 
   if (articleMatch?.id) {
     await db.articleMatch.update({
