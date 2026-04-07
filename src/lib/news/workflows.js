@@ -154,6 +154,9 @@ export async function resolveFetchedArticleImageUrl(article = {}) {
 }
 
 async function findLatestDuplicateArticleMatch(db, article, stream) {
+  const duplicateWindowHours = Math.max(0, Number(stream?.duplicateWindowHours || 48));
+  const duplicateWindowStart = new Date(Date.now() - duplicateWindowHours * 60 * 60 * 1000);
+
   return db.articleMatch.findFirst({
     include: {
       canonicalPost: {
