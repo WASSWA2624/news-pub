@@ -252,6 +252,7 @@ export default function AdminFormModal({
   const dialogRef = useRef(null);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
   const [isOpen, setIsOpen] = useState(autoOpen);
+  const [canRenderDialog, setCanRenderDialog] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
@@ -263,6 +264,10 @@ export default function AdminFormModal({
   function openDialog() {
     setIsOpen(true);
   }
+
+  useEffect(() => {
+    setCanRenderDialog(true);
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -325,47 +330,52 @@ export default function AdminFormModal({
           {triggerLabel}
         </TriggerButton>
       )}
-      <Dialog
-        $size={size}
-        aria-describedby={description ? descriptionId : undefined}
-        aria-labelledby={titleId}
-        data-floating-root
-        onClose={() => setIsOpen(false)}
-        onClick={(event) => {
-          if (event.target === dialogRef.current) {
-            closeDialog();
-          }
-        }}
-        ref={dialogRef}
-      >
-        <FooterPortalContext.Provider value={footerPortalTarget}>
-          <Surface $size={size}>
-            <Header>
-              <HeaderCopy>
-                <Title id={titleId}>{title}</Title>
-                {description ? <Description id={descriptionId}>{description}</Description> : null}
-              </HeaderCopy>
-              <CloseButton aria-label="Close modal" onClick={closeDialog} type="button">
-                X
-              </CloseButton>
-            </Header>
-            <Body>{!mountOnOpen || isOpen ? children : null}</Body>
-            <Footer>
-              <FooterRow>
-                <FooterCancelGroup>
-                  <SecondaryButton onClick={closeDialog} type="button">
-                    <ButtonIcon>
-                      <ActionIcon name="close" />
-                    </ButtonIcon>
-                    {cancelLabel}
-                  </SecondaryButton>
-                </FooterCancelGroup>
-                <FooterActionsMount ref={setFooterPortalTarget} />
-              </FooterRow>
-            </Footer>
-          </Surface>
-        </FooterPortalContext.Provider>
-      </Dialog>
+      {canRenderDialog
+        ? createPortal(
+            <Dialog
+              $size={size}
+              aria-describedby={description ? descriptionId : undefined}
+              aria-labelledby={titleId}
+              data-floating-root
+              onClose={() => setIsOpen(false)}
+              onClick={(event) => {
+                if (event.target === dialogRef.current) {
+                  closeDialog();
+                }
+              }}
+              ref={dialogRef}
+            >
+              <FooterPortalContext.Provider value={footerPortalTarget}>
+                <Surface $size={size}>
+                  <Header>
+                    <HeaderCopy>
+                      <Title id={titleId}>{title}</Title>
+                      {description ? <Description id={descriptionId}>{description}</Description> : null}
+                    </HeaderCopy>
+                    <CloseButton aria-label="Close modal" onClick={closeDialog} type="button">
+                      X
+                    </CloseButton>
+                  </Header>
+                  <Body>{!mountOnOpen || isOpen ? children : null}</Body>
+                  <Footer>
+                    <FooterRow>
+                      <FooterCancelGroup>
+                        <SecondaryButton onClick={closeDialog} type="button">
+                          <ButtonIcon>
+                            <ActionIcon name="close" />
+                          </ButtonIcon>
+                          {cancelLabel}
+                        </SecondaryButton>
+                      </FooterCancelGroup>
+                      <FooterActionsMount ref={setFooterPortalTarget} />
+                    </FooterRow>
+                  </Footer>
+                </Surface>
+              </FooterPortalContext.Provider>
+            </Dialog>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

@@ -31,27 +31,26 @@ import StreamFormCard from "@/components/admin/stream-form-card";
 
 const TargetingCard = styled.section`
   background:
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 32%),
-    radial-gradient(circle at 12% 18%, rgba(224, 165, 58, 0.08), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(244, 249, 253, 0.975));
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 22px;
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.09), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 253, 0.96));
+  border: 1px solid rgba(16, 32, 51, 0.07);
+  border-radius: 18px;
   box-shadow:
-    0 20px 44px rgba(17, 31, 55, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 12px 28px rgba(17, 31, 55, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
   display: grid;
-  gap: 0.85rem;
+  gap: 0.75rem;
   overflow: hidden;
-  padding: clamp(0.85rem, 2vw, 1.05rem);
+  padding: clamp(0.72rem, 1.8vw, 0.9rem);
 `;
 
 const TargetingLayout = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 
   @media (min-width: 980px) {
     align-items: start;
-    grid-template-columns: minmax(0, 1.2fr) minmax(330px, 0.82fr);
+    grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.7fr);
   }
 `;
 
@@ -59,12 +58,12 @@ const TargetingCopy = styled.div`
   display: grid;
   align-content: start;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42)),
-    radial-gradient(circle at top left, rgba(15, 111, 141, 0.06), transparent 38%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 20px;
-  gap: 0.45rem;
-  padding: clamp(0.85rem, 2vw, 1rem);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(251, 253, 255, 0.82)),
+    radial-gradient(circle at top left, rgba(15, 111, 141, 0.04), transparent 34%);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 16px;
+  gap: 0.35rem;
+  padding: clamp(0.72rem, 1.8vw, 0.9rem);
 `;
 
 const TargetingEyebrow = styled.span`
@@ -77,9 +76,9 @@ const TargetingEyebrow = styled.span`
 
 const TargetingTitle = styled.h2`
   color: #162744;
-  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  font-size: clamp(0.98rem, 1.8vw, 1.22rem);
   letter-spacing: -0.045em;
-  line-height: 1.1;
+  line-height: 1.08;
   margin: 0;
 `;
 
@@ -98,7 +97,7 @@ const TitleWithIcon = styled.span`
 const ActionRow = styled.div`
   align-items: center;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.55rem;
 
   @media (min-width: 860px) {
     align-items: center;
@@ -109,7 +108,7 @@ const ActionRow = styled.div`
 const TargetSummary = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 `;
 
 const SummaryPill = styled.span`
@@ -127,11 +126,11 @@ const SummaryPill = styled.span`
   border-radius: 999px;
   color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  gap: 0.42rem;
-  min-height: 34px;
-  padding: 0 0.72rem;
+  gap: 0.35rem;
+  min-height: 30px;
+  padding: 0 0.62rem;
 `;
 
 const PrimaryActionButton = styled.button`
@@ -147,12 +146,12 @@ const PrimaryActionButton = styled.button`
   color: white;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 800;
-  gap: 0.5rem;
-  min-height: 42px;
+  gap: 0.42rem;
+  min-height: 36px;
   opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: 0 1rem;
+  padding: 0 0.82rem;
   transition:
     box-shadow 160ms ease,
     transform 160ms ease;
@@ -481,28 +480,30 @@ const ScopeHeader = styled.div`
   align-items: start;
   display: grid;
   background:
-    linear-gradient(180deg, rgba(245, 249, 253, 0.85), rgba(255, 255, 255, 0.72)),
-    radial-gradient(circle at top left, rgba(15, 111, 141, 0.05), transparent 44%);
+    linear-gradient(180deg, rgba(248, 251, 254, 0.92), rgba(255, 255, 255, 0.84));
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: 18px;
-  gap: 0.7rem;
-  padding: 0.72rem;
+  border-radius: 14px;
+  gap: 0.6rem;
+  padding: 0.65rem;
 `;
 
 const ScopeGroupGrid = styled.div`
   display: grid;
-  gap: 0.75rem;
+  gap: 0.55rem;
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 `;
 
 const ScopeGroupCard = styled.section`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 252, 255, 0.82)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.04), transparent 56%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 252, 255, 0.9));
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
-  gap: 0.65rem;
-  padding: 0.72rem;
+  gap: 0.5rem;
+  padding: 0.62rem;
 `;
 
 const ScopeGroupHeader = styled.div`
@@ -520,21 +521,21 @@ const ScopeGroupTitleBlock = styled.div`
 
 const ScopeGroupTitle = styled.strong`
   color: #162744;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 `;
 
 const ScopeGroupMeta = styled.span`
   color: rgba(72, 85, 108, 0.88);
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.66rem;
+  line-height: 1.35;
 `;
 
 const ScopeRail = styled.div`
   display: grid;
-  gap: 0.45rem;
+  gap: 0.38rem;
 
   @media (min-width: 640px) {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -561,11 +562,11 @@ const ScopeActionButton = styled.button`
   color: #22344f;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 800;
-  min-height: 34px;
+  min-height: 28px;
   opacity: ${({ disabled }) => (disabled ? 0.52 : 1)};
-  padding: 0 0.76rem;
+  padding: 0 0.62rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -586,19 +587,19 @@ const ScopeCheckbox = styled.label`
       ? "linear-gradient(135deg, #0f6f8d 0%, #0d5f79 100%)"
       : "rgba(255, 255, 255, 0.92)"};
   border: 1px solid ${({ $active }) => ($active ? "transparent" : "rgba(16, 32, 51, 0.09)")};
-  border-radius: 999px;
+  border-radius: 14px;
   box-shadow: ${({ $active }) =>
-    $active ? "0 12px 24px rgba(15, 96, 121, 0.16)" : "0 8px 18px rgba(18, 34, 58, 0.04)"};
+    $active ? "0 8px 18px rgba(15, 96, 121, 0.14)" : "0 6px 14px rgba(18, 34, 58, 0.035)"};
   color: ${({ $active }) => ($active ? "white" : "#22344f")};
   cursor: pointer;
   display: flex;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 800;
-  gap: 0.55rem;
-  min-height: 44px;
+  gap: 0.48rem;
+  min-height: 0;
   justify-content: space-between;
   min-width: 0;
-  padding: 0.78rem 0.95rem;
+  padding: 0.62rem 0.72rem;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -614,14 +615,14 @@ const ScopeCheckbox = styled.label`
     accent-color: ${({ $active }) => ($active ? "white" : "#0d5f79")};
     flex: 0 0 auto;
     margin: 0;
-    transform: scale(1.08);
+    transform: scale(1);
   }
 `;
 
 const ScopeCheckboxLeading = styled.span`
-  align-items: flex-start;
+  align-items: center;
   display: flex;
-  gap: 0.65rem;
+  gap: 0.5rem;
   min-width: 0;
 `;
 
@@ -648,20 +649,20 @@ const ScopeDestinationBadge = styled.span`
         : "#0d5f79"};
   display: inline-flex;
   flex: 0 0 auto;
-  height: 2rem;
+  height: 1.7rem;
   justify-content: center;
-  width: 2rem;
+  width: 1.7rem;
 
   svg {
     display: block;
-    height: 0.92rem;
-    width: 0.92rem;
+    height: 0.78rem;
+    width: 0.78rem;
   }
 `;
 
 const ScopeCheckboxBody = styled.span`
   display: grid;
-  gap: 0.14rem;
+  gap: 0.08rem;
   min-width: 0;
 `;
 
@@ -675,9 +676,9 @@ const ScopeCheckboxLabel = styled.span`
 const ScopeCheckboxMeta = styled.span`
   color: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.82)" : "rgba(72, 85, 108, 0.88)")};
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.25;
 `;
 
 const ScopeCount = styled.span`
@@ -690,39 +691,42 @@ const ScopeCount = styled.span`
   color: inherit;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  min-height: 24px;
-  padding: 0 0.5rem;
+  min-height: 20px;
+  padding: 0 0.42rem;
 `;
 
 const TargetingNotes = styled.div`
   display: grid;
   align-content: start;
-  gap: 0.55rem;
+  gap: 0.45rem;
+
+  @media (max-width: 979px) {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 `;
 
 const NoteCard = styled.div`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 56%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: 16px;
-  box-shadow: 0 10px 20px rgba(18, 34, 58, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(18, 34, 58, 0.035);
   display: grid;
-  gap: 0.3rem;
-  padding: 0.8rem 0.9rem;
+  gap: 0.18rem;
+  padding: 0.7rem 0.78rem;
 `;
 
 const NoteLabel = styled.strong`
   color: #162744;
-  font-size: 0.84rem;
+  font-size: 0.76rem;
 `;
 
 const NoteText = styled.p`
   color: rgba(72, 85, 108, 0.92);
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: 0.72rem;
+  line-height: 1.35;
   margin: 0;
 `;
 
@@ -1479,7 +1483,7 @@ export default function StreamManagementScreen({
             <TargetingTitle>
               <TitleWithIcon>
                 <AppIcon name="streams" size={16} />
-                Choose the destinations you want this stream workflow to target.
+                Choose the destinations this workflow should target.
               </TitleWithIcon>
             </TargetingTitle>
             <SmallText>{scopeDescription}</SmallText>
@@ -1626,7 +1630,7 @@ export default function StreamManagementScreen({
             <NoteCard>
               <NoteLabel>How settings apply</NoteLabel>
               <NoteText>
-                Destination, template, and publishing behavior continue to use the saved settings already attached to each selected website, Facebook, or Instagram target.
+                Saved destination, template, and publishing settings stay attached to each selected target.
               </NoteText>
             </NoteCard>
           </TargetingNotes>
