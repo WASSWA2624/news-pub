@@ -28,8 +28,8 @@ Freeze the high-level NewsPub architecture before any large-scale repo reshaping
 
 ## Required Outputs
 
-- ADR documents under `docs/adr/`
-- an updated `docs/architecture-summary.md`
+- updated architecture sections in `app-write-up.md`
+- updated release-traceability expectations in `dev-plan/24_release_traceability_and_cutover.md`
 
 ## Verify
 

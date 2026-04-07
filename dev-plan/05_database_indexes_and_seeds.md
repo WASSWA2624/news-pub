@@ -19,7 +19,7 @@ Add the indexes and deterministic seed data needed for NewsPub to boot into a us
 2. Seed the admin user from env.
 3. Seed a baseline internal news taxonomy that admins can edit later.
 4. Seed provider rows for `mediastack`, `newsdata`, and `newsapi`, with `mediastack` enabled as the default provider.
-5. Seed the default website destination and at least one inactive placeholder template per supported platform.
+5. Seed the default website destination and at least one deterministic baseline template per supported platform.
 6. Add indexes for:
    - stream scheduling and status lookups
    - checkpoint reads and writes

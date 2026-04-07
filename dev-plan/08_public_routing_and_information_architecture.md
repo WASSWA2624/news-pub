@@ -35,7 +35,7 @@ Rebuild the public website around NewsPub routes and discovery surfaces while pr
 - `src/app/[locale]/*`
 - `src/features/i18n/routing.js`
 - `src/components/layout/site-shell.js`
-- public route metadata and placeholder or real page loaders
+- public route metadata and page loaders
 
 ## Verify
 

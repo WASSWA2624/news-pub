@@ -6,6 +6,10 @@ const originalEnv = process.env;
 
 function createPrismaStub(overrides = {}) {
   return {
+    auditEvent: {
+      findMany: vi.fn().mockResolvedValue([]),
+      ...(overrides.auditEvent || {}),
+    },
     articleMatch: {
       create: vi.fn().mockResolvedValue({
         id: "match_1",

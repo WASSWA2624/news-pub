@@ -1,11 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { NewsPubError } from "@/lib/news/shared";
+import { createNewsPubTestEnv } from "@/test/test-env";
 
-import { createApiErrorPayload, normalizeAppError } from "./index";
+const originalEnv = process.env;
 
 describe("error normalization", () => {
-  it("preserves NewsPub domain error metadata", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("preserves NewsPub domain error metadata", async () => {
+    const { NewsPubError } = await import("@/lib/news/shared");
+    const { normalizeAppError } = await import("./index");
     const error = new NewsPubError("Destination token is invalid.", {
       status: "destination_validation_failed",
       statusCode: 400,
@@ -21,7 +37,8 @@ describe("error normalization", () => {
     });
   });
 
-  it("maps provider diagnostics into a safe API payload", () => {
+  it("maps provider diagnostics into a safe API payload", async () => {
+    const { createApiErrorPayload } = await import("./index");
     const payload = createApiErrorPayload(
       {
         message: "Graph API returned 190.",

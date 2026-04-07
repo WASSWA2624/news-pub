@@ -6,18 +6,15 @@ Release 1 is designed to let an authenticated admin configure providers, destina
 
 ## Current Status
 
-The active application, migration baseline, tests, and release documentation target the NewsPub product.
+The active application, Prisma schema, admin/public routes, and automated tests all target the NewsPub product.
 
-The two authoritative planning documents are:
+The repo-truth documents are:
 
-- [`app-write-up.md`](./app-write-up.md): the single source of truth for product scope, architecture, routes, persistence, workflows, and constraints
-- [`dev-plan/00_plan_index.md`](./dev-plan/00_plan_index.md): the ordered implementation plan that breaks the build into 24 chronological steps
-
-Current implementation evidence lives under:
-
-- [`docs/architecture-summary.md`](./docs/architecture-summary.md)
-- [`docs/adr/`](./docs/adr/)
-- [`docs/evidence/`](./docs/evidence/)
+- [`README.md`](./README.md): operational overview, route map, verification commands, and repo layout
+- [`app-write-up.md`](./app-write-up.md): the authoritative product, architecture, workflow, and acceptance contract
+- [`dev-plan/00_plan_index.md`](./dev-plan/00_plan_index.md): the ordered 24-step implementation plan
+- [`dev-plan/24_release_traceability_and_cutover.md`](./dev-plan/24_release_traceability_and_cutover.md): release-readiness, traceability, and cutover expectations
+- `src/**/*.test.js`: executable verification for env parsing, routes, workflows, validation, AI optimization, publishing, and UI-facing snapshots
 
 ## Release 1 Scope
 
@@ -89,6 +86,19 @@ Follow the files in [`dev-plan`](./dev-plan) in exact numeric order.
 
 Implementation is complete only when step 24 proves full traceability to the current [`app-write-up.md`](./app-write-up.md).
 
+## Verification
+
+Run the close-out checks from the repo root:
+
+```bash
+npm run lint
+npm test
+npm run build
+npm run prisma:validate
+```
+
+Use [`prisma/seed.js`](./prisma/seed.js) together with [`scripts/bootstrap-dev-db.js`](./scripts/bootstrap-dev-db.js) when you need a local Release 1 baseline. Keep local secret files such as `.env.local` out of source control; the committed env contract is [`.env.example`](./.env.example).
+
 ## Dev Plan Sequence
 
 1. [`dev-plan/01_architecture_decisions.md`](./dev-plan/01_architecture_decisions.md)
@@ -120,6 +130,7 @@ Implementation is complete only when step 24 proves full traceability to the cur
 
 ```text
 .
+|-- .env.example
 |-- app-write-up.md
 |-- README.md
 |-- dev-plan/
@@ -127,8 +138,16 @@ Implementation is complete only when step 24 proves full traceability to the cur
 |   |-- 01_architecture_decisions.md
 |   |-- ...
 |   `-- 24_release_traceability_and_cutover.md
-`-- docs/
-    |-- adr/
-    |-- architecture-summary.md
-    `-- evidence/
+|-- prisma/
+|   |-- migrations/
+|   |-- schema.prisma
+|   `-- seed.js
+`-- src/
+    |-- app/
+    |-- components/
+    |-- features/
+    |-- lib/
+    |-- store/
+    |-- styles/
+    `-- test/
 ```

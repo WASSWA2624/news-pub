@@ -30,6 +30,8 @@ For every step, capture:
 - documentation added or updated, if code changed
 - unresolved risks, if any
 
+Keep the current evidence in `README.md`, `app-write-up.md`, `dev-plan/24_release_traceability_and_cutover.md`, and the automated tests. Do not reference a separate `docs/` tree unless that tree actually exists in the repo.
+
 Step 24 is not complete unless every required route, model, workflow, and integration in `app-write-up.md` is either implemented and verified or explicitly called out as deferred by an approved revision to the write-up.
 
 ## Ordered Steps

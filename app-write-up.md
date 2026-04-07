@@ -466,7 +466,10 @@ Retain and rebrand:
 - `src/app/admin/layout.js`
 - `src/components/layout/admin-shell.js`
 - `src/components/layout/site-shell.js`
+- `src/components/admin/*`
+- `src/components/public/*`
 - `src/components/common/searchable-select.js`
+- `src/components/common/notice-page.js`
 - `src/styles/theme.js`
 - `src/styles/styled-registry.js`
 - `src/store/*`
@@ -478,19 +481,24 @@ Retain and rebrand:
 - `src/lib/analytics/*`
 - `src/lib/ai/*`
 - `src/lib/revalidation/*`
-- `src/lib/jobs/*`
+- `src/lib/validation/*`
+- `src/lib/news/*`
 - `src/features/posts/*`
 - `src/features/public-site/*`
 - `src/features/media/*`
 - `src/features/analytics/*`
+- `src/features/providers/*`
+- `src/features/destinations/*`
+- `src/features/streams/*`
+- `src/features/templates/*`
 
 Repurpose:
 
-- `src/components/admin/provider-configuration-screen.js` for news provider settings
-- `src/components/admin/source-configuration-screen.js` for stream and filter configuration
-- `src/components/admin/post-inventory-screen.js` for review queue and published inventory
-- `src/components/admin/post-editor-screen.js` for canonical story review and publish control
-- `src/components/admin/analytics-dashboard-screen.js` for NewsPub operations and traffic reporting
+- `src/components/admin/provider-form-card.js` for provider settings
+- `src/components/admin/destination-form-card.js` for destination connectivity and guardrails
+- `src/components/admin/stream-management-screen.js` for stream filtering, scheduling, and run controls
+- `src/app/admin/posts/[id]/page.js` for canonical story review, optimization, and publish control
+- `src/app/admin/jobs/page.js` for job activity, retry visibility, and publish diagnostics
 - `src/components/layout/public-story-search.js` as the public story search and autocomplete component
 - `src/messages/en.json` and locale helpers for website copy and route metadata
 - `src/app/[locale]/*` page family for NewsPub public routes
@@ -502,6 +510,7 @@ Remove or fully replace:
 - equipment-specific normalization and equipment or manufacturer discovery modules
 - prompt-management pages
 - public comments components and moderation modules
+- dead editor scaffolds, scaffold-named request helpers, and other misleading transitional runtime modules
 - equipment or manufacturer public routes that do not belong to NewsPub
 - any tests or seed data that describe the old equipment-generation product
 
@@ -519,6 +528,7 @@ Release 1 is complete only when:
 - destination publish history is stored and queryable
 - website, Facebook, and Instagram publication paths are all supported
 - implementation modules are documented with current JSDoc and targeted inline comments that explain file purpose, exported behavior, and non-obvious workflow logic
+- README, app write-up, and dev plan reflect the real repo structure without references to a missing `docs/` tree
 - automated checks and manual verification cover the end-to-end workflow
 
 ## 25. Source Of Truth Rule

@@ -10,7 +10,7 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
 
 ## Reuse First
 
-- Reuse the existing evidence-pack style and verification mindset from the repo, but rebuild it around NewsPub requirements.
+- Reuse the current verification mindset from the repo, but rebuild it around NewsPub requirements and the repo-truth documents that actually exist.
 - Prefer direct traceability to the current write-up over historical evidence from the old equipment app.
 
 ## Implement
@@ -42,6 +42,7 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
 - cutover checklist
 - documentation compliance audit
 - final verification log
+- explicit references to `README.md`, `app-write-up.md`, `dev-plan/*`, and the automated test suites that provide the evidence
 
 ## Verify
 

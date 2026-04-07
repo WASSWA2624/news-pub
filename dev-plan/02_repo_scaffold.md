@@ -1,4 +1,4 @@
-# 02 Repo Scaffold
+# 02 Repo Foundation
 
 Source sections: 1, 3, 4, 5, 6, 23, 24.
 Atomic aspect: repo shape and baseline app skeleton only.
@@ -6,7 +6,7 @@ Prerequisite: step 01.
 
 ## Goal
 
-Reshape the existing repo from the retired equipment product into the NewsPub skeleton without introducing the feature logic yet.
+Reshape the existing repo from the retired equipment product into the NewsPub foundation without introducing the feature logic yet.
 
 ## Reuse First
 
@@ -26,15 +26,15 @@ Reshape the existing repo from the retired equipment product into the NewsPub sk
    - add `providers`, `destinations`, `streams`, `templates`, and `settings`
    - replace or retire prompt, localization, manufacturer, generation, and comment routes
 5. Delete or quarantine the AI, equipment, manufacturer, prompt, and comment module families marked for removal in section `23`.
-6. Keep route placeholders compiling even before later feature steps land, so the repo stays runnable throughout the rewrite.
+6. Keep temporary route states compiling while later feature steps land, so the repo stays runnable throughout the rewrite.
 7. Update the root docs that must immediately match the new product identity, especially `README.md` if it still presents the old product as current.
-8. Add or refresh module-level JSDoc in repurposed layout, shell, and placeholder route files when the file is non-trivial, so renamed scaffolding explains its NewsPub role before later feature steps expand it.
+8. Add or refresh module-level JSDoc in repurposed layout, shell, and temporary route-state files when the file is non-trivial, so renamed modules explain their NewsPub role before later feature steps expand it.
 
 ## Required Outputs
 
 - `package.json`
 - `README.md`
-- `src/app/*` route folders and placeholder pages
+- `src/app/*` route folders and temporary state pages
 - rebranded layout and message files
 - removed or renamed legacy module directories
 
@@ -42,9 +42,9 @@ Reshape the existing repo from the retired equipment product into the NewsPub sk
 
 - the app boots into NewsPub-branded public and admin shells
 - the active route tree matches sections `5` and `6`
-- no active shell, page title, or route placeholder still presents the old equipment-generation product
-- repurposed scaffold files explain their NewsPub role with current JSDoc where the file contains more than trivial placeholder code
-- deleted legacy modules are not still imported by the new scaffold
+- no active shell, page title, or route state still presents the old equipment-generation product
+- repurposed runtime files explain their NewsPub role with current JSDoc where the file contains more than trivial logic
+- deleted legacy modules are not still imported by the new foundation
 
 ## Exit Criteria
 
