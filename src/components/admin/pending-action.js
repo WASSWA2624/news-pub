@@ -20,7 +20,7 @@ const spin = keyframes`
 
 export const InlineSpinner = styled.span`
   border: 2px solid rgba(255, 255, 255, 0.26);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   border-top-color: currentColor;
   display: inline-flex;
   flex: 0 0 auto;

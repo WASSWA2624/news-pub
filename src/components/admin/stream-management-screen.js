@@ -34,7 +34,7 @@ const TargetingCard = styled.section`
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.09), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 253, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 12px 28px rgba(17, 31, 55, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.68);
@@ -61,7 +61,7 @@ const TargetingCopy = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(251, 253, 255, 0.82)),
     radial-gradient(circle at top left, rgba(15, 111, 141, 0.04), transparent 34%);
   border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   gap: 0.35rem;
   padding: clamp(0.72rem, 1.8vw, 0.9rem);
 `;
@@ -123,7 +123,7 @@ const SummaryPill = styled.span`
       $tone === "accent"
         ? "rgba(15, 111, 141, 0.16)"
         : "rgba(16, 32, 51, 0.08)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
   display: inline-flex;
   font-size: 0.68rem;
@@ -139,7 +139,7 @@ const PrimaryActionButton = styled.button`
     radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.16), transparent 34%),
     linear-gradient(135deg, #0f6f8d 0%, #0d5f79 100%);
   border: 1px solid transparent;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 16px 30px rgba(15, 96, 121, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -202,7 +202,7 @@ const ProgressSurface = styled.section`
     linear-gradient(180deg, rgba(255, 255, 255, 0.996), rgba(246, 250, 255, 0.99)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 34%);
   border: 1px solid rgba(16, 32, 51, 0.09);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 32px 72px rgba(11, 18, 30, 0.24),
     0 12px 28px rgba(16, 32, 51, 0.1);
@@ -237,7 +237,7 @@ const ProgressCloseButton = styled.button`
   align-items: center;
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #22344f;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
@@ -313,7 +313,7 @@ const ProgressBody = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(36, 75, 115, 0.26);
     border: 3px solid transparent;
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     background-clip: padding-box;
   }
 `;
@@ -334,7 +334,7 @@ const ProgressMetaText = styled.span`
 
 const ProgressTrack = styled.div`
   background: rgba(36, 75, 115, 0.1);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   height: 0.78rem;
   overflow: hidden;
 `;
@@ -364,7 +364,7 @@ const ProgressSummaryCard = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.92)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 52%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: grid;
   gap: 0.18rem;
   padding: 0.75rem 0.8rem;
@@ -398,7 +398,7 @@ const ProgressItem = styled.article`
         : $tone === "failed"
           ? "rgba(179, 46, 46, 0.18)"
           : "rgba(16, 32, 51, 0.08)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: ${({ $tone }) =>
     $tone === "running" ? "0 14px 28px rgba(15, 96, 121, 0.08)" : "0 10px 20px rgba(18, 34, 58, 0.04)"};
   display: grid;
@@ -449,7 +449,7 @@ const ProgressItemStatus = styled.span`
         : $tone === "failed"
           ? "rgba(179, 46, 46, 0.16)"
           : "rgba(36, 75, 115, 0.12)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $tone }) =>
     $tone === "running" ? "#0d5f79" : $tone === "success" ? "#276f4a" : $tone === "failed" ? "#9f2626" : "#244b73"};
   display: inline-flex;
@@ -482,7 +482,7 @@ const ScopeHeader = styled.div`
   background:
     linear-gradient(180deg, rgba(248, 251, 254, 0.92), rgba(255, 255, 255, 0.84));
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   gap: 0.6rem;
   padding: 0.65rem;
 `;
@@ -500,7 +500,7 @@ const ScopeGroupCard = styled.section`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 252, 255, 0.9));
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: grid;
   gap: 0.5rem;
   padding: 0.62rem;
@@ -558,7 +558,7 @@ const ScopeActionButton = styled.button`
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.92)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 52%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #22344f;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: inline-flex;
@@ -587,7 +587,7 @@ const ScopeCheckbox = styled.label`
       ? "linear-gradient(135deg, #0f6f8d 0%, #0d5f79 100%)"
       : "rgba(255, 255, 255, 0.92)"};
   border: 1px solid ${({ $active }) => ($active ? "transparent" : "rgba(16, 32, 51, 0.09)")};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: ${({ $active }) =>
     $active ? "0 8px 18px rgba(15, 96, 121, 0.14)" : "0 6px 14px rgba(18, 34, 58, 0.035)"};
   color: ${({ $active }) => ($active ? "white" : "#22344f")};
@@ -640,7 +640,7 @@ const ScopeDestinationBadge = styled.span`
       : $platform === "INSTAGRAM"
         ? "rgba(225, 48, 108, 0.18)"
         : "rgba(15, 111, 141, 0.16)"};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: ${({ $platform }) =>
     $platform === "FACEBOOK"
       ? "#1666d3"
@@ -687,7 +687,7 @@ const ScopeCount = styled.span`
     $active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.08)"};
   border: 1px solid ${({ $active }) =>
     $active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.12)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: inherit;
   display: inline-flex;
   flex: 0 0 auto;
@@ -711,7 +711,7 @@ const NoteCard = styled.div`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: 0 8px 18px rgba(18, 34, 58, 0.035);
   display: grid;
   gap: 0.18rem;
@@ -761,7 +761,7 @@ const StreamPlatformBadge = styled.span`
       : $platform === "INSTAGRAM"
         ? "rgba(225, 48, 108, 0.18)"
         : "rgba(15, 111, 141, 0.18)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $platform }) =>
     $platform === "FACEBOOK"
       ? "#1666d3"
@@ -845,7 +845,7 @@ const StickyScrollArea = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(36, 75, 115, 0.26);
     border: 3px solid transparent;
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     background-clip: padding-box;
   }
 `;

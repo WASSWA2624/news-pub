@@ -10,7 +10,7 @@ const Button = styled.button`
   align-items: center;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: white;
   cursor: pointer;
   display: inline-flex;

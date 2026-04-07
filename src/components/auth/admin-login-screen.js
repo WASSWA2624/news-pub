@@ -17,7 +17,7 @@ const Panel = styled.section`
   background:
     radial-gradient(circle at top left, rgba(201, 123, 42, 0.22), transparent 36%),
     linear-gradient(135deg, rgba(0, 95, 115, 0.96), rgba(16, 32, 51, 0.98));
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: 0 30px 90px rgba(16, 32, 51, 0.22);
   color: white;
   display: grid;
@@ -51,7 +51,7 @@ const NarrativeIconBadge = styled.span`
   align-items: center;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: inline-flex;
   height: 3.3rem;
   justify-content: center;
@@ -101,7 +101,7 @@ const InsightCard = styled.article`
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: grid;
   gap: 0.28rem;
   padding: clamp(0.68rem, 1.7vw, ${({ theme }) => theme.spacing.lg});
@@ -178,7 +178,7 @@ const FieldControl = styled.div`
   align-items: center;
   background: white;
   border: 1px solid var(--theme-border, #b8c8de);
-  border-radius: ${({ theme }) => theme.radius.sm};
+  border-radius: var(--theme-radius-sm, 0px);
   display: flex;
   gap: 0.46rem;
   min-height: 42px;
@@ -246,7 +246,7 @@ const PasswordToggle = styled.button`
 const ErrorNotice = styled.p`
   background: rgba(180, 35, 24, 0.08);
   border: 1px solid rgba(180, 35, 24, 0.2);
-  border-radius: ${({ theme }) => theme.radius.sm};
+  border-radius: var(--theme-radius-sm, 0px);
   color: var(--theme-danger, #b42318);
   margin: 0;
   padding: 0.66rem 0.76rem;
@@ -256,7 +256,7 @@ const SubmitButton = styled.button`
   align-items: center;
   background: var(--theme-primary, #1b4f93);
   border: none;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: white;
   cursor: pointer;
   display: inline-flex;

@@ -75,7 +75,7 @@ const PlatformChip = styled.span`
         : $platform === "INSTAGRAM"
           ? "rgba(225, 48, 108, 0.18)"
           : "rgba(15, 111, 141, 0.12)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $platform }) =>
     $platform === "FACEBOOK"
       ? "#1666d3"
@@ -135,7 +135,7 @@ const DestinationPlatformBadge = styled.span`
         : $platform === "INSTAGRAM"
           ? "rgba(225, 48, 108, 0.18)"
           : "rgba(15, 111, 141, 0.18)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $platform }) =>
     $platform === "FACEBOOK"
       ? "#1666d3"
@@ -182,7 +182,7 @@ const RoutePill = styled.span`
       $tone === "accent"
         ? "rgba(15, 111, 141, 0.14)"
         : "rgba(16, 32, 51, 0.08)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
   display: inline-flex;
   font-size: 0.62rem;

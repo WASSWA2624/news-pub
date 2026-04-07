@@ -15,7 +15,7 @@ const Wrapper = styled.main`
 const Hero = styled.section`
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: 0 24px 80px rgba(16, 32, 51, 0.08);
   display: grid;
   gap: ${({ theme }) => theme.spacing.sm};
@@ -43,7 +43,7 @@ const HeroIconBadge = styled.span`
   align-items: center;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(22, 92, 102, 0.12);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ theme }) => theme.colors.primary};
   display: inline-flex;
   height: 3.2rem;
@@ -89,7 +89,7 @@ const BadgeRow = styled.div`
 const Badge = styled.span`
   background: ${({ theme }) => theme.colors.surface};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ theme }) => theme.colors.text};
   display: inline-flex;
   padding: 0.45rem 0.8rem;
@@ -107,7 +107,7 @@ const SectionGrid = styled.section`
 const Card = styled.article`
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: grid;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.md};

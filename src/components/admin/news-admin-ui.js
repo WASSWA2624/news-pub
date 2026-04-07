@@ -74,7 +74,7 @@ export const AdminIconBadge = styled.span`
             : $tone === "muted"
               ? "rgba(16, 32, 51, 0.08)"
               : "rgba(15, 111, 141, 0.18)"};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: ${({ $tone }) =>
     $tone === "accent"
       ? "#8f630c"

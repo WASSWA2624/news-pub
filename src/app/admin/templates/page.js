@@ -54,7 +54,7 @@ const HeroStats = styled.div`
 const HeroStat = styled.div`
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: grid;
   gap: 0.22rem;
   padding: 0.78rem 0.85rem;
@@ -76,7 +76,7 @@ const StudioGuide = styled.div`
   background:
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 46%),
     linear-gradient(180deg, rgba(17, 39, 66, 0.98), rgba(19, 55, 82, 0.96));
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: white;
   display: grid;
   gap: 0.75rem;
@@ -113,7 +113,7 @@ const GuideList = styled.div`
 const GuideItem = styled.div`
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: grid;
   gap: 0.16rem;
   padding: 0.72rem;
@@ -155,7 +155,7 @@ const PlatformChip = styled.span`
   align-items: center;
   background: rgba(15, 111, 141, 0.07);
   border: 1px solid rgba(15, 111, 141, 0.12);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #0d5f79;
   display: inline-flex;
   font-size: 0.64rem;
@@ -193,7 +193,7 @@ const OverridePill = styled.span`
       $tone === "accent"
         ? "rgba(15, 111, 141, 0.14)"
         : "rgba(16, 32, 51, 0.08)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
   display: inline-flex;
   font-size: 0.62rem;

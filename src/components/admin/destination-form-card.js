@@ -435,7 +435,7 @@ const DestinationForm = styled.form`
 const SectionSurface = styled.div`
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: grid;
   gap: 0.7rem;
   padding: 0.9rem;
@@ -455,7 +455,7 @@ const FieldHelp = styled.div`
 const ExampleBlock = styled.pre`
   background: rgba(245, 248, 252, 0.96);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: #1b2d49;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.73rem;
@@ -487,7 +487,7 @@ const StatusChip = styled.span`
         : $tone === "danger"
           ? "rgba(176, 46, 34, 0.18)"
           : "rgba(168, 113, 12, 0.2)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $tone }) =>
     $tone === "success" ? "#197341" : $tone === "danger" ? "#a63725" : "#8f630c"};
   display: inline-flex;

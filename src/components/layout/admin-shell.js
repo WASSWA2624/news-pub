@@ -348,7 +348,7 @@ const ProfileTrigger = styled.button`
     radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.2), transparent 44%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     0 10px 18px rgba(4, 14, 24, 0.18);
@@ -393,7 +393,7 @@ const ProfileMenu = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(243, 247, 251, 0.975)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 40%);
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 14px 28px rgba(16, 32, 51, 0.12),
     0 3px 8px rgba(16, 32, 51, 0.05);
@@ -420,7 +420,7 @@ const ProfileInitialsBadge = styled.span`
   background:
     radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.18), transparent 40%),
     linear-gradient(135deg, #214b69 0%, #17687c 100%);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     0 6px 14px rgba(22, 67, 92, 0.12);
@@ -460,7 +460,7 @@ const ProfileRolePill = styled.span`
   align-items: center;
   background: linear-gradient(180deg, rgba(40, 77, 113, 0.07), rgba(40, 77, 113, 0.04));
   border: 1px solid rgba(36, 75, 115, 0.09);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: #244b73;
   display: inline-flex;
   font-size: 0.58rem;
@@ -541,7 +541,7 @@ const PrimaryNavLink = styled(Link)`
   &::after {
     background: ${({ $active }) =>
       $active ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.42)"};
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     bottom: 0;
     content: "";
     height: ${({ $active }) => ($active ? "2px" : "1px")};
@@ -584,7 +584,7 @@ const OverflowButton = styled.button`
   backdrop-filter: blur(14px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: white;
   cursor: pointer;
   display: inline-grid;
@@ -622,7 +622,7 @@ const OverflowDots = styled.span`
 
 const OverflowDot = styled.span`
   background: currentColor;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: block;
   height: 3px;
   opacity: 0.96;
@@ -645,7 +645,7 @@ const MeasureNavRail = styled.div`
 const MeasureNavItem = styled.span`
   align-items: center;
   border: 1px solid transparent;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: inline-flex;
   gap: 0.32rem;
   font-size: clamp(0.76rem, 0.95vw, 0.84rem);
@@ -679,7 +679,7 @@ const OverflowMenu = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.98)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.08), transparent 44%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 16px 34px rgba(16, 32, 51, 0.14),
     0 6px 14px rgba(16, 32, 51, 0.08);
@@ -730,7 +730,7 @@ const OverflowLink = styled(Link)`
       ? "linear-gradient(180deg, rgba(36, 75, 115, 0.12), rgba(36, 75, 115, 0.08))"
       : "rgba(255, 255, 255, 0.8)"};
   border: 1px solid ${({ $active }) => ($active ? "rgba(36, 75, 115, 0.14)" : "rgba(16, 32, 51, 0.06)")};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $active }) => ($active ? "#244b73" : "#182742")};
   display: grid;
   gap: 0.2rem;
@@ -761,7 +761,7 @@ const OverflowLinkDot = styled.span`
       ? "linear-gradient(180deg, rgba(36, 75, 115, 0.14), rgba(36, 75, 115, 0.08))"
       : "rgba(36, 75, 115, 0.06)"};
   border: 1px solid ${({ $active }) => ($active ? "rgba(36, 75, 115, 0.14)" : "rgba(36, 75, 115, 0.08)")};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $active }) => ($active ? "#244b73" : "rgba(36, 75, 115, 0.72)")};
   display: inline-flex;
   height: 1.8rem;
@@ -813,7 +813,7 @@ const OverflowActionLink = styled(Link)`
   align-items: center;
   background: linear-gradient(180deg, rgba(36, 75, 115, 0.04), rgba(36, 75, 115, 0.02));
   border: 1px solid rgba(36, 75, 115, 0.08);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: #244b73;
   display: inline-flex;
   font-size: 0.84rem;
@@ -843,7 +843,7 @@ const OverflowActionLink = styled(Link)`
 const OverflowLogoutButton = styled(AdminLogoutButton)`
   background: linear-gradient(180deg, #274c73, #234568);
   border-color: transparent;
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   box-shadow: 0 8px 18px rgba(36, 75, 115, 0.16);
   display: inline-flex;
   font-size: 0.84rem;

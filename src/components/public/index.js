@@ -1234,7 +1234,7 @@ const StoryReadingBadge = styled.span`
   align-items: center;
   background: rgba(var(--theme-story-accent-rgb), 0.06);
   border: 1px solid rgba(var(--theme-story-accent-rgb), 0.12);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: var(--theme-story-accent);
   display: inline-flex;
   font-size: 0.75rem;

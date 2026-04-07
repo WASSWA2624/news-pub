@@ -16,7 +16,7 @@ const Hero = styled.section`
     radial-gradient(circle at top right, rgba(201, 123, 42, 0.2), transparent 40%),
     linear-gradient(135deg, rgba(0, 95, 115, 0.12), rgba(16, 32, 51, 0.03));
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: grid;
   gap: ${({ theme }) => theme.spacing.md};
   padding: ${({ theme }) => theme.spacing.xl};
@@ -53,7 +53,7 @@ const SummaryGrid = styled.section`
 const SummaryCard = styled.section`
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   box-shadow: 0 18px 50px rgba(16, 32, 51, 0.08);
   display: grid;
   gap: ${({ theme }) => theme.spacing.xs};
@@ -85,7 +85,7 @@ const Stack = styled.div`
 const Card = styled.section`
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   box-shadow: 0 20px 60px rgba(16, 32, 51, 0.08);
   display: grid;
   gap: ${({ theme }) => theme.spacing.md};
@@ -119,13 +119,13 @@ const StatusBanner = styled.div`
   background: ${({ $tone }) => ($tone === "success" ? "rgba(21, 115, 71, 0.12)" : "rgba(180, 35, 24, 0.12)")};
   border: 1px solid
     ${({ $tone, theme }) => ($tone === "success" ? theme.colors.success : theme.colors.danger)};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   padding: ${({ theme }) => theme.spacing.md};
   position: relative;
 
   &::before {
     background: ${({ $tone, theme }) => ($tone === "success" ? theme.colors.success : theme.colors.danger)};
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     content: "";
     inset: 0 auto 0 0;
     position: absolute;
@@ -159,7 +159,7 @@ const FieldLabel = styled.span`
 const Input = styled.input`
   background: white;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.sm};
+  border-radius: var(--theme-radius-sm, 0px);
   box-sizing: border-box;
   color: ${({ theme }) => theme.colors.text};
   font: inherit;
@@ -187,7 +187,7 @@ const Input = styled.input`
   &::file-selector-button {
     background: linear-gradient(180deg, #244b73, #1c3a59);
     border: none;
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     color: white;
     cursor: pointer;
     font: inherit;
@@ -200,7 +200,7 @@ const Input = styled.input`
 const Textarea = styled.textarea`
   background: white;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.sm};
+  border-radius: var(--theme-radius-sm, 0px);
   box-sizing: border-box;
   color: ${({ theme }) => theme.colors.text};
   font: inherit;
@@ -243,7 +243,7 @@ const ButtonRow = styled.div`
 const PrimaryButton = styled.button`
   background: ${({ theme }) => theme.colors.primary};
   border: none;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: white;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   font: inherit;
@@ -255,7 +255,7 @@ const PrimaryButton = styled.button`
 const SecondaryButton = styled.button`
   background: rgba(247, 249, 252, 0.96);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ theme }) => theme.colors.text};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   font: inherit;
@@ -272,7 +272,7 @@ const List = styled.div`
 const ListButton = styled.button`
   background: ${({ $active }) => ($active ? "rgba(0, 95, 115, 0.12)" : "rgba(255, 255, 255, 0.98)")};
   border: 1px solid ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   cursor: pointer;
   display: grid;
   gap: ${({ theme }) => theme.spacing.sm};
@@ -303,7 +303,7 @@ const ThumbnailFrame = styled.div`
     linear-gradient(135deg, rgba(0, 95, 115, 0.08), rgba(201, 123, 42, 0.14)),
     rgba(247, 249, 252, 0.92);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: ${({ theme }) => theme.radius.sm};
+  border-radius: var(--theme-radius-sm, 0px);
   display: flex;
   justify-content: center;
   min-height: 84px;
@@ -342,7 +342,7 @@ const Pill = styled.span`
       : $tone === "success"
         ? "rgba(21, 115, 71, 0.14)"
         : "rgba(0, 95, 115, 0.12)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 600;
@@ -355,7 +355,7 @@ const PreviewFrame = styled.div`
     radial-gradient(circle at top right, rgba(201, 123, 42, 0.14), transparent 45%),
     linear-gradient(135deg, rgba(0, 95, 115, 0.08), rgba(16, 32, 51, 0.03));
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: flex;
   justify-content: center;
   min-height: 280px;
@@ -414,7 +414,7 @@ const VariantGrid = styled.div`
 const VariantCard = styled.div`
   background: rgba(247, 249, 252, 0.9);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: grid;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.md};

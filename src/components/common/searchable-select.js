@@ -255,7 +255,7 @@ const TriggerButton = styled.button`
         : $open
           ? "rgba(15, 111, 141, 0.3)"
           : "var(--theme-border, #b8c8de)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     ${({ $open, $invalid }) =>
       $open
@@ -366,7 +366,7 @@ const TriggerChip = styled.span`
   border: 1px solid
     ${({ $muted }) =>
       $muted ? "rgba(16, 32, 51, 0.08)" : "rgba(36, 75, 115, 0.12)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: ${({ $muted }) => ($muted ? "rgba(61, 76, 102, 0.9)" : "#244b73")};
   display: inline-flex;
   font-size: 0.6rem;
@@ -394,7 +394,7 @@ const TriggerAdornment = styled.span`
 const TriggerBadge = styled.span`
   background: rgba(15, 111, 141, 0.08);
   border: 1px solid rgba(15, 111, 141, 0.14);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #0f5f79;
   display: inline-flex;
   font-size: 0.56rem;
@@ -423,7 +423,7 @@ const DropdownSurface = styled.div`
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 58%);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(24, 39, 66, 0.1);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 28px 54px rgba(16, 32, 51, 0.14),
     0 6px 16px rgba(16, 32, 51, 0.05);
@@ -447,7 +447,7 @@ const DropdownTop = styled.div`
     linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 55%);
   border: 1px solid rgba(24, 39, 66, 0.06);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   display: grid;
   gap: 0.3rem;
   padding: 0.4rem;
@@ -472,7 +472,7 @@ const DropdownMeta = styled.span`
   align-items: center;
   background: rgba(15, 111, 141, 0.08);
   border: 1px solid rgba(15, 111, 141, 0.12);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #0f5f79;
   display: inline-flex;
   flex: 0 0 auto;
@@ -488,7 +488,7 @@ const SearchWrap = styled.div`
   align-items: center;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(24, 39, 66, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: flex;
   flex: 0 0 auto;
   gap: 0.32rem;
@@ -503,7 +503,7 @@ const SearchWrap = styled.div`
 
 const SearchIcon = styled.span`
   border: 2px solid rgba(74, 90, 117, 0.74);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   display: inline-block;
   flex: 0 0 auto;
   height: 0.78rem;
@@ -512,7 +512,7 @@ const SearchIcon = styled.span`
 
   &::after {
     background: rgba(74, 90, 117, 0.74);
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     content: "";
     height: 2px;
     position: absolute;
@@ -558,7 +558,7 @@ const OptionList = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(36, 75, 115, 0.24);
     border: 3px solid transparent;
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     background-clip: padding-box;
   }
 `;
@@ -578,7 +578,7 @@ const OptionButton = styled.button`
         : $active
           ? "rgba(36, 75, 115, 0.14)"
           : "rgba(24, 39, 66, 0.04)"};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: ${({ $selected }) =>
     $selected ? "0 10px 22px rgba(15, 96, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72)" : "none"};
   color: var(--theme-text, #152844);
@@ -606,7 +606,7 @@ const OptionButton = styled.button`
         : $active
           ? "rgba(36, 75, 115, 0.32)"
           : "transparent"};
-    border-radius: ${({ theme }) => theme.radius.lg};
+    border-radius: var(--theme-radius-lg, 2px);
     content: "";
     left: 0.26rem;
     position: absolute;
@@ -669,7 +669,7 @@ const OptionMeta = styled.div`
 const OptionBadge = styled.span`
   background: rgba(36, 75, 115, 0.08);
   border: 1px solid rgba(36, 75, 115, 0.12);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   color: #244b73;
   display: inline-flex;
   flex: 0 1 auto;
@@ -688,7 +688,7 @@ const OptionIndicator = styled.span`
   align-items: center;
   background: ${({ $selected }) => ($selected ? "rgba(15, 111, 141, 0.92)" : "rgba(255, 255, 255, 0.92)")};
   border: 1px solid ${({ $selected }) => ($selected ? "rgba(15, 111, 141, 0.92)" : "rgba(74, 90, 117, 0.18)")};
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: ${({ $selected }) => ($selected ? "0 0 0 4px rgba(15, 111, 141, 0.12)" : "none")};
   display: inline-flex;
   flex: 0 0 auto;
@@ -720,7 +720,7 @@ const StateMessage = styled.div`
     linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(245, 249, 255, 0.96)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 58%);
   border: 1px dashed rgba(36, 75, 115, 0.14);
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: var(--theme-radius-md, 1px);
   color: var(--theme-muted, #54657f);
   display: grid;
   font-size: 0.76rem;

@@ -9,7 +9,7 @@ const FlagWrap = styled.span`
 
 const FlagImage = styled.img`
   border: 1px solid rgba(24, 39, 66, 0.08);
-  border-radius: ${({ theme }) => theme.radius.lg};
+  border-radius: var(--theme-radius-lg, 2px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
   display: block;
   height: ${({ $size }) => ($size === "compact" ? "0.72rem" : "0.84rem")};
