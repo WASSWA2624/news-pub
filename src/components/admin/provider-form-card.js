@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import {
@@ -11,12 +11,14 @@ import {
   FieldHint,
   FieldLabel,
   Input,
+  SecondaryButton,
   SmallText,
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import {
   AdminDisclosureSection,
   AdminValidationSummary,
+  scrollToFirstBlockingField,
 } from "@/components/admin/admin-form-primitives";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
@@ -58,37 +60,6 @@ const ToggleChip = styled.label`
   input {
     accent-color: var(--theme-primary);
     margin: 0;
-  }
-`;
-
-const ResetButton = styled.button`
-  align-items: center;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(var(--theme-surface-alt-rgb), 0.975));
-  border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 0;
-  color: #22344f;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.8rem;
-  font-weight: 800;
-  gap: var(--admin-control-gap);
-  justify-content: center;
-  min-height: var(--admin-button-min-height);
-  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    box-shadow: 0 0 0 4px rgba(27, 79, 147, 0.08);
-    outline: none;
   }
 `;
 
@@ -140,9 +111,19 @@ export default function ProviderFormCard({
     ? getProviderRequestDefaultValues(provider)
     : selectedDefinition?.defaultRequestDefaults || {};
   const requestDefaultCount = Object.keys(nextRequestDefaults || {}).length;
+  const formRef = useRef(null);
+
+  function handleSubmit(event) {
+    if (formRef.current?.checkValidity()) {
+      return;
+    }
+
+    event.preventDefault();
+    scrollToFirstBlockingField(formRef.current);
+  }
 
   return (
-    <ProviderForm action={action} id={formId}>
+    <ProviderForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
       <AdminValidationSummary
         items={[]}
         title="Provider metadata is ready to save."
@@ -151,6 +132,7 @@ export default function ProviderFormCard({
 
       <AdminDisclosureSection
         defaultOpen
+        completionLabel={providerKey ? "Identity ready" : ""}
         meta={[
           {
             label: provider ? "Existing provider" : "New provider",
@@ -193,12 +175,13 @@ export default function ProviderFormCard({
 
       <AdminDisclosureSection
         defaultOpen
+        completionLabel="Notes ready"
         meta={selectedDefinition?.docsUrl ? [{ label: "Docs linked", tone: "success" }] : []}
         summary="Capture the saved notes operators see before they connect streams to this provider."
         title="Provider notes"
       >
         <SectionActionRow>
-          <ResetButton
+          <SecondaryButton
             onClick={() => setMetadataResetKey((currentValue) => currentValue + 1)}
             type="button"
           >
@@ -206,7 +189,7 @@ export default function ProviderFormCard({
               <ActionIcon name="refresh" />
             </ButtonIcon>
             Reset to defaults
-          </ResetButton>
+          </SecondaryButton>
         </SectionActionRow>
         <Field>
           <FieldLabel>Description</FieldLabel>
@@ -224,6 +207,7 @@ export default function ProviderFormCard({
 
       <AdminDisclosureSection
         defaultOpen
+        completionLabel="Defaults ready"
         meta={[
           {
             label: `${requestDefaultCount} saved default${requestDefaultCount === 1 ? "" : "s"}`,
@@ -234,7 +218,7 @@ export default function ProviderFormCard({
         title="Request defaults"
       >
         <SectionActionRow>
-          <ResetButton
+          <SecondaryButton
             onClick={() => setRequestDefaultsResetKey((currentValue) => currentValue + 1)}
             type="button"
           >
@@ -242,7 +226,7 @@ export default function ProviderFormCard({
               <ActionIcon name="refresh" />
             </ButtonIcon>
             Reset request defaults
-          </ResetButton>
+          </SecondaryButton>
         </SectionActionRow>
         <FieldHint>
           Restore the selected provider&apos;s default request settings before saving when you want to discard local tweaks.
@@ -258,6 +242,7 @@ export default function ProviderFormCard({
 
       <AdminDisclosureSection
         defaultOpen
+        completionLabel="Availability set"
         meta={[
           {
             label: provider?.isEnabled ?? true ? "Enabled" : "Disabled",

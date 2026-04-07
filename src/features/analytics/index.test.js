@@ -132,6 +132,32 @@ function createMockPrisma() {
   ];
   const auditEvents = [
     {
+      action: "AI_OPTIMIZATION_SKIPPED",
+      actorId: null,
+      createdAt: new Date("2026-04-03T10:07:00.000Z"),
+      entityId: "match_1",
+      entityType: "article_match",
+      id: "audit_ai_skip",
+      payloadJson: {
+        level: "warn",
+        reasonCode: "ai_credentials_missing",
+        reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
+      },
+    },
+    {
+      action: "AI_OPTIMIZATION_FALLBACK_USED",
+      actorId: null,
+      createdAt: new Date("2026-04-03T10:06:00.000Z"),
+      entityId: "match_2",
+      entityType: "article_match",
+      id: "audit_ai_fallback",
+      payloadJson: {
+        level: "warn",
+        reasonCode: "ai_timeout",
+        reasonMessage: "AI timed out, so NewsPub fell back to deterministic formatting.",
+      },
+    },
+    {
       action: "FETCH_RUN_COMPLETED",
       actorId: null,
       createdAt: new Date("2026-04-03T10:05:00.000Z"),
@@ -241,6 +267,8 @@ describe("analytics feature snapshots", () => {
 
     expect(snapshot.canViewAnalytics).toBe(true);
     expect(snapshot.summary).toMatchObject({
+      aiFallbackCount7d: 1,
+      aiSkippedCount7d: 1,
       failedFetchRuns7d: 1,
       failedPublishAttempts7d: 1,
       fetchRunCount7d: 2,
@@ -248,6 +276,12 @@ describe("analytics feature snapshots", () => {
       publishedCount7d: 3,
       retryCount7d: 2,
       totalViews7d: 2,
+    });
+    expect(snapshot.recentAuditEvents[0]).toMatchObject({
+      action: "AI_OPTIMIZATION_SKIPPED",
+      level: "warn",
+      reasonCode: "ai_credentials_missing",
+      reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
     });
     expect(snapshot.destinationStatus).toMatchObject({
       connected: 1,
@@ -313,6 +347,24 @@ describe("analytics feature snapshots", () => {
     expect(snapshot.publishAttempts[0]).toMatchObject({
       id: "attempt_2",
       status: "FAILED",
+    });
+  });
+
+  it("surfaces AI skip and fallback visibility inside the job log audit timeline", async () => {
+    const prisma = createMockPrisma();
+    const { getAdminJobLogsSnapshot } = await import("./index");
+
+    const snapshot = await getAdminJobLogsSnapshot({}, prisma);
+
+    expect(snapshot.summary).toMatchObject({
+      aiFallbackEvents: 1,
+      aiSkippedEvents: 1,
+    });
+    expect(snapshot.auditEvents[0]).toMatchObject({
+      action: "AI_OPTIMIZATION_SKIPPED",
+      level: "warn",
+      reasonCode: "ai_credentials_missing",
+      reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
     });
   });
 });

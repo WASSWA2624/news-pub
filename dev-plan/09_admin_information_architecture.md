@@ -21,6 +21,7 @@ Turn the current admin workspace into a NewsPub operations console with stable r
    - `/admin/destinations`
    - `/admin/streams`
    - `/admin/categories`
+   - `/admin/posts/new`
    - `/admin/posts/review`
    - `/admin/posts/published`
    - `/admin/posts/[id]`
@@ -39,6 +40,7 @@ Turn the current admin workspace into a NewsPub operations console with stable r
 4. Remove prompt, localization, manufacturer, generation, and comment screens from the active admin IA.
 5. Ensure each admin route has a single owning screen or feature module.
 6. Apply one shared admin interaction contract across the major route owners so long-form forms and editors reuse the same disclosure, validation, and button-sizing language.
+   - include provider, destination, stream, template, category, manual-post, post-editor, and media-upload flows in the same contract
 
 ## Required Outputs
 
@@ -54,7 +56,7 @@ Turn the current admin workspace into a NewsPub operations console with stable r
 - admin navigation matches the route map across all breakpoints
 - no retired AI, manufacturer, localization, or comment screens remain in active navigation
 - each page has a clear module owner
-- provider, destination, stream, template, and post-editor screens use the same section, validation, and action sizing vocabulary
+- provider, destination, stream, template, category, manual-post, post-editor, and media-upload screens use the same section, validation, and action sizing vocabulary
 
 ## Exit Criteria
 

@@ -4,6 +4,15 @@ import { createNewsPubTestEnv } from "@/test/test-env";
 
 const originalEnv = process.env;
 
+async function createAnalyticsMock(overrides = {}) {
+  const actual = await vi.importActual("@/lib/analytics");
+
+  return {
+    ...actual,
+    ...overrides,
+  };
+}
+
 function createPrismaStub(overrides = {}) {
   return {
     auditEvent: {
@@ -187,9 +196,10 @@ describe("manual post creation", () => {
       id: "attempt_1",
     });
 
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       publishArticleMatch,
     }));
@@ -254,9 +264,10 @@ describe("manual post creation", () => {
   });
 
   it("requires a future publish time when the manual story is scheduled", async () => {
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       publishArticleMatch: vi.fn(),
     }));
@@ -309,9 +320,10 @@ describe("post editor updates", () => {
       id: "attempt_1",
     });
 
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       publishArticleMatch,
     }));
@@ -354,9 +366,10 @@ describe("post editor updates", () => {
       id: "attempt_1",
     });
 
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       publishArticleMatch,
     }));
@@ -399,9 +412,10 @@ describe("post editor updates", () => {
       id: "attempt_1",
     });
 
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       publishArticleMatch,
     }));
@@ -451,9 +465,10 @@ describe("post editor updates", () => {
       },
     });
 
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       manualRepostArticleMatch: vi.fn(),
       publishArticleMatch,
@@ -499,9 +514,10 @@ describe("post editor updates", () => {
   });
 
   it("holds a selected destination match when the editor rejects publication", async () => {
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       manualRepostArticleMatch: vi.fn(),
       publishArticleMatch: vi.fn(),
@@ -555,9 +571,10 @@ describe("post editor updates", () => {
   });
 
   it("blocks approval while the selected destination match still has blocked policy findings", async () => {
-    vi.doMock("@/lib/analytics", () => ({
-      createAuditEventRecord: vi.fn().mockResolvedValue(null),
-    }));
+    vi.doMock("@/lib/analytics", async () =>
+      createAnalyticsMock({
+        createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      }));
     vi.doMock("@/lib/news/workflows", () => ({
       manualRepostArticleMatch: vi.fn(),
       publishArticleMatch: vi.fn(),
@@ -772,6 +789,11 @@ describe("post image fallbacks", () => {
             entityId: "attempt_1",
             entityType: "publish_attempt",
             id: "audit_1",
+            payloadJson: {
+              level: "error",
+              reasonCode: "provider_payload_invalid",
+              reasonMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
+            },
           },
         ]),
       },
@@ -792,6 +814,9 @@ describe("post image fallbacks", () => {
       action: "PUBLISH_ATTEMPT_FAILED",
       entityId: "attempt_1",
       entityType: "publish_attempt",
+      level: "error",
+      reasonCode: "provider_payload_invalid",
+      reasonMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
     });
   });
 
@@ -826,6 +851,48 @@ describe("post image fallbacks", () => {
       reasonCode: "ai_credentials_missing",
       status: "SKIPPED",
       usedDeterministicFallback: true,
+    });
+  });
+
+  it("maps skipped AI audit events into the editor timeline with warning severity and reason text", async () => {
+    const { getPostEditorSnapshot } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [
+        createEditorArticleMatch({
+          optimizationStatus: "SKIPPED",
+        }),
+      ],
+    });
+    const prisma = createPrismaStub({
+      auditEvent: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            action: "AI_OPTIMIZATION_SKIPPED",
+            actorId: null,
+            createdAt: new Date("2026-04-01T10:20:00.000Z"),
+            entityId: "match_1",
+            entityType: "article_match",
+            id: "audit_ai_skip",
+            payloadJson: {
+              level: "warn",
+              reasonCode: "ai_credentials_missing",
+              reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
+            },
+          },
+        ]),
+      },
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+
+    expect(snapshot.auditEvents[0]).toMatchObject({
+      action: "AI_OPTIMIZATION_SKIPPED",
+      level: "warn",
+      reasonCode: "ai_credentials_missing",
+      reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
     });
   });
 });

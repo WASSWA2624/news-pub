@@ -278,6 +278,7 @@ export default function TemplateFormCard({
       />
 
       <AdminDisclosureSection
+        completionLabel="Resolution ready"
         defaultOpen
         errorCount={issues.length}
         meta={[
@@ -338,6 +339,7 @@ export default function TemplateFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel="Content ready"
         defaultOpen
         meta={[
           {

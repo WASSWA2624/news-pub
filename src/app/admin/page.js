@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  AdminDescription,
   AdminEyebrow,
   AdminHero,
   AdminHeroHeading,
@@ -18,10 +17,7 @@ import {
   PrimaryButton,
   SectionGrid,
   SmallText,
-  SummaryCard,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
   StatusBadge,
   formatDateTime,
 } from "@/components/admin/news-admin-ui";
@@ -32,7 +28,7 @@ import { requireAdminPageSession } from "@/lib/auth";
 import { runSchedulerAction } from "./actions";
 
 function getTone(status) {
-  if (["SUCCEEDED", "CONNECTED", "ACTIVE"].includes(status)) {
+  if (["SUCCEEDED", "CONNECTED", "ACTIVE", "COMPLETED"].includes(status)) {
     return "success";
   }
 
@@ -43,6 +39,24 @@ function getTone(status) {
   return "warning";
 }
 
+function getAuditTone(level) {
+  if (level === "error") {
+    return "danger";
+  }
+
+  if (level === "warn") {
+    return "warning";
+  }
+
+  return undefined;
+}
+
+/**
+ * Renders the main NewsPub admin dashboard with operational summaries,
+ * recent activity, and AI observability indicators.
+ *
+ * @returns {Promise<JSX.Element>} The admin dashboard route.
+ */
 export default async function AdminDashboardPage() {
   const auth = await requireAdminPageSession("/admin");
   const [messages, snapshot] = await Promise.all([
@@ -82,8 +96,18 @@ export default async function AdminDashboardPage() {
 
       <SummaryGrid>
         <AdminMetricCard icon="sparkles" label="Optimized stories" value={snapshot.summary.optimizedCount7d} />
+        <AdminMetricCard icon="warning" label="AI skipped" tone="warning" value={snapshot.summary.aiSkippedCount7d} />
+        <AdminMetricCard icon="warning" label="AI fallback" tone="warning" value={snapshot.summary.aiFallbackCount7d} />
+      </SummaryGrid>
+
+      <SummaryGrid>
         <AdminMetricCard icon="refresh" label="AI cache reuses" tone="accent" value={snapshot.summary.aiCacheHitCount7d} />
         <AdminMetricCard icon="shield" label="Blocked before publish" tone="warning" value={snapshot.summary.blockedBeforePublish7d} />
+        {snapshot.canViewAnalytics ? (
+          <AdminMetricCard icon="dashboard" label="Tracked views" tone="accent" value={snapshot.summary.totalViews7d} />
+        ) : (
+          <AdminMetricCard icon="dashboard" label="Tracked views" tone="warning" value="Restricted" />
+        )}
       </SummaryGrid>
 
       <SectionGrid $wide>
@@ -232,6 +256,7 @@ export default async function AdminDashboardPage() {
                   <tr>
                     <th>Destination</th>
                     <th>Status</th>
+                    <th>AI</th>
                     <th>Remote id</th>
                     <th>Queued</th>
                   </tr>
@@ -245,6 +270,18 @@ export default async function AdminDashboardPage() {
                       </td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
+                      </td>
+                      <td data-label="AI">
+                        {attempt.optimizationStatus ? (
+                          <StatusBadge $tone={getTone(attempt.optimizationStatus)}>
+                            {attempt.optimizationStatus}
+                          </StatusBadge>
+                        ) : (
+                          <SmallText>Not recorded</SmallText>
+                        )}
+                        {attempt.aiResolution?.reasonMessage ? (
+                          <SmallText>{attempt.aiResolution.reasonMessage}</SmallText>
+                        ) : null}
                       </td>
                       <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
                       <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
@@ -289,6 +326,48 @@ export default async function AdminDashboardPage() {
           )}
         </Card>
       </SectionGrid>
+
+      <Card>
+        <AdminSectionTitle icon="file-text">Recent audit and AI visibility</AdminSectionTitle>
+        <CardDescription>
+          Skipped or fallback AI states appear here as expected workflow events so operators can diagnose behavior without treating optional AI issues as hard failures.
+        </CardDescription>
+        {snapshot.recentAuditEvents.length ? (
+          <DataTableWrap>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Severity</th>
+                  <th>Entity</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshot.recentAuditEvents.map((event) => (
+                  <tr key={event.id}>
+                    <td data-label="Action">
+                      <strong>{event.action}</strong>
+                      {event.reasonCode ? <SmallText>{event.reasonCode}</SmallText> : null}
+                    </td>
+                    <td data-label="Severity">
+                      <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
+                    </td>
+                    <td data-label="Entity">
+                      <strong>{event.entityType}</strong>
+                      <SmallText>{event.entityId}</SmallText>
+                      {event.reasonMessage ? <SmallText>{event.reasonMessage}</SmallText> : null}
+                    </td>
+                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </DataTableWrap>
+        ) : (
+          <EmptyState>No recent audit or AI observability events have been recorded yet.</EmptyState>
+        )}
+      </Card>
     </AdminPage>
   );
 }

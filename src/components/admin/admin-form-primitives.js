@@ -157,6 +157,47 @@ const DisclosureBody = styled.div`
   padding: 0.92rem;
 `;
 
+function formatStateCount(label, count) {
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
+}
+
+function buildDisclosureStateMeta({
+  blockingWarningCount = 0,
+  completionLabel = "",
+  errorCount = 0,
+  missingCount = 0,
+}) {
+  if (errorCount > 0) {
+    return {
+      label: formatStateCount("issue", errorCount),
+      tone: "danger",
+    };
+  }
+
+  if (missingCount > 0) {
+    return {
+      label: formatStateCount("missing field", missingCount),
+      tone: "warning",
+    };
+  }
+
+  if (blockingWarningCount > 0) {
+    return {
+      label: formatStateCount("warning", blockingWarningCount),
+      tone: "warning",
+    };
+  }
+
+  if (completionLabel) {
+    return {
+      label: completionLabel,
+      tone: "success",
+    };
+  }
+
+  return null;
+}
+
 /**
  * Shows a compact validation summary above an admin form when one or more
  * sections need attention.
@@ -224,6 +265,7 @@ export function scrollToFirstBlockingField(formElement) {
 export function AdminDisclosureSection({
   blockingWarningCount = 0,
   children,
+  completionLabel = "",
   defaultOpen = false,
   description = "",
   errorCount = 0,
@@ -242,6 +284,15 @@ export function AdminDisclosureSection({
     errorCount,
     missingCount,
   });
+  const stateMeta = buildDisclosureStateMeta({
+    blockingWarningCount,
+    completionLabel,
+    errorCount,
+    missingCount,
+  });
+  const resolvedMeta = stateMeta
+    ? [...meta, stateMeta]
+    : meta;
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const resolvedOpen = isOpen || shouldForceOpen;
 
@@ -259,9 +310,9 @@ export function AdminDisclosureSection({
           </DisclosureTitleRow>
           {summary ? <DisclosureSummary>{summary}</DisclosureSummary> : null}
           {description ? <SmallText>{description}</SmallText> : null}
-          {meta.length ? (
+          {resolvedMeta.length ? (
             <DisclosureMeta>
-              {meta.map((item) => (
+              {resolvedMeta.map((item) => (
                 <DisclosureMetaPill key={`${item.tone || "muted"}-${item.label}`} $tone={item.tone || "muted"}>
                   {item.label}
                 </DisclosureMetaPill>

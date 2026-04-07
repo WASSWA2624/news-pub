@@ -1,43 +1,33 @@
 import {
-  ActionIcon,
   AdminEyebrow,
   AdminHero,
   AdminHeroHeading,
   AdminMetricCard,
   AdminPage,
   AdminSectionTitle,
-  ButtonIcon,
   Card,
   CardHeader,
   CardDescription,
   DataTable,
   DataTableWrap,
   EmptyState,
-  Field,
-  FieldGrid,
-  FieldLabel,
-  Input,
-  PrimaryButton,
   SectionGrid,
   SmallText,
-  SummaryCard,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
-  Textarea,
 } from "@/components/admin/news-admin-ui";
-import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
+import AdminFormModal from "@/components/admin/admin-form-modal";
+import MediaUploadModalForm from "@/components/admin/media-upload-modal-form";
 import { getMediaLibrarySnapshot } from "@/features/media";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
-import styled from "styled-components";
 import { uploadMediaAction } from "../actions";
 
-const UploadForm = styled.form`
-  display: grid;
-  gap: 0.85rem;
-`;
-
+/**
+ * Renders the admin media library page with the shared upload modal workflow
+ * and the current asset inventory.
+ *
+ * @returns {Promise<JSX.Element>} The media library route.
+ */
 export default async function MediaPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
@@ -77,38 +67,7 @@ export default async function MediaPage() {
             triggerLabel="Upload asset"
             triggerTone="primary"
           >
-            <UploadForm action={uploadMediaAction} id="media-upload-form">
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>File</FieldLabel>
-                  <Input name="file" required type="file" />
-                </Field>
-                <Field>
-                  <FieldLabel>Source URL</FieldLabel>
-                  <Input name="sourceUrl" />
-                </Field>
-                <Field>
-                  <FieldLabel>Alt text</FieldLabel>
-                  <Input name="alt" />
-                </Field>
-                <Field>
-                  <FieldLabel>Attribution</FieldLabel>
-                  <Input name="attributionText" />
-                </Field>
-              </FieldGrid>
-              <Field>
-                <FieldLabel>Caption</FieldLabel>
-                <Textarea name="caption" />
-              </Field>
-              <AdminModalFooterActions>
-                <PrimaryButton form="media-upload-form" type="submit">
-                  <ButtonIcon>
-                    <ActionIcon name="upload" />
-                  </ButtonIcon>
-                  Upload asset
-                </PrimaryButton>
-              </AdminModalFooterActions>
-            </UploadForm>
+            <MediaUploadModalForm action={uploadMediaAction} />
           </AdminFormModal>
         </Card>
 

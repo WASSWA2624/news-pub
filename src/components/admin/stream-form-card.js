@@ -261,6 +261,7 @@ export default function StreamFormCard({
       />
 
       <AdminDisclosureSection
+        completionLabel={name && slug ? "Core setup ready" : ""}
         defaultOpen
         errorCount={issues.length}
         meta={[
@@ -442,6 +443,7 @@ export default function StreamFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel="Scheduling ready"
         defaultOpen={false}
         meta={[
           {
@@ -502,6 +504,7 @@ export default function StreamFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel="Social options ready"
         defaultOpen={false}
         meta={[
           {
@@ -543,6 +546,7 @@ export default function StreamFormCard({
 
       {selectedProvider?.providerKey ? (
         <AdminDisclosureSection
+          completionLabel="Provider filters ready"
           defaultOpen={false}
           meta={[
             {
@@ -564,6 +568,7 @@ export default function StreamFormCard({
       ) : null}
 
       <AdminDisclosureSection
+        completionLabel="Targeting ready"
         defaultOpen
         meta={[
           {

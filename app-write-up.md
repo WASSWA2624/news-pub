@@ -67,6 +67,8 @@ Release 1 admin forms and editors must reuse one shared interaction language acr
 - shared control sizing tokens must keep primary buttons, secondary buttons, destructive buttons, icon buttons, compact pills, and select triggers aligned across cards, tables, toolbars, and modal footers
 - submit failures must scroll and focus the first blocking form control instead of leaving operators to search for the error manually
 - modal editing flows must preserve header context, keep footer actions stable, and avoid nested scroll traps during long edits
+- manual story creation, category editing, and media upload modals must use the same shared disclosure and validation recovery contract as provider, destination, stream, template, and post-editor forms
+- dashboard, jobs, post editor, and settings surfaces must surface AI runtime state and machine-readable skip or fallback reasons in operator-friendly language
 
 ### Documentation Standards
 
@@ -108,6 +110,7 @@ Required admin routes:
 - `/admin/destinations`
 - `/admin/streams`
 - `/admin/categories`
+- `/admin/posts/new`
 - `/admin/posts/review`
 - `/admin/posts/published`
 - `/admin/posts/[id]`
@@ -117,7 +120,7 @@ Required admin routes:
 - `/admin/seo`
 - `/admin/settings`
 
-The admin dashboard is the operational control plane. It must expose provider status, destination status, stream status, recent fetch results, publish results, failures, retries, and website analytics.
+The admin dashboard is the operational control plane. It must expose provider status, destination status, stream status, recent fetch results, publish results, failures, retries, website analytics, AI runtime visibility, skip or fallback counts, and recent observability events.
 
 ## 7. Environment Contract
 
@@ -342,6 +345,7 @@ Workflow rules:
 - `REVIEW_REQUIRED` must create or update the canonical `Post` in a held state with `PostStatus.DRAFT` and `EditorialStage.INGESTED`, then stop until an admin approves publication
 - AI optimization runs after filtering and before approval or publication. It may move a destination match into `WorkflowStage.OPTIMIZED`, `WorkflowStage.REVIEW_REQUIRED`, or `WorkflowStage.HELD` depending on policy results and stream mode.
 - review queues, the post editor, and publish diagnostics must expose optimization status and reason details so editors can distinguish successful AI output from `SKIPPED` or `FALLBACK` deterministic handling without losing publish control
+- the manual story creation route at `/admin/posts/new` must feed the same canonical post and publication workflow as automated stories, including shared validation recovery and destination linkage
 - editors work from the reused post inventory and post editor surfaces
 - the canonical `Post` is the editable render artifact that feeds website and social formatting
 - publishing state and editorial stage remain separate fields
@@ -472,7 +476,7 @@ Release 1 must expose:
 - top published stories
 - structured audit events for provider, stream, article, post, and publish operations
 
-Operational visibility must include the recent publish-attempt diagnostics, review-surface optimization details, and audit events that explain when AI optimization was skipped or when deterministic fallback was used.
+Operational visibility must include dashboard and jobs counters for AI skip or fallback outcomes, the settings-page AI runtime summary, recent publish-attempt diagnostics, review-surface optimization details, and audit events that explain when AI optimization was skipped or when deterministic fallback was used.
 
 `AuditEvent` remains the central append-only operational log. `ViewEvent` remains the public analytics event store.
 

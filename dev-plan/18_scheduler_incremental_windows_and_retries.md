@@ -20,7 +20,7 @@ Automate stream execution with safe checkpoints, idempotent workers, and visible
 3. Read checkpoints before execution and update them only after a successful fetch run.
 4. Generate stable execution keys so retries remain idempotent.
 5. Implement retry and backoff rules for publish attempts and transient provider failures.
-6. Persist worker summaries, retry outcomes, and pause states in admin-visible logs.
+6. Persist worker summaries, retry outcomes, and pause states in admin-visible logs and dashboard or jobs summaries.
 7. Keep hourly as the default schedule when a stream has no explicit cadence.
 8. Treat optional AI outages, missing credentials, timeouts, and invalid structured output as non-blocking optimization outcomes so healthy stream runs continue with `SKIPPED` or `FALLBACK` states instead of entering avoidable retry loops.
 
@@ -35,7 +35,7 @@ Automate stream execution with safe checkpoints, idempotent workers, and visible
 
 - due streams run only when enabled and due
 - checkpoints are not advanced on failed runs
-- retries follow configured limits and remain visible in logs
+- retries follow configured limits and remain visible in logs, dashboard metrics, and jobs summaries
 - repeated executions do not republish the same successful attempt
 - optional AI degradation does not turn an otherwise valid stream execution into a failed scheduled run when deterministic handling remains available
 

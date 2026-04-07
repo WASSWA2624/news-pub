@@ -579,6 +579,7 @@ export default function DestinationFormCard({
       />
 
       <AdminDisclosureSection
+        completionLabel="Routing ready"
         defaultOpen
         errorCount={issues.length}
         meta={[
@@ -643,6 +644,7 @@ export default function DestinationFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel={name && slug ? "Identity ready" : ""}
         defaultOpen
         meta={[
           {
@@ -703,6 +705,13 @@ export default function DestinationFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel={
+          isMetaPlatform
+            ? hasCredentialDefaults && !useDestinationCredentialOverrides
+              ? "Using env defaults"
+              : "Connection ready"
+            : "Connection ready"
+        }
         defaultOpen
         meta={[
           {
@@ -1053,6 +1062,7 @@ export default function DestinationFormCard({
 
       {isMetaPlatform ? (
         <AdminDisclosureSection
+          completionLabel="Guardrails ready"
           defaultOpen
           errorCount={socialGuardrailErrors.length}
           meta={[
@@ -1114,12 +1124,10 @@ export default function DestinationFormCard({
       ) : null}
 
       <AdminDisclosureSection
+        completionLabel={destination?.connectionError ? "" : "No issue recorded"}
         defaultOpen={false}
         meta={[
-          {
-            label: destination?.connectionError ? "Issue recorded" : "No saved issue",
-            tone: destination?.connectionError ? "warning" : "success",
-          },
+          ...(destination?.connectionError ? [{ label: "Issue recorded", tone: "warning" }] : []),
         ]}
         summary="Store operator-facing notes about connection health without changing the runtime routing values."
         title="Operational notes"
@@ -1138,13 +1146,11 @@ export default function DestinationFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel={!parsedAdvancedSettings.error ? "JSON ready" : ""}
         defaultOpen={Boolean(parsedAdvancedSettings.error)}
         errorCount={parsedAdvancedSettings.error ? 1 : 0}
         meta={[
-          {
-            label: parsedAdvancedSettings.error ? "JSON invalid" : "JSON ready",
-            tone: parsedAdvancedSettings.error ? "danger" : "success",
-          },
+          ...(parsedAdvancedSettings.error ? [{ label: "JSON invalid", tone: "danger" }] : []),
         ]}
         summary="Store extra platform-specific settings only when they do not belong in the structured routing and credential fields above."
         title="Advanced settings"

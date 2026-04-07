@@ -1,6 +1,10 @@
 import { hasAdminPermission, ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import {
+  isFailureAuditAction,
+  isWarningAuditAction,
+  serializeAuditEvent,
+} from "@/lib/analytics";
 import { getProviderCredentialState } from "@/lib/news/providers";
-import { serializeAuditEvent } from "@/lib/analytics";
 import { resolvePrismaClient } from "@/lib/news/shared";
 
 /**
@@ -148,6 +152,31 @@ function mapFailureItem(item) {
   };
 }
 
+function mapAuditEvent(event) {
+  const payload = event.payloadJson || null;
+
+  return {
+    ...serializeAuditEvent(event),
+    level:
+      payload?.level
+      || (isFailureAuditAction(event.action) ? "error" : isWarningAuditAction(event.action) ? "warn" : "info"),
+    reasonCode: payload?.reasonCode || null,
+    reasonMessage: payload?.reasonMessage || payload?.message || null,
+  };
+}
+
+function countAuditActions(events, action) {
+  return events.filter((event) => event.action === action).length;
+}
+
+/**
+ * Returns the main admin dashboard snapshot with operational counts, traffic
+ * summaries, AI observability, and recent workflow activity.
+ *
+ * @param {object} user - The current admin user.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Dashboard data shaped for the admin home route.
+ */
 export async function getAdminDashboardSnapshot(user, prisma) {
   const db = await resolvePrismaClient(prisma);
   const canViewAnalytics = hasAdminPermission(user, ADMIN_PERMISSIONS.VIEW_ANALYTICS);
@@ -160,6 +189,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
     publishAttempts,
     latestStories,
     recentAuditEvents,
+    aiOptimizationAuditEvents,
     viewEvents,
   ] = await Promise.all([
     db.newsProviderConfig.findMany({
@@ -270,6 +300,17 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       orderBy: [{ createdAt: "desc" }],
       take: 12,
     }),
+    db.auditEvent.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      where: {
+        action: {
+          in: ["AI_OPTIMIZATION_FALLBACK_USED", "AI_OPTIMIZATION_SKIPPED"],
+        },
+        createdAt: {
+          gte: since,
+        },
+      },
+    }),
     canViewAnalytics
       ? db.viewEvent.findMany({
           orderBy: [{ createdAt: "desc" }],
@@ -338,7 +379,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       title: story.translations[0]?.title || story.slug,
       viewCount: canViewAnalytics ? story.viewEvents.length : null,
     })),
-    recentAuditEvents: recentAuditEvents.map(serializeAuditEvent),
+    recentAuditEvents: recentAuditEvents.map(mapAuditEvent),
     recentFailures,
     recentFetchRuns: fetchRuns.slice(0, 6).map(mapFetchRun),
     recentPublishAttempts: publishAttempts.slice(0, 6).map(mapPublishAttempt),
@@ -349,6 +390,8 @@ export async function getAdminDashboardSnapshot(user, prisma) {
     },
     summary: {
       aiCacheHitCount7d: sumCounts(fetchRuns, "aiCacheHitCount"),
+      aiFallbackCount7d: countAuditActions(aiOptimizationAuditEvents, "AI_OPTIMIZATION_FALLBACK_USED"),
+      aiSkippedCount7d: countAuditActions(aiOptimizationAuditEvents, "AI_OPTIMIZATION_SKIPPED"),
       blockedBeforePublish7d: sumCounts(fetchRuns, "blockedCount"),
       duplicateCount7d: sumCounts(fetchRuns, "duplicateCount"),
       failedFetchRuns7d: fetchRuns.filter((run) => run.status === "FAILED").length,
@@ -502,10 +545,12 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
   });
 
   return {
-    auditEvents: auditEvents.map(serializeAuditEvent),
+    auditEvents: auditEvents.map(mapAuditEvent),
     fetchRuns: fetchRuns.map(mapFetchRun),
     publishAttempts: publishAttempts.map(mapPublishAttempt),
     summary: {
+      aiFallbackEvents: countAuditActions(auditEvents, "AI_OPTIMIZATION_FALLBACK_USED"),
+      aiSkippedEvents: countAuditActions(auditEvents, "AI_OPTIMIZATION_SKIPPED"),
       failedFetchRuns: fetchRuns.filter((run) => run.status === "FAILED").length,
       failedPublishAttempts: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
       totalFetchRuns: fetchRuns.length,

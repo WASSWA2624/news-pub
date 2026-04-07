@@ -7,38 +7,39 @@ import styled, { css } from "styled-components";
 import AppIcon from "@/components/common/app-icon";
 
 const Form = styled.form`
-  display: grid;
-  gap: 0.28rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-
-  ${({ $condenseSubmit }) => (
-    $condenseSubmit
-      ? css`
-          @media (max-width: 520px) {
-            grid-template-columns: minmax(0, 1fr) 2.5rem;
-          }
-        `
-      : ""
-  )}
-`;
-
-const InputWrap = styled.label`
-  align-items: center;
+  align-items: stretch;
   background:
     linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(255, 255, 255, 0.94)),
     radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.08), transparent 48%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.92);
   border-radius: var(--theme-radius-md);
   box-shadow: 0 8px 20px rgba(var(--theme-primary-rgb), 0.06);
-  display: flex;
-  gap: 0.44rem;
-  min-height: 36px;
-  padding: 0 0.72rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+
+  ${({ $condenseSubmit }) => (
+    $condenseSubmit
+      ? css`
+          @media (max-width: 520px) {
+            grid-template-columns: minmax(0, 1fr) 2.9rem;
+          }
+        `
+      : ""
+  )}
 
   &:focus-within {
     border-color: var(--theme-primary);
     box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.12);
   }
+`;
+
+const InputWrap = styled.label`
+  align-items: center;
+  display: flex;
+  gap: 0.44rem;
+  min-height: 36px;
+  padding: 0 0.72rem;
 `;
 
 const InputIcon = styled.span`
@@ -73,8 +74,8 @@ const Button = styled.button`
   align-items: center;
   background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-story-accent) 100%);
   border: none;
-  border-radius: var(--theme-radius-md);
-  box-shadow: 0 12px 28px rgba(var(--theme-primary-rgb), 0.18);
+  border-left: 1px solid rgba(var(--theme-primary-rgb), 0.16);
+  box-shadow: none;
   color: white;
   cursor: pointer;
   display: inline-flex;
@@ -83,18 +84,29 @@ const Button = styled.button`
   gap: 0.38rem;
   justify-content: center;
   min-height: 36px;
-  padding: 0 0.78rem;
+  padding: 0 0.94rem;
+  transition:
+    filter 0.18s ease,
+    background 0.18s ease;
 
   ${({ $condenseSubmit }) => (
     $condenseSubmit
       ? css`
           @media (max-width: 520px) {
-            min-width: 2.5rem;
+            min-width: 2.9rem;
             padding: 0;
           }
         `
       : ""
   )}
+
+  &:hover {
+    filter: brightness(1.04);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
 
   svg {
     display: block;

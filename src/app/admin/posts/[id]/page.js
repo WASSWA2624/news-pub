@@ -12,10 +12,6 @@ import {
   DataTable,
   DataTableWrap,
   EmptyState,
-  Field,
-  FieldGrid,
-  FieldLabel,
-  Input,
   LinkButton,
   NoticeBanner,
   NoticeItem,
@@ -25,17 +21,14 @@ import {
   SidebarStack,
   SmallText,
   StatusBadge,
-  PrimaryButton,
   SecondaryButton,
   Textarea,
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import { AdminDisclosureSection } from "@/components/admin/admin-form-primitives";
-import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
-import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
+import AdminFormModal from "@/components/admin/admin-form-modal";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
-import SearchableSelect from "@/components/common/searchable-select";
+import PostEditorModalForm from "@/components/admin/post-editor-modal-form";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
@@ -44,7 +37,7 @@ import { notFound } from "next/navigation";
 import { repostPostAction, retryPublishAttemptAction, updatePostEditorAction } from "../../actions";
 
 function getTone(status) {
-  if (["PUBLISHED", "SUCCEEDED", "APPROVED", "PASS", "OPTIMIZED"].includes(status)) {
+  if (["PUBLISHED", "SUCCEEDED", "APPROVED", "PASS", "OPTIMIZED", "COMPLETED"].includes(status)) {
     return "success";
   }
 
@@ -53,6 +46,18 @@ function getTone(status) {
   }
 
   return "warning";
+}
+
+function getAuditTone(level) {
+  if (level === "error") {
+    return "danger";
+  }
+
+  if (level === "warn") {
+    return "warning";
+  }
+
+  return undefined;
 }
 
 function renderPreviewBody(payload) {
@@ -125,7 +130,6 @@ export default async function PostEditorPage({ params }) {
     label: category.name,
     value: category.id,
   }));
-  const postEditorFormId = `post-editor-form-${snapshot.post.id}`;
 
   return (
     <AdminPage>
@@ -154,189 +158,18 @@ export default async function PostEditorPage({ params }) {
               triggerLabel="Open editor"
               triggerTone="primary"
             >
-              <form action={updatePostEditorAction} id={postEditorFormId}>
-                <input name="locale" type="hidden" value={translation?.locale || defaultLocale} />
-                <input name="postId" type="hidden" value={snapshot.post.id} />
-                <AdminDisclosureSection
-                  defaultOpen
-                  meta={[
-                    { label: snapshot.post.status, tone: getTone(snapshot.post.status) },
-                    { label: snapshot.post.editorialStage, tone: getTone(snapshot.post.editorialStage) },
-                  ]}
-                  summary="Choose the editorial stage, canonical slug, and destination match that the workflow actions should target."
-                  title="Editorial settings"
-                >
-                  <FieldGrid>
-                    <Field>
-                      <FieldLabel>Slug</FieldLabel>
-                      <Input defaultValue={snapshot.post.slug} name="slug" required />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Status</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Story status"
-                        defaultValue={snapshot.post.status}
-                        name="status"
-                        options={statusOptions}
-                        placeholder="Select a status"
-                      />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Editorial stage</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Editorial stage"
-                        defaultValue={snapshot.post.editorialStage}
-                        name="editorialStage"
-                        options={editorialStageOptions}
-                        placeholder="Select an editorial stage"
-                      />
-                    </Field>
-                    <Field as="div">
-                      <FieldLabel>Publish target match</FieldLabel>
-                      <SearchableSelect
-                        ariaLabel="Publish target match"
-                        defaultValue={defaultArticleMatch?.id || ""}
-                        name="articleMatchId"
-                        options={articleMatchOptions}
-                        placeholder="Select a destination match"
-                      />
-                    </Field>
-                  </FieldGrid>
-                </AdminDisclosureSection>
-
-                <AdminDisclosureSection
-                  defaultOpen
-                  meta={[
-                    { label: translation?.locale || defaultLocale, tone: "muted" },
-                    { label: translation?.title ? "Copy loaded" : "Needs copy", tone: translation?.title ? "success" : "warning" },
-                  ]}
-                  summary="Edit the canonical title, summary, and body that feed both the website rendering path and destination optimization."
-                  title="Story copy"
-                >
-                  <Field>
-                    <FieldLabel>Title</FieldLabel>
-                    <Input defaultValue={translation?.title || ""} name="title" required />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Summary</FieldLabel>
-                    <Textarea defaultValue={translation?.summary || snapshot.post.excerpt} name="summary" />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Body markdown</FieldLabel>
-                    <Textarea
-                      defaultValue={translation?.contentMd || ""}
-                      name="contentMd"
-                      style={{ minHeight: "280px" }}
-                    />
-                  </Field>
-                </AdminDisclosureSection>
-
-                <AdminDisclosureSection
-                  defaultOpen={false}
-                  meta={[
-                    { label: defaultArticleMatch?.optimizationStatus || "NOT_REQUESTED", tone: getTone(defaultArticleMatch?.optimizationStatus) },
-                    { label: defaultArticleMatch?.policyStatus || "PASS", tone: getTone(defaultArticleMatch?.policyStatus) },
-                  ]}
-                  summary="Set categories, schedule publication, and run the editorial actions that approve, optimize, hold, or publish this story."
-                  title="Publishing"
-                >
-                  <Field as="div">
-                    <FieldLabel>Categories</FieldLabel>
-                    <SearchableSelect
-                      ariaLabel="Story categories"
-                      defaultValue={snapshot.post.categories.map((category) => category.id)}
-                      name="categoryIds"
-                      multiple
-                      options={categoryOptions}
-                      placeholder="Select one or more categories"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Schedule publish time</FieldLabel>
-                    <Input name="publishAt" type="datetime-local" />
-                  </Field>
-                </AdminDisclosureSection>
-                <AdminModalFooterActions>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="sparkles"
-                    name="intent"
-                    pendingLabel="Optimizing preview..."
-                    tone="secondary"
-                    type="submit"
-                    value="optimize"
-                  >
-                    Optimize now
-                  </PendingSubmitButton>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="badge-check"
-                    name="intent"
-                    pendingLabel="Approving story..."
-                    tone="secondary"
-                    type="submit"
-                    value="approve"
-                  >
-                    Approve
-                  </PendingSubmitButton>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="warning"
-                    name="intent"
-                    pendingLabel="Holding story..."
-                    tone="secondary"
-                    type="submit"
-                    value="reject"
-                  >
-                    Reject
-                  </PendingSubmitButton>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="save"
-                    name="intent"
-                    pendingLabel="Saving story..."
-                    tone="secondary"
-                    type="submit"
-                    value="save"
-                  >
-                    Save story
-                  </PendingSubmitButton>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="schedule"
-                    name="intent"
-                    pendingLabel="Scheduling story..."
-                    tone="secondary"
-                    type="submit"
-                    value="schedule"
-                  >
-                    Schedule publish
-                  </PendingSubmitButton>
-                  <PendingSubmitButton
-                    form={postEditorFormId}
-                    icon="publish"
-                    name="intent"
-                    pendingLabel="Publishing now..."
-                    tone="primary"
-                    type="submit"
-                    value="publish"
-                  >
-                    Publish now
-                  </PendingSubmitButton>
-                  <ConfirmSubmitButton
-                    confirmLabel="Archive story"
-                    description="The story will be moved to an archived state. Use this when it should no longer remain active in the editorial flow."
-                    formId={postEditorFormId}
-                    icon="archive"
-                    submitName="intent"
-                    submitValue="archive"
-                    title="Archive this story?"
-                    tone="danger"
-                  >
-                    Archive story
-                  </ConfirmSubmitButton>
-                </AdminModalFooterActions>
-              </form>
+              <PostEditorModalForm
+                action={updatePostEditorAction}
+                articleMatchOptions={articleMatchOptions}
+                articleMatches={snapshot.post.articleMatches}
+                categoryOptions={categoryOptions}
+                defaultArticleMatchId={defaultArticleMatch?.id || ""}
+                defaultLocale={defaultLocale}
+                editorialStageOptions={editorialStageOptions}
+                post={snapshot.post}
+                selectedTranslation={translation}
+                statusOptions={statusOptions}
+              />
             </AdminFormModal>
           </ButtonRow>
         </Card>
@@ -507,6 +340,9 @@ export default async function PostEditorPage({ params }) {
                     </td>
                     <td data-label="AI">
                       <StatusBadge $tone={getTone(match.optimizationStatus)}>{match.optimizationStatus}</StatusBadge>
+                      {match.optimizationDetails?.reasonCode ? (
+                        <SmallText>{match.optimizationDetails.reasonCode}</SmallText>
+                      ) : null}
                       {match.optimizationDetails?.reasonMessage ? (
                         <SmallText>{match.optimizationDetails.reasonMessage}</SmallText>
                       ) : null}
@@ -571,6 +407,7 @@ export default async function PostEditorPage({ params }) {
               <thead>
                 <tr>
                   <th>Action</th>
+                  <th>Severity</th>
                   <th>Entity</th>
                   <th>Created</th>
                 </tr>
@@ -578,8 +415,18 @@ export default async function PostEditorPage({ params }) {
               <tbody>
                 {snapshot.auditEvents.map((event) => (
                   <tr key={event.id}>
-                    <td data-label="Action">{event.action}</td>
-                    <td data-label="Entity">{event.entityType}</td>
+                    <td data-label="Action">
+                      <strong>{event.action}</strong>
+                      {event.reasonCode ? <SmallText>{event.reasonCode}</SmallText> : null}
+                    </td>
+                    <td data-label="Severity">
+                      <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
+                    </td>
+                    <td data-label="Entity">
+                      <strong>{event.entityType}</strong>
+                      <SmallText>{event.entityId}</SmallText>
+                      {event.reasonMessage ? <SmallText>{event.reasonMessage}</SmallText> : null}
+                    </td>
                     <td data-label="Created">{formatDateTime(event.createdAt)}</td>
                   </tr>
                 ))}

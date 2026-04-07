@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 import AdminLogoutButton from "@/components/auth/admin-logout-button";
 import AppIcon from "@/components/common/app-icon";
@@ -83,21 +83,21 @@ const HeaderSurface = styled.div`
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.2rem;
+  gap: 0.14rem;
   margin: 0 auto;
   max-width: 1420px;
   padding:
-    clamp(0.22rem, 0.65vw, 0.34rem)
-    clamp(0.38rem, 0.95vw, 0.66rem)
-    clamp(0.22rem, 0.65vw, 0.36rem);
+    clamp(0.14rem, 0.45vw, 0.24rem)
+    clamp(0.36rem, 0.9vw, 0.62rem)
+    clamp(0.14rem, 0.45vw, 0.24rem);
   position: relative;
   width: 100%;
 
   @media (max-width: 479px) {
     padding:
-      0.32rem
-      0.28rem
-      0.34rem;
+      0.24rem
+      0.24rem
+      0.26rem;
   }
 `;
 
@@ -116,8 +116,8 @@ const DesktopBar = styled.div`
   @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     align-items: center;
     display: grid;
-    column-gap: clamp(0.85rem, 1.6vw, 1.5rem);
-    gap: 0.3rem;
+    column-gap: clamp(0.7rem, 1.25vw, 1.15rem);
+    gap: 0.18rem;
     grid-template-columns: ${({ $hasOverflow }) =>
       $hasOverflow
         ? "auto minmax(0, 1fr) auto auto"
@@ -133,36 +133,101 @@ const TopRow = styled.div`
 `;
 
 const BrandLink = styled(Link)`
-  align-items: start;
+  align-items: center;
+  backdrop-filter: blur(14px);
+  background:
+    linear-gradient(135deg, rgba(21, 58, 88, 0.86), rgba(17, 90, 116, 0.72)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 48%);
+  border: 1px solid rgba(129, 212, 255, 0.18);
+  border-radius: calc(var(--theme-radius-lg, 2px) + 1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 20px rgba(7, 18, 31, 0.14);
   color: white;
   display: inline-flex;
-  gap: 0.32rem;
+  gap: 0.5rem;
   min-width: 0;
+  padding: 0.22rem 0.62rem 0.22rem 0.28rem;
+  position: relative;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+
+  &::after {
+    background: linear-gradient(90deg, rgba(255, 214, 120, 0.92), rgba(123, 234, 255, 0.72));
+    border-radius: 999px;
+    content: "";
+    height: 1.5px;
+    left: 0.7rem;
+    opacity: 0.78;
+    position: absolute;
+    right: 0.7rem;
+    top: 0;
+  }
+
+  &:hover {
+    border-color: rgba(145, 222, 255, 0.34);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 16px 32px rgba(7, 18, 31, 0.22);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(165, 228, 255, 0.72);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 479px) {
+    gap: 0.38rem;
+    padding: 0.2rem 0.48rem 0.2rem 0.24rem;
+  }
 
   @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    align-items: center;
-    gap: 0.38rem;
+    gap: 0.56rem;
+    padding-right: 0.7rem;
   }
+`;
+
+const BrandMark = styled.span`
+  align-items: center;
+  background:
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, 0.14), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--theme-radius-lg, 2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0.14rem;
 `;
 
 const BrandCopy = styled.span`
   display: grid;
-  gap: 0;
+  gap: 0.02rem;
   min-width: 0;
 `;
 
 const BrandTitle = styled.span`
-  font-size: clamp(0.84rem, 1.2vw, 0.96rem);
+  font-size: clamp(0.96rem, 1.28vw, 1.12rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  letter-spacing: -0.04em;
+  line-height: 0.94;
+  text-shadow: 0 1px 6px rgba(9, 22, 37, 0.18);
 `;
 
-const ProfileMenuWrap = styled.div`
-  position: relative;
+const BrandMeta = styled.span`
+  color: rgba(221, 242, 255, 0.84);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
 `;
 
-const ProfileTrigger = styled.button`
+const headerActionButtonCss = css`
+  --header-action-size: 2.15rem;
   align-items: center;
   backdrop-filter: blur(14px);
   background:
@@ -176,15 +241,17 @@ const ProfileTrigger = styled.button`
   color: white;
   cursor: pointer;
   display: inline-grid;
-  height: 2.15rem;
-  justify-self: end;
+  height: var(--header-action-size);
   padding: 0;
   place-items: center;
   transition:
     background 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
-  width: 2.15rem;
+
+  @media (max-width: 479px) {
+    --header-action-size: 2.05rem;
+  }
 
   &:hover {
     background:
@@ -193,6 +260,19 @@ const ProfileTrigger = styled.button`
     border-color: rgba(255, 255, 255, 0.22);
     transform: translateY(-1px);
   }
+`;
+
+const ProfileMenuWrap = styled.div`
+  align-items: center;
+  display: flex;
+  position: relative;
+`;
+
+const ProfileTrigger = styled.button`
+  ${headerActionButtonCss}
+  justify-self: end;
+  min-width: var(--header-action-size);
+  padding-inline: 0.54rem;
 `;
 
 const ProfileInitials = styled.span`
@@ -407,42 +487,15 @@ const PrimaryNavLink = styled(Link)`
 `;
 
 const MenuWrap = styled.div`
+  align-items: center;
+  display: flex;
   position: relative;
 `;
 
 const OverflowButton = styled.button`
-  align-items: center;
-  backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--theme-radius-lg, 2px);
-  color: white;
-  cursor: pointer;
-  display: inline-grid;
-  height: 28px;
+  ${headerActionButtonCss}
   justify-items: center;
-  padding: 0;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
-  width: 28px;
-
-  @media (max-width: 479px) {
-    height: 26px;
-    width: 26px;
-  }
-
-  @media (min-width: ${DESKTOP_BREAKPOINT}px) {
-    height: 28px;
-    width: 28px;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-1px);
-  }
+  width: var(--header-action-size);
 `;
 
 const OverflowDots = styled.span`
@@ -877,8 +930,11 @@ export default function AdminShell({ children, messages, user }) {
             {isDesktopViewport ? (
               <DesktopBar $hasOverflow={overflowItems.length > 0}>
                 <BrandLink href="/admin">
-                  <NewsPubLogo size={34} />
+                  <BrandMark>
+                    <NewsPubLogo size={34} />
+                  </BrandMark>
                   <BrandCopy>
+                    <BrandMeta>Publishing Desk</BrandMeta>
                     <BrandTitle>{shellTitle}</BrandTitle>
                   </BrandCopy>
                 </BrandLink>
@@ -963,8 +1019,11 @@ export default function AdminShell({ children, messages, user }) {
               <MobileHeaderLayout>
                 <TopRow>
                   <BrandLink href="/admin">
-                    <NewsPubLogo size={32} />
+                    <BrandMark>
+                      <NewsPubLogo size={32} />
+                    </BrandMark>
                     <BrandCopy>
+                      <BrandMeta>Publishing Desk</BrandMeta>
                       <BrandTitle>{shellTitle}</BrandTitle>
                     </BrandCopy>
                   </BrandLink>

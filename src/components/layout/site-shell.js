@@ -60,28 +60,107 @@ const Header = styled.header`
 
 const HeaderInner = styled.div`
   display: grid;
-  gap: 0.48rem;
+  gap: 0.34rem;
   margin: 0 auto;
   max-width: var(--theme-shell-max-width);
-  padding: clamp(0.42rem, 1.4vw, 0.72rem) clamp(0.62rem, 1.8vw, 0.88rem);
+  padding: clamp(0.26rem, 0.95vw, 0.46rem) clamp(0.52rem, 1.45vw, 0.84rem);
 
   @media (min-width: 980px) {
     align-items: center;
-    column-gap: clamp(1.1rem, 2.2vw, 2rem);
-    gap: 0.6rem;
-    grid-template-columns: auto minmax(0, 1fr) minmax(18rem, 24rem);
+    column-gap: clamp(0.9rem, 1.8vw, 1.55rem);
+    gap: 0.38rem;
+    grid-template-columns: auto minmax(0, 1fr) minmax(16.5rem, 22rem);
   }
 `;
 
-const BrandLogo = styled(NewsPubLogo)`
+const HeaderBrandLogo = styled(NewsPubLogo)`
   flex: 0 0 auto;
-  height: 34px;
-  width: 34px;
+  height: 30px;
+  width: 30px;
 
   @media (min-width: 640px) {
-    height: 40px;
-    width: 40px;
+    height: 34px;
+    width: 34px;
   }
+`;
+
+const HeaderBrandLink = styled(Link)`
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(var(--theme-surface-rgb), 0.92), rgba(255, 255, 255, 0.84)),
+    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.12), transparent 48%);
+  border: 1px solid rgba(var(--theme-primary-rgb), 0.16);
+  box-shadow:
+    0 10px 24px rgba(var(--theme-primary-rgb), 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  color: ${({ theme }) => theme?.colors?.text ?? "var(--theme-text)"};
+  display: inline-flex;
+  gap: 0.46rem;
+  min-width: 0;
+  padding: 0.24rem 0.58rem 0.24rem 0.26rem;
+  position: relative;
+
+  &::after {
+    background: linear-gradient(
+      90deg,
+      rgba(var(--theme-accent-rgb), 0.7),
+      rgba(var(--theme-primary-rgb), 0.82),
+      rgba(var(--theme-accent-rgb), 0.26)
+    );
+    content: "";
+    height: 2px;
+    left: 0.66rem;
+    opacity: 0.84;
+    position: absolute;
+    right: 0.66rem;
+    top: 0;
+  }
+
+  &:hover {
+    border-color: rgba(var(--theme-primary-rgb), 0.24);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--theme-primary-rgb), 0.24);
+    outline-offset: 2px;
+  }
+`;
+
+const HeaderBrandMark = styled.span`
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(var(--theme-primary-rgb), 0.12), rgba(var(--theme-primary-rgb), 0.05)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.32), transparent 46%);
+  border: 1px solid rgba(var(--theme-primary-rgb), 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0.12rem;
+`;
+
+const HeaderBrandCopy = styled.span`
+  display: grid;
+  gap: 0.02rem;
+  min-width: 0;
+`;
+
+const HeaderBrandEyebrow = styled.span`
+  color: rgba(var(--theme-primary-rgb), 0.82);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+`;
+
+const HeaderBrandTitle = styled.span`
+  font-size: clamp(1rem, 3vw, 1.34rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const BrandLink = styled(Link)`
@@ -104,12 +183,12 @@ const BrandTitle = styled.span`
 
 const HeaderMeta = styled.div`
   display: grid;
-  gap: 0.16rem;
+  gap: 0.1rem;
   min-width: 0;
 
   @media (min-width: 980px) {
     min-width: max-content;
-    padding-right: clamp(0.45rem, 1vw, 0.9rem);
+    padding-right: clamp(0.36rem, 0.8vw, 0.66rem);
   }
 
   @media (max-width: 979px) {
@@ -123,18 +202,18 @@ const HeaderMeta = styled.div`
       0 16px 30px rgba(var(--theme-primary-rgb), 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.78);
     display: flex;
-    gap: 0.72rem;
+    gap: 0.58rem;
     justify-content: space-between;
-    padding: 0.44rem 0.54rem;
+    padding: 0.34rem 0.46rem;
   }
 `;
 
 const HeaderTagline = styled.p`
   color: ${({ theme }) => theme?.colors?.muted ?? "var(--theme-muted)"};
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-size: 0.82rem;
+  line-height: 1.28;
   margin: 0;
-  max-width: 64ch;
+  max-width: 58ch;
 
   @media (max-width: 979px) {
     display: none;
@@ -143,7 +222,7 @@ const HeaderTagline = styled.p`
 
 const MobileActionGroup = styled.div`
   display: inline-flex;
-  gap: 0.42rem;
+  gap: 0.36rem;
 
   @media (min-width: 980px) {
     display: none;
@@ -171,14 +250,14 @@ const MobileActionButton = styled.button`
   color: ${({ $tone }) => ($tone === "solid" ? "white" : "var(--theme-text)")};
   cursor: pointer;
   display: inline-flex;
-  height: 2.55rem;
+  height: 2.3rem;
   justify-content: center;
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.18s ease,
     transform 0.18s ease;
-  width: 2.55rem;
+  width: 2.3rem;
 
   &:hover {
     border-color: rgba(var(--theme-primary-rgb), 0.32);
@@ -206,7 +285,7 @@ const Navigation = styled.nav`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.42rem 0.5rem;
+  gap: 0.28rem 0.38rem;
   overflow-x: auto;
   padding-bottom: 0.02rem;
   scrollbar-width: none;
@@ -224,7 +303,7 @@ const Navigation = styled.nav`
     justify-self: end;
     max-width: 100%;
     min-width: max-content;
-    padding-left: clamp(0.3rem, 0.8vw, 0.7rem);
+    padding-left: clamp(0.24rem, 0.6vw, 0.5rem);
     overflow: visible;
     padding-bottom: 0;
   }
@@ -234,11 +313,11 @@ const NavigationLink = styled(Link)`
   align-items: center;
   color: ${({ $active }) => ($active ? "var(--theme-primary)" : "var(--theme-text)")};
   display: inline-flex;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: ${({ $active }) => ($active ? 800 : 700)};
-  gap: 0.28rem;
+  gap: 0.24rem;
   line-height: 1.2;
-  min-height: 1.7rem;
+  min-height: 1.52rem;
   white-space: nowrap;
 
   svg {
@@ -262,11 +341,11 @@ const DropdownSummary = styled.summary`
   color: ${({ $active, $open }) => ($open || $active ? "var(--theme-primary)" : "var(--theme-text)")};
   cursor: pointer;
   display: inline-flex;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: ${({ $active, $open }) => ($open || $active ? 800 : 700)};
-  gap: 0.28rem;
+  gap: 0.24rem;
   list-style: none;
-  padding: 0.22rem 0.52rem;
+  padding: 0.18rem 0.46rem;
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
   white-space: nowrap;
 
@@ -380,6 +459,10 @@ const SearchWrap = styled.div`
 
   @media (max-width: 979px) {
     display: none;
+  }
+
+  @media (min-width: 980px) {
+    align-self: center;
   }
 `;
 
@@ -987,14 +1070,19 @@ function SiteShellFrame({
   return (
     <Shell>
       <Header>
-        <HeaderInner>
-          <HeaderMeta>
-            <BrandLink href={homeHref}>
-              <BrandLogo size={40} title="" />
-              <BrandTitle>{messages.site.title}</BrandTitle>
-            </BrandLink>
-            {headerTagline ? <HeaderTagline>{headerTagline}</HeaderTagline> : null}
-            <MobileActionGroup>
+          <HeaderInner>
+            <HeaderMeta>
+              <HeaderBrandLink href={homeHref}>
+                <HeaderBrandMark>
+                  <HeaderBrandLogo size={34} title="" />
+                </HeaderBrandMark>
+                <HeaderBrandCopy>
+                  <HeaderBrandEyebrow>{messages.site.navigation.news || "News"}</HeaderBrandEyebrow>
+                  <HeaderBrandTitle>{messages.site.title}</HeaderBrandTitle>
+                </HeaderBrandCopy>
+              </HeaderBrandLink>
+              {headerTagline ? <HeaderTagline>{headerTagline}</HeaderTagline> : null}
+              <MobileActionGroup>
               <MobileActionButton
                 aria-expanded={isMobileSearchOpen}
                 aria-haspopup="dialog"

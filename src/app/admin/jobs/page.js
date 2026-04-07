@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   AdminEyebrow,
   AdminHero,
   AdminHeroHeading,
@@ -7,19 +6,14 @@ import {
   AdminPage,
   AdminSectionTitle,
   ButtonRow,
-  ButtonIcon,
   Card,
   DataTable,
   DataTableWrap,
   EmptyState,
   SectionGrid,
-  SecondaryButton,
   SmallText,
   StatusBadge,
-  SummaryCard,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
   formatDateTime,
 } from "@/components/admin/news-admin-ui";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
@@ -29,7 +23,7 @@ import { getMessages } from "@/features/i18n/get-messages";
 import { repostPostAction, retryPublishAttemptAction } from "../actions";
 
 function getTone(status) {
-  if (["SUCCEEDED", "CONNECTED"].includes(status)) {
+  if (["SUCCEEDED", "CONNECTED", "COMPLETED"].includes(status)) {
     return "success";
   }
 
@@ -38,6 +32,18 @@ function getTone(status) {
   }
 
   return "warning";
+}
+
+function getAuditTone(level) {
+  if (level === "error") {
+    return "danger";
+  }
+
+  if (level === "warn") {
+    return "warning";
+  }
+
+  return undefined;
 }
 
 /**
@@ -68,6 +74,8 @@ export default async function JobsPage({ searchParams }) {
         <AdminMetricCard icon="refresh" label="Fetch runs shown" value={snapshot.summary.totalFetchRuns} />
         <AdminMetricCard icon="destinations" label="Publish attempts shown" value={snapshot.summary.totalPublishAttempts} />
         <AdminMetricCard icon="warning" label="Failures shown" tone="danger" value={snapshot.summary.failedPublishAttempts + snapshot.summary.failedFetchRuns} />
+        <AdminMetricCard icon="warning" label="AI skipped events" tone="warning" value={snapshot.summary.aiSkippedEvents} />
+        <AdminMetricCard icon="warning" label="AI fallback events" tone="warning" value={snapshot.summary.aiFallbackEvents} />
       </SummaryGrid>
 
       <SectionGrid>
@@ -201,6 +209,7 @@ export default async function JobsPage({ searchParams }) {
               <thead>
                 <tr>
                   <th>Action</th>
+                  <th>Severity</th>
                   <th>Entity</th>
                   <th>Created</th>
                 </tr>
@@ -208,12 +217,18 @@ export default async function JobsPage({ searchParams }) {
               <tbody>
                 {snapshot.auditEvents.map((event) => (
                   <tr key={event.id}>
-                    <td data-label="Action">{event.action}</td>
+                    <td data-label="Action">
+                      <strong>{event.action}</strong>
+                      {event.reasonCode ? <SmallText>{event.reasonCode}</SmallText> : null}
+                    </td>
+                    <td data-label="Severity">
+                      <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
+                    </td>
                     <td data-label="Entity">
                       <strong>{event.entityType}</strong>
                       <SmallText>{event.entityId}</SmallText>
-                      {event.payload?.reasonMessage ? (
-                        <SmallText>{event.payload.reasonMessage}</SmallText>
+                      {event.reasonMessage ? (
+                        <SmallText>{event.reasonMessage}</SmallText>
                       ) : null}
                     </td>
                     <td data-label="Created">{formatDateTime(event.createdAt)}</td>

@@ -624,7 +624,7 @@ function getHoldReasonCodes({ policy, stream }) {
   return dedupeStrings(reasonCodes);
 }
 
-function getOptimizationAuditAction(status) {
+function getOptimizationObservabilityAction(status) {
   if (status === "SKIPPED") {
     return "AI_OPTIMIZATION_SKIPPED";
   }
@@ -634,6 +634,20 @@ function getOptimizationAuditAction(status) {
   }
 
   return null;
+}
+
+function buildOptimizationObservabilityPayload(articleMatch, optimization) {
+  return {
+    articleMatchId: articleMatch.id,
+    cacheHit: optimization.cacheHit,
+    destinationId: articleMatch.destinationId,
+    optimizationCacheId: optimization.cacheRecord?.id || null,
+    optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
+    reasonCode: optimization.aiResolution?.reasonCode || null,
+    reasonMessage: optimization.aiResolution?.reasonMessage || null,
+    streamId: articleMatch.streamId,
+    usedDeterministicFallback: Boolean(optimization.aiResolution?.usedDeterministicFallback),
+  };
 }
 
 async function applyWebsiteOptimizedPayloadToPost(db, { payload, post, stream, translation }) {
@@ -991,26 +1005,19 @@ export async function refreshArticleMatchOptimization(
     },
   });
 
-  const optimizationAuditAction = !optimization.cacheHit
-    ? getOptimizationAuditAction(optimization.cacheRecord?.status)
-    : null;
+  const optimizationObservabilityAction = getOptimizationObservabilityAction(
+    optimization.aiResolution?.status || optimization.cacheRecord?.status,
+  );
 
-  if (optimizationAuditAction) {
-    await createAuditEventRecord(
+  if (optimizationObservabilityAction) {
+    await recordObservabilityEvent(
       {
-        action: optimizationAuditAction,
+        action: optimizationObservabilityAction,
         entityId: articleMatch.id,
         entityType: "article_match",
-        payloadJson: {
-          articleMatchId: articleMatch.id,
-          cacheHit: optimization.cacheHit,
-          destinationId: articleMatch.destinationId,
-          optimizationCacheId: optimization.cacheRecord?.id || null,
-          optimizationStatus: optimization.cacheRecord?.status || optimization.aiResolution?.status || null,
-          reasonCode: optimization.aiResolution?.reasonCode || null,
-          reasonMessage: optimization.aiResolution?.reasonMessage || null,
-          streamId: articleMatch.streamId,
-        },
+        level: "warn",
+        message: optimization.aiResolution?.reasonMessage || "NewsPub used deterministic optimization handling.",
+        payload: buildOptimizationObservabilityPayload(articleMatch, optimization),
       },
       db,
     );

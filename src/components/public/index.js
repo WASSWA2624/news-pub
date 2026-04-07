@@ -1537,26 +1537,15 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
         </div>
 
         <div style={{ display: "grid", gap: "1rem" }}>
-          <Panel>
-            <SectionTitle>
-              <SectionTitleRow>
-                <AppIcon name="tag" size={16} />
-                {pageContent.discoveryTitle || common.topCategoriesTitle || "Top categories"}
-              </SectionTitleRow>
-            </SectionTitle>
-            <SidebarList>
-              {pageData.topCategories.map((category) => (
-                <SidebarLink href={category.path} key={category.slug}>
-                  <SidebarTitle>
-                    <span aria-hidden="true">{category.logoEmoji || "📰"}</span> {category.name}
-                  </SidebarTitle>
-                  <SidebarMeta>
-                    {category.count} {(common.resultsLabel || "stories").toLowerCase()}
-                  </SidebarMeta>
-                </SidebarLink>
-              ))}
-            </SidebarList>
-          </Panel>
+          <AdPlaceholderPanel aria-label="Advertisement placeholder">
+            <AdPlaceholderFrame>
+              <AdPlaceholderLabel>Advertisement</AdPlaceholderLabel>
+              <AdPlaceholderTitle>Sidebar advert space</AdPlaceholderTitle>
+              <AdPlaceholderText>
+                Reserve this placement for sponsor creative, campaign artwork, or partner promotions.
+              </AdPlaceholderText>
+            </AdPlaceholderFrame>
+          </AdPlaceholderPanel>
 
           {pageData.featuredStory ? (
             <AdPlaceholderPanel aria-label="Advertisement placeholder">

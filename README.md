@@ -57,6 +57,7 @@ Required admin route families:
 - `/admin/destinations`
 - `/admin/streams`
 - `/admin/categories`
+- `/admin/posts/new`
 - `/admin/posts/review`
 - `/admin/posts/published`
 - `/admin/posts/[id]`
@@ -75,6 +76,8 @@ Release 1 admin forms share one interaction contract across provider, destinatio
 - shared validation summaries and field-level helper or error text keep problems close to the relevant section and field
 - submit failures scroll and focus the first blocking field so keyboard-only editors can recover quickly
 - modal editors keep header context stable, contain overscroll, and keep footer actions reachable during long edits
+- dashboard, jobs, post-editor, and settings surfaces expose AI runtime health plus `SKIPPED` or `FALLBACK` reasons without treating optional AI issues as hard failures
+- manual story creation, post editing, category editing, and media upload flows reuse the same disclosure, validation, and footer-action contract
 
 ## Source Of Truth Rules
 

@@ -1,6 +1,11 @@
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { createAuditEventRecord } from "@/lib/analytics";
+import {
+  createAuditEventRecord,
+  isFailureAuditAction,
+  isWarningAuditAction,
+  serializeAuditEvent,
+} from "@/lib/analytics";
 import {
   buildStoryStructuredArticle,
   createContentHash,
@@ -31,14 +36,15 @@ function serializeDate(value) {
 }
 
 function mapAuditEvent(event) {
+  const payload = event.payloadJson || null;
+
   return {
-    action: event.action,
-    actorId: event.actorId || null,
-    createdAt: serializeDate(event.createdAt),
-    entityId: event.entityId,
-    entityType: event.entityType,
-    id: event.id,
-    payload: event.payloadJson || null,
+    ...serializeAuditEvent(event),
+    level:
+      payload?.level
+      || (isFailureAuditAction(event.action) ? "error" : isWarningAuditAction(event.action) ? "warn" : "info"),
+    reasonCode: payload?.reasonCode || null,
+    reasonMessage: payload?.reasonMessage || payload?.message || null,
   };
 }
 

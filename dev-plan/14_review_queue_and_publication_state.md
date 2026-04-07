@@ -17,18 +17,20 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
 
 1. Build `/admin/posts/review` as the held and ready-for-approval queue.
 2. Build `/admin/posts/published` as the published inventory view.
-3. Repurpose `/admin/posts/[id]` as the canonical NewsPub story editor.
-4. Use `PostStatus` for lifecycle state, `EditorialStage` for editorial progression, and the article-match workflow and policy fields for optimization and approval readiness.
-5. Wire stream-mode behavior:
+3. Build `/admin/posts/new` as the manual story creation route that links into the same canonical post workflow.
+4. Repurpose `/admin/posts/[id]` as the canonical NewsPub story editor.
+5. Use `PostStatus` for lifecycle state, `EditorialStage` for editorial progression, and the article-match workflow and policy fields for optimization and approval readiness.
+6. Wire stream-mode behavior:
    - `AUTO_PUBLISH` advances directly into queueing or publishing
    - `REVIEW_REQUIRED` creates or updates a draft post in the review queue
-6. Support manual review, optimize, approve, reject, schedule, publish, retry, and archive actions from the post editor.
-7. Keep the canonical post linked to the originating normalized article and its destination matches.
-8. Show per-match optimization state and reason details in the review queue, post editor, and publish diagnostics so optional AI skip or fallback outcomes stay visible without blocking manual publication.
+7. Support manual review, optimize, approve, reject, schedule, publish, retry, and archive actions from the post editor.
+8. Keep the canonical post linked to the originating normalized article and its destination matches.
+9. Show per-match optimization state and reason details in the review queue, post editor, and publish diagnostics so optional AI skip or fallback outcomes stay visible without blocking manual publication.
 
 ## Required Outputs
 
 - review queue and published inventory screens
+- manual story creation screen
 - post editor screen updates
 - publication-state APIs and tests
 
@@ -36,6 +38,7 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
 
 - held stories appear in the review queue
 - published stories appear only in the published inventory
+- manual stories created from `/admin/posts/new` open in the canonical editor and respect the same scheduling and publish rules
 - status and editorial stage remain separate persisted values
 - manual optimize, approve, reject, publish, and schedule actions update the correct queue states and surface policy or optimization diagnostics clearly
 - `SKIPPED` and `FALLBACK` optimization states remain visible to editors and do not remove manual approval or publish controls

@@ -671,6 +671,202 @@ describe("stream selection and scheduling helpers", () => {
   });
 });
 
+describe("AI optimization observability", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  function createRefreshOptimizationPrisma() {
+    return {
+      articleMatch: {
+        findUnique: vi.fn().mockResolvedValue({
+          canonicalPost: {
+            featuredImage: null,
+            id: "post_1",
+            sourceArticle: {
+              body: "Story body",
+              imageUrl: null,
+              summary: "Story summary",
+            },
+            translations: [
+              {
+                contentMd: "Story body",
+                locale: "en",
+                seoRecord: null,
+                summary: "Story summary",
+                title: "Story title",
+              },
+            ],
+          },
+          canonicalPostId: "post_1",
+          destination: {
+            id: "destination_1",
+            kind: "WEBSITE",
+            name: "Website",
+            platform: "WEBSITE",
+          },
+          destinationId: "destination_1",
+          id: "match_1",
+          stream: {
+            defaultTemplateId: null,
+            destination: {
+              id: "destination_1",
+              platform: "WEBSITE",
+            },
+            destinationId: "destination_1",
+            id: "stream_1",
+            locale: "en",
+            mode: "AUTO_PUBLISH",
+          },
+          streamId: "stream_1",
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: "match_1",
+          optimizationStatus: "SKIPPED",
+        }),
+      },
+      destinationTemplate: {
+        findFirst: vi.fn().mockResolvedValue({
+          bodyTemplate: "{{body}}",
+          hashtagsTemplate: "",
+          isDefault: true,
+          locale: "en",
+          platform: "WEBSITE",
+          summaryTemplate: "{{summary}}",
+          titleTemplate: "{{title}}",
+        }),
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
+    };
+  }
+
+  it("records skipped AI optimization as a warning observability event instead of a workflow failure", async () => {
+    const recordObservabilityEvent = vi.fn().mockResolvedValue(null);
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent,
+    }));
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue({
+        aiResolution: {
+          reasonCode: "ai_credentials_missing",
+          reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
+          status: "SKIPPED",
+          usedDeterministicFallback: true,
+        },
+        cacheHit: false,
+        cacheRecord: {
+          id: "cache_1",
+          status: "SKIPPED",
+        },
+        optimizationHash: "hash_1",
+        payload: {
+          body: "Deterministic body",
+          title: "Deterministic title",
+        },
+        policy: {
+          readinessChecks: [],
+          reasons: [],
+          riskScore: 0,
+          status: "PASS",
+          warnings: [],
+        },
+      }),
+    }));
+
+    const { refreshArticleMatchOptimization } = await import("./workflows");
+    const prisma = createRefreshOptimizationPrisma();
+
+    await refreshArticleMatchOptimization("match_1", {}, prisma);
+
+    expect(recordObservabilityEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "AI_OPTIMIZATION_SKIPPED",
+        entityId: "match_1",
+        entityType: "article_match",
+        level: "warn",
+        message: "AI credentials are missing, so NewsPub kept deterministic content.",
+        payload: expect.objectContaining({
+          destinationId: "destination_1",
+          optimizationStatus: "SKIPPED",
+          reasonCode: "ai_credentials_missing",
+          usedDeterministicFallback: true,
+        }),
+      }),
+      prisma,
+    );
+  });
+
+  it("records fallback AI optimization as a warning observability event with deterministic context", async () => {
+    const recordObservabilityEvent = vi.fn().mockResolvedValue(null);
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent,
+    }));
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue({
+        aiResolution: {
+          errorMessage: "Request timed out.",
+          reasonCode: "ai_timeout",
+          reasonMessage: "AI timed out, so NewsPub fell back to deterministic formatting.",
+          status: "FALLBACK",
+          usedDeterministicFallback: true,
+        },
+        cacheHit: false,
+        cacheRecord: {
+          id: "cache_2",
+          status: "FALLBACK",
+        },
+        optimizationHash: "hash_2",
+        payload: {
+          body: "Deterministic fallback body",
+          title: "Deterministic fallback title",
+        },
+        policy: {
+          readinessChecks: [],
+          reasons: [],
+          riskScore: 0,
+          status: "PASS",
+          warnings: [],
+        },
+      }),
+    }));
+
+    const { refreshArticleMatchOptimization } = await import("./workflows");
+    const prisma = createRefreshOptimizationPrisma();
+
+    await refreshArticleMatchOptimization("match_1", {}, prisma);
+
+    expect(recordObservabilityEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "AI_OPTIMIZATION_FALLBACK_USED",
+        entityId: "match_1",
+        entityType: "article_match",
+        level: "warn",
+        message: "AI timed out, so NewsPub fell back to deterministic formatting.",
+        payload: expect.objectContaining({
+          optimizationStatus: "FALLBACK",
+          reasonCode: "ai_timeout",
+          usedDeterministicFallback: true,
+        }),
+      }),
+      prisma,
+    );
+  });
+});
+
 describe("stream execution dedupe safety", () => {
   beforeEach(() => {
     vi.resetModules();
