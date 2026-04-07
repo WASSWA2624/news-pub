@@ -299,8 +299,12 @@ const DesktopBar = styled.div`
   @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
     align-items: center;
     display: grid;
+    column-gap: clamp(0.85rem, 1.6vw, 1.5rem);
     gap: 0.3rem;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: ${({ $hasOverflow }) =>
+      $hasOverflow
+        ? "auto minmax(0, 1fr) auto auto"
+        : "auto minmax(0, 1fr) auto"};
   }
 `;
 
@@ -475,7 +479,8 @@ const NavRow = styled.div`
   align-items: center;
   display: grid;
   gap: 0.2rem;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: ${({ $hasOverflow }) =>
+    $hasOverflow ? "minmax(0, 1fr) auto" : "minmax(0, 1fr)"};
 `;
 
 const PrimaryNavScroller = styled.div`
@@ -484,6 +489,13 @@ const PrimaryNavScroller = styled.div`
   padding-bottom: 0.04rem;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+
+  @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
+    justify-self: stretch;
+    max-width: 100%;
+    padding-left: clamp(0.55rem, 1.2vw, 1.05rem);
+    width: 100%;
+  }
 
   &::-webkit-scrollbar {
     display: none;
@@ -498,6 +510,10 @@ const PrimaryNav = styled.nav`
 
   @media (max-width: 479px) {
     gap: 0.02rem;
+  }
+
+  @media (min-width: ${TABLET_HEADER_BREAKPOINT}px) {
+    margin-left: auto;
   }
 `;
 
@@ -1040,7 +1056,7 @@ export default function AdminShell({ children, messages, user }) {
         <HeaderSurface>
           <HeaderInner>
             {isDesktopViewport ? (
-              <DesktopBar>
+              <DesktopBar $hasOverflow={overflowItems.length > 0}>
                 <BrandLink href="/admin">
                   <NewsPubLogo size={34} />
                   <BrandCopy>
@@ -1178,7 +1194,7 @@ export default function AdminShell({ children, messages, user }) {
                   </ProfileMenuWrap>
                 </TopRow>
 
-                <NavRow>
+                <NavRow $hasOverflow={overflowItems.length > 0}>
                   <PrimaryNavScroller ref={primaryNavViewportRef}>
                     <PrimaryNav aria-label="Admin navigation">{renderPrimaryNavigation()}</PrimaryNav>
                   </PrimaryNavScroller>

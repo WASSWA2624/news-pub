@@ -94,6 +94,7 @@ const HeaderInner = styled.div`
 
   @media (min-width: 980px) {
     align-items: center;
+    column-gap: clamp(1.1rem, 2.2vw, 2rem);
     gap: 0.6rem;
     grid-template-columns: auto minmax(0, 1fr) minmax(18rem, 24rem);
   }
@@ -132,6 +133,11 @@ const HeaderMeta = styled.div`
   display: grid;
   gap: 0.16rem;
   min-width: 0;
+
+  @media (min-width: 980px) {
+    min-width: max-content;
+    padding-right: clamp(0.45rem, 1vw, 0.9rem);
+  }
 
   @media (max-width: 979px) {
     align-items: center;
@@ -242,6 +248,10 @@ const Navigation = styled.nav`
 
   @media (min-width: 980px) {
     align-items: center;
+    justify-self: end;
+    max-width: 100%;
+    min-width: max-content;
+    padding-left: clamp(0.3rem, 0.8vw, 0.7rem);
     overflow: visible;
     padding-bottom: 0;
   }

@@ -7,6 +7,7 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 import styled, { css } from "styled-components";
@@ -19,6 +20,10 @@ import {
 } from "@/components/admin/news-admin-ui";
 
 const FooterPortalContext = createContext(null);
+
+function subscribeToHydrationState() {
+  return () => {};
+}
 
 const modalSizeStyles = {
   compact: css`
@@ -252,7 +257,7 @@ export default function AdminFormModal({
   const dialogRef = useRef(null);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
   const [isOpen, setIsOpen] = useState(autoOpen);
-  const canRenderDialog = typeof document !== "undefined";
+  const canRenderDialog = useSyncExternalStore(subscribeToHydrationState, () => true, () => false);
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
