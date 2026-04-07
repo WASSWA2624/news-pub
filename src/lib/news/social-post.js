@@ -1,4 +1,4 @@
-import { trimText } from "@/lib/news/shared";
+import { normalizeDisplayText } from "@/lib/normalization";
 
 export const socialPostLinkPlacementValues = Object.freeze([
   "RANDOM",
@@ -7,7 +7,7 @@ export const socialPostLinkPlacementValues = Object.freeze([
 ]);
 
 export function normalizeSocialPostLinkPlacement(value) {
-  const normalizedValue = trimText(value).toUpperCase();
+  const normalizedValue = normalizeDisplayText(value).toUpperCase();
 
   return socialPostLinkPlacementValues.includes(normalizedValue) ? normalizedValue : "RANDOM";
 }
@@ -15,7 +15,7 @@ export function normalizeSocialPostLinkPlacement(value) {
 export function normalizeSocialPostSettings(settings = {}) {
   const resolvedSettings =
     settings && typeof settings === "object" && !Array.isArray(settings) ? settings : {};
-  const linkUrl = trimText(resolvedSettings.linkUrl);
+  const linkUrl = normalizeDisplayText(resolvedSettings.linkUrl);
 
   return {
     linkPlacement: normalizeSocialPostLinkPlacement(resolvedSettings.linkPlacement),

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createRequire } from "node:module";
 
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
