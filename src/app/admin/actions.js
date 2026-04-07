@@ -9,7 +9,7 @@ import { uploadMediaAsset } from "@/features/media";
 import { saveTemplateRecord } from "@/features/templates";
 import { getSettingsSnapshot } from "@/features/settings";
 import { saveProviderRecord } from "@/features/providers";
-import { createManualPostRecord, updatePostEditorialRecord } from "@/features/posts";
+import { createManualPostRecord, repostPostRecord, updatePostEditorialRecord } from "@/features/posts";
 import { deleteStreamRecord, saveStreamRecord } from "@/features/streams";
 import { requireAdminPageSession } from "@/lib/auth";
 import {
@@ -198,10 +198,11 @@ export async function saveStreamAction(formData) {
         maxPostsPerRun: formData.get("maxPostsPerRun"),
         mode: formData.get("mode"),
         name: formData.get("name"),
+        postLinkPlacement: formData.get("postLinkPlacement"),
+        postLinkUrl: formData.get("postLinkUrl"),
         providerFilters: parseScopedFields(formData, "providerFilter."),
         retryBackoffMinutes: formData.get("retryBackoffMinutes"),
         retryLimit: formData.get("retryLimit"),
-        scheduleExpression: formData.get("scheduleExpression"),
         scheduleIntervalMinutes: formData.get("scheduleIntervalMinutes"),
         slug: formData.get("slug"),
         status: formData.get("status"),
@@ -296,6 +297,27 @@ export async function retryPublishAttemptAction(formData) {
     await retryPublishAttempt(attemptId, {
       actorId: getActorId(auth),
     });
+  }
+
+  redirectToPath(returnTo);
+}
+
+export async function repostPostAction(formData) {
+  const auth = await requireAdminPageSession("/admin");
+  const postId = trimText(formData.get("postId"));
+  const articleMatchId = trimText(formData.get("articleMatchId")) || null;
+  const returnTo = trimText(formData.get("returnTo")) || (postId ? `/admin/posts/${postId}` : "/admin/posts");
+
+  if (postId) {
+    await repostPostRecord(
+      {
+        articleMatchId,
+        postId,
+      },
+      {
+        actorId: getActorId(auth),
+      },
+    );
   }
 
   redirectToPath(returnTo);

@@ -433,6 +433,73 @@ describe("post editor updates", () => {
   });
 });
 
+describe("manual reposts", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("creates a fresh repost attempt even when the post is already archived", async () => {
+    const manualRepostArticleMatch = vi.fn().mockResolvedValue({
+      id: "attempt_repost_1",
+    });
+
+    vi.doMock("@/lib/news/workflows", () => ({
+      manualRepostArticleMatch,
+      publishArticleMatch: vi.fn(),
+    }));
+
+    const { repostPostRecord } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [
+        createEditorArticleMatch({
+          status: "PUBLISHED",
+        }),
+      ],
+      status: "ARCHIVED",
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      repostPostRecord(
+        {
+          articleMatchId: "match_1",
+          postId: post.id,
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).resolves.toEqual({
+      articleMatchId: "match_1",
+      attemptId: "attempt_repost_1",
+      postId: "post_1",
+    });
+
+    expect(manualRepostArticleMatch).toHaveBeenCalledWith(
+      "match_1",
+      {
+        actorId: "user_1",
+      },
+      prisma,
+    );
+  });
+});
+
 describe("post image fallbacks", () => {
   beforeEach(() => {
     vi.resetModules();

@@ -217,6 +217,10 @@ describe("stream feature validation", () => {
               image: "1",
               removeDuplicate: "1",
             },
+            socialPost: {
+              linkPlacement: "RANDOM",
+              linkUrl: null,
+            },
           },
         }),
       }),
@@ -330,6 +334,46 @@ describe("stream feature validation", () => {
             providerFilters: {
               category: "sports",
               endpoint: "top-headlines",
+            },
+            socialPost: {
+              linkPlacement: "RANDOM",
+              linkUrl: null,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
+  it("stores social post link settings and allows schedule interval 0 to disable auto-runs", async () => {
+    const { saveStreamRecord } = await import("./index");
+    const prisma = createPrismaStub();
+
+    await saveStreamRecord(
+      {
+        activeProviderId: "provider_1",
+        destinationId: "destination_1",
+        locale: "en",
+        mode: "REVIEW_REQUIRED",
+        name: "Website stream with social link",
+        postLinkPlacement: "END",
+        postLinkUrl: "/go/deeper",
+        scheduleIntervalMinutes: "0",
+      },
+      {},
+      prisma,
+    );
+
+    expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          scheduleExpression: null,
+          scheduleIntervalMinutes: 0,
+          settingsJson: {
+            providerFilters: {},
+            socialPost: {
+              linkPlacement: "END",
+              linkUrl: "https://example.com/go/deeper",
             },
           },
         }),

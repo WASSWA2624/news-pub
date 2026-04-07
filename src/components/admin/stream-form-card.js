@@ -17,7 +17,6 @@ import {
   NoticeItem,
   NoticeList,
   NoticeTitle,
-  PrimaryButton,
   SecondaryButton,
   SmallText,
   Textarea,
@@ -25,11 +24,13 @@ import {
 } from "@/components/admin/news-admin-ui";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
+import { PendingSubmitButton } from "@/components/admin/pending-action";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import AppIcon from "@/components/common/app-icon";
 import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
+import { getStreamSocialPostSettings } from "@/lib/news/social-post";
 import {
   getStreamValidationIssues,
   isDestinationKindAutoPublishCapable,
@@ -137,6 +138,24 @@ function buildModeOptions(modeOptions, destination) {
   });
 }
 
+const socialPostLinkPlacementOptions = [
+  {
+    description: "Choose below-title or end placement at publish time.",
+    label: "Random",
+    value: "RANDOM",
+  },
+  {
+    description: "Insert the extra link immediately after the title.",
+    label: "Below Title",
+    value: "BELOW_TITLE",
+  },
+  {
+    description: "Insert the extra link after the story CTA near the end.",
+    label: "End",
+    value: "END",
+  },
+];
+
 export default function StreamFormCard({
   action,
   categoryOptions = [],
@@ -150,6 +169,7 @@ export default function StreamFormCard({
   submitLabel,
   templateOptions = [],
 }) {
+  const socialPostSettings = getStreamSocialPostSettings(stream);
   const initialActiveProviderId = stream?.activeProviderId || providerOptions[0]?.value || "";
   const initialDestinationId = stream?.destinationId || destinationOptions[0]?.value || "";
   const initialSelectedDestination =
@@ -171,6 +191,7 @@ export default function StreamFormCard({
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
+  const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
   const [nameWasEdited, setNameWasEdited] = useState(
     Boolean(
       normalizeDisplayText(initialName)
@@ -391,37 +412,68 @@ export default function StreamFormCard({
           <Field>
             <FieldLabel>Schedule interval minutes</FieldLabel>
             <Input
-              defaultValue={stream?.scheduleIntervalMinutes || 60}
+              defaultValue={stream?.scheduleIntervalMinutes ?? 60}
+              min="0"
               name="scheduleIntervalMinutes"
               type="number"
             />
-          </Field>
-          <Field>
-            <FieldLabel>Schedule expression</FieldLabel>
-            <Input defaultValue={stream?.scheduleExpression || ""} name="scheduleExpression" />
+            <HelperRow>
+              <AppIcon name="clock" size={12} />
+              Set this to 0 to stop the stream from auto-running on the scheduler.
+            </HelperRow>
           </Field>
           <Field>
             <FieldLabel>Max posts per run</FieldLabel>
-            <Input defaultValue={stream?.maxPostsPerRun || 5} name="maxPostsPerRun" type="number" />
+            <Input defaultValue={stream?.maxPostsPerRun ?? 5} name="maxPostsPerRun" type="number" />
           </Field>
           <Field>
             <FieldLabel>Duplicate window hours</FieldLabel>
             <Input
-              defaultValue={stream?.duplicateWindowHours || 48}
+              defaultValue={stream?.duplicateWindowHours ?? 48}
               name="duplicateWindowHours"
               type="number"
             />
           </Field>
           <Field>
             <FieldLabel>Retry limit</FieldLabel>
-            <Input defaultValue={stream?.retryLimit || 3} name="retryLimit" type="number" />
+            <Input defaultValue={stream?.retryLimit ?? 3} name="retryLimit" type="number" />
           </Field>
           <Field>
             <FieldLabel>Retry backoff minutes</FieldLabel>
             <Input
-              defaultValue={stream?.retryBackoffMinutes || 15}
+              defaultValue={stream?.retryBackoffMinutes ?? 15}
               name="retryBackoffMinutes"
               type="number"
+            />
+          </Field>
+        </StreamFieldGrid>
+      </FormSection>
+
+      <FormSection>
+        <FormSectionTitle>Social post options</FormSectionTitle>
+        <StreamFieldGrid>
+          <Field>
+            <FieldLabel>Post Link URL</FieldLabel>
+            <Input
+              defaultValue={socialPostSettings.linkUrl || ""}
+              name="postLinkUrl"
+              placeholder="https://example.com/more"
+              type="url"
+            />
+            <HelperRow>
+              <AppIcon name="link" size={12} />
+              Optional extra plain-text link inserted into supported social posts.
+            </HelperRow>
+          </Field>
+          <Field as="div">
+            <FieldLabel>Post Link Placement</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Post link placement"
+              name="postLinkPlacement"
+              onChange={(value) => setPostLinkPlacement(`${value || "RANDOM"}`)}
+              options={socialPostLinkPlacementOptions}
+              placeholder="Select placement"
+              value={postLinkPlacement}
             />
           </Field>
         </StreamFieldGrid>
@@ -483,12 +535,16 @@ export default function StreamFormCard({
             Run now
           </SecondaryButton>
         ) : null}
-        <PrimaryButton disabled={issues.length > 0} form={formId} type="submit">
-          <ButtonIcon>
-            <ActionIcon name={stream ? "save" : "plus"} />
-          </ButtonIcon>
+        <PendingSubmitButton
+          disabled={issues.length > 0}
+          form={formId}
+          icon={stream ? "save" : "plus"}
+          pendingLabel={stream ? "Saving stream..." : "Creating stream..."}
+          tone="primary"
+          type="submit"
+        >
           {submitLabel}
-        </PrimaryButton>
+        </PendingSubmitButton>
       </AdminModalFooterActions>
     </form>
   );

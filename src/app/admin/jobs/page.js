@@ -6,6 +6,7 @@ import {
   AdminMetricCard,
   AdminPage,
   AdminSectionTitle,
+  ButtonRow,
   ButtonIcon,
   Card,
   DataTable,
@@ -21,10 +22,11 @@ import {
   SummaryValue,
   formatDateTime,
 } from "@/components/admin/news-admin-ui";
+import { PendingSubmitButton } from "@/components/admin/pending-action";
 import { getAdminJobLogsSnapshot } from "@/features/analytics";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
-import { retryPublishAttemptAction } from "../actions";
+import { repostPostAction, retryPublishAttemptAction } from "../actions";
 
 function getTone(status) {
   if (["SUCCEEDED", "CONNECTED"].includes(status)) {
@@ -111,7 +113,7 @@ export default async function JobsPage({ searchParams }) {
                     <th>Status</th>
                     <th>Remote id</th>
                     <th>Queued</th>
-                    <th>Retry</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -126,21 +128,40 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
                       <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
-                      <td data-label="Retry">
-                        {attempt.status === "FAILED" ? (
-                          <form action={retryPublishAttemptAction}>
-                            <input name="attemptId" type="hidden" value={attempt.id} />
-                            <input name="returnTo" type="hidden" value="/admin/jobs" />
-                            <SecondaryButton type="submit">
-                              <ButtonIcon>
-                                <ActionIcon name="refresh" />
-                              </ButtonIcon>
-                              Retry
-                            </SecondaryButton>
-                          </form>
-                        ) : (
-                          <SmallText>Not needed</SmallText>
-                        )}
+                      <td data-label="Actions">
+                        <ButtonRow>
+                          {attempt.post?.id ? (
+                            <form action={repostPostAction}>
+                              <input name="articleMatchId" type="hidden" value={attempt.articleMatchId} />
+                              <input name="postId" type="hidden" value={attempt.post.id} />
+                              <input name="returnTo" type="hidden" value="/admin/jobs" />
+                              <PendingSubmitButton
+                                icon="refresh"
+                                pendingLabel="Reposting..."
+                                tone="secondary"
+                                type="submit"
+                              >
+                                Repost
+                              </PendingSubmitButton>
+                            </form>
+                          ) : null}
+                          {attempt.status === "FAILED" ? (
+                            <form action={retryPublishAttemptAction}>
+                              <input name="attemptId" type="hidden" value={attempt.id} />
+                              <input name="returnTo" type="hidden" value="/admin/jobs" />
+                              <PendingSubmitButton
+                                icon="refresh"
+                                pendingLabel="Retrying..."
+                                tone="secondary"
+                                type="submit"
+                              >
+                                Retry
+                              </PendingSubmitButton>
+                            </form>
+                          ) : !attempt.post?.id ? (
+                            <SmallText>Not available</SmallText>
+                          ) : null}
+                        </ButtonRow>
                       </td>
                     </tr>
                   ))}

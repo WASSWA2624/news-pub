@@ -23,20 +23,20 @@ import {
   SmallText,
   StatusBadge,
   PrimaryButton,
-  SecondaryButton,
   Textarea,
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
+import { PendingSubmitButton } from "@/components/admin/pending-action";
 import SearchableSelect from "@/components/common/searchable-select";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { NewsPubError } from "@/lib/news/shared";
 import { notFound } from "next/navigation";
-import { updatePostEditorAction } from "../../actions";
+import { repostPostAction, updatePostEditorAction } from "../../actions";
 
 function getTone(status) {
   if (["PUBLISHED", "SUCCEEDED", "APPROVED"].includes(status)) {
@@ -211,24 +211,39 @@ export default async function PostEditorPage({ params }) {
                   </Field>
                 </FormSection>
                 <AdminModalFooterActions>
-                  <SecondaryButton form={postEditorFormId} name="intent" type="submit" value="save">
-                    <ButtonIcon>
-                      <ActionIcon name="save" />
-                    </ButtonIcon>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
+                    icon="save"
+                    name="intent"
+                    pendingLabel="Saving story..."
+                    tone="secondary"
+                    type="submit"
+                    value="save"
+                  >
                     Save story
-                  </SecondaryButton>
-                  <SecondaryButton form={postEditorFormId} name="intent" type="submit" value="schedule">
-                    <ButtonIcon>
-                      <ActionIcon name="schedule" />
-                    </ButtonIcon>
+                  </PendingSubmitButton>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
+                    icon="schedule"
+                    name="intent"
+                    pendingLabel="Scheduling story..."
+                    tone="secondary"
+                    type="submit"
+                    value="schedule"
+                  >
                     Schedule publish
-                  </SecondaryButton>
-                  <PrimaryButton form={postEditorFormId} name="intent" type="submit" value="publish">
-                    <ButtonIcon>
-                      <ActionIcon name="publish" />
-                    </ButtonIcon>
+                  </PendingSubmitButton>
+                  <PendingSubmitButton
+                    form={postEditorFormId}
+                    icon="publish"
+                    name="intent"
+                    pendingLabel="Publishing now..."
+                    tone="primary"
+                    type="submit"
+                    value="publish"
+                  >
                     Publish now
-                  </PrimaryButton>
+                  </PendingSubmitButton>
                   <ConfirmSubmitButton
                     confirmLabel="Archive story"
                     description="The story will be moved to an archived state. Use this when it should no longer remain active in the editorial flow."
@@ -266,6 +281,30 @@ export default async function PostEditorPage({ params }) {
           </Card>
 
           <Card>
+            <AdminSectionTitle icon="refresh">Manual repost</AdminSectionTitle>
+            <CardDescription>
+              Create a fresh publish attempt for the linked destination even if this story was already published, failed, scheduled, or archived before.
+            </CardDescription>
+            {defaultArticleMatch ? (
+              <form action={repostPostAction}>
+                <input name="articleMatchId" type="hidden" value={defaultArticleMatch.id} />
+                <input name="postId" type="hidden" value={snapshot.post.id} />
+                <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
+                <PendingSubmitButton
+                  icon="refresh"
+                  pendingLabel="Creating repost attempt..."
+                  tone="secondary"
+                  type="submit"
+                >
+                  Repost default match
+                </PendingSubmitButton>
+              </form>
+            ) : (
+              <SmallText>No linked destination match is available for repost yet.</SmallText>
+            )}
+          </Card>
+
+          <Card>
             <AdminSectionTitle icon="news">Source article</AdminSectionTitle>
             <CardDescription>
               Canonical render artifacts stay linked to the originating normalized article.
@@ -289,6 +328,7 @@ export default async function PostEditorPage({ params }) {
                   <th>Queued</th>
                   <th>Published</th>
                   <th>Attempts</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,6 +344,21 @@ export default async function PostEditorPage({ params }) {
                     <td data-label="Queued">{formatDateTime(match.queuedAt)}</td>
                     <td data-label="Published">{formatDateTime(match.publishedAt)}</td>
                     <td data-label="Attempts">{match.publishAttempts.length}</td>
+                    <td data-label="Action">
+                      <form action={repostPostAction}>
+                        <input name="articleMatchId" type="hidden" value={match.id} />
+                        <input name="postId" type="hidden" value={snapshot.post.id} />
+                        <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
+                        <PendingSubmitButton
+                          icon="refresh"
+                          pendingLabel="Reposting..."
+                          tone="secondary"
+                          type="submit"
+                        >
+                          Repost now
+                        </PendingSubmitButton>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>

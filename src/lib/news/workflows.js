@@ -3,6 +3,7 @@ import { getDestinationSocialGuardrails } from "@/features/destinations/meta-con
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { discoverRemoteImageUrl } from "@/lib/media";
 import { fetchProviderArticles } from "@/lib/news/providers";
+import { getStreamSocialPostSettings } from "@/lib/news/social-post";
 import {
   NewsPubError,
   buildStoryStructuredArticle,
@@ -45,6 +46,23 @@ function getArticleSearchText(article) {
       .filter(Boolean)
       .join(" "),
   );
+}
+
+function getStreamMaxPostsPerRun(stream) {
+  return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 5}`, 10) || 5);
+}
+
+export function resolveStreamFetchWindow({ checkpoint = null, now = new Date() } = {}) {
+  const resolvedNow = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+  const checkpointDate =
+    checkpoint?.lastSuccessfulFetchAt instanceof Date && !Number.isNaN(checkpoint.lastSuccessfulFetchAt.getTime())
+      ? checkpoint.lastSuccessfulFetchAt
+      : null;
+
+  return {
+    end: resolvedNow,
+    start: checkpointDate || new Date(resolvedNow.getTime() - 24 * 60 * 60 * 1000),
+  };
 }
 
 function findMatchingCategoryIds(article, streamCategories = []) {
@@ -135,11 +153,7 @@ export async function resolveFetchedArticleImageUrl(article = {}) {
   return discoverRemoteImageUrl(article.sourceUrl);
 }
 
-async function findDuplicateArticleMatch(db, article, stream) {
-  const duplicateWindowStart = new Date(
-    Date.now() - stream.duplicateWindowHours * 60 * 60 * 1000,
-  );
-
+async function findLatestDuplicateArticleMatch(db, article, stream) {
   return db.articleMatch.findFirst({
     include: {
       canonicalPost: {
@@ -160,9 +174,6 @@ async function findDuplicateArticleMatch(db, article, stream) {
     },
     orderBy: [{ createdAt: "desc" }],
     where: {
-      createdAt: {
-        gte: duplicateWindowStart,
-      },
       destinationId: stream.destinationId,
       OR: [
         article.providerArticleId
@@ -191,6 +202,55 @@ async function findDuplicateArticleMatch(db, article, stream) {
       ].filter(Boolean),
     },
   });
+}
+
+function getDuplicateMatchReferenceDate(duplicateMatch) {
+  if (!duplicateMatch) {
+    return null;
+  }
+
+  return (
+    (duplicateMatch.publishedAt instanceof Date && duplicateMatch.publishedAt)
+    || (duplicateMatch.createdAt instanceof Date && duplicateMatch.createdAt)
+    || (duplicateMatch.fetchedArticle?.publishedAt instanceof Date && duplicateMatch.fetchedArticle.publishedAt)
+    || null
+  );
+}
+
+export function classifyDuplicateCandidate(
+  duplicateMatch,
+  { duplicateWindowHours = 48, now = new Date() } = {},
+) {
+  if (!duplicateMatch) {
+    return "unique";
+  }
+
+  const duplicateReferenceDate = getDuplicateMatchReferenceDate(duplicateMatch);
+
+  if (!duplicateReferenceDate) {
+    return "repost_eligible_duplicate";
+  }
+
+  const duplicateWindowStart = new Date(
+    now.getTime() - Math.max(0, duplicateWindowHours) * 60 * 60 * 1000,
+  );
+
+  return duplicateReferenceDate >= duplicateWindowStart
+    ? "blocked_duplicate"
+    : "repost_eligible_duplicate";
+}
+
+export function selectStreamRunCandidates(
+  { maxPostsPerRun = 1, repostEligibleDuplicates = [], uniqueEligibleCandidates = [] } = {},
+) {
+  const resolvedMaxPostsPerRun = Math.max(1, Number.parseInt(`${maxPostsPerRun || 1}`, 10) || 1);
+  const selectedUniqueCandidates = uniqueEligibleCandidates.slice(0, resolvedMaxPostsPerRun);
+  const remainingSlots = Math.max(0, resolvedMaxPostsPerRun - selectedUniqueCandidates.length);
+
+  return [
+    ...selectedUniqueCandidates,
+    ...repostEligibleDuplicates.slice(0, remainingSlots),
+  ];
 }
 
 async function ensureUniquePostSlug(db, baseSlug) {
@@ -260,12 +320,25 @@ async function resolveTemplate(db, stream, categoryId = null) {
   });
 }
 
-async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
-  const existingPost = await db.post.findFirst({
-    where: {
-      sourceArticleId: article.id,
-    },
-  });
+async function upsertCanonicalPost(
+  db,
+  article,
+  stream,
+  categoryIds,
+  actorId,
+  { existingPostId = null } = {},
+) {
+  const existingPost = existingPostId
+    ? await db.post.findUnique({
+        where: {
+          id: existingPostId,
+        },
+      })
+    : await db.post.findFirst({
+        where: {
+          sourceArticleId: article.id,
+        },
+      });
   const categoryRecords = categoryIds.length
     ? await db.category.findMany({
         where: {
@@ -402,6 +475,7 @@ async function upsertCanonicalPost(db, article, stream, categoryIds, actorId) {
 function buildTemplateContext({ articleMatch, post, stream, template, translation }) {
   const canonicalPath = buildLocalizedPath(stream.locale, publicRouteSegments.newsPost(post.slug));
   const canonicalUrl = toAbsoluteUrl(canonicalPath);
+  const socialPostSettings = getStreamSocialPostSettings(stream);
   const keywords = Array.isArray(translation?.seoRecord?.keywordsJson)
     ? translation.seoRecord.keywordsJson
     : [];
@@ -418,11 +492,18 @@ function buildTemplateContext({ articleMatch, post, stream, template, translatio
     || null;
 
   return {
+    body:
+      post.sourceArticle?.body
+      || translation?.contentMd
+      || translation?.summary
+      || post.excerpt,
     canonicalPath,
     canonicalUrl,
     hashtags,
     imageUrl,
     locale: stream.locale,
+    postLinkPlacement: socialPostSettings.linkPlacement,
+    postLinkUrl: socialPostSettings.linkUrl,
     sourceName: post.sourceName,
     sourceUrl: post.sourceUrl,
     summary: translation?.summary || post.excerpt,
@@ -438,6 +519,8 @@ function getSocialPayloadFingerprint(payload = {}) {
   return createContentHash(
     payload.platform,
     payload.destinationKind,
+    payload.body,
+    payload.extraLinkUrl,
     payload.title,
     payload.summary,
     payload.canonicalUrl,
@@ -456,7 +539,12 @@ function limitHashtagString(value, maxCount) {
   return getHashtagTokens(value).slice(0, maxCount).join(" ");
 }
 
-export async function applySocialPublishingGuardrails({ db, destination, payload }) {
+export async function applySocialPublishingGuardrails({
+  bypassDuplicateCooldown = false,
+  db,
+  destination,
+  payload,
+}) {
   if (!["FACEBOOK", "INSTAGRAM"].includes(destination?.platform)) {
     return {
       adjustments: {},
@@ -507,7 +595,7 @@ export async function applySocialPublishingGuardrails({ db, destination, payload
     return attempt.publishedAt >= new Date(now.getTime() - 24 * 60 * 60 * 1000);
   }).length;
 
-  if (latestSucceededAttempt?.publishedAt instanceof Date) {
+  if (!bypassDuplicateCooldown && latestSucceededAttempt?.publishedAt instanceof Date) {
     const nextAllowedPublishAt = new Date(
       latestSucceededAttempt.publishedAt.getTime() + socialGuardrails.minPostIntervalMinutes * 60 * 1000,
     );
@@ -546,27 +634,29 @@ export async function applySocialPublishingGuardrails({ db, destination, payload
     });
   }
 
-  for (const attempt of recentSucceededAttempts) {
-    if (!(attempt.publishedAt instanceof Date) || attempt.publishedAt < duplicateWindowStart) {
-      continue;
-    }
+  if (!bypassDuplicateCooldown) {
+    for (const attempt of recentSucceededAttempts) {
+      if (!(attempt.publishedAt instanceof Date) || attempt.publishedAt < duplicateWindowStart) {
+        continue;
+      }
 
-    const recentPayload = getRecentAttemptPayload(attempt.payloadJson);
+      const recentPayload = getRecentAttemptPayload(attempt.payloadJson);
 
-    if (getSocialPayloadFingerprint(recentPayload) === currentFingerprint) {
-      issues.push({
-        code: "duplicate_social_payload",
-        message: "An identical social post was already published recently for this destination.",
-      });
-      break;
-    }
+      if (getSocialPayloadFingerprint(recentPayload) === currentFingerprint) {
+        issues.push({
+          code: "duplicate_social_payload",
+          message: "An identical social post was already published recently for this destination.",
+        });
+        break;
+      }
 
-    if (currentCanonicalUrl && trimText(recentPayload.canonicalUrl) === currentCanonicalUrl) {
-      issues.push({
-        code: "duplicate_canonical_story",
-        message: "This destination already published the same canonical story within the duplicate cooldown window.",
-      });
-      break;
+      if (currentCanonicalUrl && trimText(recentPayload.canonicalUrl) === currentCanonicalUrl) {
+        issues.push({
+          code: "duplicate_canonical_story",
+          message: "This destination already published the same canonical story within the duplicate cooldown window.",
+        });
+        break;
+      }
     }
   }
 
@@ -591,7 +681,11 @@ export async function applySocialPublishingGuardrails({ db, destination, payload
   };
 }
 
-async function executePublishAttempt(db, attemptId) {
+async function executePublishAttempt(
+  db,
+  attemptId,
+  { bypassSocialDuplicateCooldown = false } = {},
+) {
   const attempt = await db.publishAttempt.findUnique({
     include: {
       articleMatch: {
@@ -610,6 +704,7 @@ async function executePublishAttempt(db, attemptId) {
           featuredImage: true,
           sourceArticle: {
             select: {
+              body: true,
               imageUrl: true,
             },
           },
@@ -669,6 +764,8 @@ async function executePublishAttempt(db, attemptId) {
     body: renderTemplateString(template?.bodyTemplate, context),
     canonicalUrl: context.canonicalUrl,
     destinationKind: destination.kind,
+    extraLinkPlacement: context.postLinkPlacement,
+    extraLinkUrl: context.postLinkUrl,
     hashtags: renderTemplateString(template?.hashtagsTemplate, context),
     mediaUrl: context.imageUrl,
     platform: attempt.platform,
@@ -733,6 +830,7 @@ async function executePublishAttempt(db, attemptId) {
   try {
     if (destination.platform !== "WEBSITE") {
       const guardrailResult = await applySocialPublishingGuardrails({
+        bypassDuplicateCooldown: bypassSocialDuplicateCooldown,
         db,
         destination,
         payload,
@@ -1105,6 +1203,68 @@ export async function retryPublishAttempt(attemptId, { actorId = null, automated
   return executePublishAttempt(db, nextAttempt.id);
 }
 
+export async function manualRepostArticleMatch(articleMatchId, { actorId = null } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const articleMatch = await db.articleMatch.findUnique({
+    include: {
+      canonicalPost: true,
+      destination: true,
+      publishAttempts: {
+        orderBy: [{ createdAt: "desc" }],
+        select: {
+          id: true,
+          status: true,
+        },
+      },
+      stream: {
+        include: {
+          destination: true,
+        },
+      },
+    },
+    where: {
+      id: articleMatchId,
+    },
+  });
+
+  if (!articleMatch?.canonicalPost) {
+    throw new NewsPubError("Article match does not have a canonical post.", {
+      status: "post_not_ready_for_publication",
+      statusCode: 400,
+    });
+  }
+
+  const nextAttempt = await createPublishAttempt(db, {
+    articleMatchId: articleMatch.id,
+    platform: articleMatch.destination.platform,
+    postId: articleMatch.canonicalPostId,
+    stream: articleMatch.stream,
+  });
+
+  const latestSuccessfulAttempt =
+    articleMatch.publishAttempts.find((attempt) => attempt.status === "SUCCEEDED") || null;
+
+  await createAuditEventRecord(
+    {
+      action: "PUBLISH_ATTEMPT_MANUAL_REPOST_REQUESTED",
+      actorId,
+      entityId: nextAttempt.id,
+      entityType: "publish_attempt",
+      payloadJson: {
+        articleMatchId: articleMatch.id,
+        bypassedDuplicateCooldown: true,
+        canonicalPostId: articleMatch.canonicalPostId,
+        previousSuccessfulAttemptId: latestSuccessfulAttempt?.id || null,
+      },
+    },
+    db,
+  );
+
+  return executePublishAttempt(db, nextAttempt.id, {
+    bypassSocialDuplicateCooldown: true,
+  });
+}
+
 /** Runs one publishing stream end to end, including fetch, filtering, dedupe, and publication. */
 export async function runStreamFetch(streamId, { actorId = null, now = new Date(), triggerType = "manual" } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -1160,16 +1320,18 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
 
   const checkpoint =
     stream.checkpoints.find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
+  const fetchWindow = resolveStreamFetchWindow({
+    checkpoint,
+    now,
+  });
   const fetchRun = await db.fetchRun.create({
     data: {
       providerConfigId: stream.activeProviderId,
       requestedById: actorId,
       streamId: stream.id,
       triggerType,
-      windowEnd: now,
-      windowStart:
-        checkpoint?.lastSuccessfulFetchAt
-        || new Date(now.getTime() - env.scheduler.initialBackfillHours * 60 * 60 * 1000),
+      windowEnd: fetchWindow.end,
+      windowStart: fetchWindow.start,
     },
   });
 
@@ -1190,6 +1352,8 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
       queuedCount: 0,
       skippedCount: 0,
     };
+    const uniqueEligibleCandidates = [];
+    const repostEligibleDuplicates = [];
 
     for (const articleCandidate of providerResult.articles) {
       const evaluation = evaluateArticleAgainstStream(articleCandidate, stream);
@@ -1199,12 +1363,43 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         continue;
       }
 
-      const duplicateMatch = await findDuplicateArticleMatch(db, articleCandidate, stream);
+      const duplicateMatch = await findLatestDuplicateArticleMatch(db, articleCandidate, stream);
+      const duplicateClassification = classifyDuplicateCandidate(duplicateMatch, {
+        duplicateWindowHours: stream.duplicateWindowHours,
+        now,
+      });
 
-      if (duplicateMatch) {
+      if (duplicateClassification === "blocked_duplicate") {
         summary.duplicateCount += 1;
         continue;
       }
+      const candidateRecord = {
+        articleCandidate,
+        duplicateClassification,
+        duplicateMatch,
+        evaluation,
+      };
+
+      if (duplicateClassification === "repost_eligible_duplicate") {
+        repostEligibleDuplicates.push(candidateRecord);
+      } else {
+        uniqueEligibleCandidates.push(candidateRecord);
+      }
+    }
+
+    const selectedCandidates = selectStreamRunCandidates({
+      maxPostsPerRun: getStreamMaxPostsPerRun(stream),
+      repostEligibleDuplicates,
+      uniqueEligibleCandidates,
+    });
+
+    for (const selectedCandidate of selectedCandidates) {
+      const {
+        articleCandidate,
+        duplicateClassification,
+        duplicateMatch,
+        evaluation,
+      } = selectedCandidate;
 
       const resolvedImageUrl = await resolveFetchedArticleImageUrl(articleCandidate);
       const fetchedArticle = await db.fetchedArticle.create({
@@ -1235,13 +1430,31 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
         stream,
         evaluation.matchedCategoryIds,
         actorId,
+        {
+          existingPostId:
+            duplicateClassification === "repost_eligible_duplicate"
+              ? duplicateMatch?.canonicalPost?.id || null
+              : null,
+        },
       );
       const articleMatch = await db.articleMatch.create({
         data: {
           canonicalPostId: post.id,
           destinationId: stream.destinationId,
+          duplicateFingerprint:
+            duplicateClassification === "repost_eligible_duplicate"
+              ? articleCandidate.dedupeFingerprint
+              : null,
+          duplicateOfMatchId:
+            duplicateClassification === "repost_eligible_duplicate"
+              ? duplicateMatch?.id || null
+              : null,
           fetchedArticleId: fetchedArticle.id,
           filterReasonsJson: evaluation.reasons,
+          overrideNotes:
+            duplicateClassification === "repost_eligible_duplicate"
+              ? "Repost-eligible duplicate selected after unique candidates were exhausted."
+              : null,
           queuedAt: stream.mode === "AUTO_PUBLISH" ? new Date() : null,
           status: evaluation.status,
           streamId: stream.id,
@@ -1395,6 +1608,22 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
   }
 }
 
+export function isStreamDueForScheduledRun(stream, now = new Date()) {
+  if ((stream?.scheduleIntervalMinutes || 0) <= 0) {
+    return false;
+  }
+
+  if (!(stream?.lastRunCompletedAt instanceof Date)) {
+    return true;
+  }
+
+  const nextRunAt = new Date(
+    stream.lastRunCompletedAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000,
+  );
+
+  return nextRunAt <= now;
+}
+
 /** Executes all due scheduled stream runs and any pending scheduled publish attempts. */
 export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -1403,17 +1632,7 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
       status: "ACTIVE",
     },
   });
-  const dueStreams = streams.filter((stream) => {
-    if (!stream.lastRunCompletedAt) {
-      return true;
-    }
-
-    const nextRunAt = new Date(
-      stream.lastRunCompletedAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000,
-    );
-
-    return nextRunAt <= now;
-  });
+  const dueStreams = streams.filter((stream) => isStreamDueForScheduledRun(stream, now));
   const results = [];
 
   for (const stream of dueStreams) {

@@ -60,7 +60,7 @@ describe("news providers", () => {
     );
   });
 
-  it("builds Mediastack requests from seeded defaults, stream filters, and allowlists", async () => {
+  it("builds Mediastack requests from seeded defaults, stream filters, allowlists, and an automatic date window", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -87,6 +87,7 @@ describe("news providers", () => {
 
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
+      now: new Date("2026-04-05T12:34:56.000Z"),
       providerKey: "mediastack",
       stream: {
         activeProvider: {
@@ -120,13 +121,13 @@ describe("news providers", () => {
 
     expect(requestedUrl.pathname).toBe("/v1/news");
     expect(requestedUrl.searchParams.get("access_key")).toBe("mediastack-key");
-    expect(requestedUrl.searchParams.get("limit")).toBe("2");
+    expect(requestedUrl.searchParams.get("limit")).toBe("25");
     expect(requestedUrl.searchParams.get("countries")).toBe("ug,-gb");
     expect(requestedUrl.searchParams.get("languages")).toBe("en,-fr");
     expect(requestedUrl.searchParams.get("categories")).toBe("business,-sports");
     expect(requestedUrl.searchParams.get("sort")).toBe("popularity");
     expect(requestedUrl.searchParams.get("keywords")).toBe("budget,-rumor");
-    expect(requestedUrl.searchParams.get("date")).toBe("2026-04-01,2026-04-05");
+    expect(requestedUrl.searchParams.get("date")).toBe("2026-04-04,2026-04-05");
     expect(result).toMatchObject({
       cursor: {
         limit: 2,
@@ -172,6 +173,7 @@ describe("news providers", () => {
       checkpoint: {
         cursorJson: "page_token_2",
       },
+      now: new Date("2026-04-05T12:34:56.000Z"),
       providerKey: "newsdata",
       stream: {
         activeProvider: {
@@ -206,7 +208,7 @@ describe("news providers", () => {
     expect(requestedUrl.pathname).toBe("/api/1/latest");
     expect(requestedUrl.searchParams.get("apikey")).toBe("newsdata-key");
     expect(requestedUrl.searchParams.get("page")).toBe("page_token_2");
-    expect(requestedUrl.searchParams.get("size")).toBe("7");
+    expect(requestedUrl.searchParams.get("size")).toBe("25");
     expect(requestedUrl.searchParams.get("q")).toBe("policy");
     expect(requestedUrl.searchParams.get("language")).toBe("en");
     expect(requestedUrl.searchParams.get("country")).toBe("ug,-gb");
@@ -230,7 +232,7 @@ describe("news providers", () => {
     });
   });
 
-  it("builds NewsAPI Everything requests with searchable-select and checkbox-backed filters", async () => {
+  it("builds NewsAPI Everything requests with searchable-select filters and runtime datetime windows", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -256,6 +258,10 @@ describe("news providers", () => {
 
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
+      checkpoint: {
+        lastSuccessfulFetchAt: new Date("2026-04-03T06:00:00.000Z"),
+      },
+      now: new Date("2026-04-05T12:34:56.000Z"),
       providerKey: "newsapi",
       stream: {
         activeProvider: {
@@ -287,14 +293,14 @@ describe("news providers", () => {
     const requestInit = fetch.mock.calls[0][1];
 
     expect(requestedUrl.pathname).toBe("/v2/everything");
-    expect(requestedUrl.searchParams.get("pageSize")).toBe("3");
+    expect(requestedUrl.searchParams.get("pageSize")).toBe("25");
     expect(requestedUrl.searchParams.get("q")).toBe("climate");
     expect(requestedUrl.searchParams.get("language")).toBe("fr");
     expect(requestedUrl.searchParams.get("searchIn")).toBe("title,description");
     expect(requestedUrl.searchParams.get("domains")).toBe("bbc.co.uk,techcrunch.com");
     expect(requestedUrl.searchParams.get("excludeDomains")).toBe("example.com");
-    expect(requestedUrl.searchParams.get("from")).toBe("2026-04-01");
-    expect(requestedUrl.searchParams.get("to")).toBe("2026-04-05");
+    expect(requestedUrl.searchParams.get("from")).toBe("2026-04-03T06:00:00.000Z");
+    expect(requestedUrl.searchParams.get("to")).toBe("2026-04-05T12:34:56.000Z");
     expect(requestedUrl.searchParams.get("sortBy")).toBe("popularity");
     expect(requestInit.headers["x-api-key"]).toBe("newsapi-key");
     expect(result).toMatchObject({

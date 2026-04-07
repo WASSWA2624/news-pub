@@ -1,5 +1,6 @@
 import { env } from "@/lib/env/server";
 import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
+import { resolveSocialPostLinkPlacement } from "@/lib/news/social-post";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
@@ -163,11 +164,110 @@ function buildFacebookFeedPostValues({ accessToken, link, message }) {
 }
 
 function joinPublishText(parts, maxLength = 2200) {
-  return parts
-    .map((part) => trimText(part))
-    .filter(Boolean)
-    .join("\n\n")
-    .slice(0, maxLength);
+  const resolvedParts = [];
+  const seenParts = new Set();
+
+  for (const part of parts) {
+    const trimmedPart = trimText(part);
+
+    if (!trimmedPart) {
+      continue;
+    }
+
+    const normalizedPart = trimmedPart.replace(/\s+/g, " ").toLowerCase();
+
+    if (seenParts.has(normalizedPart)) {
+      continue;
+    }
+
+    seenParts.add(normalizedPart);
+    resolvedParts.push(trimmedPart);
+  }
+
+  return resolvedParts.join("\n\n").slice(0, maxLength);
+}
+
+function normalizeBodyText(value) {
+  return trimText(`${value || ""}`)
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function splitBodySections(value) {
+  return normalizeBodyText(value)
+    .split(/\n{2,}/)
+    .map((section) =>
+      section
+        .split("\n")
+        .map((line) => trimText(line))
+        .filter(Boolean)
+        .join("\n"),
+    )
+    .filter(Boolean);
+}
+
+function normalizeSectionKey(value) {
+  return normalizeBodyText(value)
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function sectionContainsValue(section, value) {
+  const normalizedValue = normalizeSectionKey(value);
+
+  return Boolean(normalizedValue) && normalizeSectionKey(section).includes(normalizedValue);
+}
+
+export function formatFacebookTitle(value) {
+  const normalizedValue = trimText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  return normalizedValue.startsWith("【") && normalizedValue.endsWith("】")
+    ? normalizedValue
+    : `【${normalizedValue}】`;
+}
+
+function extractFacebookBodySections(payload) {
+  const summaryKey = normalizeSectionKey(payload.summary);
+  const sourceReferenceKey = normalizeSectionKey(payload.sourceReference);
+
+  return splitBodySections(payload.body).filter((section) => {
+    const sectionKey = normalizeSectionKey(section);
+
+    if (!sectionKey) {
+      return false;
+    }
+
+    if (
+      sectionKey === normalizeSectionKey(payload.title)
+      || sectionKey === normalizeSectionKey(formatFacebookTitle(payload.title))
+      || sectionKey === summaryKey
+      || sectionKey === sourceReferenceKey
+      || sectionKey.startsWith("source:")
+    ) {
+      return false;
+    }
+
+    if (sectionContainsValue(section, payload.canonicalUrl) || sectionContainsValue(section, payload.extraLinkUrl)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function getFacebookExtraLinkSection(payload) {
+  const extraLinkUrl = trimText(payload.extraLinkUrl);
+  const canonicalUrl = trimText(payload.canonicalUrl);
+
+  if (!extraLinkUrl || extraLinkUrl === canonicalUrl) {
+    return "";
+  }
+
+  return extraLinkUrl;
 }
 
 function isRetryableGraphFailure(response, payload) {
@@ -299,11 +399,22 @@ async function verifyInstagramDestination(runtimeConnection, accessToken) {
   });
 }
 
-function buildFacebookMessage(payload) {
+export function buildFacebookMessage(payload) {
+  const extraLinkSection = getFacebookExtraLinkSection(payload);
+  const extraLinkPlacement = resolveSocialPostLinkPlacement(payload.extraLinkPlacement);
+  const bodySections = extractFacebookBodySections(payload);
+  const summarySections = splitBodySections(payload.summary);
+  const contentSections = bodySections.length ? bodySections : summarySections;
+  const canonicalSection = trimText(payload.canonicalUrl)
+    ? `Read more: ${trimText(payload.canonicalUrl)}`
+    : "";
+
   return joinPublishText([
-    payload.title,
-    payload.summary,
-    payload.canonicalUrl,
+    formatFacebookTitle(payload.title),
+    extraLinkPlacement === "BELOW_TITLE" ? extraLinkSection : "",
+    ...contentSections,
+    canonicalSection,
+    extraLinkPlacement === "END" ? extraLinkSection : "",
     payload.sourceReference,
   ]);
 }

@@ -149,6 +149,36 @@ function readMultiValue(values = {}, key) {
   return normalizeText(rawValue) ? [normalizeText(rawValue)] : [];
 }
 
+export function getProviderDateWindowConfig(providerKey, values = {}) {
+  const normalizedProviderKey = normalizeKey(providerKey);
+
+  if (normalizedProviderKey === "mediastack") {
+    return {
+      precision: "date",
+      startKey: "dateFrom",
+      endKey: "dateTo",
+    };
+  }
+
+  if (normalizedProviderKey === "newsdata" && readSingleValue(values, "endpoint") === "archive") {
+    return {
+      precision: "date",
+      startKey: "fromDate",
+      endKey: "toDate",
+    };
+  }
+
+  if (normalizedProviderKey === "newsapi" && readSingleValue(values, "endpoint") === "everything") {
+    return {
+      precision: "datetime",
+      startKey: "fromDate",
+      endKey: "toDate",
+    };
+  }
+
+  return null;
+}
+
 const NEWSDATA_LANGUAGE_ROWS = Object.freeze([
   ["Afrikaans", "af"],
   ["Albanian", "sq"],
@@ -901,7 +931,7 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
-        description: "Optional start date for Mediastack's `date` parameter.",
+        description: "Optional lower bound shown in the editor. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "dateFrom",
         label: "Date From",
@@ -909,7 +939,7 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
-        description: "Optional end date for Mediastack's `date` parameter.",
+        description: "Optional upper bound shown in the editor. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "dateTo",
         label: "Date To",
@@ -1012,7 +1042,7 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") !== "archive",
       },
       {
-        description: "Archive date lower bound. Paid plans only.",
+        description: "Archive date lower bound. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1021,7 +1051,7 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "archive",
       },
       {
-        description: "Archive date upper bound. Paid plans only.",
+        description: "Archive date upper bound. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "toDate",
         label: "To Date",
@@ -1370,7 +1400,7 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "everything",
       },
       {
-        description: "Everything lower date bound.",
+        description: "Everything lower date bound. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1379,7 +1409,7 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "everything",
       },
       {
-        description: "Everything upper date bound.",
+        description: "Everything upper date bound. Runtime fetches automatically replace this with the stream checkpoint window.",
         input: "date",
         key: "toDate",
         label: "To Date",

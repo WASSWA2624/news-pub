@@ -1,6 +1,11 @@
 import { createAuditEventRecord } from "@/lib/analytics";
+import { env } from "@/lib/env/server";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
+import {
+  normalizeSocialPostLinkPlacement,
+  normalizeSocialPostSettings,
+} from "@/lib/news/social-post";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
@@ -13,6 +18,43 @@ function normalizeKeywordList(value) {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function normalizePositiveInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(`${value ?? ""}`, 10);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallbackValue;
+}
+
+function normalizeNonNegativeInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(`${value ?? ""}`, 10);
+
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : fallbackValue;
+}
+
+function normalizeOptionalSocialPostLinkUrl(value) {
+  const normalizedValue = trimText(value);
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = normalizedValue.startsWith("/") && !normalizedValue.startsWith("//")
+      ? new URL(normalizedValue, env.app.url)
+      : new URL(normalizedValue);
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error("invalid_protocol");
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    throw new NewsPubError("Post link URL must be a valid http, https, or root-relative URL.", {
+      status: "stream_validation_failed",
+      statusCode: 400,
+    });
+  }
 }
 
 export async function getStreamManagementSnapshot(prisma) {
@@ -221,6 +263,14 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
 
   delete providerFilters.countryAllowlistJson;
   delete providerFilters.languageAllowlistJson;
+  const socialPost = normalizeSocialPostSettings({
+    linkPlacement: normalizeSocialPostLinkPlacement(input.postLinkPlacement),
+    linkUrl: input.postLinkUrl,
+  });
+  const normalizedSocialPost = {
+    ...socialPost,
+    linkUrl: normalizeOptionalSocialPostLinkUrl(socialPost.linkUrl),
+  };
   const validationIssues = getStreamValidationIssues({
     countryAllowlistJson,
     destination,
@@ -249,21 +299,22 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       defaultTemplateId: input.defaultTemplateId || null,
       description: trimText(input.description) || null,
       destinationId: input.destinationId,
-      duplicateWindowHours: Number.parseInt(`${input.duplicateWindowHours || 48}`, 10) || 48,
+      duplicateWindowHours: normalizePositiveInteger(input.duplicateWindowHours, 48),
       excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
       includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
       countryAllowlistJson,
       languageAllowlistJson,
       locale: trimText(input.locale),
-      maxPostsPerRun: Number.parseInt(`${input.maxPostsPerRun || 5}`, 10) || 5,
+      maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
       mode: trimText(input.mode) || "REVIEW_REQUIRED",
       name,
-      retryBackoffMinutes: Number.parseInt(`${input.retryBackoffMinutes || 15}`, 10) || 15,
-      retryLimit: Number.parseInt(`${input.retryLimit || 3}`, 10) || 3,
-      scheduleExpression: trimText(input.scheduleExpression) || null,
-      scheduleIntervalMinutes: Number.parseInt(`${input.scheduleIntervalMinutes || 60}`, 10) || 60,
+      retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
+      retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
+      scheduleExpression: null,
+      scheduleIntervalMinutes: normalizeNonNegativeInteger(input.scheduleIntervalMinutes, 60),
       settingsJson: {
         providerFilters,
+        socialPost: normalizedSocialPost,
       },
       status: trimText(input.status) || "ACTIVE",
       timezone: trimText(input.timezone) || "UTC",
@@ -273,22 +324,23 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       defaultTemplateId: input.defaultTemplateId || null,
       description: trimText(input.description) || null,
       destinationId: input.destinationId,
-      duplicateWindowHours: Number.parseInt(`${input.duplicateWindowHours || 48}`, 10) || 48,
+      duplicateWindowHours: normalizePositiveInteger(input.duplicateWindowHours, 48),
       excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
       includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
       countryAllowlistJson,
       languageAllowlistJson,
       locale: trimText(input.locale),
-      maxPostsPerRun: Number.parseInt(`${input.maxPostsPerRun || 5}`, 10) || 5,
+      maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
       mode: trimText(input.mode) || "REVIEW_REQUIRED",
       name,
-      retryBackoffMinutes: Number.parseInt(`${input.retryBackoffMinutes || 15}`, 10) || 15,
-      retryLimit: Number.parseInt(`${input.retryLimit || 3}`, 10) || 3,
-      scheduleExpression: trimText(input.scheduleExpression) || null,
-      scheduleIntervalMinutes: Number.parseInt(`${input.scheduleIntervalMinutes || 60}`, 10) || 60,
+      retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
+      retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
+      scheduleExpression: null,
+      scheduleIntervalMinutes: normalizeNonNegativeInteger(input.scheduleIntervalMinutes, 60),
       slug,
       settingsJson: {
         providerFilters,
+        socialPost: normalizedSocialPost,
       },
       status: trimText(input.status) || "ACTIVE",
       timezone: trimText(input.timezone) || "UTC",

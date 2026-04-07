@@ -18,6 +18,125 @@ describe("news publishers", () => {
     vi.restoreAllMocks();
   });
 
+  it("formats polished Facebook messages from the rendered body, canonical CTA, and source attribution", async () => {
+    const { buildFacebookMessage } = await import("./publishers");
+
+    const message = buildFacebookMessage({
+      body: [
+        "Breaking story",
+        "",
+        "Lead paragraph from the rendered template body.",
+        "",
+        "Read more: https://example.com/en/news/breaking-story",
+        "",
+        "Source: Example Source - https://example.com/story",
+      ].join("\n"),
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      sourceReference: "Source: Example Source - https://example.com/story",
+      summary: "Breaking story summary",
+      title: "Breaking story",
+    });
+
+    expect(message).toBe(
+      [
+        "【Breaking story】",
+        "Lead paragraph from the rendered template body.",
+        "Read more: https://example.com/en/news/breaking-story",
+        "Source: Example Source - https://example.com/story",
+      ].join("\n\n"),
+    );
+  });
+
+  it("places the optional stream link directly below the Facebook title when requested", async () => {
+    const { buildFacebookMessage } = await import("./publishers");
+
+    const message = buildFacebookMessage({
+      body: "Rendered body copy from the template.",
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      extraLinkPlacement: "BELOW_TITLE",
+      extraLinkUrl: "https://example.com/promo",
+      sourceReference: "Source: Example Source - https://example.com/story",
+      summary: "Breaking story summary",
+      title: "Breaking story",
+    });
+
+    expect(message).toBe(
+      [
+        "【Breaking story】",
+        "https://example.com/promo",
+        "Rendered body copy from the template.",
+        "Read more: https://example.com/en/news/breaking-story",
+        "Source: Example Source - https://example.com/story",
+      ].join("\n\n"),
+    );
+  });
+
+  it("places the optional stream link at the end of the Facebook message when requested", async () => {
+    const { buildFacebookMessage } = await import("./publishers");
+
+    const message = buildFacebookMessage({
+      body: "Rendered body copy from the template.",
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      extraLinkPlacement: "END",
+      extraLinkUrl: "https://example.com/promo",
+      sourceReference: "Source: Example Source - https://example.com/story",
+      summary: "Breaking story summary",
+      title: "Breaking story",
+    });
+
+    expect(message).toBe(
+      [
+        "【Breaking story】",
+        "Rendered body copy from the template.",
+        "Read more: https://example.com/en/news/breaking-story",
+        "https://example.com/promo",
+        "Source: Example Source - https://example.com/story",
+      ].join("\n\n"),
+    );
+  });
+
+  it("resolves RANDOM Facebook link placement at publish time", async () => {
+    const { buildFacebookMessage } = await import("./publishers");
+
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+
+    const message = buildFacebookMessage({
+      body: "Rendered body copy from the template.",
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      extraLinkPlacement: "RANDOM",
+      extraLinkUrl: "https://example.com/promo",
+      sourceReference: "Source: Example Source - https://example.com/story",
+      summary: "Breaking story summary",
+      title: "Breaking story",
+    });
+
+    expect(message).toContain("【Breaking story】\n\nhttps://example.com/promo");
+  });
+
+  it("avoids duplicate blank sections and repeated Facebook link sections", async () => {
+    const { buildFacebookMessage } = await import("./publishers");
+
+    const message = buildFacebookMessage({
+      body: "\n\nBreaking story summary\n\n",
+      canonicalUrl: "https://example.com/en/news/breaking-story",
+      extraLinkPlacement: "END",
+      extraLinkUrl: "https://example.com/en/news/breaking-story",
+      sourceReference: "Source: Example Source - https://example.com/story",
+      summary: "Breaking story summary",
+      title: "Breaking story",
+    });
+
+    expect(message).toBe(
+      [
+        "【Breaking story】",
+        "Breaking story summary",
+        "Read more: https://example.com/en/news/breaking-story",
+        "Source: Example Source - https://example.com/story",
+      ].join("\n\n"),
+    );
+    expect(message).not.toContain("\n\n\n");
+  });
+
   it("publishes facebook page posts with photo payloads when media is available", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { publishExternalDestination } = await import("./publishers");

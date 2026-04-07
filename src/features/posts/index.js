@@ -10,7 +10,7 @@ import {
 } from "@/lib/news/shared";
 import { createSlug } from "@/lib/normalization";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
-import { publishArticleMatch } from "@/lib/news/workflows";
+import { manualRepostArticleMatch, publishArticleMatch } from "@/lib/news/workflows";
 
 /**
  * Admin post inventory, editor, and publication-control helpers for canonical NewsPub stories.
@@ -600,6 +600,18 @@ function selectPublishableArticleMatch(post, articleMatchId = null) {
   );
 }
 
+function selectRepostableArticleMatch(post, articleMatchId = null) {
+  if (articleMatchId) {
+    return post.articleMatches.find((match) => match.id === articleMatchId) || null;
+  }
+
+  return (
+    post.articleMatches.find((match) => match.destination?.platform === "WEBSITE")
+    || post.articleMatches[0]
+    || null
+  );
+}
+
 async function listWebsitePublishingStreams(db) {
   const streams = await db.publishingStream.findMany({
     include: {
@@ -1164,6 +1176,55 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     },
     db,
   );
+}
+
+export async function repostPostRecord(input = {}, { actorId = null } = {}, prisma) {
+  const db = await resolvePrismaClient(prisma);
+  const postId = trimText(input.postId);
+  const articleMatchId = trimText(input.articleMatchId) || null;
+  const post = await db.post.findUnique({
+    include: {
+      articleMatches: {
+        include: {
+          destination: true,
+          stream: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+    },
+    where: {
+      id: postId,
+    },
+  });
+
+  if (!post) {
+    throw new NewsPubError("The requested post was not found.", {
+      status: "post_not_found",
+      statusCode: 404,
+    });
+  }
+
+  const articleMatch = selectRepostableArticleMatch(post, articleMatchId);
+
+  if (!articleMatch) {
+    throw new NewsPubError(
+      "This post is not linked to a destination match yet. Run a stream or create a manual publishing match first.",
+      {
+        status: "article_match_not_found",
+        statusCode: 400,
+      },
+    );
+  }
+
+  const publishAttempt = await manualRepostArticleMatch(articleMatch.id, { actorId }, db);
+
+  return {
+    articleMatchId: articleMatch.id,
+    attemptId: publishAttempt.id,
+    postId: post.id,
+  };
 }
 
 /** Resolves a published translation by slug for public route consumption. */

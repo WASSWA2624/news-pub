@@ -1,5 +1,6 @@
 import { env } from "@/lib/env/server";
 import {
+  getProviderDateWindowConfig,
   listProviderDefinitions,
   resolveStreamProviderRequestValues,
 } from "@/lib/news/provider-definitions";
@@ -67,6 +68,65 @@ function getMultiValue(values = {}, key) {
 
 function getMaxPostsPerRun(stream) {
   return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 10}`, 10) || 10);
+}
+
+function getProviderFetchBatchSize(stream) {
+  return Math.max(getMaxPostsPerRun(stream) * 3, 25);
+}
+
+function normalizeDateValue(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+
+  const parsedValue = new Date(value);
+
+  return Number.isNaN(parsedValue.getTime()) ? null : parsedValue;
+}
+
+export function resolveAutomaticProviderDateWindow(
+  { checkpoint, defaultWindowHours = 24, now = new Date() } = {},
+) {
+  const resolvedNow = normalizeDateValue(now) || new Date();
+  const checkpointDate = normalizeDateValue(checkpoint?.lastSuccessfulFetchAt);
+
+  return {
+    end: resolvedNow,
+    start: checkpointDate || new Date(resolvedNow.getTime() - defaultWindowHours * 60 * 60 * 1000),
+  };
+}
+
+function formatProviderDateWindowValue(value, precision) {
+  const resolvedValue = normalizeDateValue(value);
+
+  if (!resolvedValue) {
+    return "";
+  }
+
+  return precision === "datetime" ? resolvedValue.toISOString() : resolvedValue.toISOString().slice(0, 10);
+}
+
+export function applyAutomaticDateWindowToRequestValues(
+  providerKey,
+  requestValues = {},
+  { checkpoint, now } = {},
+) {
+  const dateWindowConfig = getProviderDateWindowConfig(providerKey, requestValues);
+
+  if (!dateWindowConfig) {
+    return requestValues;
+  }
+
+  const { end, start } = resolveAutomaticProviderDateWindow({
+    checkpoint,
+    now,
+  });
+
+  return {
+    ...requestValues,
+    [dateWindowConfig.endKey]: formatProviderDateWindowValue(end, dateWindowConfig.precision),
+    [dateWindowConfig.startKey]: formatProviderDateWindowValue(start, dateWindowConfig.precision),
+  };
 }
 
 function buildDateRangeValue(startDate, endDate) {
@@ -285,7 +345,7 @@ function buildMediastackRequest({ credential, stream, requestValues }) {
   const url = new URL(providerRuntimeCatalog.mediastack.baseUrl);
 
   url.searchParams.set("access_key", credential);
-  url.searchParams.set("limit", `${getMaxPostsPerRun(stream)}`);
+  url.searchParams.set("limit", `${getProviderFetchBatchSize(stream)}`);
   appendIncludeExcludeListParam(url, "countries", requestValues.countries, requestValues.excludeCountries);
   appendIncludeExcludeListParam(url, "languages", requestValues.languages, requestValues.excludeLanguages);
   appendIncludeExcludeListParam(url, "categories", requestValues.categories, requestValues.excludeCategories);
@@ -310,7 +370,7 @@ function buildNewsDataRequest({ checkpoint, credential, stream, requestValues })
   const pageCursor = getCheckpointCursorValue(checkpoint?.cursorJson);
 
   url.searchParams.set("apikey", credential);
-  url.searchParams.set("size", `${getMaxPostsPerRun(stream)}`);
+  url.searchParams.set("size", `${getProviderFetchBatchSize(stream)}`);
 
   if (pageCursor) {
     url.searchParams.set("page", pageCursor);
@@ -356,7 +416,7 @@ function buildNewsApiRequest({ credential, stream, requestValues }) {
     : "top-headlines";
   const url = new URL(providerRuntimeCatalog.newsapi.baseUrlByEndpoint[endpoint]);
 
-  url.searchParams.set("pageSize", `${getMaxPostsPerRun(stream)}`);
+  url.searchParams.set("pageSize", `${getProviderFetchBatchSize(stream)}`);
   appendScalarParam(url, "q", requestValues.q);
 
   if (endpoint === "everything") {
@@ -481,7 +541,14 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
     });
   }
 
-  const requestValues = resolveProviderRequestValues(normalizedKey, stream);
+  const requestValues = applyAutomaticDateWindowToRequestValues(
+    normalizedKey,
+    resolveProviderRequestValues(normalizedKey, stream),
+    {
+      checkpoint,
+      now,
+    },
+  );
 
   if (normalizedKey === "mediastack") {
     const request = buildMediastackRequest({

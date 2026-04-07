@@ -123,8 +123,7 @@ const DEFAULT_TEMPLATES = Object.freeze([
     titleTemplate: "{{title}}",
   },
   {
-    bodyTemplate:
-      "{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}\n\nSource: {{sourceName}}",
+    bodyTemplate: "{{body}}",
     hashtagsTemplate: "",
     isDefault: true,
     locale: "en",
@@ -170,6 +169,10 @@ const DEFAULT_STREAMS = Object.freeze([
         languages: ["en"],
         sort: "published_desc",
       },
+      socialPost: {
+        linkPlacement: "RANDOM",
+        linkUrl: null,
+      },
     },
     slug: "website-news-feed",
     status: "ACTIVE",
@@ -198,6 +201,10 @@ const DEFAULT_STREAMS = Object.freeze([
         languages: ["en"],
         sort: "published_desc",
       },
+      socialPost: {
+        linkPlacement: "RANDOM",
+        linkUrl: null,
+      },
     },
     slug: "facebook-headline-queue",
     status: "ACTIVE",
@@ -225,6 +232,10 @@ const DEFAULT_STREAMS = Object.freeze([
         countries: ["us"],
         languages: ["en"],
         sort: "published_desc",
+      },
+      socialPost: {
+        linkPlacement: "RANDOM",
+        linkUrl: null,
       },
     },
     slug: "instagram-visual-picks",

@@ -241,6 +241,7 @@ export default function AdminFormModal({
   className,
   description,
   mountOnOpen = false,
+  renderTrigger = null,
   size = "wide",
   title,
   triggerFullWidth = false,
@@ -249,7 +250,6 @@ export default function AdminFormModal({
   triggerTone = "secondary",
 }) {
   const dialogRef = useRef(null);
-  const didAutoOpenRef = useRef(false);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
   const [isOpen, setIsOpen] = useState(autoOpen);
   const titleId = useId();
@@ -258,18 +258,9 @@ export default function AdminFormModal({
 
   function closeDialog() {
     setIsOpen(false);
-    dialogRef.current?.close();
   }
 
   function openDialog() {
-    const dialog = dialogRef.current;
-
-    if (typeof dialog?.showModal === "function") {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    }
-
     setIsOpen(true);
   }
 
@@ -293,33 +284,47 @@ export default function AdminFormModal({
   }, []);
 
   useEffect(() => {
-    if (!autoOpen || didAutoOpenRef.current) {
+    const dialog = dialogRef.current;
+
+    if (!dialog) {
       return;
     }
 
-    didAutoOpenRef.current = true;
-    const dialog = dialogRef.current;
+    if (isOpen) {
+      if (typeof dialog.showModal === "function" && !dialog.open) {
+        dialog.showModal();
+      }
 
-    if (typeof dialog?.showModal === "function" && !dialog.open) {
-      dialog.showModal();
+      return;
     }
-  }, [autoOpen]);
+
+    if (dialog.open) {
+      dialog.close();
+    }
+  }, [isOpen]);
 
   return (
     <>
-      <TriggerButton
-        $fullWidth={triggerFullWidth}
-        className={className}
-        onClick={openDialog}
-        type="button"
-      >
-        {triggerIcon ? (
-          <ButtonIcon>
-            <ActionIcon name={triggerIcon} />
-          </ButtonIcon>
-        ) : null}
-        {triggerLabel}
-      </TriggerButton>
+      {typeof renderTrigger === "function" ? (
+        renderTrigger({
+          isOpen,
+          openDialog,
+        })
+      ) : (
+        <TriggerButton
+          $fullWidth={triggerFullWidth}
+          className={className}
+          onClick={openDialog}
+          type="button"
+        >
+          {triggerIcon ? (
+            <ButtonIcon>
+              <ActionIcon name={triggerIcon} />
+            </ButtonIcon>
+          ) : null}
+          {triggerLabel}
+        </TriggerButton>
+      )}
       <Dialog
         $size={size}
         aria-describedby={description ? descriptionId : undefined}
