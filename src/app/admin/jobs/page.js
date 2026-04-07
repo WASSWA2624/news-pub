@@ -46,6 +46,28 @@ function getAuditTone(level) {
   return undefined;
 }
 
+function describeFetchRunMode(run) {
+  const executionDetails = run.executionDetails;
+
+  if (executionDetails?.executionMode === "shared_batch" && executionDetails.groupSize > 1) {
+    return `Shared fetch | ${executionDetails.groupSize} streams | ${executionDetails.endpoint || "shared request"}`;
+  }
+
+  return executionDetails?.endpoint
+    ? `Single fetch | ${executionDetails.endpoint}`
+    : "Single fetch";
+}
+
+function describeFetchRunWindow(run) {
+  const streamWindow = run.executionDetails?.streamFetchWindow;
+
+  if (!streamWindow?.start || !streamWindow?.end) {
+    return "Window not recorded";
+  }
+
+  return `${streamWindow.source || "window"} | ${formatDateTime(streamWindow.start)} to ${formatDateTime(streamWindow.end)}`;
+}
+
 /**
  * Renders the admin job history page for fetch runs, publish attempts, and audit events.
  *
@@ -76,6 +98,7 @@ export default async function JobsPage({ searchParams }) {
         <AdminMetricCard icon="warning" label="Failures shown" tone="danger" value={snapshot.summary.failedPublishAttempts + snapshot.summary.failedFetchRuns} />
         <AdminMetricCard icon="warning" label="AI skipped events" tone="warning" value={snapshot.summary.aiSkippedEvents} />
         <AdminMetricCard icon="warning" label="AI fallback events" tone="warning" value={snapshot.summary.aiFallbackEvents} />
+        <AdminMetricCard icon="server" label="Shared upstream calls" tone="accent" value={snapshot.summary.sharedUpstreamCalls} />
       </SummaryGrid>
 
       <SectionGrid>
@@ -88,6 +111,7 @@ export default async function JobsPage({ searchParams }) {
                   <tr>
                     <th>Stream</th>
                     <th>Status</th>
+                    <th>Mode</th>
                     <th>Fetched</th>
                     <th>Published</th>
                     <th>Started</th>
@@ -99,9 +123,16 @@ export default async function JobsPage({ searchParams }) {
                       <td data-label="Stream">
                         <strong>{run.stream?.name || "Stream"}</strong>
                         <SmallText>{run.provider?.label || "Provider"}</SmallText>
+                        <SmallText>{describeFetchRunWindow(run)}</SmallText>
                       </td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(run.status)}>{run.status}</StatusBadge>
+                      </td>
+                      <td data-label="Mode">
+                        <SmallText>{describeFetchRunMode(run)}</SmallText>
+                        {run.executionDetails?.partitionReasonCodes?.length ? (
+                          <SmallText>{run.executionDetails.partitionReasonCodes.join(", ")}</SmallText>
+                        ) : null}
                       </td>
                       <td data-label="Fetched">{run.fetchedCount}</td>
                       <td data-label="Published">{run.publishedCount}</td>

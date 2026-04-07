@@ -57,12 +57,36 @@ function sumCounts(items, key) {
   return items.reduce((total, item) => total + (item?.[key] || 0), 0);
 }
 
+function getFetchRunExecutionDetails(run) {
+  const executionDetails = run.executionDetailsJson || null;
+
+  if (!executionDetails || typeof executionDetails !== "object" || Array.isArray(executionDetails)) {
+    return null;
+  }
+
+  return {
+    checkpointStrategy: executionDetails.checkpointStrategy || null,
+    endpoint: executionDetails.endpoint || null,
+    executionMode: executionDetails.executionMode || "single",
+    fanOutCounts: executionDetails.fanOutCounts || null,
+    groupId: executionDetails.groupId || null,
+    groupSize: executionDetails.groupSize || 1,
+    partitionReasonCodes: executionDetails.partitionReasonCodes || [],
+    sharedRequest: executionDetails.sharedRequest || null,
+    streamFetchWindow: executionDetails.streamFetchWindow || null,
+    timeBoundarySupport: executionDetails.timeBoundarySupport || null,
+  };
+}
+
 function mapFetchRun(run) {
+  const executionDetails = getFetchRunExecutionDetails(run);
+
   return {
     aiCacheHitCount: run.aiCacheHitCount,
     blockedCount: run.blockedCount,
     createdAt: serializeDate(run.createdAt),
     duplicateCount: run.duplicateCount,
+    executionDetails,
     failedCount: run.failedCount,
     fetchedCount: run.fetchedCount,
     finishedAt: serializeDate(run.finishedAt),
@@ -167,6 +191,18 @@ function mapAuditEvent(event) {
 
 function countAuditActions(events, action) {
   return events.filter((event) => event.action === action).length;
+}
+
+function countSharedFetchRuns(fetchRuns = []) {
+  return fetchRuns.filter((run) => getFetchRunExecutionDetails(run)?.executionMode === "shared_batch").length;
+}
+
+function countSharedFetchUpstreamCalls(fetchRuns = []) {
+  return new Set(
+    fetchRuns
+      .map((run) => getFetchRunExecutionDetails(run)?.groupId)
+      .filter(Boolean),
+  ).size;
 }
 
 /**
@@ -402,6 +438,8 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       publishableCount7d: sumCounts(fetchRuns, "publishableCount"),
       publishedCount7d: sumCounts(fetchRuns, "publishedCount"),
       retryCount7d: publishAttempts.reduce((total, attempt) => total + (attempt.retryCount || 0), 0),
+      sharedFetchRunCount7d: countSharedFetchRuns(fetchRuns),
+      sharedUpstreamCalls7d: countSharedFetchUpstreamCalls(fetchRuns),
       totalViews7d: canViewAnalytics ? viewEvents.length : null,
     },
     trafficTrend: canViewAnalytics ? countIntoBuckets(viewEvents, 7) : [],
@@ -553,6 +591,8 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
       aiSkippedEvents: countAuditActions(auditEvents, "AI_OPTIMIZATION_SKIPPED"),
       failedFetchRuns: fetchRuns.filter((run) => run.status === "FAILED").length,
       failedPublishAttempts: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
+      sharedFetchRuns: countSharedFetchRuns(fetchRuns),
+      sharedUpstreamCalls: countSharedFetchUpstreamCalls(fetchRuns),
       totalFetchRuns: fetchRuns.length,
       totalPublishAttempts: publishAttempts.length,
     },

@@ -22,7 +22,7 @@ Implement the provider layer that NewsPub uses to select a news API, resolve cre
 2. Store provider metadata and defaults in `NewsProviderConfig`, not in hard-coded admin-only page state.
 3. Resolve credentials from env at runtime based on the active provider key.
 4. Show provider health, credential status, and enabled or disabled state in the admin UI without exposing secrets.
-5. Support provider-specific request defaults, paging hints, and fallback query settings.
+5. Support provider-specific request defaults, paging hints, endpoint shapes, and explicit time-boundary capability metadata.
 6. Remove AI-model, prompt, and catalog logic from the provider workflow.
 7. Document the provider registry, credential resolver, and health-status surfaces with JSDoc, and add inline comments where needed to explain secret-handling boundaries, fallback defaults, or provider-specific quirks.
 
@@ -39,6 +39,7 @@ Implement the provider layer that NewsPub uses to select a news API, resolve cre
 - `mediastack` is the seeded default provider
 - missing provider credentials block execution and surface an admin-visible error
 - credential resolution and provider-specific defaults are documented clearly enough that the secret-handling flow is understandable without tribal knowledge
+- endpoint-specific time-window behavior is documented clearly enough that manual, scheduled, and batched execution can choose the broadest safe provider request shape
 - no AI provider catalogs or model-selection flows remain in the active provider UI
 
 ## Exit Criteria

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getProviderFormDefinition } from "./provider-definitions";
+import {
+  getProviderEndpointShape,
+  getProviderFormDefinition,
+  getProviderTimeBoundarySupport,
+} from "./provider-definitions";
 
 describe("provider definition option metadata", () => {
   it("adds flag metadata to checkbox-based language catalogs", () => {
@@ -35,6 +39,43 @@ describe("provider definition option metadata", () => {
       flagImageUrl: "https://flagcdn.com/24x18/gb.png",
       label: "English",
       value: "en",
+    });
+  });
+
+  it("reports endpoint-specific time-boundary support for each provider surface", () => {
+    expect(getProviderEndpointShape("mediastack")).toBe("default");
+    expect(getProviderTimeBoundarySupport("mediastack")).toMatchObject({
+      endKey: "dateTo",
+      mode: "direct",
+      precision: "date",
+      startKey: "dateFrom",
+    });
+
+    expect(getProviderEndpointShape("newsdata", { endpoint: "archive" })).toBe("archive");
+    expect(getProviderTimeBoundarySupport("newsdata", { endpoint: "archive" })).toMatchObject({
+      endKey: "toDate",
+      mode: "direct",
+      precision: "date",
+      startKey: "fromDate",
+    });
+
+    expect(getProviderEndpointShape("newsdata", { endpoint: "latest" })).toBe("latest");
+    expect(getProviderTimeBoundarySupport("newsdata", { endpoint: "latest" })).toMatchObject({
+      mode: "relative",
+      timeframeKey: "timeframe",
+    });
+
+    expect(getProviderEndpointShape("newsapi", { endpoint: "everything" })).toBe("everything");
+    expect(getProviderTimeBoundarySupport("newsapi", { endpoint: "everything" })).toMatchObject({
+      endKey: "toDate",
+      mode: "direct",
+      precision: "datetime",
+      startKey: "fromDate",
+    });
+
+    expect(getProviderEndpointShape("newsapi", { endpoint: "top-headlines" })).toBe("top-headlines");
+    expect(getProviderTimeBoundarySupport("newsapi", { endpoint: "top-headlines" })).toMatchObject({
+      mode: "local_only",
     });
   });
 });

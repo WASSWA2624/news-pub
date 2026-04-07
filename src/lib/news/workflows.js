@@ -4,6 +4,12 @@ import { getDestinationSocialGuardrails } from "@/features/destinations/meta-con
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { discoverRemoteImageUrl } from "@/lib/media";
 import { fetchProviderArticles } from "@/lib/news/providers";
+import {
+  isArticleInsideFetchWindow,
+  resolveExecutionFetchWindow,
+  serializeFetchWindow,
+} from "@/lib/news/fetch-window";
+import { planSharedFetchGroups, serializeSharedFetchGroup } from "@/lib/news/shared-fetch";
 import { getStreamSocialPostSettings } from "@/lib/news/social-post";
 import {
   NewsPubError,
@@ -54,16 +60,10 @@ function getStreamMaxPostsPerRun(stream) {
 }
 
 export function resolveStreamFetchWindow({ checkpoint = null, now = new Date() } = {}) {
-  const resolvedNow = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
-  const checkpointDate =
-    checkpoint?.lastSuccessfulFetchAt instanceof Date && !Number.isNaN(checkpoint.lastSuccessfulFetchAt.getTime())
-      ? checkpoint.lastSuccessfulFetchAt
-      : null;
-
-  return {
-    end: resolvedNow,
-    start: checkpointDate || new Date(resolvedNow.getTime() - 24 * 60 * 60 * 1000),
-  };
+  return resolveExecutionFetchWindow({
+    checkpoint,
+    now,
+  });
 }
 
 function findMatchingCategoryIds(article, streamCategories = []) {
@@ -82,7 +82,7 @@ function findMatchingCategoryIds(article, streamCategories = []) {
     .map((category) => category.id);
 }
 
-function evaluateArticleAgainstStream(article, stream) {
+function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = {}) {
   const reasons = [];
   const normalizedSearch = getArticleSearchText(article);
   const includeKeywords = dedupeStrings(stream.includeKeywordsJson || []).map((keyword) =>
@@ -98,6 +98,10 @@ function evaluateArticleAgainstStream(article, stream) {
     article,
     stream.categories.map((entry) => entry.category),
   );
+
+  if (!isArticleInsideFetchWindow(article, fetchWindow)) {
+    reasons.push("outside_fetch_window");
+  }
 
   if (languageAllowlist.length && !languageAllowlist.includes(trimText(article.language).toLowerCase())) {
     reasons.push("language_not_allowed");
@@ -1719,9 +1723,77 @@ export async function manualRepostArticleMatch(articleMatchId, { actorId = null 
   });
 }
 
-/** Runs one publishing stream end to end, including fetch, filtering, dedupe, and publication. */
-export async function runStreamFetch(streamId, { actorId = null, now = new Date(), triggerType = "manual" } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
+function createFetchRunSummary(providerResult = null) {
+  return {
+    aiCacheHitCount: 0,
+    blockedCount: 0,
+    duplicateCount: 0,
+    failedCount: 0,
+    fetchedCount: Number(providerResult?.fetchedCount || 0),
+    heldCount: 0,
+    optimizedCount: 0,
+    publishableCount: 0,
+    publishedCount: 0,
+    queuedCount: 0,
+    skippedCount: 0,
+  };
+}
+
+function shouldPublishAllEligibleCandidates(stream) {
+  return stream?.destination?.platform === "WEBSITE";
+}
+
+function selectCandidatesForStreamRun(stream, { repostEligibleDuplicates = [], uniqueEligibleCandidates = [] } = {}) {
+  if (shouldPublishAllEligibleCandidates(stream)) {
+    return [...uniqueEligibleCandidates, ...repostEligibleDuplicates];
+  }
+
+  return selectStreamRunCandidates({
+    maxPostsPerRun: getStreamMaxPostsPerRun(stream),
+    repostEligibleDuplicates,
+    uniqueEligibleCandidates,
+  });
+}
+
+function buildStreamValidationInput(stream) {
+  return {
+    countryAllowlistJson: stream.countryAllowlistJson,
+    destination: stream.destination,
+    languageAllowlistJson: stream.languageAllowlistJson,
+    locale: stream.locale,
+    mode: stream.mode,
+    providerDefaults: stream.activeProvider?.requestDefaultsJson,
+    providerFilters: stream.settingsJson?.providerFilters,
+    providerKey: stream.activeProvider?.providerKey,
+    template: stream.defaultTemplate,
+  };
+}
+
+function resolveFetchWindowForExecution({ checkpoint, now, requestedWindow, writeCheckpointOnSuccess }) {
+  try {
+    return resolveExecutionFetchWindow({
+      checkpoint,
+      now,
+      requestedWindow,
+      writeCheckpointOnSuccess,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "fetch_window_start_after_end") {
+      throw new NewsPubError("Fetch window start must be earlier than or equal to the end boundary.", {
+        status: "fetch_window_invalid",
+        statusCode: 400,
+      });
+    }
+
+    throw error;
+  }
+}
+
+async function loadStreamExecutionContext(
+  db,
+  streamId,
+  { actorId = null, now = new Date(), requestedWindow = null, triggerType = "manual", writeCheckpointOnSuccess = null } = {},
+) {
   const stream = await db.publishingStream.findUnique({
     include: {
       activeProvider: true,
@@ -1753,17 +1825,7 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
     });
   }
 
-  const streamValidationIssues = getStreamValidationIssues({
-    countryAllowlistJson: stream.countryAllowlistJson,
-    destination: stream.destination,
-    languageAllowlistJson: stream.languageAllowlistJson,
-    locale: stream.locale,
-    mode: stream.mode,
-    providerDefaults: stream.activeProvider?.requestDefaultsJson,
-    providerFilters: stream.settingsJson?.providerFilters,
-    providerKey: stream.activeProvider?.providerKey,
-    template: stream.defaultTemplate,
-  });
+  const streamValidationIssues = getStreamValidationIssues(buildStreamValidationInput(stream));
 
   if (streamValidationIssues.length) {
     throw new NewsPubError(streamValidationIssues[0].message, {
@@ -1774,9 +1836,11 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
 
   const checkpoint =
     stream.checkpoints.find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
-  const fetchWindow = resolveStreamFetchWindow({
+  const fetchWindow = resolveFetchWindowForExecution({
     checkpoint,
     now,
+    requestedWindow,
+    writeCheckpointOnSuccess,
   });
   const fetchRun = await db.fetchRun.create({
     data: {
@@ -1789,301 +1853,613 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
     },
   });
 
-  try {
-    const providerResult = await fetchProviderArticles({
-      checkpoint,
-      now,
-      providerKey: stream.activeProvider.providerKey,
-      stream,
-    });
-    const summary = {
-      aiCacheHitCount: 0,
-      blockedCount: 0,
-      duplicateCount: 0,
-      failedCount: 0,
-      fetchedCount: providerResult.fetchedCount,
-      heldCount: 0,
-      optimizedCount: 0,
-      publishedCount: 0,
-      publishableCount: 0,
-      queuedCount: 0,
-      skippedCount: 0,
-    };
-    const uniqueEligibleCandidates = [];
-    const repostEligibleDuplicates = [];
+  return {
+    checkpoint,
+    fetchRun,
+    fetchWindow,
+    stream,
+  };
+}
 
-    for (const articleCandidate of providerResult.articles) {
-      const evaluation = evaluateArticleAgainstStream(articleCandidate, stream);
+function getSharedFetchCursorForCheckpoint(executionGroup, providerResult) {
+  if ((executionGroup?.streamIds || []).length !== 1) {
+    return null;
+  }
 
-      if (evaluation.status === "SKIPPED") {
-        summary.skippedCount += 1;
-        continue;
-      }
+  return providerResult?.cursor || null;
+}
 
-      const duplicateMatch = await findLatestDuplicateArticleMatch(db, articleCandidate, stream);
-      const duplicateClassification = classifyDuplicateCandidate(duplicateMatch, {
-        duplicateWindowHours: stream.duplicateWindowHours,
-        now,
-      });
+function buildFetchRunExecutionDetails(executionContext, executionGroup, providerResult, summary) {
+  const timeBoundarySupport = executionGroup?.timeBoundarySupport || null;
 
-      if (duplicateClassification === "blocked_duplicate") {
-        summary.duplicateCount += 1;
-        continue;
-      }
-      const candidateRecord = {
-        articleCandidate,
-        duplicateClassification,
-        duplicateMatch,
-        evaluation,
-      };
-
-      if (duplicateClassification === "repost_eligible_duplicate") {
-        repostEligibleDuplicates.push(candidateRecord);
-      } else {
-        uniqueEligibleCandidates.push(candidateRecord);
-      }
-    }
-
-    const selectedCandidates = selectStreamRunCandidates({
-      maxPostsPerRun: getStreamMaxPostsPerRun(stream),
-      repostEligibleDuplicates,
-      uniqueEligibleCandidates,
-    });
-
-    for (const selectedCandidate of selectedCandidates) {
-      const {
-        articleCandidate,
-        duplicateClassification,
-        duplicateMatch,
-        evaluation,
-      } = selectedCandidate;
-
-      const resolvedImageUrl = await resolveFetchedArticleImageUrl(articleCandidate);
-      const fetchedArticle = await upsertFetchedArticle(
-        db,
-        articleCandidate,
-        stream,
-        resolvedImageUrl,
-        now,
-      );
-      const existingArticleMatch = await db.articleMatch.findUnique({
-        where: {
-          fetchedArticleId_streamId: {
-            fetchedArticleId: fetchedArticle.id,
-            streamId: stream.id,
-          },
-        },
-      });
-
-      // Repeated provider items or reruns can resolve to the same saved article.
-      if (existingArticleMatch) {
-        summary.duplicateCount += 1;
-        continue;
-      }
-
-      const post = await upsertCanonicalPost(
-        db,
-        fetchedArticle,
-        stream,
-        evaluation.matchedCategoryIds,
-        actorId,
-        {
-          existingPostId:
-            duplicateClassification === "repost_eligible_duplicate"
-              ? duplicateMatch?.canonicalPost?.id || null
-              : null,
-        },
-      );
-      const articleMatch = await db.articleMatch.create({
-        data: {
-          canonicalPostId: post.id,
-          destinationId: stream.destinationId,
-          duplicateFingerprint:
-            duplicateClassification === "repost_eligible_duplicate"
-              ? articleCandidate.dedupeFingerprint
-              : null,
-          duplicateOfMatchId:
-            duplicateClassification === "repost_eligible_duplicate"
-              ? duplicateMatch?.id || null
-              : null,
-          fetchedArticleId: fetchedArticle.id,
-          filterReasonsJson: evaluation.reasons,
-          overrideNotes:
-            duplicateClassification === "repost_eligible_duplicate"
-              ? "Repost-eligible duplicate selected after unique candidates were exhausted."
-              : null,
-          queuedAt: stream.mode === "AUTO_PUBLISH" ? new Date() : null,
-          status: evaluation.status,
-          streamId: stream.id,
-        },
-      });
-
-      const optimization = await refreshArticleMatchOptimization(articleMatch.id, {}, db);
-      const shouldHoldForReview =
-        stream.mode === "REVIEW_REQUIRED" ||
-        ["BLOCK", "HOLD"].includes(optimization.policy.status);
-
-      summary.publishableCount += 1;
-      summary.optimizedCount += 1;
-
-      if (optimization.cacheHit) {
-        summary.aiCacheHitCount += 1;
-      }
-
-      if (shouldHoldForReview) {
-        summary.heldCount += 1;
-
-        if (optimization.policy.status !== "PASS") {
-          summary.blockedCount += 1;
+  return {
+    checkpointStrategy: {
+      usesExplicitBoundaries: Boolean(executionContext.fetchWindow?.usesExplicitBoundaries),
+      usesProviderCheckpoint: Boolean(executionContext.fetchWindow?.usesProviderCheckpoint),
+      writeCheckpointOnSuccess: Boolean(executionContext.fetchWindow?.writeCheckpointOnSuccess),
+    },
+    endpoint: executionGroup?.endpoint || null,
+    executionMode: executionGroup?.executionMode || "single",
+    fanOutCounts: {
+      duplicateCount: summary.duplicateCount,
+      fetchedCount: summary.fetchedCount,
+      heldCount: summary.heldCount,
+      publishableCount: summary.publishableCount,
+      publishedCount: summary.publishedCount,
+      queuedCount: summary.queuedCount,
+      skippedCount: summary.skippedCount,
+    },
+    groupId: executionGroup?.id || null,
+    groupSize: executionGroup?.streamIds?.length || 1,
+    partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+    sharedRequest: executionGroup ? serializeSharedFetchGroup(executionGroup) : null,
+    streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
+    timeBoundarySupport: timeBoundarySupport
+      ? {
+          endpoint: timeBoundarySupport.endpoint,
+          mode: timeBoundarySupport.mode,
+          precision: timeBoundarySupport.precision,
+          summary: timeBoundarySupport.summary,
         }
+      : null,
+  };
+}
 
-        continue;
-      }
+function getGroupMaxArticlesHint(executionGroup) {
+  return executionGroup.streamExecutions.reduce((total, executionContext) => {
+    const streamLimit = shouldPublishAllEligibleCandidates(executionContext.stream)
+      ? Math.max(getStreamMaxPostsPerRun(executionContext.stream), 10)
+      : getStreamMaxPostsPerRun(executionContext.stream);
 
-      summary.queuedCount += 1;
+    return total + streamLimit;
+  }, 0);
+}
 
-      try {
-        const publishResult = await publishArticleMatch(articleMatch.id, {}, db);
+async function finalizeSuccessfulFetchRun(
+  db,
+  executionContext,
+  executionGroup,
+  providerResult,
+  summary,
+  { actorId = null, now = new Date() } = {},
+) {
+  const checkpointCursor = getSharedFetchCursorForCheckpoint(executionGroup, providerResult);
+  const executionDetails = buildFetchRunExecutionDetails(
+    executionContext,
+    executionGroup,
+    providerResult,
+    summary,
+  );
 
-        if (publishResult.status === "SUCCEEDED") {
-          summary.publishedCount += 1;
-        } else {
-          summary.failedCount += 1;
-        }
-      } catch (error) {
-        summary.failedCount += 1;
-        await recordObservabilityEvent(
-          {
-            action: "PUBLISH_ATTEMPT_FAILED",
-            entityId: articleMatch.id,
-            entityType: "article_match",
-            error,
-          },
-          db,
-        );
-      }
-    }
-
+  if (executionContext.fetchWindow.writeCheckpointOnSuccess) {
     await db.providerFetchCheckpoint.upsert({
       where: {
         streamId_providerConfigId: {
-          providerConfigId: stream.activeProviderId,
-          streamId: stream.id,
+          providerConfigId: executionContext.stream.activeProviderId,
+          streamId: executionContext.stream.id,
         },
       },
       update: {
-        cursorJson: providerResult.cursor || null,
-        lastSuccessfulFetchAt: now,
+        cursorJson: checkpointCursor,
+        lastSuccessfulFetchAt: executionContext.fetchWindow.end,
       },
       create: {
-        cursorJson: providerResult.cursor || null,
-        lastSuccessfulFetchAt: now,
-        providerConfigId: stream.activeProviderId,
-        streamId: stream.id,
+        cursorJson: checkpointCursor,
+        lastSuccessfulFetchAt: executionContext.fetchWindow.end,
+        providerConfigId: executionContext.stream.activeProviderId,
+        streamId: executionContext.stream.id,
       },
     });
+  }
 
-    const completedRun = await db.fetchRun.update({
-      where: {
-        id: fetchRun.id,
-      },
-      data: {
+  const completedRun = await db.fetchRun.update({
+    where: {
+      id: executionContext.fetchRun.id,
+    },
+    data: {
+      aiCacheHitCount: summary.aiCacheHitCount,
+      blockedCount: summary.blockedCount,
+      duplicateCount: summary.duplicateCount,
+      executionDetailsJson: executionDetails,
+      failedCount: summary.failedCount,
+      fetchedCount: summary.fetchedCount,
+      finishedAt: new Date(),
+      heldCount: summary.heldCount,
+      optimizedCount: summary.optimizedCount,
+      providerCursorAfterJson: checkpointCursor,
+      providerCursorBeforeJson: executionContext.checkpoint?.cursorJson || null,
+      publishableCount: summary.publishableCount,
+      publishedCount: summary.publishedCount,
+      queuedCount: summary.queuedCount,
+      skippedCount: summary.skippedCount,
+      status: "SUCCEEDED",
+    },
+  });
+
+  await db.publishingStream.update({
+    where: {
+      id: executionContext.stream.id,
+    },
+    data: {
+      consecutiveFailureCount: 0,
+      lastRunCompletedAt: now,
+      lastRunStartedAt: executionContext.fetchRun.startedAt,
+    },
+  });
+
+  await createAuditEventRecord(
+    {
+      action: "FETCH_RUN_COMPLETED",
+      actorId,
+      entityId: completedRun.id,
+      entityType: "fetch_run",
+      payloadJson: {
         aiCacheHitCount: summary.aiCacheHitCount,
         blockedCount: summary.blockedCount,
         duplicateCount: summary.duplicateCount,
-        failedCount: summary.failedCount,
+        executionMode: executionGroup?.executionMode || "single",
         fetchedCount: summary.fetchedCount,
-        finishedAt: new Date(),
+        groupId: executionGroup?.id || null,
         heldCount: summary.heldCount,
         optimizedCount: summary.optimizedCount,
-        providerCursorAfterJson: providerResult.cursor || null,
-        providerCursorBeforeJson: checkpoint?.cursorJson || null,
+        partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+        providerKey: executionGroup?.providerKey || executionContext.stream.activeProvider?.providerKey || null,
         publishableCount: summary.publishableCount,
         publishedCount: summary.publishedCount,
-        queuedCount: summary.queuedCount,
+        sharedStreamIds: executionGroup?.streamIds || [executionContext.stream.id],
         skippedCount: summary.skippedCount,
-        status: "SUCCEEDED",
+        streamId: executionContext.stream.id,
+        streamWindow: serializeFetchWindow(executionContext.fetchWindow),
       },
-    });
+    },
+    db,
+  );
 
-    await db.publishingStream.update({
-      where: {
-        id: stream.id,
-      },
-      data: {
-        consecutiveFailureCount: 0,
-        lastRunCompletedAt: new Date(),
-        lastRunStartedAt: fetchRun.startedAt,
-      },
-    });
+  return completedRun;
+}
 
-    await createAuditEventRecord(
-      {
-        action: "FETCH_RUN_COMPLETED",
-        actorId,
-        entityId: completedRun.id,
-        entityType: "fetch_run",
-        payloadJson: {
-          aiCacheHitCount: summary.aiCacheHitCount,
-          blockedCount: summary.blockedCount,
-          duplicateCount: summary.duplicateCount,
-          failedCount: summary.failedCount,
-          fetchedCount: summary.fetchedCount,
-          heldCount: summary.heldCount,
-          optimizedCount: summary.optimizedCount,
-          publishableCount: summary.publishableCount,
-          publishedCount: summary.publishedCount,
-          skippedCount: summary.skippedCount,
-          streamId: stream.id,
+async function finalizeFailedFetchRun(
+  db,
+  executionContext,
+  error,
+  { actorId = null, executionGroup = null } = {},
+) {
+  const failedRun = await db.fetchRun.update({
+    where: {
+      id: executionContext.fetchRun.id,
+    },
+    data: {
+      errorMessage: error instanceof Error ? error.message : `${error}`,
+      executionDetailsJson: {
+        checkpointStrategy: {
+          usesExplicitBoundaries: Boolean(executionContext.fetchWindow?.usesExplicitBoundaries),
+          usesProviderCheckpoint: Boolean(executionContext.fetchWindow?.usesProviderCheckpoint),
+          writeCheckpointOnSuccess: Boolean(executionContext.fetchWindow?.writeCheckpointOnSuccess),
         },
+        endpoint: executionGroup?.endpoint || null,
+        executionMode: executionGroup?.executionMode || "single",
+        groupId: executionGroup?.id || null,
+        partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+        streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
       },
+      finishedAt: new Date(),
+      status: "FAILED",
+    },
+  });
+  const nextFailureCount = executionContext.stream.consecutiveFailureCount + 1;
+  const nextStatus = nextFailureCount >= executionContext.stream.retryLimit ? "PAUSED" : executionContext.stream.status;
+
+  await db.publishingStream.update({
+    where: {
+      id: executionContext.stream.id,
+    },
+    data: {
+      consecutiveFailureCount: nextFailureCount,
+      lastFailureAt: new Date(),
+      lastRunStartedAt: executionContext.fetchRun.startedAt,
+      status: nextStatus,
+    },
+  });
+
+  await recordObservabilityEvent(
+    {
+      action: nextStatus === "PAUSED" ? "STREAM_EXECUTION_PAUSED" : "FETCH_RUN_FAILED",
+      actorId,
+      entityId: failedRun.id,
+      entityType: "fetch_run",
+      error,
+      message: error instanceof Error ? error.message : "Fetch run failed.",
+      payload: {
+        executionMode: executionGroup?.executionMode || "single",
+        groupId: executionGroup?.id || null,
+        partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+        streamId: executionContext.stream.id,
+      },
+    },
+    db,
+  );
+
+  return failedRun;
+}
+
+async function processFetchedArticlesForStream(
+  db,
+  executionContext,
+  providerResult,
+  { actorId = null, executionGroup = null, now = new Date() } = {},
+) {
+  const summary = createFetchRunSummary(providerResult);
+  const uniqueEligibleCandidates = [];
+  const repostEligibleDuplicates = [];
+
+  for (const articleCandidate of providerResult.articles) {
+    const evaluation = evaluateArticleAgainstStream(articleCandidate, executionContext.stream, {
+      fetchWindow: executionContext.fetchWindow,
+    });
+
+    if (evaluation.status === "SKIPPED") {
+      summary.skippedCount += 1;
+      continue;
+    }
+
+    const duplicateMatch = await findLatestDuplicateArticleMatch(db, articleCandidate, executionContext.stream);
+    const duplicateClassification = classifyDuplicateCandidate(duplicateMatch, {
+      duplicateWindowHours: executionContext.stream.duplicateWindowHours,
+      now,
+    });
+
+    if (duplicateClassification === "blocked_duplicate") {
+      summary.duplicateCount += 1;
+      continue;
+    }
+
+    const candidateRecord = {
+      articleCandidate,
+      duplicateClassification,
+      duplicateMatch,
+      evaluation,
+    };
+
+    if (duplicateClassification === "repost_eligible_duplicate") {
+      repostEligibleDuplicates.push(candidateRecord);
+    } else {
+      uniqueEligibleCandidates.push(candidateRecord);
+    }
+  }
+
+  const selectedCandidates = selectCandidatesForStreamRun(executionContext.stream, {
+    repostEligibleDuplicates,
+    uniqueEligibleCandidates,
+  });
+
+  for (const selectedCandidate of selectedCandidates) {
+    const {
+      articleCandidate,
+      duplicateClassification,
+      duplicateMatch,
+      evaluation,
+    } = selectedCandidate;
+    const resolvedImageUrl = await resolveFetchedArticleImageUrl(articleCandidate);
+    const fetchedArticle = await upsertFetchedArticle(
       db,
+      articleCandidate,
+      executionContext.stream,
+      resolvedImageUrl,
+      now,
     );
-
-    return completedRun;
-  } catch (error) {
-    const failedRun = await db.fetchRun.update({
+    const existingArticleMatch = await db.articleMatch.findUnique({
       where: {
-        id: fetchRun.id,
-      },
-      data: {
-        errorMessage: error instanceof Error ? error.message : `${error}`,
-        finishedAt: new Date(),
-        status: "FAILED",
-      },
-    });
-    const nextFailureCount = stream.consecutiveFailureCount + 1;
-    const nextStatus = nextFailureCount >= stream.retryLimit ? "PAUSED" : stream.status;
-
-    await db.publishingStream.update({
-      where: {
-        id: stream.id,
-      },
-      data: {
-        consecutiveFailureCount: nextFailureCount,
-        lastFailureAt: new Date(),
-        lastRunStartedAt: fetchRun.startedAt,
-        status: nextStatus,
-      },
-    });
-
-    await recordObservabilityEvent(
-      {
-        action: nextStatus === "PAUSED" ? "STREAM_EXECUTION_PAUSED" : "FETCH_RUN_FAILED",
-        actorId,
-        entityId: failedRun.id,
-        entityType: "fetch_run",
-        error,
-        message: error instanceof Error ? error.message : "Fetch run failed.",
-        payload: {
-          streamId: stream.id,
+        fetchedArticleId_streamId: {
+          fetchedArticleId: fetchedArticle.id,
+          streamId: executionContext.stream.id,
         },
       },
+    });
+
+    // Shared upstream fetches can legitimately fan the same article into many
+    // streams, but a rerun must still stay idempotent for the same stream.
+    if (existingArticleMatch) {
+      summary.duplicateCount += 1;
+      continue;
+    }
+
+    const post = await upsertCanonicalPost(
       db,
+      fetchedArticle,
+      executionContext.stream,
+      evaluation.matchedCategoryIds,
+      actorId,
+      {
+        existingPostId:
+          duplicateClassification === "repost_eligible_duplicate"
+            ? duplicateMatch?.canonicalPost?.id || null
+            : null,
+      },
+    );
+    const articleMatch = await db.articleMatch.create({
+      data: {
+        canonicalPostId: post.id,
+        destinationId: executionContext.stream.destinationId,
+        duplicateFingerprint:
+          duplicateClassification === "repost_eligible_duplicate"
+            ? articleCandidate.dedupeFingerprint
+            : null,
+        duplicateOfMatchId:
+          duplicateClassification === "repost_eligible_duplicate"
+            ? duplicateMatch?.id || null
+            : null,
+        fetchedArticleId: fetchedArticle.id,
+        filterReasonsJson: evaluation.reasons,
+        overrideNotes:
+          duplicateClassification === "repost_eligible_duplicate"
+            ? "Repost-eligible duplicate selected after unique candidates were exhausted."
+            : null,
+        queuedAt: executionContext.stream.mode === "AUTO_PUBLISH" ? new Date() : null,
+        status: evaluation.status,
+        streamId: executionContext.stream.id,
+      },
+    });
+
+    const optimization = await refreshArticleMatchOptimization(articleMatch.id, {}, db);
+    const shouldHoldForReview =
+      executionContext.stream.mode === "REVIEW_REQUIRED"
+      || ["BLOCK", "HOLD"].includes(optimization.policy.status);
+
+    summary.publishableCount += 1;
+    summary.optimizedCount += 1;
+
+    if (optimization.cacheHit) {
+      summary.aiCacheHitCount += 1;
+    }
+
+    if (shouldHoldForReview) {
+      summary.heldCount += 1;
+
+      if (optimization.policy.status !== "PASS") {
+        summary.blockedCount += 1;
+      }
+
+      continue;
+    }
+
+    summary.queuedCount += 1;
+
+    try {
+      const publishResult = await publishArticleMatch(articleMatch.id, {}, db);
+
+      if (publishResult.status === "SUCCEEDED") {
+        summary.publishedCount += 1;
+      } else {
+        summary.failedCount += 1;
+      }
+    } catch (error) {
+      summary.failedCount += 1;
+      await recordObservabilityEvent(
+        {
+          action: "PUBLISH_ATTEMPT_FAILED",
+          entityId: articleMatch.id,
+          entityType: "article_match",
+          error,
+        },
+        db,
+      );
+    }
+  }
+
+  return finalizeSuccessfulFetchRun(
+    db,
+    executionContext,
+    executionGroup,
+    providerResult,
+    summary,
+    {
+      actorId,
+      now,
+    },
+  );
+}
+
+/** Runs one publishing stream end to end, including fetch, filtering, dedupe, and publication. */
+export async function runStreamFetch(
+  streamId,
+  { actorId = null, fetchWindow = null, now = new Date(), triggerType = "manual", writeCheckpointOnSuccess = null } = {},
+  prisma,
+) {
+  const db = await resolvePrismaClient(prisma);
+  const executionContext = await loadStreamExecutionContext(
+    db,
+    streamId,
+    {
+      actorId,
+      now,
+      requestedWindow: fetchWindow,
+      triggerType,
+      writeCheckpointOnSuccess,
+    },
+  );
+  const executionGroup = planSharedFetchGroups([executionContext])[0];
+
+  try {
+    const providerResult = await fetchProviderArticles({
+      checkpoint: executionContext.checkpoint,
+      fetchWindow: executionContext.fetchWindow,
+      maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
+      now,
+      providerKey: executionContext.stream.activeProvider.providerKey,
+      stream: executionContext.stream,
+    });
+
+    return processFetchedArticlesForStream(
+      db,
+      executionContext,
+      providerResult,
+      {
+        actorId,
+        executionGroup,
+        now,
+      },
+    );
+  } catch (error) {
+    await finalizeFailedFetchRun(
+      db,
+      executionContext,
+      error,
+      {
+        actorId,
+        executionGroup,
+      },
     );
 
     throw error;
   }
+}
+
+/**
+ * Runs several publishing streams in one execution request, sharing provider
+ * fetches only when the streams remain compatible for a safe widened request.
+ *
+ * @param {string[]} streamIds - Stream ids requested for execution.
+ * @param {object} [options] - Batch execution options.
+ * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {object|null} [options.fetchWindow] - Optional explicit bounded window.
+ * @param {Date} [options.now] - Execution timestamp.
+ * @param {string} [options.triggerType] - Execution trigger label.
+ * @param {boolean|null} [options.writeCheckpointOnSuccess] - Explicit checkpoint write override.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Batch execution summary with per-stream results.
+ */
+export async function runMultipleStreamFetches(
+  streamIds,
+  { actorId = null, fetchWindow = null, now = new Date(), triggerType = "manual", writeCheckpointOnSuccess = null } = {},
+  prisma,
+) {
+  const db = await resolvePrismaClient(prisma);
+  const requestedStreamIds = [...new Set((streamIds || []).filter(Boolean))];
+
+  if (!requestedStreamIds.length) {
+    return {
+      groups: [],
+      requestedStreamCount: 0,
+      results: [],
+      upstreamRequestCount: 0,
+    };
+  }
+
+  const streamExecutions = [];
+
+  for (const streamId of requestedStreamIds) {
+    streamExecutions.push(
+      await loadStreamExecutionContext(
+        db,
+        streamId,
+        {
+          actorId,
+          now,
+          requestedWindow: fetchWindow,
+          triggerType,
+          writeCheckpointOnSuccess,
+        },
+      ),
+    );
+  }
+
+  const plannedGroups = planSharedFetchGroups(streamExecutions);
+  const results = [];
+
+  for (const executionGroup of plannedGroups) {
+    if (executionGroup.streamIds.length > 1) {
+      await createAuditEventRecord(
+        {
+          action: "FETCH_SHARED_BATCH_PLANNED",
+          actorId,
+          entityId: executionGroup.id,
+          entityType: "fetch_run_group",
+          payloadJson: serializeSharedFetchGroup(executionGroup),
+        },
+        db,
+      );
+    }
+
+    let providerResult;
+
+    try {
+      providerResult = await fetchProviderArticles({
+        checkpoint:
+          executionGroup.streamExecutions.length === 1
+            ? executionGroup.streamExecutions[0].checkpoint
+            : null,
+        fetchWindow: executionGroup.sharedFetchWindow,
+        maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
+        now,
+        providerKey: executionGroup.providerKey,
+        requestValues: executionGroup.sharedRequestValues,
+        stream: executionGroup.streamExecutions[0].stream,
+      });
+    } catch (error) {
+      for (const executionContext of executionGroup.streamExecutions) {
+        const failedRun = await finalizeFailedFetchRun(
+          db,
+          executionContext,
+          error,
+          {
+            actorId,
+            executionGroup,
+          },
+        );
+
+        results.push({
+          error: error instanceof Error ? error.message : `${error}`,
+          run: failedRun,
+          stream: executionContext.stream,
+        });
+      }
+
+      continue;
+    }
+
+    for (const executionContext of executionGroup.streamExecutions) {
+      try {
+        const completedRun = await processFetchedArticlesForStream(
+          db,
+          executionContext,
+          providerResult,
+          {
+            actorId,
+            executionGroup,
+            now,
+          },
+        );
+
+        results.push({
+          run: completedRun,
+          stream: executionContext.stream,
+        });
+      } catch (error) {
+        const failedRun = await finalizeFailedFetchRun(
+          db,
+          executionContext,
+          error,
+          {
+            actorId,
+            executionGroup,
+          },
+        );
+
+        results.push({
+          error: error instanceof Error ? error.message : `${error}`,
+          run: failedRun,
+          stream: executionContext.stream,
+        });
+      }
+    }
+  }
+
+  return {
+    groups: plannedGroups.map(serializeSharedFetchGroup),
+    requestedStreamCount: requestedStreamIds.length,
+    results,
+    upstreamRequestCount: plannedGroups.length,
+  };
 }
 
 export function isStreamDueForScheduledRun(stream, now = new Date()) {
@@ -2111,15 +2487,21 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
     },
   });
   const dueStreams = streams.filter((stream) => isStreamDueForScheduledRun(stream, now));
-  const results = [];
-
-  for (const stream of dueStreams) {
-    try {
-      results.push(await runStreamFetch(stream.id, { now, triggerType: "scheduled" }, db));
-    } catch {
-      // The failure is already recorded in audit and observability layers.
-    }
-  }
+  const batchRunSummary = dueStreams.length
+    ? await runMultipleStreamFetches(
+      dueStreams.map((stream) => stream.id),
+      {
+        now,
+        triggerType: "scheduled",
+      },
+      db,
+    )
+    : {
+      results: [],
+    };
+  const results = batchRunSummary.results
+    .map((result) => result.run)
+    .filter(Boolean);
 
   const dueScheduledAttempts = await db.publishAttempt.findMany({
     include: {

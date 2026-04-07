@@ -2,7 +2,7 @@
 
 `news-pub` is a specification-first project for building a reuse-first news ingestion, review, AI-assisted optimization, scheduling, and publishing platform.
 
-Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, safety guardrails, and schedules, fetch news from supported external APIs, filter it locally, optimize eligible stories with a bounded AI layer, and publish qualifying stories to the website, Facebook, and Instagram without treating AI health as a hidden prerequisite for the rest of the workflow.
+Release 1 is designed to let an authenticated admin configure providers, destinations, streams, templates, safety guardrails, and schedules, fetch news from supported external APIs, filter it locally, optimize eligible stories with a bounded AI layer, and publish qualifying stories to the website, Facebook, and Instagram without treating AI health as a hidden prerequisite for the rest of the workflow. Compatible multi-stream runs may share one upstream provider request when NewsPub can widen that request safely and then fan the candidate pool back out into per-stream local filtering, deduplication, review, and publication.
 
 ## Current Status
 
@@ -28,12 +28,20 @@ NewsPub Release 1 includes:
 - locale-prefixed public routes with `en` as the default active locale
 - admin authentication with RBAC
 - env-based credential resolution for `mediastack`, `newsdata`, and `newsapi`
+- normalized fetch-window handling for scheduled, manual, batched, and diagnostic stream runs
 - AI SDK-based optimization for eligible posts with deterministic cache reuse, policy checks, and non-blocking `SKIPPED` or `FALLBACK` outcomes when AI is disabled, misconfigured, or unhealthy
+- provider-aware shared-fetch batching for compatible multi-stream execution requests
 - website, Facebook, and Instagram publishing
 - stream-based scheduling, filtering, deduplication, retries, and auditability
 - SEO metadata, sitemap, robots, search, analytics, and operational reporting
 
 Release 1 is not an open-ended AI content-generation product. AI is used only for bounded rewriting, SEO packaging, destination-specific formatting, and policy pre-checks. The app must preserve factual meaning, keep source attribution visible, validate structured output, and fall back safely when AI is unavailable. Skipped or fallback AI states must remain visible in review queues, post editor surfaces, job history, and audit logs.
+
+## Runtime Guarantees
+
+- compatible stream batches share provider calls only when provider key, endpoint shape, credential source, time-boundary semantics, and restrictive provider filters stay safe to widen; NewsPub then filters the shared candidate pool locally per stream
+- explicit fetch windows override checkpoint windows for manual or diagnostic runs and do not advance checkpoints unless the caller explicitly opts in with `writeCheckpointOnSuccess`
+- website streams process every locally eligible candidate from the fetched pool; `maxPostsPerRun` remains a social-batch bound instead of a website-publication cap
 
 ## Public And Admin Surfaces
 
@@ -104,6 +112,7 @@ Implementation is complete only when step 24 proves full traceability to the cur
 Run the close-out checks from the repo root:
 
 ```bash
+npm run prisma:generate
 npm run lint
 npm test
 npm run build

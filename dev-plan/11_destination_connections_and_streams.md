@@ -30,6 +30,7 @@ Implement the admin-managed configuration layer for destinations, streams, categ
    - include and exclude keywords
    - stream mode
    - max posts per run
+   - provider request filters whose shared-batch compatibility remains visible in the admin UI
    - duplicate window
    - retry policy
    - schedule and timezone
@@ -51,6 +52,7 @@ Implement the admin-managed configuration layer for destinations, streams, categ
 - stream settings persist exactly and reload correctly
 - categories can be assigned to streams without direct schema hacks
 - provider credentials are not entered or edited in the stream UI
+- stream forms explain that provider filters narrow provider requests while website streams still publish every locally eligible fetched item
 
 ## Exit Criteria
 

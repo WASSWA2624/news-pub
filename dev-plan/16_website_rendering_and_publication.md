@@ -21,7 +21,8 @@ Wire the canonical NewsPub post model into the website destination so published 
 4. Update category landing pages and story indexes to query published NewsPub content only.
 5. Keep source attribution, publish timestamps, provider source links, and featured images visible on story pages.
 6. Wire website publish actions so publication creates or refreshes the correct public render artifacts and revalidates affected routes.
-7. Keep locale-aware routing intact even if Release 1 only activates `en`.
+7. Ensure website streams process every locally eligible fetched article instead of stopping at a social-style `maxPostsPerRun` cap.
+8. Keep locale-aware routing intact even if Release 1 only activates `en`.
 
 ## Required Outputs
 
@@ -36,6 +37,7 @@ Wire the canonical NewsPub post model into the website destination so published 
 - unpublished stories do not render publicly
 - category pages only show published website content
 - publish actions trigger route revalidation for affected paths and publish the current optimized website payload rather than stale draft content
+- broad or shared provider fetches do not cause valid website items to be silently dropped before publication
 
 ## Exit Criteria
 

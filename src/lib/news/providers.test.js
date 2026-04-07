@@ -319,4 +319,97 @@ describe("news providers", () => {
       title: "Climate policy feature",
     });
   });
+
+  it("applies explicit bounded windows directly to NewsAPI Everything requests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          articles: [],
+          totalResults: 0,
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      fetchWindow: {
+        end: new Date("2026-04-02T06:00:00.000Z"),
+        start: new Date("2026-04-01T00:00:00.000Z"),
+        usesExplicitBoundaries: true,
+        usesProviderCheckpoint: false,
+        writeCheckpointOnSuccess: false,
+      },
+      now: new Date("2026-04-02T06:00:00.000Z"),
+      providerKey: "newsapi",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "everything",
+            language: "en",
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 1,
+        settingsJson: {
+          providerFilters: {
+            q: "markets",
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.pathname).toBe("/v2/everything");
+    expect(requestedUrl.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(requestedUrl.searchParams.get("to")).toBe("2026-04-02T06:00:00.000Z");
+  });
+
+  it("translates normalized fetch windows into relative timeframe requests for NewsData Latest", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          nextPage: null,
+          results: [],
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      fetchWindow: {
+        end: new Date("2026-04-02T06:00:00.000Z"),
+        start: new Date("2026-04-01T00:00:00.000Z"),
+        usesExplicitBoundaries: true,
+        usesProviderCheckpoint: false,
+        writeCheckpointOnSuccess: false,
+      },
+      now: new Date("2026-04-02T06:00:00.000Z"),
+      providerKey: "newsdata",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "latest",
+            language: ["en"],
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 1,
+        settingsJson: {
+          providerFilters: {
+            q: "policy",
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.pathname).toBe("/api/1/latest");
+    expect(requestedUrl.searchParams.get("timeframe")).toBe("30");
+  });
 });

@@ -26,10 +26,13 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
    - provider configuration
    - destination and stream configuration
    - manual fetch run
+   - compatible shared-fetch batching
+   - explicit bounded fetch window handling
    - duplicate blocking
    - review-required flow
    - website publication
    - social publication
+   - shared-fetch observability and analytics visibility
    - retry behavior
    - public discovery and analytics
 5. Audit the implemented codebase for compliance with the JSDoc and inline-comment standard, especially in provider integrations, normalization, filtering, publishing, retries, and security-sensitive modules.
@@ -50,7 +53,7 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
 - no contradiction remains between `dev-plan` and `app-write-up.md`
 - required JSDoc and targeted inline comments exist for implemented runtime modules with non-obvious behavior
 - no active AI or retired equipment-product module remains in the Release 1 app
-- final smoke verification covers the complete NewsPub workflow
+- final smoke verification covers the complete NewsPub workflow, including shared-fetch grouping, explicit fetch windows, and website-publication completeness
 
 ## Exit Criteria
 

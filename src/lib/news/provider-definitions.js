@@ -149,30 +149,114 @@ function readMultiValue(values = {}, key) {
   return normalizeText(rawValue) ? [normalizeText(rawValue)] : [];
 }
 
-export function getProviderDateWindowConfig(providerKey, values = {}) {
+/**
+ * Resolves the provider endpoint or request shape used for compatibility,
+ * capability, and admin metadata checks.
+ *
+ * @param {string} providerKey - Provider catalog key.
+ * @param {object} [values] - Sanitized request values.
+ * @returns {string} Endpoint identifier for the provider request shape.
+ */
+export function getProviderEndpointShape(providerKey, values = {}) {
   const normalizedProviderKey = normalizeKey(providerKey);
+
+  if (normalizedProviderKey === "newsdata") {
+    return readSingleValue(values, "endpoint") === "archive" ? "archive" : "latest";
+  }
+
+  if (normalizedProviderKey === "newsapi") {
+    return readSingleValue(values, "endpoint") === "everything" ? "everything" : "top-headlines";
+  }
+
+  return "default";
+}
+
+/**
+ * Describes the strongest time-boundary behavior the selected provider request
+ * shape can support.
+ *
+ * `direct` means the provider can accept explicit start and end bounds.
+ * `relative` means NewsPub can only ask for a broader relative lookback.
+ * `local_only` means NewsPub must fetch broadly and enforce the window locally.
+ *
+ * @param {string} providerKey - Provider catalog key.
+ * @param {object} [values] - Sanitized request values.
+ * @returns {object} Time-boundary capability metadata.
+ */
+export function getProviderTimeBoundarySupport(providerKey, values = {}) {
+  const normalizedProviderKey = normalizeKey(providerKey);
+  const endpoint = getProviderEndpointShape(normalizedProviderKey, values);
 
   if (normalizedProviderKey === "mediastack") {
     return {
+      endKey: "dateTo",
+      endpoint,
+      mode: "direct",
       precision: "date",
       startKey: "dateFrom",
-      endKey: "dateTo",
+      summary: "Mediastack accepts explicit start and end dates for shared fetch windows.",
     };
   }
 
-  if (normalizedProviderKey === "newsdata" && readSingleValue(values, "endpoint") === "archive") {
+  if (normalizedProviderKey === "newsdata" && endpoint === "archive") {
     return {
+      endKey: "toDate",
+      endpoint,
+      mode: "direct",
       precision: "date",
       startKey: "fromDate",
-      endKey: "toDate",
+      summary: "NewsData Archive supports explicit historical start and end dates.",
     };
   }
 
-  if (normalizedProviderKey === "newsapi" && readSingleValue(values, "endpoint") === "everything") {
+  if (normalizedProviderKey === "newsdata" && endpoint === "latest") {
     return {
+      endpoint,
+      mode: "relative",
+      precision: "hours",
+      timeframeKey: "timeframe",
+      summary:
+        "NewsData Latest only supports relative lookback windows, so NewsPub widens the upstream request and enforces exact bounds locally.",
+    };
+  }
+
+  if (normalizedProviderKey === "newsapi" && endpoint === "everything") {
+    return {
+      endKey: "toDate",
+      endpoint,
+      mode: "direct",
       precision: "datetime",
       startKey: "fromDate",
-      endKey: "toDate",
+      summary: "NewsAPI Everything supports explicit datetime start and end bounds.",
+    };
+  }
+
+  if (normalizedProviderKey === "newsapi" && endpoint === "top-headlines") {
+    return {
+      endpoint,
+      mode: "local_only",
+      precision: "datetime",
+      summary:
+        "NewsAPI Top Headlines does not support explicit historical bounds, so NewsPub applies time filtering locally after fetching.",
+    };
+  }
+
+  return {
+    endpoint,
+    mode: "local_only",
+    precision: "datetime",
+    summary: "This provider request shape does not expose direct time-boundary controls.",
+  };
+}
+
+export function getProviderDateWindowConfig(providerKey, values = {}) {
+  const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, values);
+
+  if (timeBoundarySupport.mode === "direct") {
+    return {
+      endKey: timeBoundarySupport.endKey,
+      precision: timeBoundarySupport.precision,
+      startKey: timeBoundarySupport.startKey,
     };
   }
 
@@ -764,12 +848,13 @@ const NEWSAPI_SORT_OPTIONS = buildSingleSelectOptions([
 
 const NEWSDATA_ENDPOINT_OPTIONS = buildSingleSelectOptions([
   {
-    description: "Latest and breaking news from the past 48 hours.",
+    description:
+      "Latest and breaking news from the past 48 hours with relative lookback support only. NewsPub widens the upstream request safely and filters exact windows locally.",
     label: "Latest News",
     value: "latest",
   },
   {
-    description: "Historical archive search. Paid plans only.",
+    description: "Historical archive search with explicit start and end date support. Paid plans only.",
     label: "News Archive",
     value: "archive",
   },
@@ -777,12 +862,13 @@ const NEWSDATA_ENDPOINT_OPTIONS = buildSingleSelectOptions([
 
 const NEWSAPI_ENDPOINT_OPTIONS = buildSingleSelectOptions([
   {
-    description: "Curated top headlines by country or category.",
+    description:
+      "Curated top headlines by country or category. NewsPub applies exact time windows locally because this endpoint does not expose explicit historical bounds.",
     label: "Top Headlines",
     value: "top-headlines",
   },
   {
-    description: "Broader article discovery and analysis.",
+    description: "Broader article discovery and analysis with explicit datetime start and end support.",
     label: "Everything",
     value: "everything",
   },
@@ -931,7 +1017,8 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
-        description: "Optional lower bound shown in the editor. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Optional lower bound shown in the editor. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start date.",
         input: "date",
         key: "dateFrom",
         label: "Date From",
@@ -939,7 +1026,8 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
-        description: "Optional upper bound shown in the editor. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Optional upper bound shown in the editor. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end date.",
         input: "date",
         key: "dateTo",
         label: "Date To",
@@ -996,7 +1084,8 @@ const providerDefinitionMap = Object.freeze({
     ],
     fields: [
       {
-        description: "Latest covers the past 48 hours. Archive is for paid historical access.",
+        description:
+          "Latest covers the past 48 hours with relative lookback only. Archive is for paid historical access with explicit start and end boundaries.",
         input: "single-select",
         key: "endpoint",
         label: "Endpoint",
@@ -1032,7 +1121,8 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
-        description: "Available only on the Latest endpoint.",
+        description:
+          "Available only on the Latest endpoint. NewsPub widens this safely when a batch or explicit window needs a broader upstream request.",
         input: "single-select",
         key: "timeframe",
         label: "Timeframe",
@@ -1042,7 +1132,8 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") !== "archive",
       },
       {
-        description: "Archive date lower bound. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Archive date lower bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start date.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1051,7 +1142,8 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "archive",
       },
       {
-        description: "Archive date upper bound. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Archive date upper bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end date.",
         input: "date",
         key: "toDate",
         label: "To Date",
@@ -1287,7 +1379,8 @@ const providerDefinitionMap = Object.freeze({
     ],
     fields: [
       {
-        description: "Top Headlines and Everything expose different filters in the NewsAPI docs.",
+        description:
+          "Top Headlines and Everything expose different filters and different time-boundary behavior in the NewsAPI docs.",
         input: "single-select",
         key: "endpoint",
         label: "Endpoint",
@@ -1400,7 +1493,8 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "everything",
       },
       {
-        description: "Everything lower date bound. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Everything lower date bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start datetime.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1409,7 +1503,8 @@ const providerDefinitionMap = Object.freeze({
         when: (values) => readSingleValue(values, "endpoint") === "everything",
       },
       {
-        description: "Everything upper date bound. Runtime fetches automatically replace this with the stream checkpoint window.",
+        description:
+          "Everything upper date bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end datetime.",
         input: "date",
         key: "toDate",
         label: "To Date",

@@ -1,9 +1,10 @@
 import { env } from "@/lib/env/server";
 import {
-  getProviderDateWindowConfig,
+  getProviderTimeBoundarySupport,
   listProviderDefinitions,
   resolveStreamProviderRequestValues,
 } from "@/lib/news/provider-definitions";
+import { resolveExecutionFetchWindow } from "@/lib/news/fetch-window";
 import { NewsPubError, createContentHash, dedupeStrings, normalizeDisplayText } from "@/lib/news/shared";
 
 const providerRuntimeCatalog = Object.freeze({
@@ -70,8 +71,13 @@ function getMaxPostsPerRun(stream) {
   return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 10}`, 10) || 10);
 }
 
-function getProviderFetchBatchSize(stream) {
-  return Math.max(getMaxPostsPerRun(stream) * 3, 25);
+function getProviderFetchBatchSize({ maxArticlesHint = null, stream = null } = {}) {
+  const resolvedHint = Math.max(
+    Number.parseInt(`${maxArticlesHint ?? getMaxPostsPerRun(stream)}`, 10) || getMaxPostsPerRun(stream),
+    1,
+  );
+
+  return Math.max(resolvedHint * 3, 25);
 }
 
 function normalizeDateValue(value) {
@@ -87,12 +93,15 @@ function normalizeDateValue(value) {
 export function resolveAutomaticProviderDateWindow(
   { checkpoint, defaultWindowHours = 24, now = new Date() } = {},
 ) {
-  const resolvedNow = normalizeDateValue(now) || new Date();
-  const checkpointDate = normalizeDateValue(checkpoint?.lastSuccessfulFetchAt);
+  const fetchWindow = resolveExecutionFetchWindow({
+    checkpoint,
+    defaultWindowHours,
+    now,
+  });
 
   return {
-    end: resolvedNow,
-    start: checkpointDate || new Date(resolvedNow.getTime() - defaultWindowHours * 60 * 60 * 1000),
+    end: fetchWindow.end,
+    start: fetchWindow.start,
   };
 }
 
@@ -111,21 +120,79 @@ export function applyAutomaticDateWindowToRequestValues(
   requestValues = {},
   { checkpoint, now } = {},
 ) {
-  const dateWindowConfig = getProviderDateWindowConfig(providerKey, requestValues);
-
-  if (!dateWindowConfig) {
-    return requestValues;
-  }
-
-  const { end, start } = resolveAutomaticProviderDateWindow({
+  return applyFetchWindowToRequestValues(providerKey, requestValues, {
     checkpoint,
     now,
   });
+}
+
+function resolveRelativeWindowHours(fetchWindow, now = new Date()) {
+  const resolvedNow = normalizeDateValue(now) || new Date();
+  const resolvedEnd = normalizeDateValue(fetchWindow?.end) || resolvedNow;
+  const resolvedStart = normalizeDateValue(fetchWindow?.start);
+
+  if (!resolvedStart) {
+    return "";
+  }
+
+  const durationHours = Math.max(
+    1,
+    Math.ceil((Math.max(resolvedEnd.getTime(), resolvedNow.getTime()) - resolvedStart.getTime()) / (60 * 60 * 1000)),
+  );
+
+  return `${Math.min(durationHours, 48)}`;
+}
+
+/**
+ * Applies the normalized NewsPub fetch window to provider-native request
+ * values while keeping provider-specific parameter names inside the adapter.
+ *
+ * @param {string} providerKey - Provider catalog key.
+ * @param {object} requestValues - Sanitized provider request values.
+ * @param {object} [options] - Window resolution inputs.
+ * @param {object|null} [options.checkpoint] - Provider checkpoint metadata.
+ * @param {object|null} [options.fetchWindow] - Normalized NewsPub fetch window.
+ * @param {Date} [options.now] - Execution timestamp.
+ * @returns {object} Provider request values with time-boundary inputs applied.
+ */
+export function applyFetchWindowToRequestValues(
+  providerKey,
+  requestValues = {},
+  { checkpoint, fetchWindow = null, now } = {},
+) {
+  const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, requestValues);
+  const resolvedFetchWindow =
+    fetchWindow
+    || resolveExecutionFetchWindow({
+      checkpoint,
+      now,
+    });
+
+  if (timeBoundarySupport.mode === "direct") {
+    return {
+      ...requestValues,
+      [timeBoundarySupport.endKey]: formatProviderDateWindowValue(
+        resolvedFetchWindow.end,
+        timeBoundarySupport.precision,
+      ),
+      [timeBoundarySupport.startKey]: formatProviderDateWindowValue(
+        resolvedFetchWindow.start,
+        timeBoundarySupport.precision,
+      ),
+    };
+  }
+
+  if (timeBoundarySupport.mode === "relative" && timeBoundarySupport.timeframeKey) {
+    return {
+      ...requestValues,
+      [timeBoundarySupport.timeframeKey]:
+        resolveRelativeWindowHours(resolvedFetchWindow, now)
+        || normalizeScalar(requestValues[timeBoundarySupport.timeframeKey]),
+    };
+  }
 
   return {
     ...requestValues,
-    [dateWindowConfig.endKey]: formatProviderDateWindowValue(end, dateWindowConfig.precision),
-    [dateWindowConfig.startKey]: formatProviderDateWindowValue(start, dateWindowConfig.precision),
   };
 }
 
@@ -274,7 +341,11 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
   );
 }
 
-function buildFallbackProviderArticles(stream, now = new Date()) {
+function buildFallbackProviderArticles(stream, providerKey, now = new Date()) {
+  const streamLocale = stream?.locale || "en";
+  const streamName = stream?.name || "Shared verification stream";
+  const streamSlug = stream?.slug || "shared-verification";
+
   return [
     createNormalizedArticle(
       {
@@ -282,8 +353,8 @@ function buildFallbackProviderArticles(stream, now = new Date()) {
         body:
           "This fallback article demonstrates the full NewsPub ingest pipeline when provider credentials are not configured in a local environment.",
         imageUrl: null,
-        language: stream.locale,
-        providerArticleId: `${stream.slug}-${now.toISOString()}`,
+        language: streamLocale,
+        providerArticleId: `${streamSlug}-${now.toISOString()}`,
         providerCategories: ["technology"],
         providerCountries: ["us"],
         providerRegions: [],
@@ -293,13 +364,13 @@ function buildFallbackProviderArticles(stream, now = new Date()) {
           generatedAt: now.toISOString(),
         },
         sourceName: "Local Development Feed",
-        sourceUrl: `${env.app.url}/${stream.locale}/about`,
+        sourceUrl: `${env.app.url}/${streamLocale}/about`,
         summary:
           "Fallback local article used to verify filters, templates, scheduling, and publication flows when live provider access is unavailable.",
         tags: ["newspub", "local", "fallback"],
-        title: `${stream.name} local verification article`,
+        title: `${streamName} local verification article`,
       },
-      stream.activeProvider.providerKey,
+      providerKey,
     ),
   ];
 }
@@ -341,11 +412,11 @@ function resolveProviderRequestValues(providerKey, stream) {
   });
 }
 
-function buildMediastackRequest({ credential, stream, requestValues }) {
+function buildMediastackRequest({ credential, maxArticlesHint = null, requestValues, stream }) {
   const url = new URL(providerRuntimeCatalog.mediastack.baseUrl);
 
   url.searchParams.set("access_key", credential);
-  url.searchParams.set("limit", `${getProviderFetchBatchSize(stream)}`);
+  url.searchParams.set("limit", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
   appendIncludeExcludeListParam(url, "countries", requestValues.countries, requestValues.excludeCountries);
   appendIncludeExcludeListParam(url, "languages", requestValues.languages, requestValues.excludeLanguages);
   appendIncludeExcludeListParam(url, "categories", requestValues.categories, requestValues.excludeCategories);
@@ -364,13 +435,19 @@ function buildMediastackRequest({ credential, stream, requestValues }) {
   };
 }
 
-function buildNewsDataRequest({ checkpoint, credential, stream, requestValues }) {
+function buildNewsDataRequest({
+  checkpoint,
+  credential,
+  maxArticlesHint = null,
+  requestValues,
+  stream,
+}) {
   const endpoint = getSingleValue(requestValues, "endpoint", "latest") === "archive" ? "archive" : "latest";
   const url = new URL(providerRuntimeCatalog.newsdata.baseUrlByEndpoint[endpoint]);
   const pageCursor = getCheckpointCursorValue(checkpoint?.cursorJson);
 
   url.searchParams.set("apikey", credential);
-  url.searchParams.set("size", `${getProviderFetchBatchSize(stream)}`);
+  url.searchParams.set("size", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
 
   if (pageCursor) {
     url.searchParams.set("page", pageCursor);
@@ -410,13 +487,13 @@ function buildNewsDataRequest({ checkpoint, credential, stream, requestValues })
   };
 }
 
-function buildNewsApiRequest({ credential, stream, requestValues }) {
+function buildNewsApiRequest({ credential, maxArticlesHint = null, requestValues, stream }) {
   const endpoint = getSingleValue(requestValues, "endpoint", "top-headlines") === "everything"
     ? "everything"
     : "top-headlines";
   const url = new URL(providerRuntimeCatalog.newsapi.baseUrlByEndpoint[endpoint]);
 
-  url.searchParams.set("pageSize", `${getProviderFetchBatchSize(stream)}`);
+  url.searchParams.set("pageSize", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
   appendScalarParam(url, "q", requestValues.q);
 
   if (endpoint === "everything") {
@@ -514,7 +591,29 @@ export function getProviderCredentialState(providerKey) {
   return resolveNewsProviderCredential(providerKey) ? "configured" : "missing";
 }
 
-export async function fetchProviderArticles({ checkpoint, now = new Date(), providerKey, stream }) {
+/**
+ * Fetches and normalizes provider articles for either one stream or a shared
+ * provider request group.
+ *
+ * @param {object} options - Provider fetch inputs.
+ * @param {object|null} [options.checkpoint] - Provider checkpoint metadata.
+ * @param {object|null} [options.fetchWindow] - Normalized NewsPub fetch window.
+ * @param {number|null} [options.maxArticlesHint] - Shared request sizing hint.
+ * @param {Date} [options.now] - Execution timestamp.
+ * @param {string} options.providerKey - Provider catalog key.
+ * @param {object|null} [options.requestValues] - Precomputed provider request values.
+ * @param {object|null} [options.stream] - Stream-like runtime context.
+ * @returns {Promise<object>} Normalized provider result payload.
+ */
+export async function fetchProviderArticles({
+  checkpoint,
+  fetchWindow = null,
+  maxArticlesHint = null,
+  now = new Date(),
+  providerKey,
+  requestValues: requestValuesOverride = null,
+  stream,
+}) {
   const normalizedKey = normalizeProviderKey(providerKey);
   const providerDefinition = getNewsProviderDefinition(normalizedKey);
   const credential = resolveNewsProviderCredential(normalizedKey);
@@ -528,7 +627,7 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
 
   if (process.env.NODE_ENV === "test" || process.env.NEWS_PUB_PROVIDER_FIXTURES === "true") {
     return {
-      articles: buildFallbackProviderArticles(stream, now),
+      articles: buildFallbackProviderArticles(stream, normalizedKey, now),
       cursor: checkpoint?.cursorJson || null,
       fetchedCount: 1,
     };
@@ -541,11 +640,12 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
     });
   }
 
-  const requestValues = applyAutomaticDateWindowToRequestValues(
+  const requestValues = applyFetchWindowToRequestValues(
     normalizedKey,
-    resolveProviderRequestValues(normalizedKey, stream),
+    requestValuesOverride || resolveProviderRequestValues(normalizedKey, stream),
     {
       checkpoint,
+      fetchWindow,
       now,
     },
   );
@@ -553,6 +653,7 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
   if (normalizedKey === "mediastack") {
     const request = buildMediastackRequest({
       credential,
+      maxArticlesHint,
       requestValues,
       stream,
     });
@@ -574,6 +675,7 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
     const request = buildNewsDataRequest({
       checkpoint,
       credential,
+      maxArticlesHint,
       requestValues,
       stream,
     });
@@ -594,6 +696,7 @@ export async function fetchProviderArticles({ checkpoint, now = new Date(), prov
   if (normalizedKey === "newsapi") {
     const request = buildNewsApiRequest({
       credential,
+      maxArticlesHint,
       requestValues,
       stream,
     });

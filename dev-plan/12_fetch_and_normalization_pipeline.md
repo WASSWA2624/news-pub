@@ -17,12 +17,14 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 
 1. Define a shared provider-client contract for broad fetch execution.
 2. Build provider adapters for `mediastack`, `newsdata`, and `newsapi`.
-3. Load the stream checkpoint before each run and apply the incremental window rules from section `12`.
-4. Normalize every fetched provider item into the shared `FetchedArticle` contract.
-5. Validate normalized payloads before downstream filtering.
-6. Record fetch-run summaries, warnings, and failures in audit logs and job views.
-7. Expose a manual run-now trigger for stream execution without bypassing validation.
-8. Document the shared provider contract, adapters, checkpoint flow, and normalization utilities with JSDoc, and add inline comments where provider quirks, dedupe inputs, or incremental-window rules are not obvious from the code alone.
+3. Introduce a normalized fetch-window contract that supports checkpoint-driven runs plus explicit manual, batched, retry, and diagnostic windows.
+4. Partition multi-stream execution requests into the minimum safe number of compatible shared-fetch groups.
+5. Load the stream checkpoint before each run and apply the incremental window rules from section `12`.
+6. Normalize every fetched provider item into the shared `FetchedArticle` contract.
+7. Validate normalized payloads before downstream filtering.
+8. Record fetch-run summaries, warnings, failures, shared-group details, and endpoint-specific time-boundary semantics in audit logs and job views.
+9. Expose manual run-now triggers for single-stream and batched stream execution without bypassing validation.
+10. Document the shared provider contract, adapters, checkpoint flow, shared-group rules, and normalization utilities with JSDoc, and add inline comments where provider quirks, dedupe inputs, or incremental-window rules are not obvious from the code alone.
 
 ## Required Outputs
 
@@ -35,6 +37,8 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 
 - provider adapters all emit the same normalized contract
 - stream checkpoints are read before fetch execution
+- compatible multi-stream execution requests make one upstream provider call per safe shared group instead of one call per stream
+- explicit bounded windows can be applied without accidentally advancing checkpoints
 - malformed provider payloads fail validation instead of silently entering later stages
 - normalization and checkpoint code explains provider-specific edge cases and workflow invariants without relying on tribal knowledge
 - fetch summaries and failures are visible in the admin job timeline

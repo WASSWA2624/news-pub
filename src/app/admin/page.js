@@ -51,6 +51,28 @@ function getAuditTone(level) {
   return undefined;
 }
 
+function describeFetchRunMode(run) {
+  const executionDetails = run.executionDetails;
+
+  if (executionDetails?.executionMode === "shared_batch" && executionDetails.groupSize > 1) {
+    return `Shared fetch | ${executionDetails.groupSize} streams | ${executionDetails.endpoint || "shared request"}`;
+  }
+
+  return executionDetails?.endpoint
+    ? `Single fetch | ${executionDetails.endpoint}`
+    : "Single fetch";
+}
+
+function describeFetchRunWindow(run) {
+  const streamWindow = run.executionDetails?.streamFetchWindow;
+
+  if (!streamWindow?.start || !streamWindow?.end) {
+    return "Window not recorded";
+  }
+
+  return `${streamWindow.source || "window"} | ${formatDateTime(streamWindow.start)} to ${formatDateTime(streamWindow.end)}`;
+}
+
 /**
  * Renders the main NewsPub admin dashboard with operational summaries,
  * recent activity, and AI observability indicators.
@@ -89,7 +111,12 @@ export default async function AdminDashboardPage() {
       </SummaryGrid>
 
       <SummaryGrid>
+        <AdminMetricCard icon="streams" label="Shared fetch runs" tone="accent" value={snapshot.summary.sharedFetchRunCount7d} />
+        <AdminMetricCard icon="server" label="Upstream calls, last 7 days" tone="accent" value={snapshot.summary.sharedUpstreamCalls7d} />
         <AdminMetricCard icon="warning" label="Failed fetch runs" tone="danger" value={snapshot.summary.failedFetchRuns7d} />
+      </SummaryGrid>
+
+      <SummaryGrid>
         <AdminMetricCard icon="send" label="Failed publish attempts" tone="danger" value={snapshot.summary.failedPublishAttempts7d} />
         <AdminMetricCard icon="refresh" label="Retry count" tone="accent" value={snapshot.summary.retryCount7d} />
       </SummaryGrid>
@@ -120,9 +147,10 @@ export default async function AdminDashboardPage() {
                   <tr>
                     <th>Stream</th>
                     <th>Status</th>
-                  <th>Fetched</th>
-                  <th>Publishable</th>
-                  <th>Optimized</th>
+                   <th>Mode</th>
+                   <th>Fetched</th>
+                   <th>Publishable</th>
+                   <th>Optimized</th>
                   <th>Published</th>
                   <th>Started</th>
                 </tr>
@@ -133,9 +161,16 @@ export default async function AdminDashboardPage() {
                       <td data-label="Stream">
                         <strong>{run.stream?.name || "Stream"}</strong>
                         <SmallText>{run.provider?.label || "Provider"}</SmallText>
+                        <SmallText>{describeFetchRunWindow(run)}</SmallText>
                       </td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(run.status)}>{run.status}</StatusBadge>
+                      </td>
+                      <td data-label="Mode">
+                        <SmallText>{describeFetchRunMode(run)}</SmallText>
+                        {run.executionDetails?.partitionReasonCodes?.length ? (
+                          <SmallText>{run.executionDetails.partitionReasonCodes.join(", ")}</SmallText>
+                        ) : null}
                       </td>
                       <td data-label="Fetched">{run.fetchedCount}</td>
                       <td data-label="Publishable">{run.publishableCount}</td>

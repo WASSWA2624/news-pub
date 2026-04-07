@@ -20,7 +20,12 @@ import {
 } from "@/lib/admin/action-utils";
 import { requireAdminPageSession } from "@/lib/auth";
 import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
-import { retryPublishAttempt, runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
+import {
+  retryPublishAttempt,
+  runMultipleStreamFetches,
+  runScheduledStreams,
+  runStreamFetch,
+} from "@/lib/news/workflows";
 
 /**
  * Saves a provider definition from the admin providers form.
@@ -225,9 +230,9 @@ export async function runSelectedStreamsAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
   const streamIds = parseRepeatedFormField(formData, "streamIds");
 
-  for (const streamId of streamIds) {
-    await runStreamFetch(
-      streamId,
+  if (streamIds.length) {
+    await runMultipleStreamFetches(
+      streamIds,
       {
         actorId: getActionActorId(auth),
         triggerType: "manual",

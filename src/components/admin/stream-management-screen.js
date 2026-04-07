@@ -896,7 +896,7 @@ function RunProgressModal({ runState, onClose }) {
   const modalDescription = isRunning
     ? runState.totalCount === 1
       ? "Please keep this window open while NewsPub fetches, filters, and publishes eligible stories."
-      : "NewsPub is running each selected stream in sequence. This report will unlock when every run finishes."
+      : "NewsPub is planning shared fetch groups, widening the safe provider envelope once per compatible group, and then processing each stream locally."
     : resultSummary.failedRuns
       ? "Some streams could not finish. Review the brief report below before closing."
       : "Every requested stream finished. Review the brief report below, then close the modal when you are ready.";
@@ -1209,10 +1209,10 @@ export default function StreamManagementScreen({
     router.refresh();
   }
 
-  async function executeStreamRun(stream) {
+  async function executeStreamBatch(streamBatch) {
     const response = await fetch("/api/streams/run", {
       body: JSON.stringify({
-        streamId: stream.id,
+        streamIds: streamBatch.map((stream) => stream.id),
       }),
       headers: {
         "content-type": "application/json",
@@ -1228,10 +1228,23 @@ export default function StreamManagementScreen({
     }
 
     if (!response.ok) {
-      throw new Error(payload?.message || `Could not run ${stream.name}.`);
+      throw new Error(payload?.message || "Could not run the selected streams.");
     }
 
-    return payload?.data?.run || null;
+    if (payload?.data?.batch?.results) {
+      return payload.data.batch.results;
+    }
+
+    if (payload?.data?.run) {
+      return [
+        {
+          run: payload.data.run,
+          stream: streamBatch[0],
+        },
+      ];
+    }
+
+    return [];
   }
 
   async function handleRunStreams(streamBatch) {
@@ -1240,8 +1253,11 @@ export default function StreamManagementScreen({
     }
 
     setRunState({
-      activeStreamId: streamBatch[0].id,
-      activeStreamName: streamBatch[0].name,
+      activeStreamId: null,
+      activeStreamName:
+        streamBatch.length === 1
+          ? streamBatch[0].name
+          : `${streamBatch.length} selected streams`,
       completedCount: 0,
       phase: "running",
       results: [],
@@ -1254,32 +1270,31 @@ export default function StreamManagementScreen({
       totalCount: streamBatch.length,
     });
 
-    const results = [];
+    let results = [];
 
-    for (const stream of streamBatch) {
-      setRunState((currentState) => ({
-        ...currentState,
-        activeStreamId: stream.id,
-        activeStreamName: stream.name,
-      }));
+    try {
+      const responseResults = await executeStreamBatch(streamBatch);
+      const responseResultByStreamId = new Map(
+        responseResults.map((result) => [result.stream?.id || result.run?.streamId, result]),
+      );
 
-      try {
-        const run = await executeStreamRun(stream);
-        results.push({
-          run,
-          stream,
-        });
-      } catch (error) {
-        results.push({
-          error: error instanceof Error ? error.message : "Stream execution failed.",
-          stream,
-        });
-      }
+      results = streamBatch.map((stream) => {
+        const matchingResult = responseResultByStreamId.get(stream.id);
 
-      setRunState((currentState) => ({
-        ...currentState,
-        completedCount: results.length,
-        results: [...results],
+        return matchingResult
+          ? {
+              ...matchingResult,
+              stream,
+            }
+          : {
+              error: "NewsPub did not return a run result for this stream.",
+              stream,
+            };
+      });
+    } catch (error) {
+      results = streamBatch.map((stream) => ({
+        error: error instanceof Error ? error.message : "Stream execution failed.",
+        stream,
       }));
     }
 

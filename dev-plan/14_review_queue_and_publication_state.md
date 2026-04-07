@@ -26,6 +26,7 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
 7. Support manual review, optimize, approve, reject, schedule, publish, retry, and archive actions from the post editor.
 8. Keep the canonical post linked to the originating normalized article and its destination matches.
 9. Show per-match optimization state and reason details in the review queue, post editor, and publish diagnostics so optional AI skip or fallback outcomes stay visible without blocking manual publication.
+10. Keep shared-fetch fan-out visible as separate reviewable article matches so grouped upstream execution never collapses editorial state across streams.
 
 ## Required Outputs
 

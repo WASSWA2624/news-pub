@@ -628,6 +628,7 @@ model FetchRun {
   errorMessage            String?            @db.LongText
   providerCursorBeforeJson Json?
   providerCursorAfterJson  Json?
+  executionDetailsJson    Json?
   startedAt               DateTime           @default(now())
   finishedAt              DateTime?
   createdAt               DateTime           @default(now())

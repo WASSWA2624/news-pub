@@ -4,6 +4,316 @@ import { createNewsPubTestEnv } from "@/test/test-env";
 
 const originalEnv = process.env;
 
+function createWorkflowArticle(id, overrides = {}) {
+  return {
+    body: `Story body ${id}`,
+    dedupeFingerprint: `fingerprint_${id}`,
+    imageUrl: `https://cdn.example.com/${id}.jpg`,
+    language: "en",
+    normalizedTitleHash: `title_hash_${id}`,
+    providerArticleId: `provider_${id}`,
+    providerCategories: ["general"],
+    providerCountries: ["ug"],
+    providerRegions: [],
+    publishedAt: "2026-04-07T10:00:00.000Z",
+    rawPayloadJson: {
+      id,
+    },
+    sourceName: "Example Source",
+    sourceUrl: `https://example.com/${id}`,
+    sourceUrlHash: `source_hash_${id}`,
+    summary: `Story summary ${id}`,
+    tags: ["tag-one"],
+    title: `Story title ${id}`,
+    ...overrides,
+  };
+}
+
+function createWorkflowStream({
+  destinationPlatform = "FACEBOOK",
+  id,
+  maxPostsPerRun = 1,
+  mode = "REVIEW_REQUIRED",
+  providerFilters = {},
+  providerKey = "newsdata",
+  requestDefaultsJson = {
+    endpoint: "latest",
+  },
+} = {}) {
+  const destinationId = `destination_${id}`;
+  const destinationKind =
+    destinationPlatform === "WEBSITE" ? "WEBSITE" : `${destinationPlatform}_PAGE`;
+  const providerConfigId = `provider_config_${providerKey}`;
+
+  return {
+    activeProvider: {
+      providerKey,
+      requestDefaultsJson,
+    },
+    activeProviderId: providerConfigId,
+    categories: [],
+    checkpoints: [
+      {
+        cursorJson: {
+          page: 1,
+        },
+        lastSuccessfulFetchAt: new Date("2026-04-07T08:00:00.000Z"),
+        providerConfigId,
+        streamId: id,
+      },
+    ],
+    consecutiveFailureCount: 0,
+    countryAllowlistJson: [],
+    defaultTemplate: null,
+    destination: {
+      id: destinationId,
+      kind: destinationKind,
+      platform: destinationPlatform,
+    },
+    destinationId,
+    duplicateWindowHours: 48,
+    excludeKeywordsJson: [],
+    id,
+    includeKeywordsJson: [],
+    languageAllowlistJson: [],
+    locale: "en",
+    maxPostsPerRun,
+    mode,
+    name: `Stream ${id}`,
+    regionAllowlistJson: [],
+    retryLimit: 3,
+    settingsJson: {
+      providerFilters,
+    },
+    status: "ACTIVE",
+  };
+}
+
+function createWorkflowExecutionPrisma(streamsById) {
+  let articleCounter = 0;
+  let articleMatchCounter = 0;
+  let fetchRunCounter = 0;
+  let postCounter = 0;
+  let translationCounter = 0;
+
+  const articleMatches = new Map();
+  const fetchRuns = new Map();
+  const posts = new Map();
+
+  return {
+    articleMatch: {
+      create: vi.fn(({ data }) => {
+        const id = `match_${++articleMatchCounter}`;
+        const record = {
+          canonicalPostId: data.canonicalPostId,
+          destinationId: data.destinationId,
+          id,
+          streamId: data.streamId,
+        };
+
+        articleMatches.set(id, record);
+
+        return Promise.resolve(record);
+      }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn(({ where }) => {
+        if (where?.fetchedArticleId_streamId) {
+          return Promise.resolve(null);
+        }
+
+        if (!where?.id) {
+          return Promise.resolve(null);
+        }
+
+        const articleMatch = articleMatches.get(where.id);
+
+        if (!articleMatch) {
+          return Promise.resolve(null);
+        }
+
+        const stream = streamsById[articleMatch.streamId];
+        const post = posts.get(articleMatch.canonicalPostId) || {
+          excerpt: "Story summary",
+          featuredImage: null,
+          featuredImageId: null,
+          id: articleMatch.canonicalPostId,
+          slug: "story-title",
+          sourceArticle: {
+            body: "Story body",
+            imageUrl: null,
+            summary: "Story summary",
+          },
+          sourceName: "Example Source",
+          sourceUrl: "https://example.com/story",
+          translations: [
+            {
+              contentMd: "Story body",
+              locale: stream.locale,
+              seoRecord: null,
+              summary: "Story summary",
+              title: "Story title",
+            },
+          ],
+        };
+
+        return Promise.resolve({
+          canonicalPost: post,
+          canonicalPostId: articleMatch.canonicalPostId,
+          destination: stream.destination,
+          destinationId: stream.destinationId,
+          id: articleMatch.id,
+          stream: {
+            defaultTemplateId: null,
+            destination: stream.destination,
+            destinationId: stream.destinationId,
+            id: stream.id,
+            locale: stream.locale,
+            mode: stream.mode,
+          },
+          streamId: stream.id,
+        });
+      }),
+      update: vi.fn(({ where, data }) =>
+        Promise.resolve({
+          id: where.id,
+          ...data,
+        })),
+    },
+    category: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    destinationTemplate: {
+      findFirst: vi.fn().mockResolvedValue({
+        bodyTemplate: "{{body}}",
+        hashtagsTemplate: "",
+        isDefault: true,
+        locale: "en",
+        platform: "WEBSITE",
+        summaryTemplate: "{{summary}}",
+        titleTemplate: "{{title}}",
+      }),
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+    fetchRun: {
+      create: vi.fn(({ data }) => {
+        const run = {
+          id: `fetch_run_${++fetchRunCounter}`,
+          startedAt: new Date("2026-04-07T12:00:00.000Z"),
+          ...data,
+        };
+
+        fetchRuns.set(run.id, run);
+
+        return Promise.resolve(run);
+      }),
+      update: vi.fn(({ where, data }) =>
+        Promise.resolve({
+          ...fetchRuns.get(where.id),
+          ...data,
+          id: where.id,
+        })),
+    },
+    fetchedArticle: {
+      upsert: vi.fn(({ create }) =>
+        Promise.resolve({
+          id: `article_${++articleCounter}`,
+          ...create,
+        })),
+    },
+    post: {
+      create: vi.fn(({ data }) => {
+        const post = {
+          excerpt: data.excerpt,
+          featuredImage: null,
+          featuredImageId: data.featuredImageId || null,
+          id: `post_${++postCounter}`,
+          slug: data.slug,
+          sourceArticle: {
+            body: data.excerpt,
+            imageUrl: null,
+            summary: data.excerpt,
+          },
+          sourceName: data.sourceName,
+          sourceUrl: data.sourceUrl,
+          translations: [
+            {
+              contentMd: data.excerpt,
+              locale: "en",
+              seoRecord: null,
+              summary: data.excerpt,
+              title: data.slug,
+            },
+          ],
+        };
+
+        posts.set(post.id, post);
+
+        return Promise.resolve(post);
+      }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(({ where }) => Promise.resolve(posts.get(where.id) || null)),
+      update: vi.fn(({ where, data }) =>
+        Promise.resolve({
+          ...(posts.get(where.id) || { id: where.id }),
+          ...data,
+          id: where.id,
+        })),
+    },
+    postCategory: {
+      createMany: vi.fn().mockResolvedValue({
+        count: 0,
+      }),
+      deleteMany: vi.fn().mockResolvedValue({
+        count: 0,
+      }),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    postTranslation: {
+      upsert: vi.fn(({ create }) =>
+        Promise.resolve({
+          id: `translation_${++translationCounter}`,
+          ...create,
+        })),
+    },
+    providerFetchCheckpoint: {
+      upsert: vi.fn().mockResolvedValue(null),
+    },
+    publishingStream: {
+      findUnique: vi.fn(({ where }) => Promise.resolve(streamsById[where.id] || null)),
+      update: vi.fn().mockResolvedValue(null),
+    },
+    sEORecord: {
+      upsert: vi.fn().mockResolvedValue({
+        id: "seo_1",
+      }),
+    },
+  };
+}
+
+function createOptimizationPassResult() {
+  return {
+    aiResolution: null,
+    cacheHit: false,
+    cacheRecord: {
+      id: "cache_1",
+      status: "SUCCESS",
+    },
+    optimizationHash: "optimization_hash_1",
+    payload: {
+      body: "Optimized body",
+      title: "Optimized title",
+    },
+    policy: {
+      readinessChecks: [],
+      reasons: [],
+      riskScore: 0,
+      status: "PASS",
+      warnings: [],
+    },
+  };
+}
+
 describe("news workflow image resolution", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -250,9 +560,13 @@ describe("stream selection and scheduling helpers", () => {
         },
         now,
       }),
-    ).toEqual({
+    ).toMatchObject({
       end: now,
+      source: "checkpoint",
       start: new Date("2026-04-04T11:00:00.000Z"),
+      usesExplicitBoundaries: false,
+      usesProviderCheckpoint: true,
+      writeCheckpointOnSuccess: true,
     });
 
     expect(
@@ -260,9 +574,13 @@ describe("stream selection and scheduling helpers", () => {
         checkpoint: null,
         now,
       }),
-    ).toEqual({
+    ).toMatchObject({
       end: now,
+      source: "default",
       start: new Date("2026-04-04T12:34:56.000Z"),
+      usesExplicitBoundaries: false,
+      usesProviderCheckpoint: false,
+      writeCheckpointOnSuccess: true,
     });
   });
 
@@ -863,6 +1181,189 @@ describe("AI optimization observability", () => {
         }),
       }),
       prisma,
+    );
+  });
+});
+
+describe("shared stream execution and website completeness", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("shares one upstream fetch across compatible streams and still writes per-stream checkpoints", async () => {
+    const createAuditEventRecord = vi.fn().mockResolvedValue(null);
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [createWorkflowArticle("shared_story")],
+      cursor: {
+        page: "next",
+      },
+      fetchedCount: 1,
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord,
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runMultipleStreamFetches } = await import("./workflows");
+    const prisma = createWorkflowExecutionPrisma({
+      stream_1: createWorkflowStream({
+        id: "stream_1",
+        providerFilters: {
+          category: ["business"],
+        },
+      }),
+      stream_2: createWorkflowStream({
+        id: "stream_2",
+        providerFilters: {
+          category: ["technology"],
+        },
+      }),
+    });
+    const now = new Date("2026-04-07T12:00:00.000Z");
+    const result = await runMultipleStreamFetches(
+      ["stream_1", "stream_2"],
+      {
+        now,
+        triggerType: "manual",
+      },
+      prisma,
+    );
+
+    expect(fetchProviderArticles).toHaveBeenCalledTimes(1);
+    expect(fetchProviderArticles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        checkpoint: null,
+        providerKey: "newsdata",
+        requestValues: expect.objectContaining({
+          category: ["business", "technology"],
+          endpoint: "latest",
+        }),
+      }),
+    );
+    expect(prisma.articleMatch.create).toHaveBeenCalledTimes(2);
+    expect(prisma.providerFetchCheckpoint.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.providerFetchCheckpoint.upsert).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        update: expect.objectContaining({
+          cursorJson: null,
+          lastSuccessfulFetchAt: now,
+        }),
+      }),
+    );
+    expect(createAuditEventRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "FETCH_SHARED_BATCH_PLANNED",
+        entityType: "fetch_run_group",
+      }),
+      prisma,
+    );
+    expect(result).toMatchObject({
+      requestedStreamCount: 2,
+      upstreamRequestCount: 1,
+    });
+    expect(result.groups[0]).toMatchObject({
+      executionMode: "shared_batch",
+      providerKey: "newsdata",
+      streamIds: ["stream_1", "stream_2"],
+    });
+  });
+
+  it("processes every eligible website candidate from a broad pool even when maxPostsPerRun is lower", async () => {
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [
+        createWorkflowArticle("website_story_1"),
+        createWorkflowArticle("website_story_2", {
+          dedupeFingerprint: "fingerprint_website_story_2",
+          normalizedTitleHash: "title_hash_website_story_2",
+          providerArticleId: "provider_website_story_2",
+          sourceUrl: "https://example.com/website_story_2",
+          sourceUrlHash: "source_hash_website_story_2",
+          title: "Story title website 2",
+        }),
+      ],
+      cursor: {
+        page: 2,
+      },
+      fetchedCount: 2,
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const prisma = createWorkflowExecutionPrisma({
+      website_stream: createWorkflowStream({
+        destinationPlatform: "WEBSITE",
+        id: "website_stream",
+        maxPostsPerRun: 1,
+      }),
+    });
+    const completedRun = await runStreamFetch(
+      "website_stream",
+      {
+        fetchWindow: {
+          end: "2026-04-07T12:00:00.000Z",
+          start: "2026-04-07T00:00:00.000Z",
+        },
+        now: new Date("2026-04-07T12:00:00.000Z"),
+        triggerType: "manual",
+      },
+      prisma,
+    );
+
+    expect(prisma.articleMatch.create).toHaveBeenCalledTimes(2);
+    expect(prisma.providerFetchCheckpoint.upsert).not.toHaveBeenCalled();
+    expect(completedRun).toMatchObject({
+      heldCount: 2,
+      publishableCount: 2,
+      queuedCount: 0,
+      status: "SUCCEEDED",
+    });
+    expect(prisma.fetchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          executionDetailsJson: expect.objectContaining({
+            checkpointStrategy: expect.objectContaining({
+              writeCheckpointOnSuccess: false,
+            }),
+            streamFetchWindow: expect.objectContaining({
+              source: "explicit",
+            }),
+          }),
+        }),
+      }),
     );
   });
 });

@@ -13,11 +13,12 @@ Release 1 is not an open-ended AI writing product. The AI layer is limited to fo
 Release 1 must:
 
 - let an authenticated admin configure providers, destinations, streams, templates, schedules, and review rules without code changes
-- fetch broadly within the incremental window, then filter locally
+- fetch broadly within the incremental or explicit window, reuse one upstream call for compatible multi-stream batches when safe, then filter locally
 - persist only publishable or published normalized articles plus operational logs
 - optimize eligible stories with a cached AI layer before review approval or publication
 - support both `AUTO_PUBLISH` and `REVIEW_REQUIRED` stream modes
 - publish to the website, Facebook, and Instagram with shared canonical render artifacts and destination-specific formatting
+- publish every website-eligible story from the fetched pool unless explicit duplicate, policy, moderation, or hold rules block it
 - keep source attribution, compliance controls, retry behavior, and auditability visible in the admin workspace
 - keep deterministic formatting and manual editorial flow operational when AI is disabled, misconfigured, unhealthy, rate limited, timing out, or returning invalid structured output
 
@@ -170,6 +171,7 @@ Release 1 introduces or repurposes these NewsPub-specific models:
 - `PublishingStream`
 - `StreamCategory`
 - `ProviderFetchCheckpoint`
+- `FetchRun`
 - `FetchedArticle`
 - `ArticleMatch`
 - `OptimizationCache`
@@ -199,7 +201,8 @@ Model responsibilities:
 - `Destination` stores the destination platform, destination kind, account or page identifiers, connection status, publish defaults, and encrypted token or credential references when platform APIs require them.
 - `PublishingStream` is the main per-destination automation unit. It stores destination linkage, locale, country and region rules, keyword rules, schedule, timezone, max posts per run, duplicate rules, active provider, default template, and mode.
 - `StreamCategory` links streams to internal categories.
-- `ProviderFetchCheckpoint` stores the previous successful fetch timestamp and provider cursor metadata per stream.
+- `ProviderFetchCheckpoint` stores the previous successful fetch timestamp and provider cursor metadata per stream. Shared upstream batches still update each stream independently, but grouped executions persist a provider cursor only when exactly one stream owned the upstream request.
+- `FetchRun` stores one per-stream execution record, including the normalized stream window, summary counts, provider cursor before or after values, and structured execution details for shared-batch mode, group membership, and endpoint-specific time-boundary handling.
 - `FetchedArticle` stores only publishable or published normalized provider items, raw provider payload JSON when needed for audit, dedupe fingerprints, source attribution, and normalized content fields.
 - `ArticleMatch` stores the evaluated relationship between a normalized article and a publishing stream, including filter reasons, duplicate decisions, hold reasons, publish timestamps, and the linked canonical `Post` when one exists.
 - `OptimizationCache` stores deterministic optimization results keyed by content hash and destination settings hash so unchanged stories can reuse prior AI or fallback output.
@@ -235,6 +238,7 @@ Rules:
 - provider switching must be configuration driven, not code driven
 - each provider client must normalize its raw response into the shared `FetchedArticle` contract before any filtering occurs
 - provider-specific request parameters, pagination cursors, rate limits, and response quirks live in the provider integration layer only
+- provider time-boundary capabilities are endpoint specific and explicit: `mediastack` uses direct date bounds, `newsdata` `archive` uses direct date bounds, `newsdata` `latest` uses a relative timeframe, `newsapi` `everything` uses direct datetime bounds, and `newsapi` `top-headlines` relies on local-only window filtering
 - provider credentials resolve from env based on the active provider key
 - missing credentials, invalid response shapes, or provider throttling must appear in audit logs and the admin dashboard
 
@@ -255,28 +259,33 @@ Rules:
 - one destination may have multiple streams, for example separate category or language streams
 - each stream stores locale, category mapping, country and region filters, language rules, include and exclude keywords, publish mode, schedule, timezone, retry policy, duplicate window, and max posts per run
 - each stream may use only one active provider at a time
+- selected stream batches may share one upstream provider request when provider compatibility rules allow NewsPub to widen the request safely without underfetching
+- `maxPostsPerRun` bounds social destination batch size, while website streams still process every locally eligible article from the fetched pool
 - website, Facebook, and Instagram streams may each point to different templates and schedules
 - destination connection status and recent failures must be visible in the admin workspace
 
 ## 12. Fetch, Incremental Window, And Normalization Workflow
 
-Every scheduled or manual run follows this order:
+Every scheduled or manual run follows this order. A single execution request may contain one stream or a batch of stream ids.
 
-1. load the active stream and validate that it is enabled
-2. resolve the selected provider client and provider credentials
-3. read the stream checkpoint
-4. fetch broadly within the incremental window for that stream
-5. normalize every provider article into the shared internal article contract
-6. filter locally against stream rules
-7. store only publishable or published normalized articles
-8. deduplicate before queueing or publishing
-9. create or update the canonical `Post` render artifact when needed
-10. optimize eligible destination payloads with cache reuse, fallback formatting, and policy review
-11. queue website or social publication attempts
-12. update the stream checkpoint only after a successful run
-13. emit admin-visible logs and summary metrics
+1. load the requested stream or streams and validate that each target stream is active and configuration-complete
+2. resolve one normalized fetch window per stream from the previous checkpoint, an explicit manual window, or the default lookback
+3. partition the requested streams into the minimum safe number of compatible provider groups using provider key, endpoint shape, runtime credential source, time-boundary semantics, and restrictive provider request fields
+4. resolve the selected provider client and provider credentials for each compatible group
+5. widen the compatible group's provider request envelope and fetch broadly once for that group
+6. normalize every provider article into the shared internal article contract exactly once per fetched item
+7. fan the shared candidate pool back out into per-stream local filtering, including fetch-window checks when the upstream provider cannot express the full local boundary
+8. store only publishable or published normalized articles
+9. deduplicate before queueing or publishing
+10. create or update the canonical `Post` render artifact when needed
+11. optimize eligible destination payloads with cache reuse, fallback formatting, and policy review
+12. queue website or social publication attempts
+13. update each stream checkpoint only after that stream run succeeds
+14. emit admin-visible logs, execution-mode details, and summary metrics
 
 Optimization rule: when the AI layer is disabled, missing credentials, unavailable, rate limited, timing out, or returning invalid structured output, the workflow must persist a structured reason, set the optimization outcome to `SKIPPED` or `FALLBACK`, and continue with deterministic formatting or manual review instead of treating the run as a hard AI failure.
+
+Fetch-window rule: explicit bounded windows may be used for manual runs, batched runs, retries, and diagnostics. Those explicit windows do not advance checkpoints unless `writeCheckpointOnSuccess` is explicitly set to `true`.
 
 The normalized article contract must include at least:
 
@@ -310,6 +319,7 @@ Filtering must happen after normalization and must combine:
 - locale and language rules
 - country and region rules
 - destination platform constraints
+- the normalized fetch window for that stream
 - duplicate history for the same destination
 
 Filtering outcomes:
@@ -332,6 +342,8 @@ Deduplication must consider:
 
 Already published items must never republish to the same destination unless an explicit manual override is recorded.
 
+Shared-fetch rule: the same fetched article may legitimately create separate `ArticleMatch` records for multiple streams when each stream accepts it after local filtering. This fan-out must stay idempotent per stream.
+
 ## 14. Review Workflow And Publication State
 
 NewsPub supports two stream modes:
@@ -345,6 +357,7 @@ Workflow rules:
 - `REVIEW_REQUIRED` must create or update the canonical `Post` in a held state with `PostStatus.DRAFT` and `EditorialStage.INGESTED`, then stop until an admin approves publication
 - AI optimization runs after filtering and before approval or publication. It may move a destination match into `WorkflowStage.OPTIMIZED`, `WorkflowStage.REVIEW_REQUIRED`, or `WorkflowStage.HELD` depending on policy results and stream mode.
 - review queues, the post editor, and publish diagnostics must expose optimization status and reason details so editors can distinguish successful AI output from `SKIPPED` or `FALLBACK` deterministic handling without losing publish control
+- shared upstream fetching must not collapse downstream review state; each accepted stream keeps its own article-match record, hold reasons, optimization status, and publish diagnostics
 - the manual story creation route at `/admin/posts/new` must feed the same canonical post and publication workflow as automated stories, including shared validation recovery and destination linkage
 - editors work from the reused post inventory and post editor surfaces
 - the canonical `Post` is the editable render artifact that feeds website and social formatting
@@ -412,6 +425,7 @@ Rules:
 
 - only `PUBLISHED` posts render on public routes
 - `PostTranslation` remains the rendered website content record per locale
+- website streams process every locally eligible candidate from the fetched pool and are not capped by `maxPostsPerRun`
 - category landing pages and search index only published website posts
 - source attribution, provider source URL, and publish timestamps remain visible on story pages
 - public route data must be cacheable and revalidatable through the existing revalidation helpers
@@ -435,8 +449,9 @@ Scheduling rules:
 - manual run now is required
 - hourly is the default cadence when no schedule is set
 - each stream uses its configured timezone
-- scheduled workers may run multiple streams in one batch but must process them independently
+- scheduled workers may run multiple streams in one batch, partition them into safe shared-fetch groups, and still finalize checkpoints, summaries, retries, and downstream state independently per stream
 - checkpoint updates happen only after the stream run succeeds
+- explicit manual or diagnostic windows do not advance checkpoints unless the caller opts in
 - retries must apply to publish attempts and transient provider failures
 - retry behavior must be stored in stream or attempt metadata and visible in the admin workspace
 - repeated failures must pause automatic re-execution only when the configured retry ceiling is reached or an admin manually pauses the stream
@@ -468,6 +483,7 @@ Release 1 must expose:
 - optimized items
 - optimization cache reuses
 - AI optimization skip and fallback outcomes with machine-readable reason codes and operator-facing reason messages
+- shared-fetch run counts, upstream request counts, execution mode, and per-run fetch-window details
 - items blocked before publish by policy or guardrails
 - duplicate skips
 - retry counts

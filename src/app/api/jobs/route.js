@@ -5,13 +5,22 @@ import { getAdminJobLogsSnapshot } from "@/features/analytics";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 import { createApiErrorResponse } from "@/lib/errors";
-import { runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
+import { runMultipleStreamFetches, runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
 import { validateJsonRequest } from "@/lib/validation/api-request";
 
-const jobRunSchema = z.object({
-  runDueStreams: z.boolean().optional(),
-  streamId: z.string().trim().optional(),
+const fetchWindowSchema = z.object({
+  end: z.string().trim().min(1).optional(),
+  start: z.string().trim().min(1).optional(),
+  writeCheckpointOnSuccess: z.boolean().optional(),
 });
+
+const jobRunSchema = z
+  .object({
+    fetchWindow: fetchWindowSchema.optional(),
+    runDueStreams: z.boolean().optional(),
+    streamId: z.string().trim().optional(),
+    streamIds: z.array(z.string().trim().min(1)).min(1).optional(),
+  });
 
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.VIEW_JOBS);
@@ -52,11 +61,37 @@ export async function POST(request) {
     if (result.data.streamId) {
       const run = await runStreamFetch(result.data.streamId, {
         actorId: auth.user.id,
+        fetchWindow: result.data.fetchWindow
+          ? {
+              end: result.data.fetchWindow.end,
+              start: result.data.fetchWindow.start,
+            }
+          : null,
         triggerType: "manual",
+        writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
       });
 
       return NextResponse.json({
         data: run,
+        success: true,
+      });
+    }
+
+    if (result.data.streamIds?.length) {
+      const batch = await runMultipleStreamFetches(result.data.streamIds, {
+        actorId: auth.user.id,
+        fetchWindow: result.data.fetchWindow
+          ? {
+              end: result.data.fetchWindow.end,
+              start: result.data.fetchWindow.start,
+            }
+          : null,
+        triggerType: "manual",
+        writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
+      });
+
+      return NextResponse.json({
+        data: batch,
         success: true,
       });
     }

@@ -15,8 +15,8 @@ Expose the fetch, filter, publish, retry, and failure timeline that operators ne
 
 ## Implement
 
-1. Emit `AuditEvent` records for provider fetch starts, successes, failures, checkpoint updates, duplicate decisions, queue transitions, publish attempts, retries, destination connection errors, and optional AI skip or fallback outcomes.
-2. Build job and log views for stream runs, publish attempts, failure summaries, and AI skip or fallback visibility.
+1. Emit `AuditEvent` records for provider fetch starts, successes, failures, shared-fetch group planning, checkpoint updates, duplicate decisions, queue transitions, publish attempts, retries, destination connection errors, and optional AI skip or fallback outcomes.
+2. Build job and log views for stream runs, publish attempts, failure summaries, shared-fetch execution mode or window details, and AI skip or fallback visibility.
 3. Add filters for provider, stream, destination, status, and time window.
 4. Keep redactable secrets and raw tokens out of log payloads.
 5. Surface connection health, recent failures, AI runtime visibility, and warning or error severity in admin-facing summaries.
@@ -34,6 +34,7 @@ Expose the fetch, filter, publish, retry, and failure timeline that operators ne
 - admin users can inspect recent runs, failures, and retry outcomes
 - secret values are redacted from observable payloads
 - connection and run health can be derived from persisted observability data
+- shared upstream groups expose their execution mode, group id, partition reasons, and normalized fetch window in persisted fetch-run details
 - AI skip and fallback audit events include machine-readable reason details without exposing secrets
 - jobs, dashboard, post editor, and settings surfaces expose the same warning-level AI observability story consistently
 

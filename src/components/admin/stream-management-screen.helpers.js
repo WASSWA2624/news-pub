@@ -63,6 +63,11 @@ function summarizeRunCounts(results) {
 
 function describeCompletedRun(run) {
   const fragments = [];
+  const executionDetails = run?.executionDetailsJson || run?.executionDetails || null;
+
+  if (executionDetails?.executionMode === "shared_batch" && Number(executionDetails.groupSize || 0) > 1) {
+    fragments.push(`shared fetch across ${executionDetails.groupSize} streams`);
+  }
 
   if (Number(run.fetchedCount || 0) > 0) {
     fragments.push(`${run.fetchedCount} fetched`);

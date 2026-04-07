@@ -7,6 +7,15 @@ function createFetchRuns() {
     {
       createdAt: new Date("2026-04-03T10:00:00.000Z"),
       duplicateCount: 1,
+      executionDetailsJson: {
+        executionMode: "shared_batch",
+        groupId: "shared_group_1",
+        groupSize: 2,
+        streamFetchWindow: {
+          end: "2026-04-03T10:00:00.000Z",
+          start: "2026-04-03T06:00:00.000Z",
+        },
+      },
       failedCount: 0,
       fetchedCount: 12,
       finishedAt: new Date("2026-04-03T10:05:00.000Z"),
@@ -275,6 +284,8 @@ describe("analytics feature snapshots", () => {
       publishableCount7d: 7,
       publishedCount7d: 3,
       retryCount7d: 2,
+      sharedFetchRunCount7d: 1,
+      sharedUpstreamCalls7d: 1,
       totalViews7d: 2,
     });
     expect(snapshot.recentAuditEvents[0]).toMatchObject({
@@ -305,6 +316,13 @@ describe("analytics feature snapshots", () => {
       slug: "breaking-story",
       title: "Breaking story",
       viewCount: 2,
+    });
+    expect(snapshot.recentFetchRuns[0]).toMatchObject({
+      executionDetails: {
+        executionMode: "shared_batch",
+        groupId: "shared_group_1",
+        groupSize: 2,
+      },
     });
   });
 
@@ -339,6 +357,8 @@ describe("analytics feature snapshots", () => {
     expect(snapshot.summary).toMatchObject({
       failedFetchRuns: 1,
       failedPublishAttempts: 1,
+      sharedFetchRuns: 0,
+      sharedUpstreamCalls: 0,
     });
     expect(snapshot.fetchRuns[0]).toMatchObject({
       id: "fetch_2",

@@ -475,7 +475,9 @@ export default function StreamFormCard({
           <Field>
             <FieldLabel>Max posts per run</FieldLabel>
             <Input defaultValue={stream?.maxPostsPerRun ?? 5} name="maxPostsPerRun" type="number" />
-            <FieldHint>Keep fetch runs bounded so queues stay responsive on slower destinations and lower-end devices.</FieldHint>
+            <FieldHint>
+              Keep social runs bounded so queues stay responsive. Website streams still publish every locally eligible article from the fetched pool.
+            </FieldHint>
           </Field>
           <Field>
             <FieldLabel>Duplicate window hours</FieldLabel>
@@ -554,7 +556,7 @@ export default function StreamFormCard({
               tone: "accent",
             },
           ]}
-          summary="Override provider-specific request filters only when this stream needs narrower fetch behavior than the saved provider defaults."
+          summary="Override provider-specific request filters only when this stream needs narrower fetch behavior than the saved provider defaults. Compatible multi-stream runs fetch broadly once, then NewsPub filters locally per stream."
           title="Provider request filters"
         >
           <ProviderFilterFields

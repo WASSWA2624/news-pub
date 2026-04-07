@@ -61,6 +61,7 @@ describe("admin actions", () => {
     }));
     vi.doMock("@/features/streams", () => ({ deleteStreamRecord: vi.fn(), saveStreamRecord: vi.fn() }));
     vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches: vi.fn(),
       retryPublishAttempt: vi.fn(),
       runScheduledStreams: vi.fn(),
       runStreamFetch: vi.fn(),
@@ -137,6 +138,7 @@ describe("admin actions", () => {
       sanitizeProviderFieldValues: vi.fn(),
     }));
     vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches: vi.fn(),
       retryPublishAttempt: vi.fn(),
       runScheduledStreams: vi.fn(),
       runStreamFetch: vi.fn(),
@@ -175,6 +177,7 @@ describe("admin actions", () => {
       }),
     }));
     vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches: vi.fn(),
       retryPublishAttempt,
       runScheduledStreams: vi.fn(),
       runStreamFetch: vi.fn(),
@@ -248,6 +251,7 @@ describe("admin actions", () => {
       sanitizeProviderFieldValues: vi.fn(),
     }));
     vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches: vi.fn(),
       retryPublishAttempt: vi.fn(),
       runScheduledStreams: vi.fn(),
       runStreamFetch: vi.fn(),
