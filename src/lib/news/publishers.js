@@ -154,6 +154,14 @@ function createMetaPublicUrlError(platformLabel, fieldLabel, resolution) {
   });
 }
 
+function buildFacebookFeedPostValues({ accessToken, link, message }) {
+  return {
+    access_token: accessToken,
+    ...(link ? { link } : {}),
+    message,
+  };
+}
+
 function joinPublishText(parts, maxLength = 2200) {
   return parts
     .map((part) => trimText(part))
@@ -348,17 +356,14 @@ async function publishFacebookDestination(destination, payload) {
     });
   }
 
-  if (canonicalUrlResolution.issue) {
-    throw createMetaPublicUrlError("Facebook", "canonical story URL", canonicalUrlResolution);
-  }
-
   const accessToken = requireRuntimeAccessToken(runtimeConnection);
   const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
   const normalizedPayload = {
     ...payload,
-    canonicalUrl: canonicalUrlResolution.normalizedUrl,
+    canonicalUrl: canonicalUrlResolution.normalizedUrl || trimText(payload.canonicalUrl) || null,
     mediaUrl: mediaUrlResolution.issue ? null : mediaUrlResolution.normalizedUrl,
   };
+  const linkUrl = canonicalUrlResolution.issue ? null : canonicalUrlResolution.normalizedUrl;
   const message = buildFacebookMessage(normalizedPayload);
 
   if (normalizedPayload.mediaUrl && destination.kind === "FACEBOOK_PAGE") {
@@ -380,15 +385,19 @@ async function publishFacebookDestination(destination, payload) {
         },
       };
     } catch (error) {
-      if (!(error instanceof DestinationPublishError) || !normalizedPayload.canonicalUrl) {
+      if (!(error instanceof DestinationPublishError)) {
         throw error;
       }
 
-      const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
-        access_token: accessToken,
-        link: normalizedPayload.canonicalUrl,
-        message,
-      });
+      const feedPayload = await postGraphForm(
+        runtimeConnection,
+        `${targetId}/feed`,
+        buildFacebookFeedPostValues({
+          accessToken,
+          link: linkUrl,
+          message,
+        }),
+      );
 
       return {
         publishedAt: new Date(),
@@ -404,11 +413,15 @@ async function publishFacebookDestination(destination, payload) {
     }
   }
 
-  const feedPayload = await postGraphForm(runtimeConnection, `${targetId}/feed`, {
-    access_token: accessToken,
-    link: normalizedPayload.canonicalUrl,
-    message,
-  });
+  const feedPayload = await postGraphForm(
+    runtimeConnection,
+    `${targetId}/feed`,
+    buildFacebookFeedPostValues({
+      accessToken,
+      link: linkUrl,
+      message,
+    }),
+  );
 
   return {
     publishedAt: new Date(),

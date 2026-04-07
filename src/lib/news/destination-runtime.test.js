@@ -19,7 +19,7 @@ describe("destination runtime resolution", () => {
     vi.resetModules();
   });
 
-  it("relies on stored destination credentials for Meta publishing", async () => {
+  it("treats stored destination credentials as publish-ready even when the saved status is stale", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
     const encryptedToken = encryptSecretValue("stored-token");
@@ -40,15 +40,15 @@ describe("destination runtime resolution", () => {
     expect(resolved).toMatchObject({
       accessToken: "stored-token",
       accountId: "stale-external-id",
-      effectiveConnectionStatus: "DISCONNECTED",
+      effectiveConnectionStatus: "CONNECTED",
       hasCompleteEnvCredentials: false,
       hasRuntimeCredentials: true,
-      isReadyToPublish: false,
+      isReadyToPublish: true,
       usesEnvCredentials: false,
     });
   });
 
-  it("keeps stored tokens gated behind the persisted connection status", async () => {
+  it("derives a connected runtime state from stored Meta credentials", async () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
     const encryptedToken = encryptSecretValue("stored-token");
@@ -68,10 +68,10 @@ describe("destination runtime resolution", () => {
     expect(resolved).toMatchObject({
       accessToken: "stored-token",
       accountId: "123456789012345",
-      effectiveConnectionStatus: "DISCONNECTED",
+      effectiveConnectionStatus: "CONNECTED",
       hasCompleteEnvCredentials: false,
       hasRuntimeCredentials: true,
-      isReadyToPublish: false,
+      isReadyToPublish: true,
       usesEnvCredentials: false,
     });
   });
@@ -99,8 +99,39 @@ describe("destination runtime resolution", () => {
       accessToken: "override-token",
       accountId: "override-page-id",
       pageId: "override-page-id",
-      usesDestinationCredentialOverrides: false,
+      usesDestinationCredentialOverrides: true,
       usesEnvCredentials: false,
+    });
+  });
+
+  it("falls back to META_USER_ACCESS_TOKEN when no destination token is stored", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        META_USER_ACCESS_TOKEN: "env-user-token",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
+
+    const resolved = resolveDestinationRuntimeConnection({
+      connectionStatus: "DISCONNECTED",
+      externalAccountId: "env-page-id",
+      platform: "FACEBOOK",
+      settingsJson: {},
+      slug: "facebook-page",
+    });
+
+    expect(resolved).toMatchObject({
+      accessToken: "env-user-token",
+      accountId: "env-page-id",
+      effectiveConnectionStatus: "CONNECTED",
+      hasCompleteEnvCredentials: true,
+      hasRuntimeCredentials: true,
+      isReadyToPublish: true,
+      usesEnvCredentials: true,
     });
   });
 });

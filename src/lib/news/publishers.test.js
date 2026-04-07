@@ -270,7 +270,7 @@ describe("news publishers", () => {
     });
   });
 
-  it("rejects facebook publishing when the canonical story url is not publicly reachable", async () => {
+  it("publishes facebook feed posts from localhost without sending an unreachable link", async () => {
     process.env = {
       ...originalEnv,
       ...createNewsPubTestEnv({
@@ -283,39 +283,109 @@ describe("news publishers", () => {
     const { encryptSecretValue } = await import("@/lib/security/secrets");
     const { publishExternalDestination } = await import("./publishers");
     const encryptedToken = encryptSecretValue("facebook-token");
-    const fetchMock = vi.fn();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ id: "123456789012345", name: "Local Page" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ id: "feed_post_local_1" }),
+      });
 
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      publishExternalDestination({
-        destination: {
-          encryptedTokenCiphertext: encryptedToken.ciphertext,
-          encryptedTokenIv: encryptedToken.iv,
-          encryptedTokenTag: encryptedToken.tag,
-          externalAccountId: "123456789012345",
-          kind: "FACEBOOK_PAGE",
-          platform: "FACEBOOK",
-          settingsJson: {},
-        },
-        payload: {
-          canonicalUrl: "http://localhost:3000/en/news/breaking-story",
-          mediaUrl: "/uploads/media/story.jpg",
-          sourceReference: "Source: Example Source - https://example.com/story",
-          summary: "Breaking story summary",
-          title: "Breaking story",
-        },
-      }),
-    ).rejects.toMatchObject({
-      responseJson: expect.objectContaining({
-        error: "destination_publish_public_url_required",
-        field: "canonical story URL",
-        issue: "not_public",
-      }),
-      status: "destination_publish_public_url_required",
+    const result = await publishExternalDestination({
+      destination: {
+        encryptedTokenCiphertext: encryptedToken.ciphertext,
+        encryptedTokenIv: encryptedToken.iv,
+        encryptedTokenTag: encryptedToken.tag,
+        externalAccountId: "123456789012345",
+        kind: "FACEBOOK_PAGE",
+        platform: "FACEBOOK",
+        settingsJson: {},
+      },
+      payload: {
+        canonicalUrl: "http://localhost:3000/en/news/breaking-story",
+        mediaUrl: "/uploads/media/story.jpg",
+        sourceReference: "Source: Example Source - https://example.com/story",
+        summary: "Breaking story summary",
+        title: "Breaking story",
+      },
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(`${fetchMock.mock.calls[1][0]}`).toContain("/123456789012345/feed");
+    expect(fetchMock.mock.calls[1][1].body.get("link")).toBeNull();
+    expect(fetchMock.mock.calls[1][1].body.get("message")).toContain(
+      "http://localhost:3000/en/news/breaking-story",
+    );
+    expect(result).toMatchObject({
+      remoteId: "feed_post_local_1",
+      responseJson: expect.objectContaining({
+        channel: "facebook_feed",
+        targetId: "123456789012345",
+      }),
+    });
+  });
+
+  it("falls back to META_USER_ACCESS_TOKEN when the destination token is missing", async () => {
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv({
+        META_USER_ACCESS_TOKEN: "env-user-token",
+      }),
+    };
+
+    vi.resetModules();
+
+    const { publishExternalDestination } = await import("./publishers");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "123456789012345", name: "Env Page" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ id: "feed_post_env_1" }),
+        }),
+    );
+
+    const result = await publishExternalDestination({
+      destination: {
+        connectionStatus: "DISCONNECTED",
+        externalAccountId: "123456789012345",
+        kind: "FACEBOOK_PAGE",
+        platform: "FACEBOOK",
+        settingsJson: {},
+      },
+      payload: {
+        canonicalUrl: "https://example.com/en/news/breaking-story",
+        mediaUrl: null,
+        sourceReference: "Source: Example Source - https://example.com/story",
+        summary: "Breaking story summary",
+        title: "Breaking story",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[0][0].searchParams.get("access_token")).toBe("env-user-token");
+    expect(fetch.mock.calls[1][1].body.get("access_token")).toBe("env-user-token");
+    expect(result).toMatchObject({
+      remoteId: "feed_post_env_1",
+      responseJson: expect.objectContaining({
+        channel: "facebook_feed",
+        targetId: "123456789012345",
+      }),
+    });
   });
 
   it("rejects facebook profile destinations before attempting to publish", async () => {
