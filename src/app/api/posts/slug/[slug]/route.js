@@ -8,7 +8,7 @@ import { createApiErrorResponse } from "@/lib/errors";
 import {
   slugParamSchema,
   validateParams,
-} from "@/lib/validation/api-placeholders";
+} from "@/lib/validation/api-request";
 
 export async function GET(request, { params }) {
   const resolvedParams = await params;

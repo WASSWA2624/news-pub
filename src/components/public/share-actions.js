@@ -14,7 +14,7 @@ const Panel = styled.section`
     radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.11), transparent 54%),
     radial-gradient(circle at bottom left, rgba(var(--theme-accent-rgb), 0.08), transparent 42%);
   border: 1px solid rgba(var(--theme-border-rgb), 0.72);
-  border-radius: 18px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow:
     0 18px 38px rgba(var(--theme-primary-rgb), 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -27,7 +27,7 @@ const Panel = styled.section`
   ${({ $compact }) =>
     $compact &&
     css`
-      border-radius: 16px;
+      border-radius: ${({ theme }) => theme.radius.lg};
       gap: 0.62rem;
       padding: 0.64rem 0.78rem 0.8rem;
     `}
@@ -44,7 +44,7 @@ const Panel = styled.section`
     position: absolute;
     right: 0.8rem;
     top: 0.8rem;
-    border-radius: 999px;
+    border-radius: ${({ theme }) => theme.radius.lg};
 
     ${({ $compact }) =>
       $compact &&
@@ -131,7 +131,7 @@ const shareTileStyles = css`
     linear-gradient(90deg, ${({ $surfaceStrong }) => $surfaceStrong}, transparent 48%),
     radial-gradient(circle at top right, ${({ $surface }) => $surface}, transparent 62%);
   border: 1px solid ${({ $border }) => $border || "rgba(16, 32, 51, 0.1)"};
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow:
     0 10px 24px rgba(19, 34, 58, 0.045),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -164,7 +164,7 @@ const shareTileStyles = css`
   ${({ $compact }) =>
     $compact &&
     css`
-      border-radius: 14px;
+      border-radius: ${({ theme }) => theme.radius.lg};
       min-height: 46px;
       padding: 0.46rem 0.54rem;
     `}
@@ -197,7 +197,7 @@ const ShareIconBadge = styled.span`
   align-items: center;
   background: ${({ $surface }) => $surface};
   border: 1px solid ${({ $border }) => $border};
-  border-radius: 14px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
   color: ${({ $accent }) => $accent};
   display: inline-flex;
@@ -209,7 +209,7 @@ const ShareIconBadge = styled.span`
   ${({ $compact }) =>
     $compact &&
     css`
-      border-radius: 12px;
+      border-radius: ${({ theme }) => theme.radius.md};
       height: 1.95rem;
       width: 1.95rem;
     `}

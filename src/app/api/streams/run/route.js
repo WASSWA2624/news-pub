@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { NewsPubError } from "@/lib/news/shared";
 import { runStreamFetch } from "@/lib/news/workflows";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { createApiErrorResponse } from "@/lib/errors";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const streamRunSchema = z.object({
   streamId: z.string().trim().min(1),
@@ -37,17 +37,6 @@ export async function POST(request) {
       success: true,
     });
   } catch (error) {
-    if (error instanceof NewsPubError) {
-      return NextResponse.json(
-        {
-          message: error.message,
-          status: error.status,
-          success: false,
-        },
-        { status: error.statusCode },
-      );
-    }
-
-    throw error;
+    return createApiErrorResponse(error, "Unable to run the publishing stream.");
   }
 }

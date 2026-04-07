@@ -4,7 +4,8 @@ import { z } from "zod";
 import { deleteCategoryRecord, getCategoryManagementSnapshot, saveCategoryRecord } from "@/features/categories";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { createApiErrorResponse } from "@/lib/errors";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const saveCategorySchema = z.object({
   description: z.string().trim().optional().or(z.literal("")),
@@ -24,12 +25,16 @@ export async function GET(request) {
     return auth.response;
   }
 
-  const snapshot = await getCategoryManagementSnapshot();
+  try {
+    const snapshot = await getCategoryManagementSnapshot();
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load categories.");
+  }
 }
 
 export async function PUT(request) {
@@ -45,14 +50,18 @@ export async function PUT(request) {
     return result.response;
   }
 
-  const record = await saveCategoryRecord(result.data, {
-    actorId: auth.user.id,
-  });
+  try {
+    const record = await saveCategoryRecord(result.data, {
+      actorId: auth.user.id,
+    });
 
-  return NextResponse.json({
-    data: record,
-    success: true,
-  });
+    return NextResponse.json({
+      data: record,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to save the category.");
+  }
 }
 
 export async function DELETE(request) {
@@ -68,12 +77,16 @@ export async function DELETE(request) {
     return result.response;
   }
 
-  const record = await deleteCategoryRecord(result.data.id, {
-    actorId: auth.user.id,
-  });
+  try {
+    const record = await deleteCategoryRecord(result.data.id, {
+      actorId: auth.user.id,
+    });
 
-  return NextResponse.json({
-    data: record,
-    success: true,
-  });
+    return NextResponse.json({
+      data: record,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to delete the category.");
+  }
 }

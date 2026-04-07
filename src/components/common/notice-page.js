@@ -43,7 +43,7 @@ const HeroIconBadge = styled.span`
   align-items: center;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(22, 92, 102, 0.12);
-  border-radius: 18px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: ${({ theme }) => theme.colors.primary};
   display: inline-flex;
   height: 3.2rem;
@@ -89,7 +89,7 @@ const BadgeRow = styled.div`
 const Badge = styled.span`
   background: ${({ theme }) => theme.colors.surface};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: ${({ theme }) => theme.colors.text};
   display: inline-flex;
   padding: 0.45rem 0.8rem;
@@ -143,7 +143,7 @@ const FooterNote = styled.p`
   margin: 0;
 `;
 
-export default function PlaceholderPage({
+export default function NoticePage({
   badges = [],
   description,
   eyebrow,
@@ -179,9 +179,9 @@ export default function PlaceholderPage({
             </CardTitleRow>
           </CardTitle>
           <BulletList>
-            <li>This route is active in the current NewsPub build.</li>
-            <li>The current session or role determines whether actions are available.</li>
-            <li>Underlying APIs stay protected even when UI access is limited.</li>
+            <li>This route is part of the active NewsPub application.</li>
+            <li>The current session and role decide which actions are available.</li>
+            <li>Underlying APIs stay protected even if someone bypasses the UI.</li>
           </BulletList>
         </Card>
         <Card>
@@ -198,7 +198,7 @@ export default function PlaceholderPage({
           </BulletList>
         </Card>
       </SectionGrid>
-      <FooterNote>Access messaging stays lightweight here so the surrounding route structure remains stable.</FooterNote>
+      <FooterNote>These state messages stay intentionally compact so the surrounding workflow stays easy to scan.</FooterNote>
     </Wrapper>
   );
 }

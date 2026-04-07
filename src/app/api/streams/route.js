@@ -4,8 +4,8 @@ import { z } from "zod";
 import { getStreamManagementSnapshot, saveStreamRecord } from "@/features/streams";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { NewsPubError } from "@/lib/news/shared";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { createApiErrorResponse } from "@/lib/errors";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const streamSchema = z.object({
   activeProviderId: z.string().trim().min(1),
@@ -37,12 +37,16 @@ export async function GET(request) {
     return auth.response;
   }
 
-  const snapshot = await getStreamManagementSnapshot();
+  try {
+    const snapshot = await getStreamManagementSnapshot();
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load publishing streams.");
+  }
 }
 
 export async function PUT(request) {
@@ -68,17 +72,6 @@ export async function PUT(request) {
       success: true,
     });
   } catch (error) {
-    if (error instanceof NewsPubError) {
-      return NextResponse.json(
-        {
-          message: error.message,
-          status: error.status,
-          success: false,
-        },
-        { status: error.statusCode },
-      );
-    }
-
-    throw error;
+    return createApiErrorResponse(error, "Unable to save the publishing stream.");
   }
 }

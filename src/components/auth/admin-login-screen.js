@@ -51,7 +51,7 @@ const NarrativeIconBadge = styled.span`
   align-items: center;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 20px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: inline-flex;
   height: 3.3rem;
   justify-content: center;
@@ -256,7 +256,7 @@ const SubmitButton = styled.button`
   align-items: center;
   background: var(--theme-primary, #1b4f93);
   border: none;
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: white;
   cursor: pointer;
   display: inline-flex;

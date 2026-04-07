@@ -21,9 +21,9 @@ export async function validateJsonRequest(request, schema = emptyBodySchema) {
       return {
         response: NextResponse.json(
           {
-            success: false,
-            status: "invalid_payload",
             issues: result.error.flatten(),
+            status: "invalid_payload",
+            success: false,
           },
           { status: 400 },
         ),
@@ -45,8 +45,8 @@ export async function validateJsonRequest(request, schema = emptyBodySchema) {
       return {
         response: NextResponse.json(
           {
-            success: false,
             status: "invalid_json",
+            success: false,
           },
           { status: 400 },
         ),
@@ -60,9 +60,9 @@ export async function validateJsonRequest(request, schema = emptyBodySchema) {
     return {
       response: NextResponse.json(
         {
-          success: false,
-          status: "invalid_payload",
           issues: result.error.flatten(),
+          status: "invalid_payload",
+          success: false,
         },
         { status: 400 },
       ),
@@ -81,9 +81,9 @@ export function validateParams(params, schema) {
     return {
       response: NextResponse.json(
         {
-          success: false,
-          status: "invalid_params",
           issues: result.error.flatten(),
+          status: "invalid_params",
+          success: false,
         },
         { status: 400 },
       ),
@@ -93,20 +93,4 @@ export function validateParams(params, schema) {
   return {
     data: result.data,
   };
-}
-
-export function scaffoldRouteResponse({ access, body, method, params, route }) {
-  return NextResponse.json(
-    {
-      success: false,
-      access,
-      body,
-      method,
-      params,
-      route,
-      status: "scaffold_only",
-      message: "This route is scaffolded for Release 1 and will gain behavior in later steps.",
-    },
-    { status: 501 },
-  );
 }

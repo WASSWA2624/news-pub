@@ -4,7 +4,8 @@ import { z } from "zod";
 import { getProviderManagementSnapshot, saveProviderRecord } from "@/features/providers";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { createApiErrorResponse } from "@/lib/errors";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const providerSchema = z.object({
   baseUrl: z.string().trim().optional().or(z.literal("")),
@@ -24,12 +25,16 @@ export async function GET(request) {
     return auth.response;
   }
 
-  const snapshot = await getProviderManagementSnapshot();
+  try {
+    const snapshot = await getProviderManagementSnapshot();
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load provider settings.");
+  }
 }
 
 export async function PUT(request) {
@@ -45,12 +50,16 @@ export async function PUT(request) {
     return result.response;
   }
 
-  const record = await saveProviderRecord(result.data, {
-    actorId: auth.user.id,
-  });
+  try {
+    const record = await saveProviderRecord(result.data, {
+      actorId: auth.user.id,
+    });
 
-  return NextResponse.json({
-    data: record,
-    success: true,
-  });
+    return NextResponse.json({
+      data: record,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to save the provider.");
+  }
 }

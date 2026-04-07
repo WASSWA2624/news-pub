@@ -5,7 +5,7 @@ import { getPostEditorSnapshot, updatePostEditorialRecord } from "@/features/pos
 import { ensureAdminApiPermission, requireAdminApiSession } from "@/lib/auth/api";
 import { createApiErrorResponse } from "@/lib/errors";
 import { ADMIN_PERMISSIONS, getRequiredPermissionsForPostUpdate } from "@/lib/auth/rbac";
-import { idParamSchema, validateJsonRequest, validateParams } from "@/lib/validation/api-placeholders";
+import { idParamSchema, validateJsonRequest, validateParams } from "@/lib/validation/api-request";
 
 const updatePostSchema = z.object({
   action: z.string().trim().optional(),

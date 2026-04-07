@@ -3,8 +3,9 @@ import { z } from "zod";
 
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import { createApiErrorResponse } from "@/lib/errors";
 import { revalidatePaths } from "@/lib/revalidation";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const revalidateSchema = z
   .object({
@@ -46,13 +47,13 @@ export async function POST(request) {
       success: true,
     });
   } catch (error) {
-    return NextResponse.json(
+    return createApiErrorResponse(
       {
         message: error instanceof Error ? error.message : "A revalidation error occurred.",
         status: "invalid_revalidation_path",
-        success: false,
+        statusCode: 400,
       },
-      { status: 400 },
+      "Unable to revalidate the requested paths.",
     );
   }
 }

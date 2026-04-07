@@ -17,7 +17,7 @@ const TriggerButton = styled.button`
   border: 1px solid
     ${({ $tone }) =>
       $tone === "danger" ? "rgba(180, 35, 24, 0.14)" : "rgba(16, 32, 51, 0.1)"};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: ${({ $tone }) => ($tone === "danger" ? "#a63725" : "#22344f")};
   cursor: pointer;
   display: inline-flex;
@@ -58,7 +58,7 @@ const Dialog = styled.dialog`
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.98)),
     radial-gradient(circle at top right, rgba(180, 35, 24, 0.08), transparent 48%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 18px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow:
     0 28px 54px rgba(16, 32, 51, 0.18),
     0 6px 16px rgba(16, 32, 51, 0.08);

@@ -56,7 +56,7 @@ const Surface = styled.section`
     linear-gradient(180deg, rgba(255, 255, 255, 0.996), rgba(246, 250, 255, 0.99)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 34%);
   border: 1px solid rgba(16, 32, 51, 0.09);
-  border-radius: clamp(18px, 3vw, 26px);
+  border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow:
     0 32px 72px rgba(11, 18, 30, 0.24),
     0 12px 28px rgba(16, 32, 51, 0.1);
@@ -67,7 +67,7 @@ const Surface = styled.section`
   overflow: hidden;
 
   @media (max-width: 639px) {
-    border-radius: 20px;
+    border-radius: ${({ theme }) => theme.radius.lg};
     min-height: ${({ $size }) => ($size === "full" ? "calc(100dvh - 0.75rem)" : "auto")};
   }
 `;
@@ -110,7 +110,7 @@ const CloseButton = styled.button`
   align-items: center;
   background: rgba(16, 32, 51, 0.05);
   border: 1px solid rgba(16, 32, 51, 0.09);
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: #22344f;
   cursor: pointer;
   display: inline-flex;
@@ -151,7 +151,7 @@ const Body = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(36, 75, 115, 0.26);
     border: 3px solid transparent;
-    border-radius: 999px;
+    border-radius: ${({ theme }) => theme.radius.lg};
     background-clip: padding-box;
   }
 `;

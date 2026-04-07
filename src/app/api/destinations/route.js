@@ -4,8 +4,8 @@ import { z } from "zod";
 import { getDestinationManagementSnapshot, saveDestinationRecord } from "@/features/destinations";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { NewsPubError } from "@/lib/news/shared";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { createApiErrorResponse } from "@/lib/errors";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const destinationSchema = z.object({
   accountHandle: z.string().trim().optional().or(z.literal("")),
@@ -44,12 +44,16 @@ export async function GET(request) {
     return auth.response;
   }
 
-  const snapshot = await getDestinationManagementSnapshot();
+  try {
+    const snapshot = await getDestinationManagementSnapshot();
 
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+    return NextResponse.json({
+      data: snapshot,
+      success: true,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to load destination settings.");
+  }
 }
 
 export async function PUT(request) {
@@ -75,17 +79,6 @@ export async function PUT(request) {
       success: true,
     });
   } catch (error) {
-    if (error instanceof NewsPubError) {
-      return NextResponse.json(
-        {
-          message: error.message,
-          status: error.status,
-          success: false,
-        },
-        { status: error.statusCode },
-      );
-    }
-
-    throw error;
+    return createApiErrorResponse(error, "Unable to save the destination.");
   }
 }

@@ -73,16 +73,16 @@ const CategoriesTable = styled(DataTable)`
   }
 
   tbody tr td:first-child {
-    border-bottom-left-radius: 18px;
+    border-bottom-left-radius: ${({ theme }) => theme.radius.lg};
     border-left: 1px solid rgba(16, 32, 51, 0.08);
-    border-top-left-radius: 18px;
+    border-top-left-radius: ${({ theme }) => theme.radius.lg};
     padding-left: 1rem;
   }
 
   tbody tr td:last-child {
-    border-bottom-right-radius: 18px;
+    border-bottom-right-radius: ${({ theme }) => theme.radius.lg};
     border-right: 1px solid rgba(16, 32, 51, 0.08);
-    border-top-right-radius: 18px;
+    border-top-right-radius: ${({ theme }) => theme.radius.lg};
     padding-right: 1rem;
   }
 

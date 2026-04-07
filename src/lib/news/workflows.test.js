@@ -493,6 +493,182 @@ describe("stream selection and scheduling helpers", () => {
       prisma,
     );
   });
+
+  it("audits manual retry requests before creating a fresh publish attempt", async () => {
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/revalidation", () => ({
+      revalidatePublishedPostPaths: vi.fn().mockResolvedValue(null),
+    }));
+
+    const analytics = await import("@/lib/analytics");
+    const { retryPublishAttempt } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    const prisma = {
+      articleMatch: {
+        findUnique: vi.fn().mockResolvedValue({
+          canonicalPost: {
+            id: "post_1",
+          },
+          destination: {
+            id: "destination_1",
+            kind: "WEBSITE",
+            platform: "WEBSITE",
+          },
+          id: "match_1",
+          stream: {
+            destination: {
+              id: "destination_1",
+              kind: "WEBSITE",
+              platform: "WEBSITE",
+            },
+            destinationId: "destination_1",
+            id: "stream_1",
+            locale: "en",
+            mode: "AUTO_PUBLISH",
+          },
+        }),
+        update: vi.fn().mockResolvedValue(null),
+      },
+      destinationTemplate: {
+        findFirst: vi.fn().mockResolvedValue({
+          bodyTemplate: "{{body}}",
+          hashtagsTemplate: "",
+          platform: "WEBSITE",
+          summaryTemplate: "{{summary}}",
+          titleTemplate: "{{title}}",
+        }),
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
+      post: {
+        update: vi.fn().mockResolvedValue(null),
+      },
+      postCategory: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      publishAttempt: {
+        count: vi.fn().mockResolvedValue(1),
+        create: vi.fn().mockResolvedValue({
+          articleMatchId: "match_1",
+          id: "attempt_retry_2",
+          retryCount: 1,
+        }),
+        findUnique: vi
+          .fn()
+          .mockResolvedValueOnce({
+            articleMatch: {
+              publishAttempts: [
+                {
+                  id: "attempt_failed_1",
+                  status: "FAILED",
+                },
+              ],
+            },
+            articleMatchId: "match_1",
+            id: "attempt_failed_1",
+            platform: "WEBSITE",
+            postId: "post_1",
+            retryCount: 0,
+            status: "FAILED",
+            stream: {
+              destinationId: "destination_1",
+              id: "stream_1",
+              locale: "en",
+              mode: "AUTO_PUBLISH",
+              retryLimit: 3,
+            },
+          })
+          .mockResolvedValueOnce({
+            articleMatch: {
+              destination: {
+                id: "destination_1",
+                kind: "WEBSITE",
+                platform: "WEBSITE",
+              },
+              id: "match_1",
+              stream: {
+                destination: {
+                  id: "destination_1",
+                  kind: "WEBSITE",
+                  platform: "WEBSITE",
+                },
+                destinationId: "destination_1",
+                id: "stream_1",
+                locale: "en",
+                mode: "AUTO_PUBLISH",
+              },
+            },
+            articleMatchId: "match_1",
+            destination: {
+              id: "destination_1",
+              kind: "WEBSITE",
+              platform: "WEBSITE",
+            },
+            id: "attempt_retry_2",
+            platform: "WEBSITE",
+            post: {
+              excerpt: "Story summary",
+              featuredImage: null,
+              slug: "story-title",
+              sourceArticle: {
+                body: "Story body",
+                imageUrl: null,
+              },
+              sourceName: "Example Source",
+              sourceUrl: "https://example.com/story",
+              translations: [
+                {
+                  contentMd: "Story body",
+                  locale: "en",
+                  seoRecord: {
+                    keywordsJson: [],
+                    ogImage: null,
+                  },
+                  summary: "Story summary",
+                  title: "Story title",
+                },
+              ],
+            },
+            postId: "post_1",
+            queuedAt: now,
+            stream: {
+              destination: {
+                id: "destination_1",
+                kind: "WEBSITE",
+                platform: "WEBSITE",
+              },
+              destinationId: "destination_1",
+              id: "stream_1",
+              locale: "en",
+              mode: "AUTO_PUBLISH",
+            },
+          }),
+        update: vi.fn().mockResolvedValue({
+          id: "attempt_retry_2",
+          status: "FAILED",
+        }),
+      },
+    };
+
+    await retryPublishAttempt(
+      "attempt_failed_1",
+      {
+        actorId: "admin_1",
+      },
+      prisma,
+    );
+
+    expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "PUBLISH_ATTEMPT_RETRY_REQUESTED",
+        actorId: "admin_1",
+        entityId: "attempt_retry_2",
+      }),
+      prisma,
+    );
+  });
 });
 
 describe("stream execution dedupe safety", () => {

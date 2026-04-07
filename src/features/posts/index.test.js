@@ -431,6 +431,167 @@ describe("post editor updates", () => {
 
     expect(publishArticleMatch).not.toHaveBeenCalled();
   });
+
+  it("re-optimizes the selected destination match only when explicitly requested", async () => {
+    const publishArticleMatch = vi.fn().mockResolvedValue({
+      id: "attempt_1",
+    });
+    const refreshArticleMatchOptimization = vi.fn().mockResolvedValue({
+      cacheHit: false,
+      payload: {
+        title: "Optimized title",
+      },
+      policy: {
+        reasons: [],
+        status: "PASS",
+      },
+    });
+
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      manualRepostArticleMatch: vi.fn(),
+      publishArticleMatch,
+      refreshArticleMatchOptimization,
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [createEditorArticleMatch()],
+      status: "DRAFT",
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      updatePostEditorialRecord(
+        {
+          action: "optimize",
+          articleMatchId: "match_1",
+          postId: post.id,
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).resolves.toMatchObject({
+      post: {
+        id: "post_1",
+      },
+    });
+
+    expect(refreshArticleMatchOptimization).toHaveBeenCalledWith(
+      "match_1",
+      { force: true },
+      prisma,
+    );
+    expect(publishArticleMatch).not.toHaveBeenCalled();
+  });
+
+  it("holds a selected destination match when the editor rejects publication", async () => {
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      manualRepostArticleMatch: vi.fn(),
+      publishArticleMatch: vi.fn(),
+      refreshArticleMatchOptimization: vi.fn(),
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [createEditorArticleMatch()],
+      status: "DRAFT",
+    });
+    const prisma = createPrismaStub({
+      articleMatch: {
+        create: vi.fn().mockResolvedValue({
+          id: "match_1",
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: "match_1",
+          status: "HELD_FOR_REVIEW",
+        }),
+      },
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await updatePostEditorialRecord(
+      {
+        action: "reject",
+        articleMatchId: "match_1",
+        postId: post.id,
+      },
+      {
+        actorId: "user_1",
+      },
+      prisma,
+    );
+
+    expect(prisma.articleMatch.update).toHaveBeenCalledWith({
+      data: {
+        holdReasonsJson: ["rejected_by_editor"],
+        reviewNotes: "Rejected during editor review.",
+        status: "HELD_FOR_REVIEW",
+        workflowStage: "HELD",
+      },
+      where: {
+        id: "match_1",
+      },
+    });
+  });
+
+  it("blocks approval while the selected destination match still has blocked policy findings", async () => {
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      manualRepostArticleMatch: vi.fn(),
+      publishArticleMatch: vi.fn(),
+      refreshArticleMatchOptimization: vi.fn(),
+    }));
+
+    const { updatePostEditorialRecord } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [
+        createEditorArticleMatch({
+          policyStatus: "BLOCK",
+        }),
+      ],
+      status: "DRAFT",
+    });
+    const prisma = createPrismaStub({
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    await expect(
+      updatePostEditorialRecord(
+        {
+          action: "approve",
+          articleMatchId: "match_1",
+          postId: post.id,
+        },
+        {
+          actorId: "user_1",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({
+      status: "article_match_policy_blocked",
+    });
+  });
 });
 
 describe("manual reposts", () => {
@@ -568,6 +729,65 @@ describe("post image fallbacks", () => {
     expect(snapshot.featuredImage).toMatchObject({
       alt: "Story title",
       url: "https://cdn.example.com/source-story.jpg",
+    });
+  });
+
+  it("surfaces publish failures together with the latest audit trail in the editor snapshot", async () => {
+    const { getPostEditorSnapshot } = await import("./index");
+    const post = createEditorPost({
+      articleMatches: [
+        createEditorArticleMatch({
+          publishAttempts: [
+            {
+              completedAt: new Date("2026-04-01T10:15:00.000Z"),
+              createdAt: new Date("2026-04-01T10:05:00.000Z"),
+              diagnosticsJson: {
+                policyStatus: "PASS",
+              },
+              errorCode: "provider_payload_invalid",
+              errorMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
+              id: "attempt_1",
+              platform: "FACEBOOK",
+              publishedAt: null,
+              queuedAt: new Date("2026-04-01T10:00:00.000Z"),
+              retryCount: 1,
+              retryable: true,
+              status: "FAILED",
+            },
+          ],
+        }),
+      ],
+    });
+    const prisma = createPrismaStub({
+      auditEvent: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            action: "PUBLISH_ATTEMPT_FAILED",
+            actorId: "user_1",
+            createdAt: new Date("2026-04-01T10:16:00.000Z"),
+            entityId: "attempt_1",
+            entityType: "publish_attempt",
+            id: "audit_1",
+          },
+        ]),
+      },
+      post: {
+        findUnique: vi.fn().mockResolvedValue(post),
+      },
+    });
+
+    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+
+    expect(snapshot.post.articleMatches[0].publishAttempts[0]).toMatchObject({
+      errorCode: "provider_payload_invalid",
+      errorMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
+      retryable: true,
+      status: "FAILED",
+    });
+    expect(snapshot.auditEvents[0]).toMatchObject({
+      action: "PUBLISH_ATTEMPT_FAILED",
+      entityId: "attempt_1",
+      entityType: "publish_attempt",
     });
   });
 });

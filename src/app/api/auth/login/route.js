@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createLoginResponse } from "@/lib/auth/api";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const loginSchema = z.object({
   email: z.string().trim().email(),

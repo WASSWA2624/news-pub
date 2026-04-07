@@ -24,7 +24,7 @@ const PickerPanel = styled.div`
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.98)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 46%);
   border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: grid;
   gap: 0.7rem;
   padding: 0.82rem 0.88rem;
@@ -35,7 +35,7 @@ const PickerTrigger = styled.button`
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.98)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 46%);
   border: 1px solid rgba(16, 32, 51, 0.1);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -94,7 +94,7 @@ const TriggerChip = styled.span`
   align-items: center;
   background: rgba(36, 75, 115, 0.08);
   border: 1px solid rgba(36, 75, 115, 0.12);
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: #244b73;
   display: inline-flex;
   font-size: 0.72rem;
@@ -135,7 +135,7 @@ const SearchFieldWrap = styled.label`
   align-items: center;
   background: white;
   border: 1px solid rgba(16, 32, 51, 0.12);
-  border-radius: 12px;
+  border-radius: ${({ theme }) => theme.radius.md};
   box-shadow: 0 4px 12px rgba(16, 32, 51, 0.03);
   display: flex;
   gap: 0.48rem;
@@ -182,7 +182,7 @@ const ActionButton = styled(SecondaryButton)`
 const SearchableCheckboxList = styled.div`
   background: rgba(248, 251, 255, 0.86);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   max-height: min(48dvh, 28rem);
   overflow: auto;
   padding: 0.8rem;
@@ -205,7 +205,7 @@ const CheckboxChip = styled.label`
   align-items: center;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: #22344f;
   cursor: pointer;
   display: flex;

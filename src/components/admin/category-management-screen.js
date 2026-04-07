@@ -161,7 +161,7 @@ const BadgeRow = styled.div`
 const Pill = styled.span`
   background: ${({ $tone }) =>
     $tone === "accent" ? "rgba(201, 123, 42, 0.18)" : "rgba(0, 95, 115, 0.12)"};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 700;
@@ -178,7 +178,7 @@ const StatusBanner = styled.div`
 
   &::before {
     background: ${({ $tone, theme }) => ($tone === "success" ? theme.colors.success : theme.colors.danger)};
-    border-radius: 999px;
+    border-radius: ${({ theme }) => theme.radius.lg};
     content: "";
     inset: 0 auto 0 0;
     position: absolute;
@@ -189,7 +189,7 @@ const StatusBanner = styled.div`
 const SecondaryButton = styled.button`
   background: rgba(247, 249, 252, 0.96);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: ${({ theme }) => theme.colors.text};
   cursor: pointer;
   font: inherit;
@@ -285,7 +285,7 @@ const ButtonRow = styled.div`
 const SaveButton = styled.button`
   background: ${({ $tone, theme }) => ($tone === "danger" ? theme.colors.danger : theme.colors.primary)};
   border: none;
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: white;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   font: inherit;

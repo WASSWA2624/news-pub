@@ -36,7 +36,7 @@ const RuleBanner = styled.div`
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 52%),
     linear-gradient(180deg, rgba(247, 251, 255, 0.98), rgba(255, 255, 255, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: grid;
   gap: 0.7rem;
   padding: 0.85rem;
@@ -73,7 +73,7 @@ const RuleGrid = styled.div`
 const RuleCard = styled.div`
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: 12px;
+  border-radius: ${({ theme }) => theme.radius.md};
   display: grid;
   gap: 0.2rem;
   min-width: 0;
@@ -110,7 +110,7 @@ const TemplateCanvas = styled.div`
     linear-gradient(180deg, rgba(249, 252, 255, 0.98), rgba(255, 255, 255, 0.96)),
     radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 54%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: grid;
   gap: 0.75rem;
   padding: 0.85rem;
@@ -139,7 +139,7 @@ const TokenGrid = styled.div`
 const TokenCard = styled.div`
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: 12px;
+  border-radius: ${({ theme }) => theme.radius.md};
   display: grid;
   gap: 0.28rem;
   padding: 0.7rem;
@@ -167,7 +167,7 @@ const CheckboxPill = styled.label`
   align-items: center;
   background: rgba(16, 32, 51, 0.04);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: #22344f;
   cursor: pointer;
   display: inline-flex;

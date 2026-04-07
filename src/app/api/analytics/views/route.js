@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { captureViewEventSchema, recordViewEvent } from "@/lib/analytics";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 export async function POST(request) {
   const result = await validateJsonRequest(request, captureViewEventSchema);

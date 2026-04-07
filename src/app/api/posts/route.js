@@ -6,7 +6,7 @@ import { createManualPostRecord, getPostEditorSnapshot, getPostInventorySnapshot
 import { ensureAdminApiPermission, requireAdminApiPermission, requireAdminApiSession } from "@/lib/auth/api";
 import { createApiErrorResponse } from "@/lib/errors";
 import { ADMIN_PERMISSIONS, getRequiredPermissionsForPostUpdate } from "@/lib/auth/rbac";
-import { validateJsonRequest } from "@/lib/validation/api-placeholders";
+import { validateJsonRequest } from "@/lib/validation/api-request";
 
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";

@@ -1,74 +1,128 @@
-# NewsPub Comprehensive Upgrade Prompt
+# NewsPub Close-Out Prompt
 
-You are upgrading an existing **Next.js 16.2.2 + React 19.2.4 + Prisma 7.6.0 + MySQL/MariaDB + styled-components + Redux Toolkit + Zod** codebase named **NewsPub**.
+You are working in an already substantially upgraded **NewsPub** repository built with **Next.js 16.2.2 + React 19.2.4 + Prisma 7.6.0 + MySQL/MariaDB + styled-components + Redux Toolkit + Zod**.
 
-Work directly in the current repository and **update all required files** so the app becomes production-ready, visually uniform, responsive, robust, and fully connected end-to-end.
+This is **not** a greenfield upgrade. Do **not** rebuild architecture that already exists. Your job is to perform a **comprehensive close-out pass** that finds and fixes the remaining gaps between the current repository and the intended Release 1 scope.
 
-Do not produce a partial scaffold. Deliver a coherent implementation with updated code, schema, validation, UI, backend flows, tests, docs, and environment contract.
+Work directly in the current repo and make all required code, docs, schema, UI, test, and configuration updates so the repository becomes:
 
----
+- consistent
+- production-ready
+- visually uniform
+- fully verified
+- fully wired end to end
+- free of obvious legacy drift, placeholder naming, and dead references
 
-## 1. Repository context you must respect
-
-This repo already contains:
-
-- Next.js App Router app under `src/app`
-- public locale routes under `src/app/[locale]`
-- admin routes under `src/app/admin`
-- API routes under `src/app/api`
-- Prisma schema at `prisma/schema.prisma`
-- runtime env parsing in `src/lib/env/runtime.js`
-- Redux store in `src/store`
-- styled-components theme in `src/styles/theme.js`
-- global styles in `src/app/globals.js`
-- product write-up in `app-write-up.md`
-- implementation plan in `dev-plan/*`
-
-Important: the current write-up says Release 1 is **not** an AI writing product. Since this upgrade now requires an AI optimization layer, you must first **update the source-of-truth documentation and implementation plan** so the codebase, docs, and runtime behavior no longer conflict.
+Do not deliver a partial patch set. Deliver a coherent finish pass with evidence.
 
 ---
 
-## 2. Main outcome
+## 1. How to approach this repository
 
-Transform NewsPub into a **fully operational content ingestion, review, optimization, scheduling, and publishing platform** for:
+Treat the repository as **already partially implemented**.
 
-- **Website**
-- **Facebook**
-- **Instagram**
+Before changing code, first inspect the current repo and identify what is already present versus what is still missing. Then:
 
-The final system must be:
+1. preserve working architecture
+2. close the actual gaps
+3. remove inconsistency
+4. prove completion with tests and a requirement matrix
 
-- totally responsive across mobile, tablet, laptop, and large screens
-- visually uniform across admin and public surfaces
-- simple to use
-- robust under invalid input, missing media, bad provider payloads, failed publish attempts, and API rate limits
-- fully wired from UI to backend to database to publishing logic
-- optimized for low subscription and API usage
-- compliant-aware, especially for Facebook and Instagram posting safety
+Do not re-add architecture that already exists unless you are correcting or simplifying it.
 
 ---
 
-## 3. Non-negotiable architectural goals
+## 2. Current-state assumptions you must respect
 
-### 3.1 Keep the existing stack unless change is required
-Reuse the current architecture and existing modules where possible. Do not rebuild the project from scratch.
+Assume the repo already contains most or all of the following in some form:
 
-Preserve and strengthen:
+- NewsPub docs and dev plan
+- Prisma models and migrations for NewsPub
+- admin and public routes
+- API routes
+- AI optimization service code
+- publishing workflows
+- provider integration logic
+- media and SEO helpers
+- admin UI screens
+- tests
 
-- Next.js App Router
-- Prisma persistence
-- styled-components design system
-- Redux Toolkit admin state
-- Zod validation
-- existing public/admin route structure
-- existing SEO foundations
-- current provider/destination/stream workflow shape
+Your task is to verify these are real, consistent, complete, and aligned with the intended product behavior.
 
-### 3.2 Eliminate inconsistency
-Normalize the codebase so naming, module layout, patterns, validation, formatting, and error behavior are consistent throughout.
+---
 
-### 3.3 Full connectivity
-Ensure all relevant UI actions are backed by working server logic:
+## 3. Main goal
+
+Close the remaining gaps so the codebase fully satisfies the intended NewsPub Release 1 behavior for:
+
+- website publishing
+- Facebook publishing
+- Instagram publishing
+- ingestion
+- review
+- optimization
+- scheduling
+- retries
+- auditability
+- safety guardrails
+- responsive editorial UI
+
+---
+
+## 4. Highest-priority gaps you must close
+
+### 4.1 Visual inconsistency and rounded UI drift
+The repository still contains mixed radius values and pill/rounded treatments in many components.
+
+You must:
+
+- remove or normalize large radii across the app
+- use a sharp editorial dashboard language
+- standardize cards, badges, buttons, modals, chips, table containers, inputs, tabs, and empty states
+- ensure `src/styles/theme.js`, `src/app/globals.js`, and all consuming components agree
+- remove large-radius fallback tokens from global styles
+- eliminate mixed radius usage like `12px`, `14px`, `16px`, `18px`, `20px`, `999px` unless there is a strong functional reason and it is consistently documented
+
+This must apply across:
+
+- `src/components/admin/*`
+- `src/components/public/*`
+- `src/components/common/*`
+- `src/components/auth/*`
+- `src/components/forms/*`
+- `src/components/layout/*`
+- `src/app/admin/*`
+- public route surfaces
+
+### 4.2 Docs and repo-truth cleanup
+The repository documentation must match the real codebase exactly.
+
+You must:
+
+- update `README.md`
+- update `app-write-up.md`
+- update `dev-plan/00_plan_index.md`
+- update any outdated `dev-plan/*.md` files
+- remove references to missing documentation artifacts or create those artifacts if they are intended to exist
+- ensure the repo does not reference nonexistent `docs/*` files or folders
+- ensure all docs describe the app as bounded AI-assisted optimization, not open-ended AI generation
+- ensure docs reflect the current code and route structure
+
+### 4.3 End-to-end action verification
+Do not assume an admin action is complete just because the UI exists.
+
+For every relevant admin action, verify the actual full path:
+
+- UI trigger
+- form validation
+- API/server action
+- service/workflow call
+- database write
+- audit/log entry
+- status refresh in UI
+- failure state handling
+
+This must be verified for:
 
 - create/edit destination
 - create/edit stream
@@ -78,182 +132,140 @@ Ensure all relevant UI actions are backed by working server logic:
 - schedule post
 - publish post
 - retry failed publish
+- manual re-optimize
 - show exact failure reason
-- surface operational history and audit state
+- show publish history and audit state
 
-### 3.4 No rounded UI language
-Avoid or remove corner radii across the app. Use a clean, sharp, modern editorial dashboard look.
+If any action is only partially wired, finish it.
 
-- set radii to `0` or near-zero consistently
-- remove mixed rounded styles
-- unify borders, spacing, shadows, and hover states
+### 4.4 Naming cleanup and placeholder drift
+The repo still contains naming that suggests scaffolding or placeholders even where behavior is real.
 
----
+You must:
 
-## 4. Mandatory documentation updates
+- remove or rename misleading placeholder/scaffold module names
+- remove dead placeholder comments and legacy naming
+- ensure implementation standards are reflected in file names and exported symbols
+- avoid “placeholder”, “scaffold”, or similar names in production modules unless they are truly placeholder-only and not shipped
 
-Update these files so the repo’s documentation matches the new product behavior:
+### 4.5 Verification and acceptance proof
+Completion is not valid unless it is proven.
 
-- `README.md`
-- `app-write-up.md`
-- `dev-plan/00_plan_index.md`
-- any impacted `dev-plan/*.md` files
+You must run and fix until all relevant checks pass:
 
-Revise the product scope to support a **minimal AI-assisted optimization layer** while preserving source attribution and preventing factual invention.
+- lint
+- tests
+- route tests
+- workflow/service tests
+- validation tests
+- AI schema tests
+- publish flow tests
 
-The updated documentation must clearly state:
+If a test is missing for an implemented behavior, add it.
 
-- AI is used for **formatting, rewriting, SEO optimization, policy pre-checks, and destination-specific packaging**
-- AI must **not invent facts** or alter the factual meaning of provider content
-- source attribution remains visible and preserved
-- AI output is bounded, structured, validated, and auditable
-
----
-
-## 5. AI layer requirements
-
-Add an **AI SDK-based optimization layer** for filtered and eligible posts.
-
-### 5.1 Purpose of the AI layer
-The AI layer must process already filtered posts and produce platform-specific render payloads efficiently for:
-
-- Facebook
-- Website
-- Instagram
-
-The AI layer must operate **after ingestion/filtering/deduplication** and **before final publish or review approval**, depending on stream mode.
-
-### 5.2 AI constraints
-The AI must:
-
-- preserve the factual meaning of the original article
-- not invent names, claims, statistics, quotes, or events
-- not remove source attribution
-- not generate prohibited, sensationalized, deceptive, hateful, or unsafe content
-- degrade gracefully when AI is unavailable
-
-### 5.3 Usage-efficiency requirements
-Minimize model and subscription usage:
-
-- only optimize posts that pass eligibility rules
-- cache optimization results by deterministic content hash
-- never re-run optimization when source content and destination settings are unchanged
-- support cheap-first strategy with bounded prompt size
-- truncate and sanitize input before model submission
-- use structured output schemas
-- use one-pass generation where possible
-- support manual re-optimize only on demand
-- avoid generating variants that will never be published
-
-### 5.4 AI implementation expectations
-Add the required AI SDK dependency and implement a reusable optimization service layer under a suitable path, for example:
-
-- `src/lib/ai/*`
-- `src/features/posts/optimization/*`
-- `src/lib/content/*`
-
-Use strict schema validation for all AI outputs.
+You must also provide a requirement closure matrix at the end:
+`requirement -> files changed -> verification evidence`
 
 ---
 
-## 6. Platform-specific output rules
+## 5. Functional behavior that must remain correct
 
-### 6.1 Facebook output
-For each Facebook-ready post, generate:
+Do not regress already-present working behavior.
 
-1. **A rephrased bold title** of **maximum 10 words**
-2. **A rephrased, on-point body** in **20 to 100 words**
-3. **A photo**, if the source post contains one, using the supplied image link
+Preserve and verify:
 
-Formatting rules:
-
-- output must suit Facebook formatting
-- text must feel natural, readable, and concise
-- title and body must be suitable for feed posting
-- if bold-style formatting is represented textually, use the project’s selected formatting convention consistently
-- if no valid image exists, publish text-only safely
-
-Compliance rules:
-
-- run a pre-publish content safety review aligned with Facebook platform rules
-- block or hold content that appears deceptive, spammy, misleading, abusive, or otherwise risky
-- flag risky phrases, overuse of engagement bait, duplicate posting patterns, or suspicious formatting
-
-### 6.2 Website output
-For each website post, generate:
-
-1. **A hot rephrased title** with **fewer than 15 words**
-2. **A rephrased and optimized body** in **100 to 500 words**
-3. **A rendered image** from the supplied link when available
-
-SEO rules:
-
-- produce SEO-friendly title and meta description
-- preserve source attribution
-- improve readability with clear structure
-- optimize slug generation
-- support canonical metadata and structured data
-- avoid keyword stuffing
-
-### 6.3 Instagram output
-Create an Instagram-safe optimized caption and media preparation flow.
-
-Requirements:
-
-- concise, platform-appropriate caption
-- optional hashtags with strict cap and quality filter
-- avoid spam-like repetition
-- respect Instagram posting rate and duplication guardrails
-- if media is unsuitable for Instagram destination requirements, hold for review instead of posting blindly
+- canonical source-backed post model
+- AI optimization cache reuse by deterministic hash
+- bounded structured AI output
+- source attribution preservation
+- social safety guardrails
+- duplicate cooldown logic
+- retry idempotency
+- destination-aware policy checks
+- review-required and auto-publish stream modes
+- SEO metadata generation
+- media URL validation and graceful fallback handling
 
 ---
 
-## 7. Account-ban protection and platform safety
+## 6. AI layer close-out requirements
 
-For Facebook and Instagram, add protective measures to reduce the risk of account restriction or ban.
+The AI layer likely already exists. Do not replace it without cause.
 
-Implement guardrails such as:
+Instead, verify and tighten it:
 
-- rate limiting per destination
-- cooldown windows for repeated/similar content
-- duplicate content detection across recent publish history
-- ban-risk scoring before publish
-- blocklists for disallowed phrases and risky patterns
-- hashtag caps and deduplication
-- minimum time intervals between posts
-- media validation before publish
-- hold-for-review for borderline content
-- clear audit logs for why a post was blocked, held, retried, or published
+- strict output schema validation
+- deterministic cache key usage
+- no re-run when content/settings are unchanged
+- graceful fallback when AI fails or is disabled
+- preservation of factual meaning
+- source attribution preserved in downstream payloads
+- correct per-platform word limits and formatting
+- warnings and policy output stored and surfaced
+- bounded prompts and bounded source input size
+- manual re-optimize only when explicitly requested
 
-Do not claim guaranteed compliance or immunity from enforcement. Implement practical safeguards and transparent review states.
+Add or fix tests for:
+
+- cache hit reuse
+- fallback behavior
+- policy block/hold behavior
+- per-platform output bounds
+- invalid AI response rejection
 
 ---
 
-## 8. Robustness and error handling
+## 7. Platform output close-out requirements
 
-The system must have **full error catchment and decoding** across UI, API, services, jobs, providers, and publishing flows.
+### Website
+Verify and fix:
 
-### 8.1 Error handling requirements
-Implement:
+- headline under 15 words
+- body 100–500 words when source material allows
+- slug generation
+- meta title and meta description
+- canonical metadata
+- attribution block
+- image handling
+- structured data
 
-- centralized error normalization
-- typed/domain error classes where appropriate
-- safe decoding of provider/API failures
-- user-facing error messages that are clear but safe
-- developer-facing structured logs with enough detail for debugging
-- retryable vs non-retryable failure classification
-- full `try/catch` coverage for non-trivial async boundaries
-- no silent failures
+### Facebook
+Verify and fix:
 
-### 8.2 Required behavior
-Handle and surface failures for:
+- title max 10 words
+- body 20–100 words
+- valid text-only fallback when media fails
+- safe formatting convention
+- policy pre-checks
+- duplicate/cooldown enforcement
+- publish diagnostics surfaced in admin
+
+### Instagram
+Verify and fix:
+
+- concise caption
+- hashtag cap
+- no spammy duplication
+- media-readiness validation
+- hold-for-review when media is not suitable
+- cooldown and duplication guardrails
+
+Add tests proving these behaviors.
+
+---
+
+## 8. Error handling close-out requirements
+
+Do not just have generic `try/catch`. Ensure consistent behavior.
+
+You must verify and normalize handling for:
 
 - missing env variables
 - invalid credentials
 - provider API failures
 - malformed provider payloads
 - image fetch failures
-- AI optimization failures
+- AI failures
 - validation failures
 - DB write failures
 - publish API failures
@@ -261,252 +273,36 @@ Handle and surface failures for:
 - revalidation failures
 - auth/session failures
 
-### 8.3 Error UI
-Add consistent error, empty, loading, retry, and success states across admin and public interfaces.
-
----
-
-## 9. Responsiveness and UI uniformity
-
-Refine the entire UI for consistency and quality.
-
-### 9.1 Visual direction
-Use a clean, modern, editorial operations style:
-
-- sharp edges, little to no radius
-- consistent border system
-- consistent spacing scale
-- consistent typography hierarchy
-- consistent button/input/table/card treatment
-- accessible contrast
-- predictable focus states
-
-### 9.2 Responsiveness
-Make every major screen work cleanly on:
-
-- small mobile
-- large mobile
-- tablet
-- laptop
-- desktop
-- ultra-wide
-
-### 9.3 Required UI review areas
-Review and improve:
-
-- app shell
-- admin navigation
-- data tables
-- forms
-- review queue
-- post detail/editor pages
-- destination and stream configuration screens
-- public news pages
-- story pages
-- search and category pages
-- media displays
-
-### 9.4 Remove design drift
-Refactor any mixed or legacy UI patterns so the app feels like one product.
-
----
-
-## 10. Backend and workflow completeness
-
-Make sure the whole content pipeline is fully operational.
-
-### 10.1 End-to-end flow
-The final flow must reliably support:
-
-1. fetch provider data
-2. normalize provider payload
-3. filter by stream rules
-4. deduplicate
-5. persist eligible article
-6. build canonical post artifact
-7. optimize for destination using AI layer
-8. review or auto-publish based on stream mode
-9. publish to website/Facebook/Instagram
-10. store publish attempts and responses
-11. expose status in admin UI
-
-### 10.2 Canonical content model
-Keep one canonical source-backed post record, then derive destination-specific optimized payloads from it.
-
-### 10.3 Review flow
-Add a clear review workflow with statuses such as:
-
-- ingested
-- optimized
-- held
-- review required
-- approved
-- scheduled
-- published
-- failed
-
-### 10.4 Retry behavior
-Retries must be:
-
-- idempotent
-- bounded
-- auditable
-- platform-aware
-
----
-
-## 11. Data model and persistence updates
-
-Update `prisma/schema.prisma`, migrations, seed logic, and any affected data-access code as needed.
-
-Add or extend fields/models required for:
-
-- AI optimization state
-- per-platform optimized payloads
-- compliance review state
-- ban-risk or policy-check results
-- content hashes for cache reuse
-- prompt/input hash or optimization hash
-- destination-specific publish guardrails
-- richer publish attempt diagnostics
-- post review decisions
-
-If existing models already fit, extend them instead of creating unnecessary parallel models.
-
-Also update:
-
-- `prisma/seed.js`
-- migration files
-- any Prisma access helpers under `src/lib/prisma/*`
-
----
-
-## 12. Environment and secrets
-
-Update environment parsing and docs.
-
-Required file updates include:
-
-- `.env.example`
-- `src/lib/env/runtime.js`
-- `src/lib/env/server.js`
-- `src/lib/env/shared.js`
-- tests covering env parsing
-
-Add only the env keys actually needed for the AI layer and new safety controls.
-
 Requirements:
 
-- fail fast on missing critical config
-- validate all new env values with Zod
+- centralized error normalization
+- retryable vs non-retryable classification
+- safe user-facing messages
+- structured developer-facing diagnostics
+- no silent failure paths
+- consistent admin empty/loading/error/success states
+
+---
+
+## 9. Environment and repo hygiene
+
+You must:
+
+- validate env parsing with Zod
+- ensure only required env keys exist
 - keep secrets server-side only
-- keep platform safety thresholds configurable
+- update `.env.example`
+- update env tests
+- remove unsafe repo artifacts from source control expectations
+- ensure `.env.local` or similar sensitive local files are not treated as committed project deliverables
 
 ---
 
-## 13. SEO and website quality
+## 10. Required files/areas to inspect and update
 
-Improve website publishing quality with:
+You are expected to inspect and update all affected areas, including where needed:
 
-- SEO-friendly titles and metadata
-- structured data where appropriate
-- canonical URLs
-- better slug creation
-- better image metadata handling
-- consistent article layout
-- source attribution block
-- internal linking opportunities where reasonable
-
-Review and update relevant files under:
-
-- `src/app/[locale]/*`
-- `src/lib/seo/*`
-- `src/components/seo/*`
-- `src/features/public-site/*`
-
----
-
-## 14. Media handling
-
-Media must be robust and platform-aware.
-
-Requirements:
-
-- validate remote image URLs before use
-- gracefully handle missing/broken images
-- preserve attribution where required
-- generate responsive variants where needed
-- only pass valid renderable media links to platform formatters
-- do not let broken media crash publishing jobs
-
-Review and update relevant files under:
-
-- `src/lib/media/*`
-- `src/lib/storage/*`
-- `src/features/media/*`
-- `src/components/public/*`
-- `src/components/admin/*`
-
----
-
-## 15. Simplicity of use
-
-Add value without making the app harder to use.
-
-Required product qualities:
-
-- fewer clicks for common tasks
-- clearer labels and helper text
-- better defaults
-- visible validation hints
-- compact, readable admin screens
-- straightforward publish/review actions
-- clean status badges and timeline/history views
-
-Add simple high-value features only, for example:
-
-- optimization preview before publish
-- side-by-side canonical vs platform preview
-- policy warning badges
-- one-click retry for retryable failures
-- schedule recommendations
-- usage-saving indicators showing cached optimization reuse
-- per-platform readiness checklist
-
-Do not add bloated or distracting features.
-
----
-
-## 16. Subscription and API cost optimization
-
-Optimize the app to minimize subscription usage while maximizing useful output.
-
-Implement strategies such as:
-
-- optimization only after filter pass
-- strict content hashing and result reuse
-- avoid duplicate AI calls
-- skip unnecessary image processing
-- bounded retries
-- low-token prompts
-- selective field extraction from source articles
-- batched background operations where safe
-- cached policy checks for unchanged content
-- post frequency controls to avoid waste and spam
-
-Also expose enough metrics to understand:
-
-- how many AI runs were skipped due to cache reuse
-- how many posts were blocked before costly publish attempts
-- success/failure rates by destination
-
----
-
-## 17. Required code areas to review and update
-
-Do not limit changes to one or two files. Update all affected files across the repo, including where necessary:
-
-### Core docs and config
+### Docs and config
 - `README.md`
 - `app-write-up.md`
 - `dev-plan/*`
@@ -514,10 +310,11 @@ Do not limit changes to one or two files. Update all affected files across the r
 - `next.config.mjs`
 - `eslint.config.mjs`
 
-### Database
+### Database and persistence
 - `prisma/schema.prisma`
+- `prisma/migrations/*`
 - `prisma/seed.js`
-- migration files
+- `src/lib/prisma/*`
 
 ### Environment
 - `.env.example`
@@ -526,18 +323,24 @@ Do not limit changes to one or two files. Update all affected files across the r
 - `src/lib/env/shared.js`
 - env tests
 
-### Global styling and theme
-- `src/styles/theme.js`
-- `src/app/globals.js`
-- shared layout and shell components
-
-### App routes
+### App and routes
 - `src/app/layout.js`
 - `src/app/[locale]/*`
 - `src/app/admin/*`
 - `src/app/api/*`
 
-### Features and services
+### Libraries and workflows
+- `src/lib/ai/*`
+- `src/lib/content/*`
+- `src/lib/news/*`
+- `src/lib/normalization/*`
+- `src/lib/validation/*`
+- `src/lib/security/*`
+- `src/lib/seo/*`
+- `src/lib/media/*`
+- `src/lib/storage/*`
+
+### Features
 - `src/features/posts/*`
 - `src/features/public-site/*`
 - `src/features/providers/*`
@@ -548,24 +351,16 @@ Do not limit changes to one or two files. Update all affected files across the r
 - `src/features/seo/*`
 - `src/features/auth/*`
 
-### Libraries
-- `src/lib/content/*`
-- `src/lib/news/*`
-- `src/lib/normalization/*`
-- `src/lib/validation/*`
-- `src/lib/security/*`
-- `src/lib/seo/*`
-- `src/lib/media/*`
-- `src/lib/storage/*`
-- add new AI service modules under a clean location such as `src/lib/ai/*`
-
-### UI components
+### UI
+- `src/styles/theme.js`
+- `src/app/globals.js`
 - `src/components/admin/*`
 - `src/components/public/*`
 - `src/components/common/*`
 - `src/components/forms/*`
 - `src/components/layout/*`
 - `src/components/seo/*`
+- `src/components/auth/*`
 
 ### State and tests
 - `src/store/*`
@@ -573,68 +368,51 @@ Do not limit changes to one or two files. Update all affected files across the r
 - route tests
 - service tests
 - validation tests
+- AI tests
 - publish flow tests
-- AI output schema tests
 
 ---
 
-## 18. Implementation standards
-
-Follow these standards everywhere:
-
-- add or update JSDoc on non-trivial files and exports
-- use consistent naming
-- keep modules focused
-- avoid dead code and parallel legacy code paths
-- no placeholder TODO logic left behind
-- no mock-only implementation pretending to be production-ready
-- keep behavior deterministic where possible
-- use schema validation at external boundaries
-- keep server/client separation clean
-
----
-
-## 19. Acceptance criteria
+## 11. Hard acceptance criteria
 
 The work is complete only when all of the following are true:
 
-1. the docs and codebase no longer conflict about AI usage
-2. the app is fully responsive and visually uniform
-3. rounded corners are removed or consistently minimized
-4. UI actions are actually connected to backend behavior
-5. provider, optimization, and publish failures are fully caught and surfaced
-6. Facebook/Instagram safety guardrails are implemented
-7. per-platform optimized outputs follow the required word limits and formatting rules
-8. website output is SEO-aware
-9. image handling is resilient
-10. subscription/API usage is reduced through caching and selective processing
-11. Prisma schema, env parsing, routes, services, and UI are aligned
-12. tests are updated and passing
-13. linting passes
-14. no obvious dead routes, dead state, or broken flows remain
+1. no docs reference missing repo artifacts
+2. docs and runtime behavior are aligned
+3. rounded corner drift is eliminated and the UI is visually uniform
+4. all major admin actions are truly wired end to end
+5. AI optimization is verified, cached, bounded, and tested
+6. website/Facebook/Instagram output rules are enforced and tested
+7. social safety guardrails are enforced and tested
+8. error handling is normalized across routes, services, workflows, and UI
+9. env parsing, schema, services, routes, and UI are aligned
+10. no misleading placeholder/scaffold naming remains in production modules
+11. lint passes
+12. tests pass
+13. no obvious dead references, dead routes, or broken flows remain
 
 ---
 
-## 20. Final deliverables expected from the implementation
+## 12. Required final report
 
-Deliver all necessary code and file updates, including:
+At the end, provide:
 
-- updated docs
-- updated schema and migrations
-- updated env contract
-- updated UI and styling
-- updated admin/public flows
-- AI optimization service
-- platform formatter and policy-check logic
-- full error handling improvements
-- tests
+### A. Gap summary
+List each gap you found and how it was closed.
 
-At the end, provide a concise change summary listing:
-
+### B. Requirement closure matrix
+For each important requirement, provide:
+- requirement
 - files changed
-- major architectural decisions
-- new environment variables
-- migration notes
-- testing performed
-- remaining risks or manual setup steps
+- tests/evidence
 
+### C. Verification report
+List:
+- commands run
+- lint result
+- test result
+- migration result
+- any manual verification notes
+
+### D. Risks/manual setup
+List only real remaining risks or manual setup steps.

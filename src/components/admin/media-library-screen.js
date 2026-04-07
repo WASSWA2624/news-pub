@@ -125,7 +125,7 @@ const StatusBanner = styled.div`
 
   &::before {
     background: ${({ $tone, theme }) => ($tone === "success" ? theme.colors.success : theme.colors.danger)};
-    border-radius: 999px;
+    border-radius: ${({ theme }) => theme.radius.lg};
     content: "";
     inset: 0 auto 0 0;
     position: absolute;
@@ -187,7 +187,7 @@ const Input = styled.input`
   &::file-selector-button {
     background: linear-gradient(180deg, #244b73, #1c3a59);
     border: none;
-    border-radius: 999px;
+    border-radius: ${({ theme }) => theme.radius.lg};
     color: white;
     cursor: pointer;
     font: inherit;
@@ -243,7 +243,7 @@ const ButtonRow = styled.div`
 const PrimaryButton = styled.button`
   background: ${({ theme }) => theme.colors.primary};
   border: none;
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: white;
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   font: inherit;
@@ -255,7 +255,7 @@ const PrimaryButton = styled.button`
 const SecondaryButton = styled.button`
   background: rgba(247, 249, 252, 0.96);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   color: ${({ theme }) => theme.colors.text};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   font: inherit;
@@ -342,7 +342,7 @@ const Pill = styled.span`
       : $tone === "success"
         ? "rgba(21, 115, 71, 0.14)"
         : "rgba(0, 95, 115, 0.12)"};
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 600;
