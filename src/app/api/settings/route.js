@@ -1,20 +1,18 @@
-import { NextResponse } from "next/server";
-
 import { getSettingsSnapshot } from "@/features/settings";
-import { requireAdminApiPermission } from "@/lib/auth/api";
+import { handleAdminGet } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
+/**
+ * Returns the environment-backed settings snapshot shown in admin settings.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The settings snapshot response.
+ */
 export async function GET(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_SETTINGS);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const snapshot = await getSettingsSnapshot();
-
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+  return handleAdminGet(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_SETTINGS,
+    async () => getSettingsSnapshot(),
+    "Unable to load settings.",
+  );
 }

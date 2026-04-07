@@ -1,20 +1,18 @@
-import { NextResponse } from "next/server";
-
 import { getSeoManagementSnapshot } from "@/features/seo";
-import { requireAdminApiPermission } from "@/lib/auth/api";
+import { handleAdminGet } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
+/**
+ * Returns the SEO configuration snapshot shown in the admin workspace.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The SEO snapshot response.
+ */
 export async function GET(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_SEO);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const snapshot = await getSeoManagementSnapshot();
-
-  return NextResponse.json({
-    data: snapshot,
-    success: true,
-  });
+  return handleAdminGet(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_SEO,
+    async () => getSeoManagementSnapshot(),
+    "Unable to load SEO settings.",
+  );
 }

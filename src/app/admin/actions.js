@@ -1,8 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-
 import { deleteCategoryRecord, saveCategoryRecord } from "@/features/categories";
 import { deleteDestinationRecord, saveDestinationRecord } from "@/features/destinations";
 import { uploadMediaAsset } from "@/features/media";
@@ -11,118 +8,65 @@ import { getSettingsSnapshot } from "@/features/settings";
 import { saveProviderRecord } from "@/features/providers";
 import { createManualPostRecord, repostPostRecord, updatePostEditorialRecord } from "@/features/posts";
 import { deleteStreamRecord, saveStreamRecord } from "@/features/streams";
-import { requireAdminPageSession } from "@/lib/auth";
 import {
-  MULTI_VALUE_EMPTY_SENTINEL,
-  sanitizeProviderFieldValues,
-} from "@/lib/news/provider-definitions";
+  getActionActorId,
+  getFormBoolean,
+  parseJsonFormField,
+  parseRepeatedFormField,
+  parseScopedFormFields,
+  redirectWithActionError,
+  redirectWithRevalidation,
+  trimFormValue,
+} from "@/lib/admin/action-utils";
+import { requireAdminPageSession } from "@/lib/auth";
+import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
 import { retryPublishAttempt, runScheduledStreams, runStreamFetch } from "@/lib/news/workflows";
 
-function trimText(value) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function getBoolean(formData, key) {
-  return formData.get(key) === "on";
-}
-
-function parseJsonField(formData, key, fallbackValue = {}) {
-  const rawValue = trimText(formData.get(key));
-
-  if (!rawValue) {
-    return fallbackValue;
-  }
-
-  try {
-    return JSON.parse(rawValue);
-  } catch {
-    return fallbackValue;
-  }
-}
-
-function parseRepeatedField(formData, key) {
-  return formData
-    .getAll(key)
-    .map((value) => trimText(value))
-    .filter((value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL);
-}
-
-function parseScopedFields(formData, prefix) {
-  const groupedEntries = new Map();
-
-  for (const [rawKey, rawValue] of formData.entries()) {
-    if (!rawKey.startsWith(prefix)) {
-      continue;
-    }
-
-    const key = trimText(rawKey.slice(prefix.length));
-    const value = trimText(rawValue);
-
-    if (!key) {
-      continue;
-    }
-
-    if (!groupedEntries.has(key)) {
-      groupedEntries.set(key, []);
-    }
-
-    groupedEntries.get(key).push(value);
-  }
-
-  return [...groupedEntries.entries()].reduce((result, [key, values]) => {
-    const hadSentinel = values.includes(MULTI_VALUE_EMPTY_SENTINEL);
-    const cleanedValues = values.filter(
-      (value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL,
-    );
-
-    result[key] = values.length > 1 || hadSentinel ? cleanedValues : cleanedValues[0] || "";
-
-    return result;
-  }, {});
-}
-
-function redirectToPath(pathname) {
-  revalidatePath(pathname);
-  redirect(pathname);
-}
-
-function getActorId(auth) {
-  return auth?.user?.id || null;
-}
-
+/**
+ * Saves a provider definition from the admin providers form.
+ *
+ * @param {FormData} formData - Submitted provider form data.
+ * @returns {Promise<never>} Always redirects back to the providers workspace.
+ */
 export async function saveProviderAction(formData) {
   const auth = await requireAdminPageSession("/admin/providers");
-  const providerKey = trimText(formData.get("providerKey")).toLowerCase();
+  const providerKey = trimFormValue(formData.get("providerKey")).toLowerCase();
 
   await saveProviderRecord(
     {
       baseUrl: formData.get("baseUrl"),
       description: formData.get("description"),
-      isDefault: getBoolean(formData, "isDefault"),
-      isEnabled: getBoolean(formData, "isEnabled"),
-      isSelectable: getBoolean(formData, "isSelectable"),
+      isDefault: getFormBoolean(formData, "isDefault"),
+      isEnabled: getFormBoolean(formData, "isEnabled"),
+      isSelectable: getFormBoolean(formData, "isSelectable"),
       label: formData.get("label"),
       providerKey,
       requestDefaultsJson: sanitizeProviderFieldValues(
         providerKey,
-        parseScopedFields(formData, "requestDefault."),
+        parseScopedFormFields(formData, "requestDefault."),
       ),
     },
     {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     },
   );
 
-  redirectToPath("/admin/providers");
+  redirectWithRevalidation("/admin/providers");
 }
 
+/**
+ * Saves a destination definition from the admin destinations form.
+ *
+ * @param {FormData} formData - Submitted destination form data.
+ * @returns {Promise<never>} Always redirects back to the destinations workspace.
+ */
 export async function saveDestinationAction(formData) {
   const auth = await requireAdminPageSession("/admin/destinations");
 
   await saveDestinationRecord(
     {
       accountHandle: formData.get("accountHandle"),
-      clearToken: getBoolean(formData, "clearToken"),
+      clearToken: getFormBoolean(formData, "clearToken"),
       connectionError: formData.get("connectionError"),
       connectionStatus: formData.get("connectionStatus"),
       externalAccountId: formData.get("externalAccountId"),
@@ -143,41 +87,47 @@ export async function saveDestinationAction(formData) {
         instagramMaxPostsPer24Hours: formData.get("socialGuardrail.instagramMaxPostsPer24Hours"),
         minPostIntervalMinutes: formData.get("socialGuardrail.minPostIntervalMinutes"),
       },
-      settingsJson: parseJsonField(formData, "settingsJson", {}),
+      settingsJson: parseJsonFormField(formData, "settingsJson", {}),
       slug: formData.get("slug"),
       token: formData.get("token"),
     },
     {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     },
   );
 
-  redirectToPath("/admin/destinations");
+  redirectWithRevalidation("/admin/destinations");
 }
 
+/**
+ * Deletes a destination and returns the admin UI to the destinations workspace.
+ *
+ * @param {FormData} formData - Submitted destination delete payload.
+ * @returns {Promise<never>} Always redirects after completion.
+ */
 export async function deleteDestinationAction(formData) {
   const auth = await requireAdminPageSession("/admin/destinations");
-  const destinationId = trimText(formData.get("id"));
+  const destinationId = trimFormValue(formData.get("id"));
 
   try {
     if (destinationId) {
       await deleteDestinationRecord(destinationId, {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
       });
     }
   } catch (error) {
-    const message =
-      error instanceof Error && trimText(error.message)
-        ? trimText(error.message)
-        : "Destination deletion failed.";
-
-    revalidatePath("/admin/destinations");
-    redirect(`/admin/destinations?error=${encodeURIComponent(message)}`);
+    redirectWithActionError("/admin/destinations", error, "Destination deletion failed.");
   }
 
-  redirectToPath("/admin/destinations");
+  redirectWithRevalidation("/admin/destinations");
 }
 
+/**
+ * Saves a publishing stream from the admin streams form.
+ *
+ * @param {FormData} formData - Submitted stream form data.
+ * @returns {Promise<never>} Always redirects back to the streams workspace.
+ */
 export async function saveStreamAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
 
@@ -185,22 +135,22 @@ export async function saveStreamAction(formData) {
     await saveStreamRecord(
       {
         activeProviderId: formData.get("activeProviderId"),
-        categoryIds: parseRepeatedField(formData, "categoryIds"),
-        countryAllowlistJson: parseRepeatedField(formData, "countryAllowlistJson"),
+        categoryIds: parseRepeatedFormField(formData, "categoryIds"),
+        countryAllowlistJson: parseRepeatedFormField(formData, "countryAllowlistJson"),
         defaultTemplateId: formData.get("defaultTemplateId"),
         description: formData.get("description"),
         destinationId: formData.get("destinationId"),
         duplicateWindowHours: formData.get("duplicateWindowHours"),
         excludeKeywordsJson: formData.get("excludeKeywordsJson"),
         includeKeywordsJson: formData.get("includeKeywordsJson"),
-        languageAllowlistJson: parseRepeatedField(formData, "languageAllowlistJson"),
+        languageAllowlistJson: parseRepeatedFormField(formData, "languageAllowlistJson"),
         locale: formData.get("locale"),
         maxPostsPerRun: formData.get("maxPostsPerRun"),
         mode: formData.get("mode"),
         name: formData.get("name"),
         postLinkPlacement: formData.get("postLinkPlacement"),
         postLinkUrl: formData.get("postLinkUrl"),
-        providerFilters: parseScopedFields(formData, "providerFilter."),
+        providerFilters: parseScopedFormFields(formData, "providerFilter."),
         retryBackoffMinutes: formData.get("retryBackoffMinutes"),
         retryLimit: formData.get("retryLimit"),
         scheduleIntervalMinutes: formData.get("scheduleIntervalMinutes"),
@@ -209,104 +159,128 @@ export async function saveStreamAction(formData) {
         timezone: formData.get("timezone"),
       },
       {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
       },
     );
   } catch (error) {
-    const message =
-      error instanceof Error && trimText(error.message)
-        ? trimText(error.message)
-        : "Stream save failed.";
-
-    revalidatePath("/admin/streams");
-    redirect(`/admin/streams?error=${encodeURIComponent(message)}`);
+    redirectWithActionError("/admin/streams", error, "Stream save failed.");
   }
 
-  redirectToPath("/admin/streams");
+  redirectWithRevalidation("/admin/streams");
 }
 
+/**
+ * Deletes a publishing stream from the admin workspace.
+ *
+ * @param {FormData} formData - Submitted stream delete payload.
+ * @returns {Promise<never>} Always redirects after completion.
+ */
 export async function deleteStreamAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
-  const streamId = trimText(formData.get("id"));
+  const streamId = trimFormValue(formData.get("id"));
 
   try {
     if (streamId) {
       await deleteStreamRecord(streamId, {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
       });
     }
   } catch (error) {
-    const message =
-      error instanceof Error && trimText(error.message)
-        ? trimText(error.message)
-        : "Stream deletion failed.";
-
-    revalidatePath("/admin/streams");
-    redirect(`/admin/streams?error=${encodeURIComponent(message)}`);
+    redirectWithActionError("/admin/streams", error, "Stream deletion failed.");
   }
 
-  redirectToPath("/admin/streams");
+  redirectWithRevalidation("/admin/streams");
 }
 
+/**
+ * Runs a single publishing stream immediately from the admin workspace.
+ *
+ * @param {FormData} formData - Submitted run-now form data.
+ * @returns {Promise<never>} Always redirects back to the streams workspace.
+ */
 export async function runStreamNowAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
-  const streamId = trimText(formData.get("streamId"));
+  const streamId = trimFormValue(formData.get("streamId"));
 
   if (streamId) {
     await runStreamFetch(
       streamId,
       {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
         triggerType: "manual",
       },
     );
   }
 
-  redirectToPath("/admin/streams");
+  redirectWithRevalidation("/admin/streams");
 }
 
+/**
+ * Runs the currently selected publishing streams from the admin workspace.
+ *
+ * @param {FormData} formData - Submitted batch run payload.
+ * @returns {Promise<never>} Always redirects back to the streams workspace.
+ */
 export async function runSelectedStreamsAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
-  const streamIds = parseRepeatedField(formData, "streamIds");
+  const streamIds = parseRepeatedFormField(formData, "streamIds");
 
   for (const streamId of streamIds) {
     await runStreamFetch(
       streamId,
       {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
         triggerType: "manual",
       },
     );
   }
 
-  redirectToPath("/admin/streams");
+  redirectWithRevalidation("/admin/streams");
 }
 
+/**
+ * Runs the scheduler pass manually from the admin dashboard.
+ *
+ * @returns {Promise<never>} Always redirects back to the dashboard.
+ */
 export async function runSchedulerAction() {
   await requireAdminPageSession("/admin");
   await runScheduledStreams();
-  redirectToPath("/admin");
+  redirectWithRevalidation("/admin");
 }
 
+/**
+ * Retries a failed publish attempt from the jobs screen.
+ *
+ * @param {FormData} formData - Submitted retry payload.
+ * @returns {Promise<never>} Always redirects back to the chosen return path.
+ */
 export async function retryPublishAttemptAction(formData) {
   const auth = await requireAdminPageSession("/admin/jobs");
-  const attemptId = trimText(formData.get("attemptId"));
-  const returnTo = trimText(formData.get("returnTo")) || "/admin/jobs";
+  const attemptId = trimFormValue(formData.get("attemptId"));
+  const returnTo = trimFormValue(formData.get("returnTo")) || "/admin/jobs";
 
   if (attemptId) {
     await retryPublishAttempt(attemptId, {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     });
   }
 
-  redirectToPath(returnTo);
+  redirectWithRevalidation(returnTo);
 }
 
+/**
+ * Reposts a published story from the editorial workspace.
+ *
+ * @param {FormData} formData - Submitted repost payload.
+ * @returns {Promise<never>} Always redirects back to the chosen return path.
+ */
 export async function repostPostAction(formData) {
   const auth = await requireAdminPageSession("/admin");
-  const postId = trimText(formData.get("postId"));
-  const articleMatchId = trimText(formData.get("articleMatchId")) || null;
-  const returnTo = trimText(formData.get("returnTo")) || (postId ? `/admin/posts/${postId}` : "/admin/posts");
+  const postId = trimFormValue(formData.get("postId"));
+  const articleMatchId = trimFormValue(formData.get("articleMatchId")) || null;
+  const returnTo =
+    trimFormValue(formData.get("returnTo")) || (postId ? `/admin/posts/${postId}` : "/admin/posts");
 
   if (postId) {
     await repostPostRecord(
@@ -315,55 +289,73 @@ export async function repostPostAction(formData) {
         postId,
       },
       {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
       },
     );
   }
 
-  redirectToPath(returnTo);
+  redirectWithRevalidation(returnTo);
 }
 
+/**
+ * Saves a category from the admin categories form.
+ *
+ * @param {FormData} formData - Submitted category form data.
+ * @returns {Promise<never>} Always redirects back to categories.
+ */
 export async function saveCategoryAction(formData) {
   const auth = await requireAdminPageSession("/admin/categories");
 
   await saveCategoryRecord(
     {
       description: formData.get("description"),
-      id: trimText(formData.get("id")) || undefined,
+      id: trimFormValue(formData.get("id")) || undefined,
       name: formData.get("name"),
       slug: formData.get("slug"),
     },
     {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     },
   );
 
-  redirectToPath("/admin/categories");
+  redirectWithRevalidation("/admin/categories");
 }
 
+/**
+ * Deletes a category from the admin categories workspace.
+ *
+ * @param {FormData} formData - Submitted category delete payload.
+ * @returns {Promise<never>} Always redirects back to categories.
+ */
 export async function deleteCategoryAction(formData) {
   const auth = await requireAdminPageSession("/admin/categories");
-  const categoryId = trimText(formData.get("id"));
+  const categoryId = trimFormValue(formData.get("id"));
 
   if (categoryId) {
     await deleteCategoryRecord(categoryId, {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     });
   }
 
-  redirectToPath("/admin/categories");
+  redirectWithRevalidation("/admin/categories");
 }
 
+/**
+ * Saves a template from the admin templates form.
+ *
+ * @param {FormData} formData - Submitted template form data.
+ * @returns {Promise<never>} Always redirects back to templates.
+ */
 export async function saveTemplateAction(formData) {
   const auth = await requireAdminPageSession("/admin/templates");
 
   await saveTemplateRecord(
     {
       bodyTemplate: formData.get("bodyTemplate"),
-      categoryId: trimText(formData.get("categoryId")) || null,
+      categoryId: trimFormValue(formData.get("categoryId")) || null,
       hashtagsTemplate: formData.get("hashtagsTemplate"),
-      id: trimText(formData.get("id")) || undefined,
-      isDefault: getBoolean(formData, "isDefault"),
+      id: trimFormValue(formData.get("id")) || undefined,
+      isDefault: getFormBoolean(formData, "isDefault"),
       locale: formData.get("locale"),
       name: formData.get("name"),
       platform: formData.get("platform"),
@@ -371,20 +363,26 @@ export async function saveTemplateAction(formData) {
       titleTemplate: formData.get("titleTemplate"),
     },
     {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     },
   );
 
-  redirectToPath("/admin/templates");
+  redirectWithRevalidation("/admin/templates");
 }
 
+/**
+ * Creates a manual post from the admin editor launch form.
+ *
+ * @param {FormData} formData - Submitted manual post form data.
+ * @returns {Promise<never>} Always redirects to the newly created editor route.
+ */
 export async function createManualPostAction(formData) {
   const auth = await requireAdminPageSession("/admin/posts/new");
-  const intent = trimText(formData.get("intent")).toLowerCase();
+  const intent = trimFormValue(formData.get("intent")).toLowerCase();
   const record = await createManualPostRecord(
     {
       action: intent,
-      categoryIds: formData.getAll("categoryIds").map((value) => trimText(value)),
+      categoryIds: formData.getAll("categoryIds").map((value) => trimFormValue(value)),
       contentMd: formData.get("contentMd"),
       publishAt: formData.get("publishAt"),
       slug: formData.get("slug"),
@@ -401,22 +399,28 @@ export async function createManualPostAction(formData) {
       title: formData.get("title"),
     },
     {
-      actorId: getActorId(auth),
+      actorId: getActionActorId(auth),
     },
   );
 
-  redirectToPath(`/admin/posts/${record.postId}`);
+  redirectWithRevalidation(`/admin/posts/${record.postId}`);
 }
 
+/**
+ * Saves editorial changes for an existing post editor session.
+ *
+ * @param {FormData} formData - Submitted editorial form data.
+ * @returns {Promise<never>} Always redirects back to the post editor.
+ */
 export async function updatePostEditorAction(formData) {
   await requireAdminPageSession("/admin/posts");
-  const intent = trimText(formData.get("intent")).toLowerCase();
-  const postId = trimText(formData.get("postId"));
+  const intent = trimFormValue(formData.get("intent")).toLowerCase();
+  const postId = trimFormValue(formData.get("postId"));
 
   await updatePostEditorialRecord({
     action: intent,
-    articleMatchId: trimText(formData.get("articleMatchId")) || null,
-    categoryIds: formData.getAll("categoryIds").map((value) => trimText(value)),
+    articleMatchId: trimFormValue(formData.get("articleMatchId")) || null,
+    categoryIds: formData.getAll("categoryIds").map((value) => trimFormValue(value)),
     contentMd: formData.get("contentMd"),
     editorialStage: formData.get("editorialStage"),
     locale: formData.get("locale"),
@@ -435,9 +439,15 @@ export async function updatePostEditorAction(formData) {
     title: formData.get("title"),
   });
 
-  redirectToPath(`/admin/posts/${postId}`);
+  redirectWithRevalidation(`/admin/posts/${postId}`);
 }
 
+/**
+ * Uploads a media asset from the admin media library form.
+ *
+ * @param {FormData} formData - Submitted media upload form data.
+ * @returns {Promise<never>} Always redirects back to the media library.
+ */
 export async function uploadMediaAction(formData) {
   const auth = await requireAdminPageSession("/admin/media");
   const file = formData.get("file");
@@ -454,16 +464,21 @@ export async function uploadMediaAction(formData) {
         sourceUrl: formData.get("sourceUrl"),
       },
       {
-        actorId: getActorId(auth),
+        actorId: getActionActorId(auth),
       },
     );
   }
 
-  redirectToPath("/admin/media");
+  redirectWithRevalidation("/admin/media");
 }
 
+/**
+ * Refreshes the settings snapshot and returns to the admin settings workspace.
+ *
+ * @returns {Promise<never>} Always redirects back to settings.
+ */
 export async function refreshSettingsAction() {
   await requireAdminPageSession("/admin/settings");
   await getSettingsSnapshot();
-  redirectToPath("/admin/settings");
+  redirectWithRevalidation("/admin/settings");
 }

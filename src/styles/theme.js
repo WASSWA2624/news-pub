@@ -4,8 +4,11 @@ export const lightTheme = {
     bg: "#edf4f3",
     border: "#c9d6d4",
     danger: "#b42318",
+    info: "#175c66",
     muted: "#61707d",
+    overlay: "#102438",
     primary: "#175c66",
+    surfaceAlt: "#f1f6f5",
     success: "#157347",
     surface: "#f9fcfb",
     text: "#162431",
@@ -26,6 +29,11 @@ export const lightTheme = {
     sm: "6px",
     xl: "20px",
     xs: "3px",
+  },
+  shadow: {
+    lg: "0 22px 54px rgba(22, 36, 49, 0.1)",
+    md: "0 14px 32px rgba(22, 36, 49, 0.08)",
+    sm: "0 8px 18px rgba(22, 36, 49, 0.05)",
   },
   story: {
     accent: "#145f6d",

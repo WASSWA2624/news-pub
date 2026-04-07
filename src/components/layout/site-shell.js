@@ -9,40 +9,11 @@ import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
 import ResponsiveImage from "@/components/common/responsive-image";
 import { controlSurfaceCss, elevatedSurfaceCss, focusRingCss } from "@/components/common/ui-surface";
+import { siteShellUtils } from "@/components/layout/site-shell.utils";
 import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
-function normalizePathname(pathname) {
-  if (typeof pathname !== "string" || !pathname.trim()) {
-    return "/";
-  }
-
-  const value = pathname.trim();
-
-  if (value === "/") {
-    return value;
-  }
-
-  return value.replace(/\/+$/, "") || "/";
-}
-
-function isNavigationActive(pathname, href) {
-  const currentPath = normalizePathname(pathname);
-  const targetPath = normalizePathname(href);
-
-  if (targetPath === "/" || targetPath.split("/").filter(Boolean).length <= 1) {
-    return currentPath === targetPath;
-  }
-
-  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
-}
-
-const publicNavigationIcons = Object.freeze({
-  about: "info",
-  home: "home",
-  news: "news",
-  search: "search",
-});
+const { isNavigationActive, normalizePathname, publicNavigationIcons } = siteShellUtils;
 
 const Shell = styled.div`
   display: flex;

@@ -1,11 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { deleteCategoryRecord, getCategoryManagementSnapshot, saveCategoryRecord } from "@/features/categories";
-import { requireAdminApiPermission } from "@/lib/auth/api";
+import { handleAdminGet, handleAdminMutation } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { createApiErrorResponse } from "@/lib/errors";
-import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const saveCategorySchema = z.object({
   description: z.string().trim().optional().or(z.literal("")),
@@ -19,74 +16,48 @@ const deleteCategorySchema = z.object({
 });
 
 export async function GET(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_CATEGORIES);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  try {
-    const snapshot = await getCategoryManagementSnapshot();
-
-    return NextResponse.json({
-      data: snapshot,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to load categories.");
-  }
+  return handleAdminGet(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
+    async () => getCategoryManagementSnapshot(),
+    "Unable to load categories.",
+  );
 }
 
+/**
+ * Creates or updates a category from the admin workspace.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The saved category response.
+ */
 export async function PUT(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_CATEGORIES);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const result = await validateJsonRequest(request, saveCategorySchema);
-
-  if (result.response) {
-    return result.response;
-  }
-
-  try {
-    const record = await saveCategoryRecord(result.data, {
-      actorId: auth.user.id,
-    });
-
-    return NextResponse.json({
-      data: record,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to save the category.");
-  }
+  return handleAdminMutation(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
+    saveCategorySchema,
+    async ({ data, user }) =>
+      saveCategoryRecord(data, {
+        actorId: user.id,
+      }),
+    "Unable to save the category.",
+  );
 }
 
+/**
+ * Deletes an existing category from the admin workspace.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The deleted category response.
+ */
 export async function DELETE(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_CATEGORIES);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const result = await validateJsonRequest(request, deleteCategorySchema);
-
-  if (result.response) {
-    return result.response;
-  }
-
-  try {
-    const record = await deleteCategoryRecord(result.data.id, {
-      actorId: auth.user.id,
-    });
-
-    return NextResponse.json({
-      data: record,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to delete the category.");
-  }
+  return handleAdminMutation(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
+    deleteCategorySchema,
+    async ({ data, user }) =>
+      deleteCategoryRecord(data.id, {
+        actorId: user.id,
+      }),
+    "Unable to delete the category.",
+  );
 }

@@ -1,5 +1,11 @@
 import { createGlobalStyle } from "styled-components";
 
+/**
+ * Converts a hex color string into a CSS RGB channel list.
+ *
+ * @param {string} hex - Hex color string.
+ * @returns {string} RGB channel list suitable for CSS custom properties.
+ */
 function toRgbChannels(hex) {
   if (typeof hex !== "string") {
     return "0, 0, 0";
@@ -31,12 +37,22 @@ const GlobalStyles = createGlobalStyle`
     --theme-bg-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.bg || "#edf3fb")};
     --theme-border: ${({ theme }) => theme?.colors?.border || "#b8c8de"};
     --theme-border-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.border || "#b8c8de")};
+    --theme-danger: ${({ theme }) => theme?.colors?.danger || "#b42318"};
+    --theme-danger-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.danger || "#b42318")};
+    --theme-info: ${({ theme }) => theme?.colors?.info || "#175c66"};
+    --theme-info-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.info || "#175c66")};
     --theme-muted: ${({ theme }) => theme?.colors?.muted || "#54657f"};
     --theme-muted-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.muted || "#54657f")};
+    --theme-overlay: ${({ theme }) => theme?.colors?.overlay || "#102438"};
+    --theme-overlay-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.overlay || "#102438")};
     --theme-primary: ${({ theme }) => theme?.colors?.primary || "#1b4f93"};
     --theme-primary-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.primary || "#1b4f93")};
+    --theme-success: ${({ theme }) => theme?.colors?.success || "#157347"};
+    --theme-success-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.success || "#157347")};
     --theme-surface: ${({ theme }) => theme?.colors?.surface || "#f8fbff"};
     --theme-surface-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.surface || "#f8fbff")};
+    --theme-surface-alt: ${({ theme }) => theme?.colors?.surfaceAlt || "#f1f6f5"};
+    --theme-surface-alt-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.surfaceAlt || "#f1f6f5")};
     --theme-text: ${({ theme }) => theme?.colors?.text || "#152844"};
     --theme-text-rgb: ${({ theme }) => toRgbChannels(theme?.colors?.text || "#152844")};
     --theme-page-max-width: ${({ theme }) => theme?.layout?.pageMaxWidth || "1480px"};
@@ -45,6 +61,9 @@ const GlobalStyles = createGlobalStyle`
     --theme-radius-lg: ${({ theme }) => theme?.radius?.lg || "2px"};
     --theme-radius-md: ${({ theme }) => theme?.radius?.md || "1px"};
     --theme-radius-sm: ${({ theme }) => theme?.radius?.sm || "0px"};
+    --theme-shadow-sm: ${({ theme }) => theme?.shadow?.sm || "0 8px 18px rgba(22, 36, 49, 0.05)"};
+    --theme-shadow-md: ${({ theme }) => theme?.shadow?.md || "0 14px 32px rgba(22, 36, 49, 0.08)"};
+    --theme-shadow-lg: ${({ theme }) => theme?.shadow?.lg || "0 22px 54px rgba(22, 36, 49, 0.1)"};
     --theme-story-accent: ${({ theme }) => theme?.story?.accent || "#145f6d"};
     --theme-story-accent-rgb: ${({ theme }) => toRgbChannels(theme?.story?.accent || "#145f6d")};
     --theme-story-highlight-from: ${({ theme }) => theme?.story?.highlightFrom || "#18324a"};
@@ -74,13 +93,14 @@ const GlobalStyles = createGlobalStyle`
     min-height: 100%;
     background-color: ${({ theme }) => theme?.colors?.bg || "#edf3fb"};
     background:
-      radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.1), transparent 24%),
-      radial-gradient(circle at 88% 12%, rgba(var(--theme-primary-rgb), 0.07), transparent 22%),
+      linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.7), rgba(var(--theme-bg-rgb), 0.92)),
+      radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.08), transparent 28%),
+      radial-gradient(circle at 88% 12%, rgba(var(--theme-primary-rgb), 0.05), transparent 26%),
       linear-gradient(
         180deg,
         rgba(var(--theme-bg-rgb), 0.98) 0%,
-        rgba(var(--theme-surface-rgb), 0.98) 46%,
-        rgba(var(--theme-bg-rgb), 0.96) 100%
+        rgba(var(--theme-surface-alt-rgb), 0.94) 48%,
+        rgba(var(--theme-bg-rgb), 0.97) 100%
       );
     color: ${({ theme }) => theme?.colors?.text || "#152844"};
     font-family: var(--font-ui), "Segoe UI", sans-serif;
@@ -128,4 +148,7 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 
+/**
+ * Global application styles driven by the shared NewsPub theme tokens.
+ */
 export default GlobalStyles;

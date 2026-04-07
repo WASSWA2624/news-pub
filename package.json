@@ -26,7 +26,6 @@
     "@prisma/client": "^7.6.0",
     "@reduxjs/toolkit": "^2.11.2",
     "ai": "^6.0.149",
-    "fs": "^0.0.1-security",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",

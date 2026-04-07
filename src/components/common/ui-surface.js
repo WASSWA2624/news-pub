@@ -4,26 +4,26 @@ import { css } from "styled-components";
  * Shared editorial surface styles for cards, drawers, and elevated shells.
  */
 export const elevatedSurfaceCss = css`
-  background:
-    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.992), rgba(255, 255, 255, 0.978)),
-    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.08), transparent 46%);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--theme-surface-rgb), 0.992),
+    rgba(var(--theme-surface-alt-rgb), 0.965)
+  );
   border: 1px solid rgba(var(--theme-border-rgb), 0.82);
-  box-shadow:
-    0 18px 42px rgba(var(--theme-primary-rgb), 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  box-shadow: var(--theme-shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.72);
 `;
 
 /**
  * Shared compact control styles for inputs, selects, and buttons.
  */
 export const controlSurfaceCss = css`
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.98)),
-    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.08), transparent 56%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.995),
+    rgba(var(--theme-surface-alt-rgb), 0.985)
+  );
   border: 1px solid rgba(var(--theme-border-rgb), 0.88);
-  box-shadow:
-    0 10px 24px rgba(var(--theme-primary-rgb), 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  box-shadow: var(--theme-shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.84);
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -39,8 +39,21 @@ export const focusRingCss = css`
   &:focus-within {
     border-color: rgba(var(--theme-primary-rgb), 0.36);
     box-shadow:
-      0 12px 26px rgba(var(--theme-primary-rgb), 0.08),
+      var(--theme-shadow-sm),
       0 0 0 4px rgba(var(--theme-primary-rgb), 0.1);
     outline: none;
   }
+`;
+
+/**
+ * Shared paper treatment used by story-specific editorial sections.
+ */
+export const editorialPaperSurfaceCss = css`
+  background: linear-gradient(
+    180deg,
+    rgba(var(--theme-story-paper-rgb), 0.98),
+    rgba(var(--theme-story-paper-alt-rgb), 0.96)
+  );
+  border: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
+  box-shadow: var(--theme-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.76);
 `;

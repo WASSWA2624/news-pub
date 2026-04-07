@@ -1,11 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getTemplateManagementSnapshot, saveTemplateRecord } from "@/features/templates";
-import { requireAdminApiPermission } from "@/lib/auth/api";
+import { handleAdminGet, handleAdminMutation } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { createApiErrorResponse } from "@/lib/errors";
-import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const templateSchema = z.object({
   bodyTemplate: z.string().min(1),
@@ -21,47 +18,29 @@ const templateSchema = z.object({
 });
 
 export async function GET(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_TEMPLATES);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  try {
-    const snapshot = await getTemplateManagementSnapshot();
-
-    return NextResponse.json({
-      data: snapshot,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to load template settings.");
-  }
+  return handleAdminGet(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_TEMPLATES,
+    async () => getTemplateManagementSnapshot(),
+    "Unable to load template settings.",
+  );
 }
 
+/**
+ * Creates or updates a destination template.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The saved template response.
+ */
 export async function PUT(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_TEMPLATES);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const result = await validateJsonRequest(request, templateSchema);
-
-  if (result.response) {
-    return result.response;
-  }
-
-  try {
-    const record = await saveTemplateRecord(result.data, {
-      actorId: auth.user.id,
-    });
-
-    return NextResponse.json({
-      data: record,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to save the template.");
-  }
+  return handleAdminMutation(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_TEMPLATES,
+    templateSchema,
+    async ({ data, user }) =>
+      saveTemplateRecord(data, {
+        actorId: user.id,
+      }),
+    "Unable to save the template.",
+  );
 }

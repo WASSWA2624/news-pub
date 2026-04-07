@@ -1,11 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getProviderManagementSnapshot, saveProviderRecord } from "@/features/providers";
-import { requireAdminApiPermission } from "@/lib/auth/api";
+import { handleAdminGet, handleAdminMutation } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
-import { createApiErrorResponse } from "@/lib/errors";
-import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const providerSchema = z.object({
   baseUrl: z.string().trim().optional().or(z.literal("")),
@@ -19,47 +16,29 @@ const providerSchema = z.object({
 });
 
 export async function GET(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_PROVIDERS);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  try {
-    const snapshot = await getProviderManagementSnapshot();
-
-    return NextResponse.json({
-      data: snapshot,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to load provider settings.");
-  }
+  return handleAdminGet(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
+    async () => getProviderManagementSnapshot(),
+    "Unable to load provider settings.",
+  );
 }
 
+/**
+ * Creates or updates a provider configuration.
+ *
+ * @param {Request} request - Incoming route request.
+ * @returns {Promise<Response>} The saved provider response.
+ */
 export async function PUT(request) {
-  const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_PROVIDERS);
-
-  if (auth.response) {
-    return auth.response;
-  }
-
-  const result = await validateJsonRequest(request, providerSchema);
-
-  if (result.response) {
-    return result.response;
-  }
-
-  try {
-    const record = await saveProviderRecord(result.data, {
-      actorId: auth.user.id,
-    });
-
-    return NextResponse.json({
-      data: record,
-      success: true,
-    });
-  } catch (error) {
-    return createApiErrorResponse(error, "Unable to save the provider.");
-  }
+  return handleAdminMutation(
+    request,
+    ADMIN_PERMISSIONS.MANAGE_PROVIDERS,
+    providerSchema,
+    async ({ data, user }) =>
+      saveProviderRecord(data, {
+        actorId: user.id,
+      }),
+    "Unable to save the provider.",
+  );
 }
