@@ -8,6 +8,7 @@ import styled from "styled-components";
 import AdminLogoutButton from "@/components/auth/admin-logout-button";
 import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
+import { elevatedSurfaceCss } from "@/components/common/ui-surface";
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocaleRootPath } from "@/features/i18n/routing";
 import { getAdminNavigation } from "@/lib/auth/rbac";
@@ -393,9 +394,7 @@ const ProfileInitials = styled.span`
 
 const ProfileMenu = styled.div`
   backdrop-filter: blur(20px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(243, 247, 251, 0.975)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.05), transparent 40%);
+  ${elevatedSurfaceCss}
   border: 1px solid rgba(16, 32, 51, 0.07);
   border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
@@ -691,9 +690,7 @@ const MeasureNavItem = styled.span`
 
 const OverflowMenu = styled.div`
   backdrop-filter: blur(20px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.98)),
-    radial-gradient(circle at top right, rgba(36, 75, 115, 0.08), transparent 44%);
+  ${elevatedSurfaceCss}
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
@@ -873,6 +870,12 @@ const Main = styled.div`
   padding-bottom: 0.7rem;
 `;
 
+/**
+ * Wraps authenticated admin pages with responsive primary navigation and workspace controls.
+ *
+ * @param {object} props - Shell content, messages, and authenticated user details.
+ * @returns {JSX.Element} The rendered admin shell.
+ */
 export default function AdminShell({ children, messages, user }) {
   const pathname = usePathname();
   const menuRef = useRef(null);

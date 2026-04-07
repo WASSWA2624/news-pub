@@ -13,6 +13,12 @@ function normalizePage(value, fallback = 1) {
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallback;
 }
 
+/**
+ * Returns paginated public collection data for news, category, and search views.
+ *
+ * @param {Request} request - Incoming request with collection view query params.
+ * @returns {Promise<Response>} A JSON response for public listing pagination.
+ */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const requestedLocale = `${searchParams.get("locale") || defaultLocale}`.trim().toLowerCase();

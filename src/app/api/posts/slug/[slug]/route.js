@@ -10,6 +10,13 @@ import {
   validateParams,
 } from "@/lib/validation/api-request";
 
+/**
+ * Returns one published localized post record resolved by canonical slug.
+ *
+ * @param {Request} request - Incoming request with an optional locale query param.
+ * @param {{ params: Promise<{ slug: string }> | { slug: string } }} context - Route params.
+ * @returns {Promise<Response>} A JSON response containing the localized public story payload.
+ */
 export async function GET(request, { params }) {
   const resolvedParams = await params;
   const validatedParams = validateParams(resolvedParams, slugParamSchema);

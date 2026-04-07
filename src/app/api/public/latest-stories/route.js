@@ -16,6 +16,12 @@ function normalizeTake(value) {
   return parsedValue > 0 ? Math.min(parsedValue, publicHomeLatestIncrementCount) : publicHomeLatestIncrementCount;
 }
 
+/**
+ * Returns the next page of public home stories for progressive loading.
+ *
+ * @param {Request} request - Incoming request with locale and pagination query params.
+ * @returns {Promise<Response>} A JSON response containing the latest-story payload.
+ */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const requestedLocale = `${searchParams.get("locale") || defaultLocale}`.trim().toLowerCase();

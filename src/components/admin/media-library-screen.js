@@ -3,6 +3,8 @@
 import { startTransition, useMemo, useState } from "react";
 import styled from "styled-components";
 
+import ResponsiveImage from "@/components/common/responsive-image";
+
 const Page = styled.main`
   display: grid;
   gap: ${({ theme }) => theme.spacing.lg};
@@ -308,9 +310,10 @@ const ThumbnailFrame = styled.div`
   justify-content: center;
   min-height: 84px;
   overflow: hidden;
+  position: relative;
 `;
 
-const ThumbnailImage = styled.img`
+const ThumbnailImage = styled(ResponsiveImage)`
   display: block;
   height: 100%;
   max-height: 84px;
@@ -361,9 +364,10 @@ const PreviewFrame = styled.div`
   min-height: 280px;
   overflow: hidden;
   padding: ${({ theme }) => theme.spacing.md};
+  position: relative;
 `;
 
-const PreviewImage = styled.img`
+const PreviewImage = styled(ResponsiveImage)`
   display: block;
   height: auto;
   max-height: 520px;
@@ -481,6 +485,12 @@ function buildMediaQueryUrl(query, assetId) {
   return suffix ? `/api/media?${suffix}` : "/api/media";
 }
 
+/**
+ * Renders the media library upload, browsing, and preview workspace for admin users.
+ *
+ * @param {object} props - Localized copy and initial media snapshot.
+ * @returns {JSX.Element} The media library screen.
+ */
 export default function MediaLibraryScreen({ copy, initialData }) {
   const [data, setData] = useState(initialData);
   const [draft, setDraft] = useState(() => createUploadDraft());
@@ -782,7 +792,12 @@ export default function MediaLibraryScreen({ copy, initialData }) {
                     <AssetRow>
                       <ThumbnailFrame>
                         {asset.previewUrl ? (
-                          <ThumbnailImage alt={asset.alt || asset.fileName || "Media preview"} loading="lazy" src={asset.previewUrl} />
+                          <ThumbnailImage
+                            alt={asset.alt || asset.fileName || "Media preview"}
+                            fill
+                            sizes="84px"
+                            src={asset.previewUrl}
+                          />
                         ) : (
                           <PlaceholderText>{copy.noPreview}</PlaceholderText>
                         )}
@@ -814,7 +829,13 @@ export default function MediaLibraryScreen({ copy, initialData }) {
                 <SmallText>{selectedAsset.alt || selectedAsset.caption || copy.previewDescription}</SmallText>
                 <PreviewFrame>
                   {selectedAsset.previewUrl ? (
-                    <PreviewImage alt={selectedAsset.alt || selectedAsset.fileName || "Media preview"} src={selectedAsset.previewUrl} />
+                    <PreviewImage
+                      alt={selectedAsset.alt || selectedAsset.fileName || "Media preview"}
+                      height={selectedAsset.height || 900}
+                      sizes="(min-width: 1240px) 60vw, 100vw"
+                      src={selectedAsset.previewUrl}
+                      width={selectedAsset.width || 1600}
+                    />
                   ) : (
                     <PlaceholderText>{copy.noPreview}</PlaceholderText>
                   )}

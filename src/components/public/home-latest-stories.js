@@ -5,8 +5,16 @@ import Link from "next/link";
 import styled from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
+import ResponsiveImage from "@/components/common/responsive-image";
 import { publicHomeLatestIncrementCount } from "@/features/public-site/constants";
 
+/**
+ * Formats a published timestamp for compact public story rows.
+ *
+ * @param {string} locale - Active locale code.
+ * @param {string|Date|null} value - Timestamp to format.
+ * @returns {string|null} A localized date label or `null` when the value is missing.
+ */
 function formatDateTimeLabel(locale, value) {
   if (!value) {
     return null;
@@ -18,6 +26,12 @@ function formatDateTimeLabel(locale, value) {
   }).format(new Date(value));
 }
 
+/**
+ * Resolves the most representative thumbnail candidate for a compact public story row.
+ *
+ * @param {object} item - Story inventory record.
+ * @returns {{alt: string, url: string}|null} Compact media metadata or `null`.
+ */
 function resolveCompactStoryMedia(item) {
   const image = item.image?.url ? { ...item.image, kind: "image" } : null;
   const primaryMedia = image || item.primaryMedia || null;
@@ -85,9 +99,10 @@ const CompactStoryMediaFrame = styled.div`
   background: linear-gradient(180deg, rgba(17, 43, 67, 0.05), rgba(17, 43, 67, 0.1));
   border: 1px solid rgba(16, 32, 51, 0.08);
   overflow: hidden;
+  position: relative;
 `;
 
-const CompactStoryMediaImage = styled.img`
+const CompactStoryMediaImage = styled(ResponsiveImage)`
   display: block;
   height: 100%;
   object-fit: cover;
@@ -215,6 +230,15 @@ const HomeListError = styled.p`
   }
 `;
 
+/**
+ * Renders the compact story list used across home and collection pagination surfaces.
+ *
+ * @param {object} props - Component props.
+ * @param {string} props.emptyLabel - Empty-state copy.
+ * @param {Array<object>} [props.items] - Story cards to render.
+ * @param {string} props.locale - Active locale code.
+ * @returns {JSX.Element} The rendered list or empty state.
+ */
 function HomeStoryList({ emptyLabel, items = [], locale }) {
   if (!items.length) {
     return <EmptyState>{emptyLabel}</EmptyState>;
@@ -246,7 +270,8 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
                 <CompactStoryMediaFrame>
                   <CompactStoryMediaImage
                     alt={media.alt || item.title}
-                    loading="lazy"
+                    fill
+                    sizes="(min-width: 760px) 112px, 88px"
                     src={media.url}
                   />
                 </CompactStoryMediaFrame>
@@ -277,6 +302,12 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
   );
 }
 
+/**
+ * Handles incremental loading for public home and collection story lists.
+ *
+ * @param {object} props - Pagination and rendering props.
+ * @returns {JSX.Element} The story list with progressive loading controls.
+ */
 export default function HomeLatestStories({
   collectionCountry = "all",
   collectionSlug = "all",

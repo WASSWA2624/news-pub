@@ -7,6 +7,8 @@ import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
 import NewsPubLogo from "@/components/common/news-pub-logo";
+import ResponsiveImage from "@/components/common/responsive-image";
+import { controlSurfaceCss, elevatedSurfaceCss, focusRingCss } from "@/components/common/ui-surface";
 import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
@@ -332,10 +334,8 @@ const DropdownChevron = styled.span`
 `;
 
 const DropdownList = styled.div`
-  background: rgba(var(--theme-surface-rgb), 0.98);
-  border: 1px solid rgba(var(--theme-border-rgb), 0.92);
+  ${elevatedSurfaceCss}
   border-radius: var(--theme-radius-md);
-  box-shadow: 0 24px 48px rgba(var(--theme-primary-rgb), 0.12);
   display: grid;
   gap: 0.18rem;
   max-height: min(62vh, 360px);
@@ -394,7 +394,7 @@ const DropdownLabel = styled.span`
   gap: 0.45rem;
 `;
 
-const CountryFlag = styled.img`
+const CountryFlag = styled(ResponsiveImage)`
   border: 1px solid rgba(var(--theme-border-rgb), 0.8);
   border-radius: 0;
   display: inline-flex;
@@ -493,8 +493,8 @@ const MobileDialogDescription = styled.p`
 
 const MobileDialogCloseButton = styled.button`
   align-items: center;
-  background: rgba(var(--theme-primary-rgb), 0.05);
-  border: 1px solid rgba(var(--theme-border-rgb), 0.84);
+  ${controlSurfaceCss}
+  ${focusRingCss}
   border-radius: 0;
   color: var(--theme-text);
   cursor: pointer;
@@ -514,8 +514,7 @@ const MobileDialogCloseButton = styled.button`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.14);
-    outline: none;
+    transform: translateY(-1px);
   }
 `;
 
@@ -541,10 +540,7 @@ const MobileDialogBody = styled.div`
 `;
 
 const MobileMenuSurface = styled.section`
-  background:
-    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.985)),
-    radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
-  border: 1px solid rgba(var(--theme-border-rgb), 0.82);
+  ${elevatedSurfaceCss}
   border-radius: 0;
   box-shadow:
     -18px 0 42px rgba(9, 17, 28, 0.12),
@@ -558,10 +554,7 @@ const MobileMenuSurface = styled.section`
 `;
 
 const MobileSearchSurface = styled.section`
-  background:
-    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.995), rgba(255, 255, 255, 0.988)),
-    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
-  border: 1px solid rgba(var(--theme-border-rgb), 0.82);
+  ${elevatedSurfaceCss}
   border-radius: 0;
   box-shadow:
     0 24px 64px rgba(9, 17, 28, 0.22),
@@ -820,9 +813,6 @@ const FooterBottom = styled.div`
   padding: 0 0.88rem 0.72rem;
 `;
 
-/**
- * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
- */
 function SiteShellFrame({
   categoryLinks = [],
   children,
@@ -1423,7 +1413,10 @@ function SiteShellContent(props) {
 }
 
 /**
- * Public-facing NewsPub shell for locale-scoped browsing, navigation, and search.
+ * Wraps locale-scoped public pages with navigation, search, and footer chrome.
+ *
+ * @param {object} props - Shell content and navigation props.
+ * @returns {JSX.Element} The responsive public site shell.
  */
 export default function SiteShell(props) {
   return (

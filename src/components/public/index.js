@@ -2,6 +2,7 @@ import Link from "next/link";
 import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
+import ResponsiveImage from "@/components/common/responsive-image";
 import SearchableSelect from "@/components/common/searchable-select";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
@@ -364,7 +365,7 @@ const StoryImageWrap = styled.div`
   position: relative;
 `;
 
-const StoryImage = styled.img`
+const StoryImage = styled(ResponsiveImage)`
   display: block;
   height: 100%;
   object-fit: cover;
@@ -431,9 +432,10 @@ const CompactStoryMediaFrame = styled.div`
   background: linear-gradient(180deg, rgba(17, 43, 67, 0.05), rgba(17, 43, 67, 0.1));
   border: 1px solid rgba(16, 32, 51, 0.08);
   overflow: hidden;
+  position: relative;
 `;
 
-const CompactStoryMediaImage = styled.img`
+const CompactStoryMediaImage = styled(ResponsiveImage)`
   display: block;
   height: 100%;
   object-fit: cover;
@@ -1498,7 +1500,9 @@ function renderStoryMedia(media, { eager = false, showCaption = true } = {}) {
         ) : (
           <StoryImage
             alt={media.alt || media.caption || "Story media"}
-            loading={eager ? "eager" : "lazy"}
+            fill
+            priority={eager}
+            sizes="(min-width: 1040px) 70vw, 100vw"
             src={media.url}
           />
         )}
@@ -1564,7 +1568,8 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
                 <CompactStoryMediaFrame>
                   <CompactStoryMediaImage
                     alt={media.alt || item.title}
-                    loading="lazy"
+                    fill
+                    sizes="(min-width: 760px) 112px, 88px"
                     src={media.url}
                   />
                 </CompactStoryMediaFrame>
@@ -1599,6 +1604,12 @@ function StoryList({ emptyLabel, items = [], locale }) {
   return <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />;
 }
 
+/**
+ * Renders the localized public home page with featured and latest stories.
+ *
+ * @param {object} props - Page copy and data payload.
+ * @returns {JSX.Element} The public home page.
+ */
 export function PublicHomePage({ locale, messages, pageContent, pageData }) {
   const common = messages.common || {};
 
@@ -1718,6 +1729,12 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
   );
 }
 
+/**
+ * Renders a public listing view for categories, search results, and archives.
+ *
+ * @param {object} props - Collection data, filters, and copy.
+ * @returns {JSX.Element} The public collection page.
+ */
 export function PublicCollectionPage({
   collectionCountry = "all",
   collectionSlug = "all",
@@ -1811,6 +1828,12 @@ export function PublicCollectionPage({
   );
 }
 
+/**
+ * Renders a full public article page with editorial metadata, media, and related links.
+ *
+ * @param {object} props - Story data and localized copy.
+ * @returns {JSX.Element} The public story page.
+ */
 export function PublicStoryPage({ locale, messages, pageData }) {
   const common = messages.common || {};
   const article = pageData.article;
@@ -2131,6 +2154,12 @@ export function PublicStoryPage({ locale, messages, pageData }) {
   );
 }
 
+/**
+ * Renders a static informational page inside the shared public shell.
+ *
+ * @param {object} props - Static page locale and content sections.
+ * @returns {JSX.Element} The rendered public static page.
+ */
 export function PublicStaticPage({ locale, pageContent }) {
   return (
     <PageMain>

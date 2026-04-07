@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 
 import OptionFlag from "@/components/common/option-flag";
+import { controlSurfaceCss, elevatedSurfaceCss, focusRingCss } from "@/components/common/ui-surface";
 
 const VIEWPORT_MARGIN = 8;
 const DROPDOWN_GAP = 6;
@@ -245,9 +246,7 @@ const HiddenInput = styled.input`
 
 const TriggerButton = styled.button`
   align-items: center;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(247, 250, 255, 0.98)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 56%);
+  ${controlSurfaceCss}
   border: 1px solid
     ${({ $invalid, $open }) =>
       $invalid
@@ -262,8 +261,7 @@ const TriggerButton = styled.button`
         ? $invalid
           ? "0 18px 32px rgba(176, 46, 34, 0.1), 0 0 0 4px rgba(176, 46, 34, 0.09)"
           : "0 18px 32px rgba(15, 96, 121, 0.11), 0 0 0 4px rgba(15, 111, 141, 0.09)"
-        : "0 10px 24px rgba(16, 32, 51, 0.05),"}
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+        : "0 10px 24px rgba(16, 32, 51, 0.05)"};
   color: var(--theme-text, #152844);
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   display: flex;
@@ -418,9 +416,7 @@ const Caret = styled.span`
 `;
 
 const DropdownSurface = styled.div`
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.985)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 58%);
+  ${elevatedSurfaceCss}
   backdrop-filter: blur(14px);
   border: 1px solid rgba(24, 39, 66, 0.1);
   border-radius: var(--theme-radius-lg, 2px);
@@ -486,19 +482,14 @@ const DropdownMeta = styled.span`
 
 const SearchWrap = styled.div`
   align-items: center;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(24, 39, 66, 0.08);
+  ${controlSurfaceCss}
+  ${focusRingCss}
   border-radius: var(--theme-radius-lg, 2px);
   display: flex;
   flex: 0 0 auto;
   gap: 0.32rem;
   min-height: 30px;
   padding: 0 0.48rem;
-
-  &:focus-within {
-    border-color: rgba(15, 111, 141, 0.22);
-    box-shadow: 0 0 0 3px rgba(15, 111, 141, 0.09);
-  }
 `;
 
 const SearchIcon = styled.span`
@@ -731,6 +722,12 @@ const StateMessage = styled.div`
   text-align: center;
 `;
 
+/**
+ * Provides an accessible searchable select with single and multi-select modes.
+ *
+ * @param {object} props - Select configuration and event handlers.
+ * @returns {JSX.Element} The interactive searchable select.
+ */
 export default function SearchableSelect({
   ariaLabel,
   className,
