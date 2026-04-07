@@ -494,3 +494,150 @@ describe("stream selection and scheduling helpers", () => {
     );
   });
 });
+
+describe("stream execution dedupe safety", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = {
+      ...originalEnv,
+      ...createNewsPubTestEnv(),
+    };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("skips candidates that already have a fetched article match for the same stream", async () => {
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles: vi.fn().mockResolvedValue({
+        articles: [
+          {
+            body: "Story body",
+            dedupeFingerprint: "fingerprint_1",
+            imageUrl: "https://cdn.example.com/story.jpg",
+            language: "en",
+            normalizedTitleHash: "title_hash_1",
+            providerArticleId: "provider_story_1",
+            providerCategories: ["breaking"],
+            providerCountries: ["ug"],
+            providerRegions: [],
+            publishedAt: "2026-04-07T10:00:00.000Z",
+            rawPayloadJson: {
+              id: "provider_story_1",
+            },
+            sourceName: "Example Source",
+            sourceUrl: "https://example.com/story",
+            sourceUrlHash: "source_hash_1",
+            summary: "Story summary",
+            tags: ["tag-one"],
+            title: "Story title",
+          },
+        ],
+        cursor: {
+          page: 1,
+        },
+        fetchedCount: 1,
+      }),
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const prisma = {
+      articleMatch: {
+        create: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findUnique: vi.fn().mockResolvedValue({
+          id: "match_existing_1",
+        }),
+      },
+      fetchRun: {
+        create: vi.fn().mockResolvedValue({
+          id: "fetch_run_1",
+          startedAt: new Date("2026-04-07T12:00:00.000Z"),
+        }),
+        update: vi.fn().mockResolvedValue({
+          duplicateCount: 1,
+          id: "fetch_run_1",
+          publishableCount: 0,
+          status: "SUCCEEDED",
+        }),
+      },
+      fetchedArticle: {
+        upsert: vi.fn().mockResolvedValue({
+          id: "article_1",
+          sourceName: "Example Source",
+          sourceUrl: "https://example.com/story",
+          summary: "Story summary",
+          title: "Story title",
+        }),
+      },
+      providerFetchCheckpoint: {
+        upsert: vi.fn().mockResolvedValue(null),
+      },
+      publishingStream: {
+        findUnique: vi.fn().mockResolvedValue({
+          activeProvider: {
+            providerKey: "newsdata",
+            requestDefaultsJson: {},
+          },
+          activeProviderId: "provider_config_1",
+          categories: [],
+          checkpoints: [],
+          consecutiveFailureCount: 0,
+          countryAllowlistJson: [],
+          defaultTemplate: null,
+          destination: {
+            id: "destination_1",
+            kind: "FACEBOOK_PAGE",
+            platform: "FACEBOOK",
+          },
+          destinationId: "destination_1",
+          duplicateWindowHours: 48,
+          excludeKeywordsJson: [],
+          id: "stream_1",
+          includeKeywordsJson: [],
+          languageAllowlistJson: [],
+          locale: "en",
+          mode: "AUTO_PUBLISH",
+          regionAllowlistJson: [],
+          retryLimit: 3,
+          settingsJson: {},
+          status: "ACTIVE",
+        }),
+        update: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    await expect(runStreamFetch("stream_1", {}, prisma)).resolves.toMatchObject({
+      id: "fetch_run_1",
+      status: "SUCCEEDED",
+    });
+
+    expect(prisma.fetchedArticle.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          dedupeFingerprint: "fingerprint_1",
+        },
+      }),
+    );
+    expect(prisma.articleMatch.create).not.toHaveBeenCalled();
+    expect(prisma.fetchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          duplicateCount: 1,
+          publishableCount: 0,
+          status: "SUCCEEDED",
+        }),
+      }),
+    );
+  });
+});

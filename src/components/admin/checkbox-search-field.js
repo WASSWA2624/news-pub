@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 
-import AdminFormModal from "@/components/admin/admin-form-modal";
 import AppIcon from "@/components/common/app-icon";
 import {
   Field,
@@ -18,6 +17,17 @@ import { MULTI_VALUE_EMPTY_SENTINEL } from "@/lib/news/provider-definitions";
 const PickerWrap = styled.div`
   display: grid;
   gap: 0.6rem;
+`;
+
+const PickerPanel = styled.div`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(246, 250, 255, 0.98)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 46%);
+  border: 1px solid rgba(16, 32, 51, 0.1);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.82rem 0.88rem;
 `;
 
 const PickerTrigger = styled.button`
@@ -275,6 +285,7 @@ export default function CheckboxSearchField({
   const [checkedValues, setCheckedValues] = useState(() =>
     (selectedValues || []).map((value) => normalizeOptionValue(value)),
   );
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const orderedOptionValues = useMemo(
     () =>
       options
@@ -367,53 +378,56 @@ export default function CheckboxSearchField({
       {description ? <SmallText>{description}</SmallText> : null}
       <PickerWrap>
         <input name={name} type="hidden" value={MULTI_VALUE_EMPTY_SENTINEL} />
-        <AdminFormModal
-          cancelLabel="Done"
-          description={`Search, review, and select ${title.toLowerCase()} options without crowding the parent form.`}
-          renderTrigger={({ openDialog }) => (
-            <PickerTrigger
-              aria-label={`Choose ${title}`}
-              onClick={openDialog}
-              type="button"
-            >
-              <PickerTriggerHeader>
-                <PickerTriggerTitle>
-                  {selectedCount ? `${selectedCount} selected` : `Choose ${title}`}
-                </PickerTriggerTitle>
-                <PickerTriggerMeta>{options.length} available</PickerTriggerMeta>
-              </PickerTriggerHeader>
-              {previewOptions.length ? (
-                <TriggerChipRow>
-                  {previewOptions.map((option) => (
-                    <TriggerChip key={`${name}-preview-${option.value}`}>
-                      <OptionFlag
-                        flagEmoji={option.flagEmoji}
-                        flagImageUrl={option.flagImageUrl}
-                        size="compact"
-                      />
-                      {option.label}
-                    </TriggerChip>
-                  ))}
-                  {selectedCount > previewOptions.length ? (
-                    <TriggerChip key={`${name}-preview-more`}>
-                      +{selectedCount - previewOptions.length} more
-                    </TriggerChip>
-                  ) : null}
-                </TriggerChipRow>
-              ) : (
-                <PickerPlaceholder>No options selected yet.</PickerPlaceholder>
-              )}
-              <PickerTriggerFooter>
-                <AppIcon name="search" size={14} />
-                Search, bulk-select shown results, and review flags in a nested picker.
-              </PickerTriggerFooter>
-            </PickerTrigger>
-          )}
-          size={options.length > 60 ? "full" : "wide"}
-          title={title}
-          triggerLabel={`Choose ${title}`}
+        <PickerTrigger
+          aria-expanded={isPickerOpen}
+          aria-label={`Choose ${title}`}
+          onClick={() => setIsPickerOpen((currentValue) => !currentValue)}
+          type="button"
         >
-          <PickerModalContent>
+          <PickerTriggerHeader>
+            <PickerTriggerTitle>
+              {selectedCount ? `${selectedCount} selected` : `Choose ${title}`}
+            </PickerTriggerTitle>
+            <PickerTriggerMeta>{options.length} available</PickerTriggerMeta>
+          </PickerTriggerHeader>
+          {previewOptions.length ? (
+            <TriggerChipRow>
+              {previewOptions.map((option) => (
+                <TriggerChip key={`${name}-preview-${option.value}`}>
+                  <OptionFlag
+                    flagEmoji={option.flagEmoji}
+                    flagImageUrl={option.flagImageUrl}
+                    size="compact"
+                  />
+                  {option.label}
+                </TriggerChip>
+              ))}
+              {selectedCount > previewOptions.length ? (
+                <TriggerChip key={`${name}-preview-more`}>
+                  +{selectedCount - previewOptions.length} more
+                </TriggerChip>
+              ) : null}
+            </TriggerChipRow>
+          ) : (
+            <PickerPlaceholder>No options selected yet.</PickerPlaceholder>
+          )}
+          <PickerTriggerFooter>
+            <AppIcon name="search" size={14} />
+            Search, bulk-select shown results, and review flags inline.
+          </PickerTriggerFooter>
+        </PickerTrigger>
+        {isPickerOpen ? (
+          <PickerPanel>
+            <PickerModalContent>
+              <SearchableCheckboxActions>
+                <SearchableCheckboxActionGroup>
+                  <ActionButton onClick={() => setIsPickerOpen(false)} type="button">
+                    Done
+                  </ActionButton>
+                </SearchableCheckboxActionGroup>
+                <SmallText>{selectedCount} selected</SmallText>
+              </SearchableCheckboxActions>
+
             <SearchFieldWrap>
               <AppIcon name="search" size={15} />
               <SearchInput
@@ -499,8 +513,9 @@ export default function CheckboxSearchField({
             <SmallText>
               Showing {filteredOptions.length} of {options.length} options.
             </SmallText>
-          </PickerModalContent>
-        </AdminFormModal>
+            </PickerModalContent>
+          </PickerPanel>
+        ) : null}
       </PickerWrap>
     </Field>
   );

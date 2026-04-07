@@ -153,6 +153,83 @@ export async function resolveFetchedArticleImageUrl(article = {}) {
   return discoverRemoteImageUrl(article.sourceUrl);
 }
 
+function buildFetchedArticleCreateData(articleCandidate, stream, resolvedImageUrl, now) {
+  return {
+    body: articleCandidate.body || null,
+    dedupeFingerprint: articleCandidate.dedupeFingerprint,
+    imageUrl: resolvedImageUrl || null,
+    language: trimText(articleCandidate.language) || null,
+    normalizedTitleHash: articleCandidate.normalizedTitleHash,
+    providerArticleId: articleCandidate.providerArticleId || null,
+    providerCategoriesJson: articleCandidate.providerCategories || [],
+    providerConfigId: stream.activeProviderId,
+    providerCountriesJson: articleCandidate.providerCountries || [],
+    providerRegionsJson: articleCandidate.providerRegions || [],
+    publishedAt: new Date(articleCandidate.publishedAt || now),
+    rawPayloadJson: articleCandidate.rawPayloadJson || null,
+    sourceName: articleCandidate.sourceName,
+    sourceUrl: articleCandidate.sourceUrl,
+    sourceUrlHash: articleCandidate.sourceUrlHash,
+    summary: articleCandidate.summary || articleCandidate.title,
+    tagsJson: articleCandidate.tags || [],
+    title: articleCandidate.title,
+  };
+}
+
+function buildFetchedArticleUpdateData(articleCandidate, stream, resolvedImageUrl, now) {
+  return {
+    ...(articleCandidate.body
+      ? {
+          body: articleCandidate.body,
+        }
+      : {}),
+    ...(resolvedImageUrl
+      ? {
+          imageUrl: resolvedImageUrl,
+        }
+      : {}),
+    ...(trimText(articleCandidate.language)
+      ? {
+          language: trimText(articleCandidate.language),
+        }
+      : {}),
+    normalizedTitleHash: articleCandidate.normalizedTitleHash,
+    ...(articleCandidate.providerArticleId
+      ? {
+          providerArticleId: articleCandidate.providerArticleId,
+        }
+      : {}),
+    providerCategoriesJson: articleCandidate.providerCategories || [],
+    providerConfigId: stream.activeProviderId,
+    providerCountriesJson: articleCandidate.providerCountries || [],
+    providerRegionsJson: articleCandidate.providerRegions || [],
+    publishedAt: new Date(articleCandidate.publishedAt || now),
+    ...(articleCandidate.rawPayloadJson
+      ? {
+          rawPayloadJson: articleCandidate.rawPayloadJson,
+        }
+      : {}),
+    sourceName: articleCandidate.sourceName,
+    sourceUrl: articleCandidate.sourceUrl,
+    sourceUrlHash: articleCandidate.sourceUrlHash,
+    summary: articleCandidate.summary || articleCandidate.title,
+    tagsJson: articleCandidate.tags || [],
+    title: articleCandidate.title,
+  };
+}
+
+async function upsertFetchedArticle(db, articleCandidate, stream, resolvedImageUrl, now) {
+  const createData = buildFetchedArticleCreateData(articleCandidate, stream, resolvedImageUrl, now);
+
+  return db.fetchedArticle.upsert({
+    where: {
+      dedupeFingerprint: articleCandidate.dedupeFingerprint,
+    },
+    update: buildFetchedArticleUpdateData(articleCandidate, stream, resolvedImageUrl, now),
+    create: createData,
+  });
+}
+
 async function findLatestDuplicateArticleMatch(db, article, stream) {
   const duplicateWindowHours = Math.max(0, Number(stream?.duplicateWindowHours || 48));
   const duplicateWindowStart = new Date(Date.now() - duplicateWindowHours * 60 * 60 * 1000);
@@ -1406,28 +1483,28 @@ export async function runStreamFetch(streamId, { actorId = null, now = new Date(
       } = selectedCandidate;
 
       const resolvedImageUrl = await resolveFetchedArticleImageUrl(articleCandidate);
-      const fetchedArticle = await db.fetchedArticle.create({
-        data: {
-          body: articleCandidate.body || null,
-          dedupeFingerprint: articleCandidate.dedupeFingerprint,
-          imageUrl: resolvedImageUrl || null,
-          language: trimText(articleCandidate.language) || null,
-          normalizedTitleHash: articleCandidate.normalizedTitleHash,
-          providerArticleId: articleCandidate.providerArticleId || null,
-          providerCategoriesJson: articleCandidate.providerCategories || [],
-          providerConfigId: stream.activeProviderId,
-          providerCountriesJson: articleCandidate.providerCountries || [],
-          providerRegionsJson: articleCandidate.providerRegions || [],
-          publishedAt: new Date(articleCandidate.publishedAt || now),
-          rawPayloadJson: articleCandidate.rawPayloadJson || null,
-          sourceName: articleCandidate.sourceName,
-          sourceUrl: articleCandidate.sourceUrl,
-          sourceUrlHash: articleCandidate.sourceUrlHash,
-          summary: articleCandidate.summary || articleCandidate.title,
-          tagsJson: articleCandidate.tags || [],
-          title: articleCandidate.title,
+      const fetchedArticle = await upsertFetchedArticle(
+        db,
+        articleCandidate,
+        stream,
+        resolvedImageUrl,
+        now,
+      );
+      const existingArticleMatch = await db.articleMatch.findUnique({
+        where: {
+          fetchedArticleId_streamId: {
+            fetchedArticleId: fetchedArticle.id,
+            streamId: stream.id,
+          },
         },
       });
+
+      // Repeated provider items or reruns can resolve to the same saved article.
+      if (existingArticleMatch) {
+        summary.duplicateCount += 1;
+        continue;
+      }
+
       const post = await upsertCanonicalPost(
         db,
         fetchedArticle,

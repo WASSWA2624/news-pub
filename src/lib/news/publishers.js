@@ -5,7 +5,6 @@ import {
   refreshFacebookPublishCredential,
   resolveFacebookPublishCredential,
 } from "@/lib/news/meta-credentials";
-import { resolveSocialPostLinkPlacement } from "@/lib/news/social-post";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
@@ -230,14 +229,14 @@ export function formatFacebookTitle(value) {
     return "";
   }
 
-  return normalizedValue.startsWith("【") && normalizedValue.endsWith("】")
-    ? normalizedValue
-    : `【${normalizedValue}】`;
+  return `**${normalizedValue.replace(/^\*+|\*+$/g, "")}**`;
 }
 
 function extractFacebookBodySections(payload) {
   const summaryKey = normalizeSectionKey(payload.summary);
   const sourceReferenceKey = normalizeSectionKey(payload.sourceReference);
+  const canonicalUrl = trimText(payload.canonicalUrl);
+  const extraLinkUrl = trimText(payload.extraLinkUrl);
 
   return splitBodySections(payload.body).filter((section) => {
     const sectionKey = normalizeSectionKey(section);
@@ -252,27 +251,17 @@ function extractFacebookBodySections(payload) {
       || sectionKey === summaryKey
       || sectionKey === sourceReferenceKey
       || sectionKey.startsWith("source:")
+      || sectionKey.startsWith("read more:")
     ) {
       return false;
     }
 
-    if (sectionContainsValue(section, payload.canonicalUrl) || sectionContainsValue(section, payload.extraLinkUrl)) {
+    if (sectionContainsValue(section, canonicalUrl) || sectionContainsValue(section, extraLinkUrl)) {
       return false;
     }
 
     return true;
   });
-}
-
-function getFacebookExtraLinkSection(payload) {
-  const extraLinkUrl = trimText(payload.extraLinkUrl);
-  const canonicalUrl = trimText(payload.canonicalUrl);
-
-  if (!extraLinkUrl || extraLinkUrl === canonicalUrl) {
-    return "";
-  }
-
-  return extraLinkUrl;
 }
 
 function isRetryableGraphFailure(response, payload) {
@@ -552,22 +541,13 @@ async function executeFacebookPublish(runtimeConnection, accessToken, destinatio
 }
 
 export function buildFacebookMessage(payload) {
-  const extraLinkSection = getFacebookExtraLinkSection(payload);
-  const extraLinkPlacement = resolveSocialPostLinkPlacement(payload.extraLinkPlacement);
   const bodySections = extractFacebookBodySections(payload);
   const summarySections = splitBodySections(payload.summary);
   const contentSections = bodySections.length ? bodySections : summarySections;
-  const canonicalSection = trimText(payload.canonicalUrl)
-    ? `Read more: ${trimText(payload.canonicalUrl)}`
-    : "";
 
   return joinPublishText([
     formatFacebookTitle(payload.title),
-    extraLinkPlacement === "BELOW_TITLE" ? extraLinkSection : "",
     ...contentSections,
-    canonicalSection,
-    extraLinkPlacement === "END" ? extraLinkSection : "",
-    payload.sourceReference,
   ]);
 }
 

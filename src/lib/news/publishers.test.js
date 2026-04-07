@@ -18,7 +18,7 @@ describe("news publishers", () => {
     vi.restoreAllMocks();
   });
 
-  it("formats polished Facebook messages from the rendered body, canonical CTA, and source attribution", async () => {
+  it("formats facebook messages with only a bold title and body text", async () => {
     const { buildFacebookMessage } = await import("./publishers");
 
     const message = buildFacebookMessage({
@@ -37,17 +37,10 @@ describe("news publishers", () => {
       title: "Breaking story",
     });
 
-    expect(message).toBe(
-      [
-        "【Breaking story】",
-        "Lead paragraph from the rendered template body.",
-        "Read more: https://example.com/en/news/breaking-story",
-        "Source: Example Source - https://example.com/story",
-      ].join("\n\n"),
-    );
+    expect(message).toBe(["**Breaking story**", "Lead paragraph from the rendered template body."].join("\n\n"));
   });
 
-  it("places the optional stream link directly below the Facebook title when requested", async () => {
+  it("ignores extra facebook link placement settings and keeps only title plus body", async () => {
     const { buildFacebookMessage } = await import("./publishers");
 
     const message = buildFacebookMessage({
@@ -60,18 +53,10 @@ describe("news publishers", () => {
       title: "Breaking story",
     });
 
-    expect(message).toBe(
-      [
-        "【Breaking story】",
-        "https://example.com/promo",
-        "Rendered body copy from the template.",
-        "Read more: https://example.com/en/news/breaking-story",
-        "Source: Example Source - https://example.com/story",
-      ].join("\n\n"),
-    );
+    expect(message).toBe(["**Breaking story**", "Rendered body copy from the template."].join("\n\n"));
   });
 
-  it("places the optional stream link at the end of the Facebook message when requested", async () => {
+  it("keeps facebook messages minimal even when end-link settings are present", async () => {
     const { buildFacebookMessage } = await import("./publishers");
 
     const message = buildFacebookMessage({
@@ -84,18 +69,10 @@ describe("news publishers", () => {
       title: "Breaking story",
     });
 
-    expect(message).toBe(
-      [
-        "【Breaking story】",
-        "Rendered body copy from the template.",
-        "Read more: https://example.com/en/news/breaking-story",
-        "https://example.com/promo",
-        "Source: Example Source - https://example.com/story",
-      ].join("\n\n"),
-    );
+    expect(message).toBe(["**Breaking story**", "Rendered body copy from the template."].join("\n\n"));
   });
 
-  it("resolves RANDOM Facebook link placement at publish time", async () => {
+  it("ignores random facebook link placement and keeps only title plus body", async () => {
     const { buildFacebookMessage } = await import("./publishers");
 
     vi.spyOn(Math, "random").mockReturnValue(0.1);
@@ -110,10 +87,10 @@ describe("news publishers", () => {
       title: "Breaking story",
     });
 
-    expect(message).toContain("【Breaking story】\n\nhttps://example.com/promo");
+    expect(message).toBe(["**Breaking story**", "Rendered body copy from the template."].join("\n\n"));
   });
 
-  it("avoids duplicate blank sections and repeated Facebook link sections", async () => {
+  it("avoids duplicate blank sections in the simplified facebook message", async () => {
     const { buildFacebookMessage } = await import("./publishers");
 
     const message = buildFacebookMessage({
@@ -126,14 +103,7 @@ describe("news publishers", () => {
       title: "Breaking story",
     });
 
-    expect(message).toBe(
-      [
-        "【Breaking story】",
-        "Breaking story summary",
-        "Read more: https://example.com/en/news/breaking-story",
-        "Source: Example Source - https://example.com/story",
-      ].join("\n\n"),
-    );
+    expect(message).toBe(["**Breaking story**", "Breaking story summary"].join("\n\n"));
     expect(message).not.toContain("\n\n\n");
   });
 
@@ -439,9 +409,7 @@ describe("news publishers", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(`${fetchMock.mock.calls[1][0]}`).toContain("/123456789012345/feed");
     expect(fetchMock.mock.calls[1][1].body.get("link")).toBeNull();
-    expect(fetchMock.mock.calls[1][1].body.get("message")).toContain(
-      "http://localhost:3000/en/news/breaking-story",
-    );
+    expect(fetchMock.mock.calls[1][1].body.get("message")).toBe(["**Breaking story**", "Breaking story summary"].join("\n\n"));
     expect(result).toMatchObject({
       remoteId: "feed_post_local_1",
       responseJson: expect.objectContaining({
