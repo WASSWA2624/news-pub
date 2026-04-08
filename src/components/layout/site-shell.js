@@ -14,6 +14,8 @@ import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
 const { buildFooterSections, isNavigationActive, normalizePathname, publicNavigationIcons } = siteShellUtils;
+const mobileHeaderBreakpoint = 980;
+const wideHeaderBreakpoint = 1240;
 
 const Shell = styled.div`
   display: flex;
@@ -65,7 +67,12 @@ const HeaderInner = styled.div`
   max-width: var(--theme-shell-max-width);
   padding: clamp(0.26rem, 0.95vw, 0.46rem) clamp(0.52rem, 1.45vw, 0.84rem);
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem);
+  }
+
+  @media (min-width: ${wideHeaderBreakpoint}px) {
     align-items: center;
     column-gap: clamp(0.9rem, 1.8vw, 1.55rem);
     gap: 0.38rem;
@@ -186,12 +193,17 @@ const HeaderMeta = styled.div`
   gap: 0.1rem;
   min-width: 0;
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  @media (min-width: ${wideHeaderBreakpoint}px) {
     min-width: max-content;
     padding-right: clamp(0.36rem, 0.8vw, 0.66rem);
   }
 
-  @media (max-width: 979px) {
+  @media (max-width: ${mobileHeaderBreakpoint - 1}px) {
     align-items: center;
     background:
       linear-gradient(135deg, rgba(var(--theme-surface-rgb), 0.99), rgba(255, 255, 255, 0.97)),
@@ -215,7 +227,7 @@ const HeaderTagline = styled.p`
   margin: 0;
   max-width: 58ch;
 
-  @media (max-width: 979px) {
+  @media (max-width: ${wideHeaderBreakpoint - 1}px) {
     display: none;
   }
 `;
@@ -224,7 +236,7 @@ const MobileActionGroup = styled.div`
   display: inline-flex;
   gap: 0.36rem;
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
     display: none;
   }
 `;
@@ -294,18 +306,30 @@ const Navigation = styled.nav`
     display: none;
   }
 
-  @media (max-width: 979px) {
+  @media (max-width: ${mobileHeaderBreakpoint - 1}px) {
     display: none;
   }
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
+    grid-column: 1 / -1;
+    grid-row: 2;
     align-items: center;
-    justify-self: end;
+    justify-self: stretch;
     max-width: 100%;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0.08rem;
+    padding-bottom: 0;
+  }
+
+  @media (min-width: ${wideHeaderBreakpoint}px) {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: end;
     min-width: max-content;
     padding-left: clamp(0.24rem, 0.6vw, 0.5rem);
+    padding-right: 0;
     overflow: visible;
-    padding-bottom: 0;
   }
 `;
 
@@ -457,12 +481,23 @@ const SearchWrap = styled.div`
   max-width: 100%;
   width: 100%;
 
-  @media (max-width: 979px) {
+  @media (max-width: ${mobileHeaderBreakpoint - 1}px) {
     display: none;
   }
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
+    align-self: start;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    max-width: min(24rem, 100%);
+  }
+
+  @media (min-width: ${wideHeaderBreakpoint}px) {
     align-self: center;
+    grid-column: auto;
+    grid-row: auto;
+    max-width: 100%;
   }
 `;
 
@@ -502,7 +537,7 @@ const MobileDialog = styled.dialog`
       radial-gradient(circle at top, rgba(var(--theme-primary-rgb), 0.16), transparent 36%);
   }
 
-  @media (min-width: 980px) {
+  @media (min-width: ${mobileHeaderBreakpoint}px) {
     display: none;
   }
 `;
