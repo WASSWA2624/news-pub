@@ -17,6 +17,7 @@ const providerRuntimeCatalog = Object.freeze({
     baseUrl: "https://api.mediastack.com/v1/news",
     credentialEnv: "MEDIASTACK_API_KEY",
     description: "Mediastack provider integration with the official live news filters.",
+    maxBatchSize: 100,
   },
   newsapi: {
     baseUrlByEndpoint: Object.freeze({
@@ -83,6 +84,18 @@ function getProviderFetchBatchSize({ maxArticlesHint = null, stream = null } = {
   );
 
   return Math.max(resolvedHint * 3, 25);
+}
+
+function getCappedProviderFetchBatchSize(providerKey, options = {}) {
+  const normalizedProviderKey = normalizeProviderKey(providerKey);
+  const requestedBatchSize = getProviderFetchBatchSize(options);
+  const providerBatchCap = Number.parseInt(`${providerRuntimeCatalog[normalizedProviderKey]?.maxBatchSize || ""}`, 10);
+
+  if (!Number.isInteger(providerBatchCap) || providerBatchCap <= 0) {
+    return requestedBatchSize;
+  }
+
+  return Math.min(requestedBatchSize, providerBatchCap);
 }
 
 function normalizeDateValue(value) {
@@ -429,7 +442,7 @@ function buildMediastackRequest({ credential, maxArticlesHint = null, requestVal
   const url = new URL(providerRuntimeCatalog.mediastack.baseUrl);
 
   url.searchParams.set("access_key", credential);
-  url.searchParams.set("limit", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
+  url.searchParams.set("limit", `${getCappedProviderFetchBatchSize("mediastack", { maxArticlesHint, stream })}`);
   appendIncludeExcludeListParam(url, "countries", requestValues.countries, requestValues.excludeCountries);
   appendIncludeExcludeListParam(url, "languages", requestValues.languages, requestValues.excludeLanguages);
   appendIncludeExcludeListParam(url, "categories", requestValues.categories, requestValues.excludeCategories);

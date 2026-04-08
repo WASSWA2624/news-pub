@@ -145,6 +145,48 @@ describe("news providers", () => {
     });
   });
 
+  it("caps Mediastack request limits at the provider maximum", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          data: [],
+          pagination: {
+            limit: 100,
+            offset: 0,
+          },
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      providerKey: "mediastack",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            categories: ["general"],
+            countries: ["us"],
+            languages: ["en"],
+            sort: "published_desc",
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 50,
+        settingsJson: {
+          providerFilters: {
+            categories: ["general", "business"],
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.searchParams.get("limit")).toBe("100");
+  });
+
   it("builds NewsData requests with official endpoint and advanced filters", async () => {
     vi.stubGlobal(
       "fetch",
