@@ -24,6 +24,7 @@ import {
 } from "@/components/admin/admin-form-primitives";
 import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
+import FetchWindowControls from "@/components/admin/fetch-window-controls";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import AppIcon from "@/components/common/app-icon";
@@ -31,6 +32,11 @@ import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
 import { getStreamSocialPostSettings } from "@/lib/news/social-post";
+import {
+  buildFetchWindowCapabilityDetails,
+  createDefaultRunWindowState,
+  createRunFetchWindowRequest,
+} from "@/components/admin/stream-management-screen.helpers";
 import {
   getStreamValidationIssues,
   isDestinationKindAutoPublishCapable,
@@ -143,6 +149,49 @@ function buildModeOptions(modeOptions, destination) {
   });
 }
 
+function getRunWindowErrorMessage(error) {
+  if (error instanceof Error && error.message === "run_window_boundaries_required") {
+    return "Enter both the start and end boundaries before running the stream.";
+  }
+
+  if (error instanceof Error && error.message === "run_window_start_after_end") {
+    return "Fetch window start must be earlier than or equal to the end boundary.";
+  }
+
+  return "NewsPub could not start the stream with the current manual window.";
+}
+
+function areProviderFormValuesEqual(leftValue, rightValue) {
+  if (leftValue === rightValue) {
+    return true;
+  }
+
+  if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
+    if (!Array.isArray(leftValue) || !Array.isArray(rightValue) || leftValue.length !== rightValue.length) {
+      return false;
+    }
+
+    return leftValue.every((entry, index) => areProviderFormValuesEqual(entry, rightValue[index]));
+  }
+
+  if (leftValue && rightValue && typeof leftValue === "object" && typeof rightValue === "object") {
+    const leftKeys = Object.keys(leftValue);
+    const rightKeys = Object.keys(rightValue);
+
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+
+    return leftKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(rightValue, key)
+        && areProviderFormValuesEqual(leftValue[key], rightValue[key]),
+    );
+  }
+
+  return `${leftValue ?? ""}` === `${rightValue ?? ""}`;
+}
+
 const socialPostLinkPlacementOptions = [
   {
     description: "Choose below-title or end placement at publish time.",
@@ -179,8 +228,10 @@ export default function StreamFormCard({
   stream = null,
   submitLabel,
   templateOptions = [],
+  uiNowIso = "",
 }) {
   const socialPostSettings = getStreamSocialPostSettings(stream);
+  const initialProviderFormValues = useMemo(() => getStreamProviderFormValues(stream), [stream]);
   const initialActiveProviderId = stream?.activeProviderId || providerOptions[0]?.value || "";
   const initialDestinationId = stream?.destinationId || destinationOptions[0]?.value || "";
   const initialSelectedDestination =
@@ -201,6 +252,9 @@ export default function StreamFormCard({
   const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
   const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
+  const [providerFormValues, setProviderFormValues] = useState(initialProviderFormValues);
+  const [runWindowState, setRunWindowState] = useState(() => createDefaultRunWindowState(uiNowIso || new Date()));
+  const [runWindowError, setRunWindowError] = useState("");
   const [nameWasEdited, setNameWasEdited] = useState(
     Boolean(
       normalizeDisplayText(initialName)
@@ -223,6 +277,32 @@ export default function StreamFormCard({
   });
   const resolvedTemplateOptions = buildTemplateOptions(templateOptions, selectedDestination);
   const resolvedModeOptions = buildModeOptions(modeOptions, selectedDestination);
+  const fetchWindowCapabilityDetails = selectedProvider?.providerKey
+    ? buildFetchWindowCapabilityDetails([
+        {
+          activeProvider: {
+            label: selectedProvider.label,
+            providerKey: selectedProvider.providerKey,
+            requestDefaultsJson:
+              selectedProvider.requestDefaultsJson
+              || stream?.activeProvider?.requestDefaultsJson
+              || {},
+          },
+          countryAllowlistJson: stream?.countryAllowlistJson || [],
+          languageAllowlistJson: stream?.languageAllowlistJson || [],
+          locale: stream?.locale || "en",
+          settingsJson: {
+            providerFilters: providerFormValues,
+          },
+        },
+      ])
+    : [];
+
+  const handleProviderFormValuesChange = useCallback((nextValues) => {
+    setProviderFormValues((currentValues) =>
+      areProviderFormValuesEqual(currentValues, nextValues) ? currentValues : nextValues,
+    );
+  }, []);
 
   const applyIdentitySuggestion = useCallback(
     (nextSuggestedIdentity) => {
@@ -249,6 +329,35 @@ export default function StreamFormCard({
 
     event.preventDefault();
     scrollToFirstBlockingField(formRef.current);
+  }
+
+  function resetRunWindow() {
+    setRunWindowState(createDefaultRunWindowState(uiNowIso || new Date()));
+    setRunWindowError("");
+  }
+
+  function handleRunNowClick() {
+    if (!stream) {
+      return;
+    }
+
+    try {
+      const fetchWindow = createRunFetchWindowRequest(runWindowState);
+
+      setRunWindowError("");
+      onRunNow?.({
+        fetchWindow,
+        stream,
+      });
+    } catch (error) {
+      setRunWindowError(getRunWindowErrorMessage(error));
+      formRef.current
+        ?.querySelector("input[type='datetime-local']")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+    }
   }
 
   return (
@@ -443,6 +552,50 @@ export default function StreamFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
+        completionLabel="24-hour default ready"
+        defaultOpen
+        meta={[
+          {
+            label: "Last 24 hours to now",
+            tone: "accent",
+          },
+          {
+            label: runWindowState.writeCheckpointOnSuccess ? "Checkpoint writes on" : "Checkpoint writes off",
+            tone: runWindowState.writeCheckpointOnSuccess ? "warning" : "muted",
+          },
+        ]}
+        summary="NewsPub resolves one normalized manual window for every run. Provider-specific request parameters are mapped from this explicit boundary instead of relying on hidden defaults."
+        title="Fetch window defaults"
+      >
+        <FetchWindowControls
+          capabilityDetails={fetchWindowCapabilityDetails}
+          endValue={runWindowState.endInputValue}
+          onEndChange={(value) =>
+            setRunWindowState((currentState) => ({
+              ...currentState,
+              endInputValue: value,
+            }))
+          }
+          onReset={resetRunWindow}
+          onStartChange={(value) =>
+            setRunWindowState((currentState) => ({
+              ...currentState,
+              startInputValue: value,
+            }))
+          }
+          onWriteCheckpointChange={(value) =>
+            setRunWindowState((currentState) => ({
+              ...currentState,
+              writeCheckpointOnSuccess: value,
+            }))
+          }
+          startValue={runWindowState.startInputValue}
+          writeCheckpointOnSuccess={runWindowState.writeCheckpointOnSuccess}
+        />
+        {runWindowError ? <FieldErrorText>{runWindowError}</FieldErrorText> : null}
+      </AdminDisclosureSection>
+
+      <AdminDisclosureSection
         completionLabel="Scheduling ready"
         defaultOpen={false}
         meta={[
@@ -561,10 +714,12 @@ export default function StreamFormCard({
         >
           <ProviderFilterFields
             key={`stream-provider-filters-${selectedProvider.providerKey}`}
+            hideManagedWindowFields
             namePrefix="providerFilter"
+            onValuesChange={handleProviderFormValuesChange}
             providerKey={selectedProvider.providerKey}
             scope="stream"
-            values={getStreamProviderFormValues(stream)}
+            values={initialProviderFormValues}
           />
         </AdminDisclosureSection>
       ) : null}
@@ -619,7 +774,7 @@ export default function StreamFormCard({
         {stream ? (
           <SecondaryButton
             disabled={issues.length > 0 || runInProgress}
-            onClick={() => onRunNow?.(stream)}
+            onClick={handleRunNowClick}
             type="button"
           >
             <ButtonIcon>

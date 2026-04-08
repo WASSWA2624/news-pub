@@ -59,6 +59,7 @@ export default async function StreamsPage({ searchParams }) {
     docsUrl: getProviderDefinition(provider.providerKey)?.docsUrl || "",
     label: provider.label,
     providerKey: provider.providerKey,
+    requestDefaultsJson: provider.requestDefaultsJson || {},
     value: provider.id,
   }));
   const templateOptions = [
@@ -110,6 +111,7 @@ export default async function StreamsPage({ searchParams }) {
         statusOptions={statusOptions}
         streams={snapshot.streams}
         templateOptions={templateOptions}
+        uiNowIso={new Date().toISOString()}
       />
     </AdminPage>
   );

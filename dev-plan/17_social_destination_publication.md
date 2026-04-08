@@ -19,8 +19,9 @@ Implement NewsPub publishing to Facebook and Instagram with full attempt history
 2. Create outbound publisher adapters for supported Facebook and Instagram destination kinds.
 3. Persist every outbound action as a `PublishAttempt` with request, response, status, retry count, and remote identifier metadata.
 4. Block or hold social publishing when the destination is disconnected, missing required scopes, fails platform-specific validation, or trips policy and guardrail checks.
-5. Add manual retry, optimization preview, and history visibility in the admin workspace.
-6. Keep platform-specific quirks, rate limiting, duplicate cooldowns, hashtag caps, and safety checks in the integration layer only.
+5. Enforce the configured Meta minimum post interval across auto-publish and retry paths, and record when pacing blocks or defers publication.
+6. Add manual retry, optimization preview, and history visibility in the admin workspace.
+7. Keep platform-specific quirks, rate limiting, duplicate cooldowns, hashtag caps, and safety checks in the integration layer only.
 
 ## Required Outputs
 
@@ -35,6 +36,7 @@ Implement NewsPub publishing to Facebook and Instagram with full attempt history
 - every social publish produces a persisted `PublishAttempt`
 - retrying a failed attempt does not duplicate already-succeeded publications
 - platform errors and policy blocks appear in admin logs with actionable detail
+- Meta pacing or guardrail blocks appear in jobs and post history with one operator-facing reason code and message
 
 ## Exit Criteria
 

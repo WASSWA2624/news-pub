@@ -1,331 +1,493 @@
-# NewsPub Comprehensive Upgrade Prompt - Stream-Batched Fetching, Provider Time Windows, And Full Documentation Sync
+# NewsPub Comprehensive Upgrade Prompt — Shared Fetch Hardening, Explicit Time Windows, SEO-First Website Publishing, Meta Compliance Review, And Stream UX Defaults
 
 ## Mission
 
-Upgrade the NewsPub codebase comprehensively so the product remains operationally reliable, fetch-efficient, UI-consistent, and resilient when optional AI functionality is unavailable.
+Review the entire NewsPub repository comprehensively against `newspub_comprehensive_upgrade_prompt.md`, `app-write-up.md`, `README.md`, and all relevant `dev-plan/*` files, then implement and document the remaining work needed so the runtime behavior, admin UX, tests, and repo-truth documentation all match exactly.
 
-The implementation must preserve the bounded NewsPub product shape. Do not reintroduce open-ended generation, prompt-lab, equipment, manufacturer, or unrelated legacy architecture.
+This prompt must be treated as an **implementation and synchrojnization prompt**, not as a greenfield redesign prompt.
 
-## Non-Negotiable Runtime Rule For AI
+Important: the current repo already contains partial or substantial implementation for shared-fetch planning, normalized fetch-window handling, AI skip/fallback behavior, and website publication flow. Do **not** duplicate or replace that work blindly. Instead:
 
-AI is optional at runtime.
+- verify what already exists
+- preserve working behavior
+- close the remaining gaps
+- remove contradictions
+- harden incomplete areas
+- align code, tests, UI defaults, and docs to one exact product contract
 
-If the AI layer is disabled, misconfigured, missing credentials, unavailable, rate limited, timing out, returning invalid structured output, or otherwise unhealthy, **do not block the workflow**. Instead:
+Do not leave the repository in a state where runtime behavior, tests, and docs disagree.
 
-- skip AI intervention cleanly
-- continue through deterministic formatting, canonical post content, or manual editorial flow as appropriate
-- persist a machine-readable and admin-visible reason
-- record `OptimizationStatus.SKIPPED` or `OptimizationStatus.FALLBACK` instead of treating the event as a hard failure
-- keep fetch, review, scheduling, retry, and publication flows operational whenever platform and policy requirements are still satisfied
+## Product Boundaries
 
-Do not make AI availability a hidden prerequisite for normal NewsPub use.
+Keep the bounded NewsPub product shape.
+
+Do **not** reintroduce open-ended generation tools, prompt-lab patterns, equipment or manufacturer domains, unrelated content pipelines, or speculative new platform scope.
+
+Supported destination scope remains:
+
+- website
+- Facebook
+- Instagram
+
+Supported provider scope remains the currently supported provider set unless the repo already contains an approved extension path.
+
+## Non-Negotiable Runtime Rules
+
+### 1. AI is optional at runtime
+
+If AI is disabled, missing credentials, misconfigured, unavailable, rate limited, timing out, returning invalid structured output, or otherwise unhealthy, the workflow must continue safely whenever platform and policy requirements still allow it.
+
+Required behavior:
+
+- skip AI intervention cleanly when AI is unavailable
+- fall back to deterministic formatting where supported
+- do not block fetch, filtering, review, scheduling, retry, or website publication solely because AI failed
+- persist visible machine-readable reasons
+- surface `SKIPPED` or `FALLBACK` status clearly in admin views, logs, and analytics
+- preserve editorial override and manual publication paths
+
+### 2. Local filtering remains the source of truth
+
+Provider requests may be widened for efficiency, but stream-specific filtering, deduplication, policy handling, review logic, and destination decisions must remain in the app layer.
+
+### 3. Website publishing is complete by default
+
+For website destinations, NewsPub must publish **every fetched item that passes local stream filters, duplicate rules, moderation rules, destination settings, and hold/block rules**.
+
+No valid website article may be silently dropped just because the upstream fetch was broader, batched, or optimized for multi-stream reuse.
+
+### 4. Meta safety and pacing are mandatory
+
+For Facebook and Instagram, NewsPub must not only optimize copy but also explicitly review publishable payloads for Meta safety, policy alignment, spam-risk reduction, and posting cadence.
 
 ## Main Objectives
 
-1. Strengthen reliability of provider, review, publishing, and retry flows.
-2. Improve provider fetch efficiency by supporting single-call batch fetching for compatible multi-stream runs.
-3. Ensure every provider can fetch broadly within an explicit time boundary whenever the provider supports it.
-4. Guarantee website publishing includes every article that passes the website stream filters unless blocked by settings, policy checks, or AI-related hold or block outcomes.
-5. Improve admin UX for all forms, including modal forms and long editorial screens.
-6. Standardize button sizing and interaction behavior.
-7. Improve accordion and accordion-like form sections so they support fast, low-friction editing.
-8. Reduce UI nesting depth, duplication, and unnecessary client-side render cost.
-9. Keep all changed runtime files professionally documented with current JSDoc and targeted inline comments.
-10. Keep all repo-truth docs synchronized with the implemented behavior.
+1. Preserve and harden provider-aware shared-fetch batching.
+2. Make time-boundary behavior fully normalized, explicit, testable, and clearly exposed in admin UX.
+3. Make the default stream fetch window **last 24 hours to now**, clearly prefilled in stream settings and manual-run surfaces.
+4. Ensure all providers expose the broadest supported time-bounded fetch path within their actual endpoint limitations.
+5. Guarantee website streams publish all locally eligible content by default and make that behavior SEO-optimized.
+6. Strengthen Facebook and Instagram AI review so filtered posts are streamlined for platform compliance before publication.
+7. Enforce and expose a delay between consecutive Facebook and Instagram posts to reduce account-ban risk.
+8. Review and optimize stream filter defaults, field help text, and interface behavior so the most correct defaults are preselected and obvious.
+9. Keep all changed runtime files documented with professional JSDoc and targeted inline comments.
+10. Update all affected docs, plans, and tests so the repository tells the truth.
 
-## Required Product Behavior
+## Required Runtime Behavior
 
-### A. AI, fallback, and observability
+### A. Shared-fetch batching for sent stream groups
 
-- Treat AI as assistive only.
-- Preserve facts, attribution, and policy checks.
-- Reuse optimization cache when valid.
-- When AI is skipped or falls back, show that state clearly in the admin UI, job history, audit logs, fetch-run summaries, article-match review surfaces, and post editor surfaces.
-- Never let optional AI failures corrupt queue state or block manual publish decisions.
+When one execution request contains multiple stream ids:
 
-### B. Multi-stream fetch batching
+- partition streams into the minimum safe number of compatible shared-fetch groups
+- perform exactly one provider API call per compatible group
+- build one widened provider request per compatible group
+- use that shared upstream response as the candidate pool for all streams in that group
+- then apply per-stream filtering, deduplication, AI handling, review, and publishing locally inside the app
+- preserve separate per-stream checkpoints, summaries, article matches, audit logs, and publish attempts
+- preserve single-stream execution support
 
-Implement a provider-aware fetch aggregation contract for situations where multiple streams are sent together for execution.
+Do not regress any existing shared-fetch implementation that is already correct.
 
-When a batch of streams is executed together and the streams are compatible for shared fetching:
+### B. Shared-fetch compatibility rules
 
-- perform **one provider API call** for the compatible stream group instead of one call per stream
-- build one provider request that represents the **combined fetch envelope** for all sent streams in that compatible group
-- use the provider response as the shared candidate pool for all streams in the group
-- then apply stream-specific filtering, deduplication, AI handling, review logic, and publishing **inside the app** per stream
-- do not require the provider request itself to encode every stream’s full rule set; fetch broadly enough once, then filter locally
-- keep per-stream checkpoints, summaries, dedupe decisions, article matches, AI outcomes, publish attempts, and audit events separate even when the upstream fetch was shared
-- keep the shared-fetch path idempotent and safe for retries
-- preserve existing single-stream execution support
-
-Compatibility rules for a shared fetch group:
+Streams may share one upstream request only when all of the following remain compatible and safe:
 
 - same active provider key
-- same provider endpoint shape when the provider supports multiple endpoint modes
+- same provider endpoint shape or endpoint family where request semantics match
 - same runtime credential source
-- same general fetch window semantics
-- no stream-specific provider constraint that would make the shared request underfetch for another stream in the group
+- same general time-boundary semantics
+- no stream-specific provider filter that would cause one stream to underfetch if grouped
 
-When streams are not compatible for shared fetching:
+When streams are not compatible:
 
-- split them into the minimum number of compatible provider request groups
-- still avoid unnecessary duplicate upstream calls
+- split them into the smallest safe number of groups
+- still avoid duplicate upstream calls whenever widening remains safe
 
 ### C. Combined fetch envelope rules
 
-The shared provider request for a compatible stream group must:
+The shared provider request must:
 
-- widen the request enough to avoid missing valid downstream matches
-- represent the union of compatible fetch-time criteria where widening is safe
-- never narrow the request in a way that causes a stream to lose articles it should have seen
-- prefer local filtering over overfitting the provider request
-- keep pagination, cursors, and time windows explicit and auditable
+- widen enough to avoid missing downstream matches
+- represent the union of safe fetch-time criteria
+- never narrow in a way that underfetches for any stream in the group
+- prefer local filtering over brittle provider-side overfitting
+- keep time windows, pagination, cursors, and grouping decisions explicit and auditable
 
-Examples:
+### D. Normalized provider time-window contract
 
-- if two website streams use the same provider and same endpoint but different categories, fetch once using the broadest safe provider request, then filter per stream locally
-- if one stream needs provider endpoint `everything` and another needs `top-headlines`, they are not part of the same shared-fetch group
-- if one provider supports broad date windows, build one request for the full combined time window, then fan out locally
+There must be one normalized internal fetch-window contract used consistently by:
 
-### D. Provider time-boundary support
-
-For all supported providers, there must be a clear way to fetch everything within a given time boundary whenever the provider supports date or datetime scoping.
+- scheduled runs
+- manual runs
+- manual multi-stream runs
+- retries
+- backfills
+- diagnostics
+- shared-fetch batches
 
 Implementation requirements:
 
-- define a normalized internal time-window contract for provider requests
-- support start and end boundaries consistently in the provider integration layer
-- preserve provider-specific parameter names only inside the provider adapter layer
-- make the time-boundary behavior explicit in the admin form metadata, request builders, tests, and documentation
-- keep automatic checkpoint-based incremental windows
-- also support explicit bounded fetch windows for manual runs, batched runs, retries, backfills, and admin-triggered diagnostics where applicable
-- if a provider endpoint does not support a time boundary directly, document that clearly and implement the broadest supported safe fallback behavior
-- if a provider has multiple endpoints and only some support full bounded history, expose and document that distinction clearly
+- internal code uses normalized start and end boundaries
+- provider adapters map normalized boundaries to provider-specific request parameters
+- explicit manual windows are supported cleanly
+- checkpoint-driven incremental windows still work
+- explicit windows do not advance checkpoints unless explicitly requested
+- endpoint-specific time-boundary limitations are documented clearly
 
-### E. Website publication contract
+### E. Default time-bound behavior in stream settings
+
+This is a required addition.
+
+For all provider-backed stream settings and manual execution controls:
+
+- the default visible time window must be **from the last 24 hours to now**
+- the interface must make that default explicit
+- start and end boundaries must be clearly prefilled where the provider or endpoint supports direct bounded input
+- if an endpoint supports only relative timeframe semantics, the UI must still present the normalized 24-hour default in a clear way and explain how it maps to the provider
+- if a provider endpoint cannot support a true start/end range directly, the UI must state that clearly and show the nearest supported behavior
+
+Do not hide this logic behind implicit defaults only in backend code. The admin interface must communicate it clearly.
+
+### F. Provider support requirements
+
+For every supported provider, ensure there is a way to fetch everything within a given time boundary whenever the provider supports it.
+
+Requirements:
+
+- provider capabilities must be explicit by endpoint
+- provider adapters must expose the broadest supported bounded fetch path
+- request builders must honor normalized internal start/end windows
+- tests must prove correct mapping for each provider and endpoint mode
+- unsupported endpoint limitations must be documented and handled safely
+
+The default behavior remains:
+
+- last 24 hours to now
+
+### G. Website publication contract
 
 For website destinations:
 
-- publish everything that passes the website stream filters and deduplication rules unless blocked by destination settings, policy checks, or explicit AI or moderation holds
-- do not silently drop website-eligible articles because the provider returned a broader candidate set
-- do not require extra provider-side filtering for the website path beyond what is necessary for efficient broad fetches
-- keep website publication behavior deterministic and auditable
-- ensure website streams remain first-class, not second-class relative to social publishing
+- publish everything that passes local stream filters and duplicate rules unless blocked by explicit settings, moderation, policy, or AI hold/block outcomes
+- do not apply social-style `maxPostsPerRun` limits to website streams
+- keep website publication deterministic and auditable
+- ensure website publishing remains first-class, not secondary to social flows
+- ensure broad shared-fetch responses do not cause valid website items to be skipped
 
-### F. Filtering, review, and downstream processing
+### H. SEO requirements for website publishing
 
-After shared or single-stream fetching:
+This is a required strengthening area.
 
-- normalize every provider article into the shared internal article contract exactly once per fetched item
-- evaluate every fetched item against each relevant stream locally
-- perform category, locale, language, country, region, include-keyword, exclude-keyword, provider-filter, duplicate, policy, and schedule logic in the app layer
-- preserve per-stream article-match records even when multiple streams accept the same fetched article
-- keep repost-eligible duplicate logic working correctly per destination and per stream
-- keep review-required and auto-publish modes working correctly after batched upstream fetching
+By default, website streams should post everything returned by the website stream filters unless blocked, and those posts must be SEO optimized.
 
-### G. Form UX and modal UX
+Required SEO behavior:
 
-Apply these rules consistently to provider, destination, stream, template, settings, category, post-editor, and other admin forms:
+- generate or preserve canonical slugging deterministically
+- populate SEO title and meta description fields consistently
+- keep Open Graph and Twitter metadata synchronized with canonical website content
+- ensure canonical URLs are stable
+- keep structured data valid for published story pages where that architecture already exists
+- ensure sitemap and public discovery surfaces reflect the published website content correctly
+- preserve source attribution and factual fidelity
+- ensure fallback and non-AI paths still produce valid SEO metadata
 
-- use one shared form design language for labels, help text, error text, spacing, and section rhythm
-- keep primary actions obvious and easy to reach
-- keep modal header context stable and modal footer actions consistently visible
-- avoid scroll traps inside modals
-- preserve entered values when non-blocking refreshes happen
-- show validation close to the field and section that needs correction
-- auto-focus or scroll to the first blocking issue on submit failure
-- ensure keyboard-only users can complete all form flows
+Do not make SEO optimization depend on AI success.
 
-### H. Accordion and accordion-like improvements
+### I. Facebook and Instagram AI compliance review
 
-For all disclosure-based sections in forms and editors:
+This is a required addition and hardening area.
 
-- use a consistent disclosure component or behavior contract
-- show section title, short summary, and completion or error state even when collapsed
-- auto-expand sections that contain validation errors, required missing data, or blocking warnings
-- keep toggles large enough to click comfortably
-- ensure `aria-expanded`, focus treatment, and keyboard activation are correct
-- avoid hiding important save-affecting information in collapsed regions without indicators
-- support progressive disclosure without making the form feel fragmented
+For Facebook and Instagram, after stream filtering but before publication:
 
-### I. Buttons and control sizing
+- run the AI layer as a bounded compliance-and-streamlining pass when AI is available
+- ensure the payload is aligned with Facebook and Instagram terms, safety expectations, and anti-spam heuristics as far as the product can reasonably enforce
+- preserve factual meaning and source attribution
+- reduce risky formatting, engagement bait, spam-like phrasing, overlong copy, and platform-unsafe patterns
+- keep all policy decisions visible and auditable
+- if AI is unavailable, continue using deterministic policy and guardrail logic
+- do not publish blocked content just because AI is unavailable
 
-- standardize button height across primary, secondary, danger, and footer actions
-- standardize icon-leading button spacing and alignment
-- keep action hierarchy consistent across cards, tables, toolbars, and modals
-- do not allow the same action class to appear with multiple heights on different screens unless there is a clear accessibility reason
+Important: this is not open-ended content generation. It is bounded optimization, compliance review, and formatting.
 
-### J. Performance and code quality
+### J. Facebook and Instagram post-delay enforcement
 
-- minimize component nesting depth where practical
-- remove avoidable duplication
-- extract reusable field, section, footer, disclosure, and status primitives where they genuinely reduce complexity
-- avoid unnecessary client components and rerenders
-- lazy-mount heavy sections when it improves responsiveness without harming usability
-- keep list views paginated and bounded
-- preserve or improve perceived speed on mobile and low-end devices
+This is a required addition or hardening area.
 
-## Areas To Close Based On Current Repo Review
+For Facebook and Instagram destinations:
 
-1. **Shared-fetch orchestration gap**
-   - Current stream execution fetches once per stream and then filters locally.
-   - Add a batch execution path that can group compatible streams and reuse one upstream provider response across them.
-   - Keep the existing single-stream execution path intact.
+- enforce a delay between one post and the next to reduce account-ban risk
+- make the delay configurable through the existing destination or policy guardrail architecture if such configuration already exists
+- make the current delay visible in admin help text and publish diagnostics
+- prevent unsafe back-to-back auto-publication bursts
+- ensure scheduled runs and retries respect the delay
+- record when a publish was deferred or blocked because the platform pacing interval had not elapsed yet
 
-2. **Provider time-boundary standardization gap**
-   - The repo already contains provider-specific date window logic, but the product contract needs a stronger normalized internal time-window model and explicit support across manual, scheduled, retry, and batched runs.
-   - Make provider endpoint capability differences explicit.
+If the repo already has partial support for minimum post intervals, verify it fully covers both auto-publish and retry paths, is visible in admin UX, and is documented and tested.
 
-3. **Website publication completeness gap**
-   - The implementation must guarantee that all website-eligible results coming from the shared fetched pool proceed through local filtering and publication unless blocked by explicit rules.
-   - Strengthen docs, tests, and review visibility so this is treated as a guaranteed behavior.
+### K. Filtering and downstream evaluation
 
-4. **Fetch-run observability gap for batched execution**
-   - Shared upstream fetches need explicit observability showing grouped stream execution, shared request details, compatible grouping decisions, downstream per-stream fan-out counts, and any reasons a batch was split.
+After fetching, whether single-stream or shared-fetch:
 
-5. **Docs synchronization gap**
-   - Repo-truth docs must explicitly describe shared-fetch grouping, time-boundary semantics, website-posting completeness, and where filtering occurs.
+- normalize each upstream article once per fetched item
+- evaluate each fetched item against each relevant stream locally
+- keep include-keyword, exclude-keyword, locale, language, country, region, provider-filter, duplicate, review, schedule, and policy logic in the app layer
+- preserve per-stream article-match records
+- keep repost-eligible duplicate logic correct per destination and per stream
+- preserve review-required and auto-publish behavior
 
-6. **Admin UX consistency gap**
-   - Form surfaces are generally structured, but need stricter cross-screen consistency for sectioning, helper text, validation visibility, primary action placement, accordion summaries, and stable modal editing.
+### L. Stream filter defaults and interface optimization
+
+This is a required review area.
+
+Review the stream-management and stream-form interfaces comprehensively and optimize the defaults and settings behavior.
+
+Required outcomes:
+
+- default values should match the safest and most useful NewsPub behavior
+- default fetch window clearly reflects last 24 hours to now
+- website stream defaults should favor complete local publication of eligible results
+- social stream defaults should favor safer review and pacing behavior where appropriate
+- provider filter labels, hints, and section summaries should explain which filters affect upstream requests versus local filtering
+- endpoint limitations should be explained where relevant
+- the most important controls should appear first
+- advanced filters should remain available but not overwhelm common workflows
+- filter defaults should not accidentally underfetch
+- country, language, category, keyword, exclusion, endpoint, and time-window defaults should be reviewed for clarity and correctness
+- validation messages should explain how to fix under-scoped or contradictory configurations
+
+### M. Admin forms, modal UX, and disclosure sections
+
+Apply these rules consistently across provider, destination, stream, template, SEO, category, and editor forms:
+
+- one shared form design language
+- stable modal headers and footers
+- no scroll traps
+- visible validation near the affected field
+- auto-focus or scroll to first blocking error
+- keyboard accessibility throughout
+- consistent accordion or disclosure behavior
+- collapsed sections must show useful summaries and error/completion state
+- sections with blocking issues must auto-expand
+- important information must not disappear silently when collapsed
+
+### N. Buttons and control sizing
+
+- standardize button heights across primary, secondary, destructive, toolbar, and modal-footer actions
+- standardize icon spacing and alignment
+- remove inconsistent action sizing unless required for accessibility
+
+### O. Performance and code quality
+
+- minimize unnecessary nesting
+- remove duplication where it truly reduces complexity
+- keep client components lean
+- avoid unnecessary rerenders
+- lazy-mount heavy sections only when it improves responsiveness without hurting usability
+- preserve list bounds and pagination
+- do not expand scope beyond the NewsPub product boundary
+
+## Gaps To Close
+
+Use the repo review to close these specific gaps or partial-implementation risks.
+
+### 1. Shared-fetch hardening gap
+
+The repo already contains shared-fetch planning logic. Verify it end to end and close any remaining mismatch between planner behavior, workflow execution, admin reporting, and tests.
+
+### 2. Time-window UX gap
+
+The backend may already support normalized fetch windows, but the admin stream settings and manual execution experience must clearly expose the default last-24-hours-to-now behavior with prefilled values and endpoint-specific guidance.
+
+### 3. Provider capability visibility gap
+
+Provider endpoint support for date or datetime windows must be explicit in the form metadata, validation, adapter logic, tests, and docs.
+
+### 4. Website completeness plus SEO gap
+
+Website publication already aims to process every eligible candidate. Harden the guarantee, ensure tests cover it, and make sure SEO metadata remains correct even on fallback paths.
+
+### 5. Meta compliance and pacing gap
+
+The repo may already contain some policy and interval guardrails. Verify and complete the behavior so Facebook and Instagram both have:
+
+- bounded AI review and streamlining
+- deterministic fallback policy checks
+- visible compliance outcomes
+- enforced post spacing
+- test coverage
+- documentation coverage
+
+### 6. Stream defaults and filter UX gap
+
+Review the stream-management interfaces and optimize filter defaults, help text, summaries, grouping, and validation so operators clearly understand what will happen before they save or run a stream.
+
+### 7. Documentation synchronization gap
+
+All changed code paths must be reflected exactly in repo-truth docs, not approximately.
 
 ## Implementation Instructions
 
-1. Review the full repo against `app-write-up.md`, `README.md`, and `dev-plan/*` before changing behavior.
-2. Add a shared-fetch planner that can:
-   - accept multiple stream ids for one execution request
-   - partition streams into compatible provider request groups
-   - produce one upstream provider request per compatible group
-   - fan the fetched candidate pool back out into per-stream downstream evaluation
-3. Keep `runStreamFetch` support for single-stream execution, but extract reusable internals so batched and single-stream flows share the same downstream processing rules.
-4. Introduce a normalized provider fetch window contract used by:
-   - scheduled runs
-   - manual runs
-   - retry runs
-   - backfill or diagnostic runs
-   - batched multi-stream runs
-5. Update provider adapters so each provider exposes the broadest supported time-bounded fetch behavior, including endpoint-specific capability differences.
-6. Ensure provider request builders never underfetch when multiple compatible streams are grouped.
-7. Ensure the website destination path posts every locally eligible article from the fetched pool unless blocked by settings, duplicate rules, moderation or policy, or AI-related hold or block outcomes.
-8. Preserve deterministic fallback behavior so AI failure or AI misconfiguration never blocks valid non-AI workflows.
-9. Update admin UX primitives so forms and modals behave consistently.
-10. Refactor accordion-like sections into a reusable, accessible pattern where beneficial.
-11. Standardize shared button sizing tokens and migrate inconsistent usages.
-12. Improve inline validation and submit-failure recovery across forms.
-13. Reduce duplication and simplify component structure without changing product scope.
-14. Update JSDoc for every changed exported function, component, route handler, action, formatter, workflow helper, provider adapter, batching helper, and time-window helper.
-15. Add targeted inline comments for provider grouping rules, shared-fetch safety constraints, checkpoint handling, fan-out filtering, website publication guarantees, and fallback branches where needed.
+1. Review the entire repository against:
+  - `newspub_comprehensive_upgrade_prompt.md`
+  - `app-write-up.md`
+  - `README.md`
+  - all relevant `dev-plan/`* files
+2. Preserve existing correct behavior and avoid duplicate architecture.
+3. Verify the existing shared-fetch planner and execution path before changing it.
+4. Extract or refine reusable internals so single-stream and batch-stream paths share one downstream-processing contract.
+5. Introduce or harden one normalized fetch-window model across all execution entry points.
+6. Make the default 24-hour window explicit and prefilled in stream settings and manual execution interfaces.
+7. Update provider adapters and provider metadata so endpoint-specific time-boundary capabilities are explicit and tested.
+8. Ensure request builders widen grouped fetch windows safely and never underfetch.
+9. Guarantee website streams post every locally eligible article unless explicitly blocked.
+10. Ensure website posts remain SEO optimized even when AI is skipped or falls back.
+11. Add or harden Facebook and Instagram AI compliance review as a bounded streamlining pass.
+12. Add or harden Facebook and Instagram inter-post delay enforcement across auto-publish, scheduled, and retry flows.
+13. Review and optimize stream filter defaults and the stream settings UX comprehensively.
+14. Standardize form, modal, disclosure, and button behavior where inconsistent.
+15. Add professional JSDoc to every changed exported function, route handler, component, helper, provider adapter, workflow utility, and validation module.
+16. Add targeted inline comments for non-obvious rules: grouping safety, widened fetch envelopes, checkpoint advancement, default time-window semantics, website publication completeness, Meta pacing, and fallback branches.
+17. Update all affected docs and tests so they match the implemented runtime exactly.
 
-## Files That Must Be Updated When Behavior Changes
+## Files That Must Be Updated When Applicable
 
-Update all necessary code, tests, and docs. At minimum, update the relevant files among these when applicable:
+Update all necessary runtime files, tests, and docs. At minimum, update the relevant files among these when behavior changes.
 
 ### Repo-truth docs
 
 - `README.md`
 - `app-write-up.md`
-- `dev-plan/00_plan_index.md` if sequencing or scope references change
+- `dev-plan/00_plan_index.md`
 - `dev-plan/10_provider_registry_and_credentials.md`
 - `dev-plan/11_destination_connections_and_streams.md`
 - `dev-plan/12_fetch_and_normalization_pipeline.md`
 - `dev-plan/13_filtering_publishability_and_deduplication.md`
 - `dev-plan/14_review_queue_and_publication_state.md`
 - `dev-plan/16_website_rendering_and_publication.md`
+- `dev-plan/17_social_destination_publication.md`
 - `dev-plan/18_scheduler_incremental_windows_and_retries.md`
+- `dev-plan/19_seo_search_and_public_discovery.md`
 - `dev-plan/20_audit_logs_and_observability.md`
-- `dev-plan/21_analytics_dashboard_and_reporting.md` if batch-run metrics or dashboard visibility change
-- `dev-plan/22_performance_and_scalability.md` if shared-fetch architecture changes performance assumptions
-- `dev-plan/24_release_traceability_and_cutover.md` if acceptance evidence changes
+- `dev-plan/21_analytics_dashboard_and_reporting.md`
+- `dev-plan/22_performance_and_scalability.md`
+- `dev-plan/24_release_traceability_and_cutover.md`
 
 ### Likely runtime and test touchpoints
 
+- `src/lib/news/shared-fetch.js`
+- `src/lib/news/fetch-window.js`
 - `src/lib/news/providers.js`
 - `src/lib/news/provider-definitions.js`
 - `src/lib/news/workflows.js`
 - `src/lib/validation/configuration.js`
-- `src/lib/news/providers.test.js`
-- `src/lib/news/workflows.test.js`
+- `src/lib/content/policy.js`
+- `src/lib/ai/index.js`
 - `src/features/streams/index.js`
-- `src/features/streams/index.test.js`
-- any admin route handlers or UI modules that trigger stream runs or display fetch-run summaries
-- any analytics or observability modules that summarize fetch runs, grouped runs, or AI fallback visibility
+- `src/features/destinations/meta-config.js`
+- `src/components/admin/stream-form-card.js`
+- `src/components/admin/provider-filter-fields.js`
+- `src/components/admin/stream-management-screen.js`
+- relevant admin route handlers that trigger stream execution
+- relevant analytics, audit, and observability modules
+- relevant SEO and website publication modules
+- relevant provider, workflow, stream, validation, AI, and route tests
 
-Do not update docs superficially. The docs must describe the implemented behavior exactly.
+Do not update documentation superficially. The docs must describe the exact behavior that ships.
 
 ## Testing Requirements
 
-Update or add tests covering all of the following:
+Add or update tests to cover all of the following.
 
-### Shared-fetch and batching
+### Shared-fetch batching
 
-- multiple compatible streams sent together cause exactly one provider API call for the compatible group
-- incompatible streams are partitioned into multiple compatible groups with the minimum safe number of upstream calls
+- compatible stream groups cause exactly one upstream provider API call per compatible group
+- incompatible streams are partitioned into the minimum safe number of groups
+- grouped fetch windows widen safely without underfetching
 - downstream per-stream filtering still behaves correctly after shared fetching
-- one fetched article can create valid matches for multiple streams without corrupting dedupe or queue state
-- per-stream checkpoints remain correct when a shared upstream fetch is used
-- shared-fetch retries remain idempotent
+- one fetched article can match multiple streams safely
+- per-stream checkpoints remain correct in shared-fetch mode
+- retries remain idempotent
 
 ### Provider time windows
 
-- each provider request builder uses the normalized internal time window correctly
+- normalized internal start/end windows map correctly per provider and endpoint
 - automatic checkpoint windows still work
-- explicit bounded windows override or compose with checkpoint logic correctly where intended
-- endpoint-specific time-boundary limitations are tested and documented
-- shared-fetch groups widen the time window safely instead of underfetching
+- explicit bounded windows override or compose correctly
+- default window resolves to last 24 hours to now
+- endpoint limitations are tested and documented
+- stream settings and manual-run surfaces expose the expected default window semantics
 
-### Website publication completeness
+### Website publication completeness and SEO
 
-- website streams post every fetched article that passes local filters and dedupe checks unless explicitly blocked
-- broad shared-fetch responses do not cause valid website items to be silently dropped
-- website publication stays deterministic when AI is skipped or falls back
+- website streams publish every fetched article that passes local filters and dedupe rules unless explicitly blocked
+- broad shared-fetch responses do not silently drop valid website items
+- website paths do not inherit social `maxPostsPerRun` limits
+- non-AI and fallback paths still create valid SEO title and meta description values
+- canonical and public metadata stay in sync with published website content
 
-### AI and fallback
+### AI fallback and policy behavior
 
 - AI disabled
 - AI misconfigured
 - AI timeout
 - invalid AI structured output
-- deterministic fallback
-- skipped-AI admin visibility
-- fallback-AI admin visibility
+- deterministic fallback remains usable
+- skipped and fallback AI states remain visible in admin data
+
+### Facebook and Instagram compliance and pacing
+
+- Facebook and Instagram payloads pass through bounded compliance review
+- deterministic policy checks still run when AI is unavailable
+- risky content is held or blocked appropriately
+- minimum post interval blocks or defers back-to-back publishes correctly
+- scheduled runs and retries respect the post delay
+- admin-facing summaries and audit records show why a publish was delayed or blocked
 
 ### UX and controls
 
-- accordion auto-open on validation failure
-- shared button-height behavior where testable
-- modal validation recovery and stable action visibility where testable
+- accordion or disclosure sections auto-open on validation failure
+- stream forms show correct defaults for the most common workflows
+- provider filter help text distinguishes upstream fetch filters from local stream filtering
+- button-height consistency is preserved where testable
+- modal validation recovery keeps actions visible and usable
 
 ### Observability
 
-- grouped fetch runs record compatible grouping and batch fan-out details
+- grouped fetch runs record grouping decisions and fan-out details
 - audit payloads show shared-fetch execution without exposing secrets
-- admin-facing summaries reflect shared upstream fetches plus per-stream downstream outcomes
+- admin summaries reflect shared-fetch behavior, time-window choices, website completeness, AI skip/fallback states, and Meta pacing outcomes
 
 ## Acceptance Criteria
 
-The work is complete only if:
+The work is complete only if all of the following are true.
 
-- compatible multi-stream execution performs one provider API call per compatible group and then filters locally per stream
-- incompatible stream batches are safely partitioned without underfetching or unnecessary extra calls
-- all supported providers expose a clear and tested time-boundary fetch path where the provider supports it
-- checkpoint-based incremental fetching still works
-- website streams publish every locally eligible article unless blocked by explicit settings, duplicate logic, or policy or moderation outcomes
-- AI failure or configuration failure causes AI intervention to be skipped rather than blocking the app
-- deterministic fallback or manual editorial flow remains usable
-- admin logs, jobs, review surfaces, and dashboards clearly show skipped or fallback AI states
-- grouped fetch execution is observable and auditable
-- all major forms feel consistent, faster, and easier to complete
-- accordion sections are clearer, accessible, and error-aware
+- compatible multi-stream execution performs one provider API call per compatible group
+- incompatible stream batches are partitioned safely with no underfetching and no unnecessary duplicate calls
+- every supported provider exposes a clear and tested bounded fetch path where supported
+- the default stream time boundary is last 24 hours to now and is clearly prefilled in stream settings or equivalent admin controls
+- checkpoint-based incremental fetching still works correctly
+- website streams publish every locally eligible article unless blocked by explicit rules
+- website output remains SEO optimized even when AI is skipped or falls back
+- Facebook and Instagram filtered posts are reviewed and streamlined for platform compliance before publication when AI is available
+- deterministic policy and guardrail logic still protects Facebook and Instagram when AI is unavailable
+- Facebook and Instagram enforce a delay between one post and the next
+- pacing and policy outcomes are visible in admin logs, history, and diagnostics
+- stream filter defaults and settings UX are clearer, safer, and easier to use
+- all major forms, modals, and disclosure sections behave consistently
 - button heights are uniform across the admin app
-- modal forms support seamless editing
-- changed runtime code is documented with professional JSDoc
-- tests and docs reflect the real implementation exactly
+- changed runtime code has professional JSDoc
+- tests reflect the real implementation
+- repo-truth docs reflect the real implementation exactly
 
 ## Delivery Rules
 
-- Make the smallest architectural change that fully satisfies the behavior contract.
-- Prefer extracting reusable workflow helpers over duplicating logic between single-stream and batch-stream execution.
-- Keep provider-specific request quirks inside provider adapters.
-- Keep filtering and destination-specific decisions inside the app layer.
-- Keep auditability first: every broad-fetch and downstream-filtering decision should be explainable after the fact.
-- Do not leave the repo in a partially migrated state where docs describe shared fetches but runtime still fetches once per stream.
+- make the smallest architectural change that fully satisfies the contract
+- preserve existing correct abstractions where possible
+- prefer extracting reusable helpers over duplicating logic
+- keep provider quirks inside provider adapters and provider metadata
+- keep stream-specific filtering and destination decisions in the app layer
+- keep observability first so every widened fetch, grouped run, pacing block, and publication decision is explainable afterward
+- do not claim a behavior is implemented unless code, tests, and docs all agree
+- do not leave the repo partially migrated
+

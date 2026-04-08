@@ -43,6 +43,7 @@ Implement the NewsPub editorial workspace for held stories, canonical post editi
 - status and editorial stage remain separate persisted values
 - manual optimize, approve, reject, publish, and schedule actions update the correct queue states and surface policy or optimization diagnostics clearly
 - `SKIPPED` and `FALLBACK` optimization states remain visible to editors and do not remove manual approval or publish controls
+- publish diagnostics shown from post history use one flattened reason code and message for pacing, policy, or guardrail blocks
 
 ## Exit Criteria
 

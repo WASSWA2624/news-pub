@@ -25,6 +25,7 @@ import {
   serializeDate,
   trimText,
 } from "@/lib/news/shared";
+import { getPublishAttemptDiagnosticSummary } from "@/lib/news/publish-diagnostics";
 import { revalidatePublishedPostPaths } from "@/lib/revalidation";
 import { env } from "@/lib/env/server";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
@@ -1315,6 +1316,12 @@ async function executePublishAttempt(
         status: "FAILED",
       },
     });
+    const diagnosticSummary = getPublishAttemptDiagnosticSummary({
+      diagnosticsJson: failedAttempt.diagnosticsJson,
+      errorCode: failedAttempt.errorCode,
+      errorMessage: failedAttempt.errorMessage,
+      responseJson: failedAttempt.responseJson,
+    });
 
     await db.articleMatch.update({
       where: {
@@ -1333,9 +1340,14 @@ async function executePublishAttempt(
         entityId: failedAttempt.id,
         entityType: "publish_attempt",
         error,
-        message: error instanceof Error ? error.message : "Destination publication failed.",
+        message:
+          diagnosticSummary.reasonMessage
+          || (error instanceof Error ? error.message : "Destination publication failed."),
         payload: {
+          issueCodes: diagnosticSummary.issueCodes,
           platform: attempt.platform,
+          reasonCode: diagnosticSummary.reasonCode,
+          reasonMessage: diagnosticSummary.reasonMessage,
           retryable: error instanceof DestinationPublishError ? error.retryable : false,
         },
       },

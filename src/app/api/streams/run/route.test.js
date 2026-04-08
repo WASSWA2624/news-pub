@@ -165,4 +165,54 @@ describe("stream run api route", () => {
     });
     expect(runStreamFetch).not.toHaveBeenCalled();
   });
+
+  it("forwards explicit manual fetch windows and checkpoint-write intent to the workflow layer", async () => {
+    const runMultipleStreamFetches = vi.fn();
+    const runStreamFetch = vi.fn().mockResolvedValue({
+      id: "fetch_run_2",
+      status: "SUCCEEDED",
+    });
+
+    vi.doMock("@/lib/auth/api", () => ({
+      requireAdminApiPermission: vi.fn().mockResolvedValue({
+        user: {
+          id: "admin_1",
+        },
+      }),
+    }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches,
+      runStreamFetch,
+    }));
+
+    const { POST } = await import("./route");
+    const response = await POST(
+      new Request("https://example.com/api/streams/run", {
+        body: JSON.stringify({
+          fetchWindow: {
+            end: "2026-04-08T12:00:00.000Z",
+            start: "2026-04-07T12:00:00.000Z",
+            writeCheckpointOnSuccess: true,
+          },
+          streamId: "stream_1",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(runStreamFetch).toHaveBeenCalledWith("stream_1", {
+      actorId: "admin_1",
+      fetchWindow: {
+        end: "2026-04-08T12:00:00.000Z",
+        start: "2026-04-07T12:00:00.000Z",
+      },
+      triggerType: "manual",
+      writeCheckpointOnSuccess: true,
+    });
+    expect(runMultipleStreamFetches).not.toHaveBeenCalled();
+  });
 });

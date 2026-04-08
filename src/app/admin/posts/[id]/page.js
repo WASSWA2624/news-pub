@@ -354,6 +354,12 @@ export default async function PostEditorPage({ params }) {
                     <td data-label="Published">{formatDateTime(match.publishedAt)}</td>
                     <td data-label="Attempts">
                       <strong>{match.publishAttempts.length}</strong>
+                      {match.publishAttempts[0]?.diagnosticReasonCode ? (
+                        <SmallText>{match.publishAttempts[0].diagnosticReasonCode}</SmallText>
+                      ) : null}
+                      {match.publishAttempts[0]?.diagnosticReasonMessage ? (
+                        <SmallText>{match.publishAttempts[0].diagnosticReasonMessage}</SmallText>
+                      ) : null}
                       {match.publishAttempts[0]?.errorMessage ? (
                         <SmallText>
                           {match.publishAttempts[0].errorCode || "Failure"}: {match.publishAttempts[0].errorMessage}

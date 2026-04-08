@@ -171,6 +171,12 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
+                        {attempt.diagnosticReasonCode ? (
+                          <SmallText>{attempt.diagnosticReasonCode}</SmallText>
+                        ) : null}
+                        {attempt.diagnosticReasonMessage ? (
+                          <SmallText>{attempt.diagnosticReasonMessage}</SmallText>
+                        ) : null}
                       </td>
                       <td data-label="AI">
                         {attempt.optimizationStatus ? (

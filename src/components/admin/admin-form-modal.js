@@ -1,6 +1,11 @@
 "use client";
 
+/**
+ * Shared admin modal primitives for long-form editing flows.
+ */
+
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -256,8 +261,11 @@ export default function AdminFormModal({
   className,
   description,
   mountOnOpen = false,
+  onOpenChange = null,
+  open = undefined,
   renderTrigger = null,
   size = "wide",
+  showTrigger = true,
   title,
   triggerFullWidth = false,
   triggerIcon,
@@ -266,19 +274,32 @@ export default function AdminFormModal({
 }) {
   const dialogRef = useRef(null);
   const [footerPortalTarget, setFooterPortalTarget] = useState(null);
-  const [isOpen, setIsOpen] = useState(autoOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(autoOpen);
   const canRenderDialog = useSyncExternalStore(subscribeToHydrationState, () => true, () => false);
   const titleId = useId();
   const descriptionId = useId();
   const TriggerButton = triggerTone === "primary" ? TriggerPrimary : TriggerSecondary;
+  const isControlled = typeof open === "boolean";
+  const isOpen = isControlled ? open : uncontrolledOpen;
 
-  function closeDialog() {
-    setIsOpen(false);
-  }
+  const setDialogOpen = useCallback(
+    (nextOpen) => {
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen);
+      }
 
-  function openDialog() {
-    setIsOpen(true);
-  }
+      onOpenChange?.(nextOpen);
+    },
+    [isControlled, onOpenChange],
+  );
+
+  const closeDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
+  const openDialog = useCallback(() => {
+    setDialogOpen(true);
+  }, [setDialogOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -297,7 +318,7 @@ export default function AdminFormModal({
     return () => {
       dialog.removeEventListener("cancel", handleCancel);
     };
-  }, []);
+  }, [closeDialog]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -322,11 +343,13 @@ export default function AdminFormModal({
   return (
     <>
       {typeof renderTrigger === "function" ? (
-        renderTrigger({
-          isOpen,
-          openDialog,
-        })
-      ) : (
+        showTrigger
+          ? renderTrigger({
+              isOpen,
+              openDialog,
+            })
+          : null
+      ) : showTrigger ? (
         <TriggerButton
           $fullWidth={triggerFullWidth}
           className={className}
@@ -340,7 +363,7 @@ export default function AdminFormModal({
           ) : null}
           {triggerLabel}
         </TriggerButton>
-      )}
+      ) : null}
       {canRenderDialog
         ? createPortal(
             <Dialog
@@ -348,7 +371,7 @@ export default function AdminFormModal({
               aria-describedby={description ? descriptionId : undefined}
               aria-labelledby={titleId}
               data-floating-root
-              onClose={() => setIsOpen(false)}
+              onClose={() => setDialogOpen(false)}
               onClick={(event) => {
                 if (event.target === dialogRef.current) {
                   closeDialog();

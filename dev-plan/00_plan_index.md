@@ -72,6 +72,7 @@ Step 24 is incomplete if any of the following remain unmapped:
 - a required database model or enum
 - a required provider, destination, stream, fetch, filter, dedupe, AI optimization, review, publish, retry, SEO, analytics, or audit workflow
 - shared-fetch batching, normalized fetch-window semantics, or website-publication completeness behavior required by the current write-up
+- the operator-visible default manual fetch window of the last 24 hours through now, provider capability mapping guidance, or Meta pacing diagnostics required by the current write-up
 - a legacy equipment-specific module that the write-up says must be removed or a required bounded AI optimization module that the write-up says must exist
 
 ## Final Completeness Rule

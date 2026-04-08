@@ -117,6 +117,7 @@ export async function getStreamManagementSnapshot(prisma) {
         isDefault: true,
         label: true,
         providerKey: true,
+        requestDefaultsJson: true,
       },
     }),
     db.destinationTemplate.findMany({

@@ -25,6 +25,8 @@ Automate stream execution with safe checkpoints, idempotent workers, and visible
 8. Persist worker summaries, retry outcomes, pause states, and shared-fetch execution details in admin-visible logs and dashboard or jobs summaries.
 9. Keep hourly as the default schedule when a stream has no explicit cadence.
 10. Treat optional AI outages, missing credentials, timeouts, and invalid structured output as non-blocking optimization outcomes so healthy stream runs continue with `SKIPPED` or `FALLBACK` states instead of entering avoidable retry loops.
+11. Keep manual single-stream and batch-run controls aligned on the explicit last-24-hours-to-now default window and optional checkpoint-write override.
+12. Ensure Meta post-interval guardrails are still enforced during scheduled publishes and retries.
 
 ## Required Outputs
 
@@ -42,6 +44,7 @@ Automate stream execution with safe checkpoints, idempotent workers, and visible
 - retries follow configured limits and remain visible in logs, dashboard metrics, and jobs summaries
 - repeated executions do not republish the same successful attempt
 - optional AI degradation does not turn an otherwise valid stream execution into a failed scheduled run when deterministic handling remains available
+- scheduled publishes and retries do not bypass Meta pacing intervals
 
 ## Exit Criteria
 

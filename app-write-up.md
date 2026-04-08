@@ -14,6 +14,7 @@ Release 1 must:
 
 - let an authenticated admin configure providers, destinations, streams, templates, schedules, and review rules without code changes
 - fetch broadly within the incremental or explicit window, reuse one upstream call for compatible multi-stream batches when safe, then filter locally
+- prefill stream settings plus manual run controls with the operator-visible default fetch window of the last 24 hours through now and explain endpoint-specific provider mapping clearly
 - persist only publishable or published normalized articles plus operational logs
 - optimize eligible stories with a cached AI layer before review approval or publication
 - support both `AUTO_PUBLISH` and `REVIEW_REQUIRED` stream modes
@@ -239,6 +240,7 @@ Rules:
 - each provider client must normalize its raw response into the shared `FetchedArticle` contract before any filtering occurs
 - provider-specific request parameters, pagination cursors, rate limits, and response quirks live in the provider integration layer only
 - provider time-boundary capabilities are endpoint specific and explicit: `mediastack` uses direct date bounds, `newsdata` `archive` uses direct date bounds, `newsdata` `latest` uses a relative timeframe, `newsapi` `everything` uses direct datetime bounds, and `newsapi` `top-headlines` relies on local-only window filtering
+- stream settings and manual run dialogs must surface those endpoint-specific capability differences directly, while still pre-filling the normalized default window of the last 24 hours through now
 - provider credentials resolve from env based on the active provider key
 - missing credentials, invalid response shapes, or provider throttling must appear in audit logs and the admin dashboard
 
@@ -260,6 +262,7 @@ Rules:
 - each stream stores locale, category mapping, country and region filters, language rules, include and exclude keywords, publish mode, schedule, timezone, retry policy, duplicate window, and max posts per run
 - each stream may use only one active provider at a time
 - selected stream batches may share one upstream provider request when provider compatibility rules allow NewsPub to widen the request safely without underfetching
+- stream settings and manual run surfaces must show one explicit normalized fetch window, defaulted to the last 24 hours through now, before provider-specific date, datetime, relative-lookback, or local-only mapping is applied
 - `maxPostsPerRun` bounds social destination batch size, while website streams still process every locally eligible article from the fetched pool
 - website, Facebook, and Instagram streams may each point to different templates and schedules
 - destination connection status and recent failures must be visible in the admin workspace
@@ -286,6 +289,8 @@ Every scheduled or manual run follows this order. A single execution request may
 Optimization rule: when the AI layer is disabled, missing credentials, unavailable, rate limited, timing out, or returning invalid structured output, the workflow must persist a structured reason, set the optimization outcome to `SKIPPED` or `FALLBACK`, and continue with deterministic formatting or manual review instead of treating the run as a hard AI failure.
 
 Fetch-window rule: explicit bounded windows may be used for manual runs, batched runs, retries, and diagnostics. Those explicit windows do not advance checkpoints unless `writeCheckpointOnSuccess` is explicitly set to `true`.
+
+Admin UX rule: stream settings plus single-stream and multi-stream manual run controls must prefill the last 24 hours through now, show that default explicitly, and explain whether the chosen provider endpoint supports direct upstream bounds, only a relative lookback, or local-only enforcement.
 
 The normalized article contract must include at least:
 
@@ -428,6 +433,7 @@ Rules:
 - website streams process every locally eligible candidate from the fetched pool and are not capped by `maxPostsPerRun`
 - category landing pages and search index only published website posts
 - source attribution, provider source URL, and publish timestamps remain visible on story pages
+- fallback and non-AI website publication paths must still produce valid canonical URLs, SEO titles, meta descriptions, and synchronized Open Graph or Twitter metadata
 - public route data must be cacheable and revalidatable through the existing revalidation helpers
 - root redirects to the default locale
 
@@ -439,6 +445,7 @@ Social publication rules:
 - publish history must be queryable by destination, platform, stream, article, and status
 - platform tokens or page credentials must be encrypted at rest when stored in the database
 - platform-specific failures, rate limits, permission problems, and content-policy rejections must surface in admin logs
+- Meta destinations must enforce a minimum post interval through the existing guardrail layer, and pacing or policy blocks must remain visible in publish diagnostics, jobs history, and post history
 - publish retries must be idempotent and tied to the same `ArticleMatch`
 - platform rules must never mutate provider facts or invent article content
 
@@ -452,6 +459,7 @@ Scheduling rules:
 - scheduled workers may run multiple streams in one batch, partition them into safe shared-fetch groups, and still finalize checkpoints, summaries, retries, and downstream state independently per stream
 - checkpoint updates happen only after the stream run succeeds
 - explicit manual or diagnostic windows do not advance checkpoints unless the caller opts in
+- scheduled runs and retries for Facebook or Instagram destinations must respect the configured minimum post interval instead of publishing unsafe back-to-back bursts
 - retries must apply to publish attempts and transient provider failures
 - retry behavior must be stored in stream or attempt metadata and visible in the admin workspace
 - repeated failures must pause automatic re-execution only when the configured retry ceiling is reached or an admin manually pauses the stream
@@ -492,7 +500,7 @@ Release 1 must expose:
 - top published stories
 - structured audit events for provider, stream, article, post, and publish operations
 
-Operational visibility must include dashboard and jobs counters for AI skip or fallback outcomes, the settings-page AI runtime summary, recent publish-attempt diagnostics, review-surface optimization details, and audit events that explain when AI optimization was skipped or when deterministic fallback was used.
+Operational visibility must include dashboard and jobs counters for AI skip or fallback outcomes, the settings-page AI runtime summary, recent publish-attempt diagnostics, review-surface optimization details, flattened pacing or guardrail reason codes and messages in jobs or post history, and audit events that explain when AI optimization was skipped or when deterministic fallback was used.
 
 `AuditEvent` remains the central append-only operational log. `ViewEvent` remains the public analytics event store.
 

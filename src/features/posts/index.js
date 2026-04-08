@@ -6,6 +6,7 @@ import {
   isWarningAuditAction,
   serializeAuditEvent,
 } from "@/lib/analytics";
+import { getPublishAttemptDiagnosticSummary } from "@/lib/news/publish-diagnostics";
 import {
   buildStoryStructuredArticle,
   createContentHash,
@@ -195,9 +196,14 @@ function mapManualPublishingStream(stream) {
 }
 
 function mapPublishAttempt(attempt) {
+  const diagnosticSummary = getPublishAttemptDiagnosticSummary(attempt);
+
   return {
     completedAt: serializeDate(attempt.completedAt),
     createdAt: serializeDate(attempt.createdAt),
+    diagnosticIssueCodes: diagnosticSummary.issueCodes,
+    diagnosticReasonCode: diagnosticSummary.reasonCode,
+    diagnosticReasonMessage: diagnosticSummary.reasonMessage,
     diagnostics: attempt.diagnosticsJson || null,
     errorCode: attempt.errorCode || null,
     errorMessage: attempt.errorMessage || null,

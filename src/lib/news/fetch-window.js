@@ -6,7 +6,7 @@
  * upstream provider request envelope when that is safe.
  */
 
-const DEFAULT_FETCH_WINDOW_HOURS = 24;
+export const DEFAULT_FETCH_WINDOW_HOURS = 24;
 
 function normalizeDateBoundary(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -22,6 +22,75 @@ function normalizeDateBoundary(value) {
   }
 
   return null;
+}
+
+function padDateSegment(value) {
+  return `${value}`.padStart(2, "0");
+}
+
+function formatLocalDateBoundary(value, precision = "datetime") {
+  const normalizedValue = normalizeDateBoundary(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const year = normalizedValue.getFullYear();
+  const month = padDateSegment(normalizedValue.getMonth() + 1);
+  const day = padDateSegment(normalizedValue.getDate());
+
+  if (precision === "date") {
+    return `${year}-${month}-${day}`;
+  }
+
+  const hours = padDateSegment(normalizedValue.getHours());
+  const minutes = padDateSegment(normalizedValue.getMinutes());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/**
+ * Creates the default operator-visible NewsPub window of the previous
+ * 24 hours through the supplied execution time.
+ *
+ * @param {object} [options] - Preview window options.
+ * @param {number} [options.defaultWindowHours] - Preview lookback horizon.
+ * @param {Date|string|number} [options.now] - Current time reference.
+ * @returns {object} Preview window boundaries plus the resolved duration.
+ */
+export function createDefaultFetchWindowPreview({
+  defaultWindowHours = DEFAULT_FETCH_WINDOW_HOURS,
+  now = new Date(),
+} = {}) {
+  const resolvedNow = normalizeDateBoundary(now) || new Date();
+  const resolvedWindowHours = Math.max(1, Number(defaultWindowHours) || DEFAULT_FETCH_WINDOW_HOURS);
+
+  return {
+    defaultWindowHours: resolvedWindowHours,
+    end: resolvedNow,
+    start: new Date(resolvedNow.getTime() - resolvedWindowHours * 60 * 60 * 1000),
+  };
+}
+
+/**
+ * Formats a fetch-window boundary for HTML date or datetime-local inputs.
+ *
+ * @param {Date|string|number|null} value - Boundary value to format.
+ * @param {"date"|"datetime"} [precision="datetime"] - Input precision to target.
+ * @returns {string} Input-safe local value or an empty string.
+ */
+export function formatFetchWindowInputValue(value, precision = "datetime") {
+  return formatLocalDateBoundary(value, precision);
+}
+
+/**
+ * Parses an HTML date or datetime-local input value into a `Date`.
+ *
+ * @param {string|Date|number|null} value - Raw boundary value.
+ * @returns {Date|null} Parsed date or null when the value is empty or invalid.
+ */
+export function parseFetchWindowInputValue(value) {
+  return normalizeDateBoundary(value);
 }
 
 /**
@@ -156,4 +225,3 @@ export function isArticleInsideFetchWindow(article, fetchWindow) {
 
   return articlePublishedAt >= fetchWindow.start && articlePublishedAt <= fetchWindow.end;
 }
-

@@ -20,7 +20,8 @@ Adapt the existing SEO and discovery layer so NewsPub stories can be found, inde
 3. Implement public story search against published website content only.
 4. Implement category landing pages and related-story discovery.
 5. Ensure public navigation, breadcrumbs, and share metadata all align with NewsPub story routes.
-6. Remove stale equipment and manufacturer discovery behavior from the public SEO layer.
+6. Keep fallback and non-AI website publication paths producing stable canonical, Open Graph, and Twitter metadata for published stories.
+7. Remove stale equipment and manufacturer discovery behavior from the public SEO layer.
 
 ## Required Outputs
 
@@ -34,6 +35,7 @@ Adapt the existing SEO and discovery layer so NewsPub stories can be found, inde
 - metadata is generated for public stories and category pages
 - search returns only published website stories
 - sitemap and robots reflect the NewsPub route tree
+- canonical, Open Graph, and Twitter metadata stay synchronized even when website publication used deterministic fallback content
 - no equipment or manufacturer discovery logic remains active in public SEO paths
 
 ## Exit Criteria

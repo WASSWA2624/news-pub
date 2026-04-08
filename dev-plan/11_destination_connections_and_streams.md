@@ -35,9 +35,10 @@ Implement the admin-managed configuration layer for destinations, streams, categ
    - retry policy
    - schedule and timezone
    - template selection
-3. Keep category management as a separate admin surface reused by streams and posts.
-4. Persist destination connection status and recent publish history summaries.
-5. Bootstrap the required website destination and allow later social destinations to be connected without code changes.
+3. Make stream settings and manual run controls show the explicit default fetch window of the last 24 hours through now, together with endpoint-specific guidance about upstream versus local-only time filtering.
+4. Keep category management as a separate admin surface reused by streams and posts.
+5. Persist destination connection status and recent publish history summaries.
+6. Bootstrap the required website destination and allow later social destinations to be connected without code changes.
 
 ## Required Outputs
 
@@ -53,6 +54,7 @@ Implement the admin-managed configuration layer for destinations, streams, categ
 - categories can be assigned to streams without direct schema hacks
 - provider credentials are not entered or edited in the stream UI
 - stream forms explain that provider filters narrow provider requests while website streams still publish every locally eligible fetched item
+- stream forms and run-now controls prefill the last 24 hours through now and explain how each endpoint maps that normalized window upstream
 
 ## Exit Criteria
 

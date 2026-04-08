@@ -4,6 +4,7 @@ import {
   isWarningAuditAction,
   serializeAuditEvent,
 } from "@/lib/analytics";
+import { getPublishAttemptDiagnosticSummary } from "@/lib/news/publish-diagnostics";
 import { getProviderCredentialState } from "@/lib/news/providers";
 import { resolvePrismaClient } from "@/lib/news/shared";
 
@@ -117,10 +118,15 @@ function mapFetchRun(run) {
 }
 
 function mapPublishAttempt(attempt) {
+  const diagnosticSummary = getPublishAttemptDiagnosticSummary(attempt);
+
   return {
     aiResolution: attempt.diagnosticsJson?.aiResolution || null,
     articleMatchId: attempt.articleMatchId,
     createdAt: serializeDate(attempt.createdAt),
+    diagnosticIssueCodes: diagnosticSummary.issueCodes,
+    diagnosticReasonCode: diagnosticSummary.reasonCode,
+    diagnosticReasonMessage: diagnosticSummary.reasonMessage,
     destination: attempt.destination
       ? {
           id: attempt.destination.id,

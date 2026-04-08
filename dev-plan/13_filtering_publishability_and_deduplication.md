@@ -37,6 +37,7 @@ Evaluate normalized articles against stream rules, persist only allowed records,
 - filtered-out items are not stored as full `FetchedArticle` rows
 - every persisted match includes a reasoned status
 - compatible shared-fetch batches still make deterministic per-stream filtering and dedupe decisions
+- widened provider requests never replace the exact local fetch-window check that decides whether a normalized article remains in scope for one stream
 - website-eligible candidates from the fetched pool are not silently dropped because of a social-style `maxPostsPerRun` cap
 - eligibility outcomes drive the next workflow step deterministically
 

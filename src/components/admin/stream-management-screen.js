@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Admin stream management workspace for destination scoping, stream editing,
+ * and manual stream execution with explicit normalized fetch windows.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -11,6 +16,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  FieldErrorText,
   MetaPill,
   PrimaryButton,
   RecordCard,
@@ -26,7 +32,13 @@ import {
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
-import { streamManagementUtils } from "@/components/admin/stream-management-screen.helpers";
+import FetchWindowControls from "@/components/admin/fetch-window-controls";
+import {
+  buildFetchWindowCapabilityDetails,
+  createDefaultRunWindowState,
+  createRunFetchWindowRequest,
+  streamManagementUtils,
+} from "@/components/admin/stream-management-screen.helpers";
 import AppIcon from "@/components/common/app-icon";
 import StreamFormCard from "@/components/admin/stream-form-card";
 
@@ -1021,6 +1033,101 @@ function RunProgressModal({ runState, onClose }) {
   );
 }
 
+function getRunConfigurationErrorMessage(error) {
+  if (error instanceof Error && error.message === "run_window_boundaries_required") {
+    return "Enter both the manual run start and end boundaries before starting the selected streams.";
+  }
+
+  if (error instanceof Error && error.message === "run_window_start_after_end") {
+    return "Fetch window start must be earlier than or equal to the end boundary.";
+  }
+
+  return "NewsPub could not build the requested manual run window.";
+}
+
+/**
+ * Modal used for multi-stream manual runs so operators can confirm one
+ * explicit NewsPub fetch window before compatible streams share provider work.
+ *
+ * @param {object} props - Modal copy, stream scope, and fetch-window state.
+ * @returns {JSX.Element} Manual run configuration dialog.
+ */
+function RunConfigurationModal({
+  errorMessage = "",
+  onClose,
+  onConfirm,
+  open = false,
+  runInProgress = false,
+  scopeLabel = "",
+  streams = [],
+  windowState,
+  onWindowStateChange,
+}) {
+  const capabilityDetails = useMemo(
+    () => buildFetchWindowCapabilityDetails(streams),
+    [streams],
+  );
+
+  return (
+    <AdminFormModal
+      description={`Run ${scopeLabel || "the selected streams"} with one explicit NewsPub fetch window. Compatible providers still share widened upstream requests safely, then filter locally per stream.`}
+      mountOnOpen
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose?.();
+        }
+      }}
+      open={open}
+      showTrigger={false}
+      size="wide"
+      title="Run streams with explicit bounds"
+    >
+      <SmallText>
+        Manual runs default to the last 24 hours through now. Scheduled runs still use checkpoints automatically, while this dialog keeps the manual boundary explicit and auditable.
+      </SmallText>
+      <FetchWindowControls
+        capabilityDetails={capabilityDetails}
+        disabled={runInProgress}
+        endValue={windowState?.endInputValue || ""}
+        onEndChange={(value) =>
+          onWindowStateChange?.((currentState) => ({
+            ...currentState,
+            endInputValue: value,
+          }))
+        }
+        onReset={() => onWindowStateChange?.(() => createDefaultRunWindowState())}
+        onStartChange={(value) =>
+          onWindowStateChange?.((currentState) => ({
+            ...currentState,
+            startInputValue: value,
+          }))
+        }
+        onWriteCheckpointChange={(value) =>
+          onWindowStateChange?.((currentState) => ({
+            ...currentState,
+            writeCheckpointOnSuccess: value,
+          }))
+        }
+        startValue={windowState?.startInputValue || ""}
+        writeCheckpointOnSuccess={Boolean(windowState?.writeCheckpointOnSuccess)}
+      />
+      {errorMessage ? <FieldErrorText>{errorMessage}</FieldErrorText> : null}
+      <ButtonRow>
+        <PrimaryButton disabled={runInProgress} onClick={onConfirm} type="button">
+          <AppIcon name="bolt" size={14} />
+          Run {streams.length === 1 ? "stream" : `${streams.length} streams`}
+        </PrimaryButton>
+      </ButtonRow>
+    </AdminFormModal>
+  );
+}
+
+/**
+ * Main admin screen for stream targeting, CRUD, and run-now workflows.
+ *
+ * @param {object} props - Stream-management data and server actions.
+ * @returns {JSX.Element} Stream management workspace.
+ */
 export default function StreamManagementScreen({
   categoryOptions,
   deleteStreamAction,
@@ -1031,12 +1138,18 @@ export default function StreamManagementScreen({
   statusOptions,
   streams,
   templateOptions,
+  uiNowIso = "",
 }) {
   const router = useRouter();
+  const defaultRunWindowState = useMemo(
+    () => createDefaultRunWindowState(uiNowIso || new Date()),
+    [uiNowIso],
+  );
   const [selectedDestinationIds, setSelectedDestinationIds] = useState(() =>
     destinationOptions.map((destination) => destination.value).filter(Boolean),
   );
   const [runState, setRunState] = useState(null);
+  const [runConfiguration, setRunConfiguration] = useState(null);
   const streamCountsByDestination = useMemo(() => {
     const counts = new Map();
 
@@ -1209,9 +1322,40 @@ export default function StreamManagementScreen({
     router.refresh();
   }
 
-  async function executeStreamBatch(streamBatch) {
+  function closeRunConfiguration() {
+    if (isRunInProgress) {
+      return;
+    }
+
+    setRunConfiguration(null);
+  }
+
+  function openRunConfiguration(streamBatch) {
+    if (!streamBatch.length || isRunInProgress) {
+      return;
+    }
+
+    setRunConfiguration({
+      errorMessage: "",
+      scopeLabel:
+        streamBatch.length === 1
+          ? streamBatch[0].name
+          : `${streamBatch.length} selected streams`,
+      streams: streamBatch,
+      windowState: {
+        ...defaultRunWindowState,
+      },
+    });
+  }
+
+  async function executeStreamBatch(streamBatch, fetchWindow = null) {
     const response = await fetch("/api/streams/run", {
       body: JSON.stringify({
+        ...(fetchWindow
+          ? {
+              fetchWindow,
+            }
+          : {}),
         streamIds: streamBatch.map((stream) => stream.id),
       }),
       headers: {
@@ -1247,7 +1391,7 @@ export default function StreamManagementScreen({
     return [];
   }
 
-  async function handleRunStreams(streamBatch) {
+  async function handleRunStreams(streamBatch, { fetchWindow = null } = {}) {
     if (!streamBatch.length || isRunInProgress) {
       return;
     }
@@ -1273,7 +1417,7 @@ export default function StreamManagementScreen({
     let results = [];
 
     try {
-      const responseResults = await executeStreamBatch(streamBatch);
+      const responseResults = await executeStreamBatch(streamBatch, fetchWindow);
       const responseResultByStreamId = new Map(
         responseResults.map((result) => [result.stream?.id || result.run?.streamId, result]),
       );
@@ -1309,15 +1453,41 @@ export default function StreamManagementScreen({
   }
 
   function handleRunSelected() {
-    void handleRunStreams(runnableStreams);
+    openRunConfiguration(runnableStreams);
   }
 
-  function handleRunNow(stream) {
-    if (!stream) {
+  function handleRunNow(runContext) {
+    if (!runContext?.stream) {
       return;
     }
 
-    void handleRunStreams([stream]);
+    void handleRunStreams([runContext.stream], {
+      fetchWindow: runContext.fetchWindow || null,
+    });
+  }
+
+  function handleRunConfigurationConfirm() {
+    if (!runConfiguration?.streams?.length) {
+      return;
+    }
+
+    try {
+      const fetchWindow = createRunFetchWindowRequest(runConfiguration.windowState);
+
+      setRunConfiguration(null);
+      void handleRunStreams(runConfiguration.streams, {
+        fetchWindow,
+      });
+    } catch (error) {
+      setRunConfiguration((currentState) =>
+        currentState
+          ? {
+              ...currentState,
+              errorMessage: getRunConfigurationErrorMessage(error),
+            }
+          : currentState,
+      );
+    }
   }
 
   const streamsSectionTitle = allDestinationsSelected
@@ -1593,6 +1763,7 @@ export default function StreamManagementScreen({
                         stream={stream}
                         submitLabel="Save stream"
                         templateOptions={visibleTemplateOptions}
+                        uiNowIso={uiNowIso}
                       />
                     </AdminFormModal>
                     <form action={deleteStreamAction}>
@@ -1656,6 +1827,7 @@ export default function StreamManagementScreen({
                       providerOptions={providerOptions}
                       submitLabel="Create stream"
                       templateOptions={visibleTemplateOptions}
+                      uiNowIso={uiNowIso}
                     />
                   </AdminFormModal>
                 </ButtonRow>
@@ -1671,6 +1843,32 @@ export default function StreamManagementScreen({
         </StickyCard>
       </StreamsGrid>
 
+      <RunConfigurationModal
+        errorMessage={runConfiguration?.errorMessage || ""}
+        onClose={closeRunConfiguration}
+        onConfirm={handleRunConfigurationConfirm}
+        open={Boolean(runConfiguration)}
+        runInProgress={isRunInProgress}
+        scopeLabel={runConfiguration?.scopeLabel || ""}
+        streams={runConfiguration?.streams || []}
+        windowState={runConfiguration?.windowState || defaultRunWindowState}
+        onWindowStateChange={(updater) => {
+          setRunConfiguration((currentState) => {
+            if (!currentState) {
+              return currentState;
+            }
+
+            const nextWindowState =
+              typeof updater === "function" ? updater(currentState.windowState) : updater;
+
+            return {
+              ...currentState,
+              errorMessage: "",
+              windowState: nextWindowState,
+            };
+          });
+        }}
+      />
       <RunProgressModal onClose={closeRunReport} runState={runState} />
     </>
   );

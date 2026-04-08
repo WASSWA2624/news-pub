@@ -78,4 +78,18 @@ describe("provider definition option metadata", () => {
       mode: "local_only",
     });
   });
+
+  it("marks provider-managed date fields with the correct admin input precision", () => {
+    const definition = getProviderFormDefinition("newsapi", "stream", {
+      endpoint: "everything",
+    });
+    const fromDateField = definition.sections
+      .flatMap((section) => section.fields)
+      .find((field) => field.key === "fromDate");
+
+    expect(fromDateField).toMatchObject({
+      input: "date",
+      precision: "datetime",
+    });
+  });
 });

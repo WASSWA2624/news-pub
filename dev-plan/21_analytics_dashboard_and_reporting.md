@@ -33,8 +33,9 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
    - top stories
    - connection health summaries
 3. Preserve optimization diagnostics on recent publish-attempt reporting so admin reporting surfaces can distinguish completed AI output from `SKIPPED` or `FALLBACK` handling.
-4. Keep analytics visibility behind RBAC where required.
-5. Show recent operational status, fetch-run execution mode, and public traffic in the same admin dashboard without mixing raw logs into KPI cards.
+4. Preserve flattened publish-diagnostic reason codes and messages on recent publish-attempt reporting so pacing or guardrail blocks are visible without opening raw payload JSON.
+5. Keep analytics visibility behind RBAC where required.
+6. Show recent operational status, fetch-run execution mode, and public traffic in the same admin dashboard without mixing raw logs into KPI cards.
 
 ## Required Outputs
 
@@ -51,6 +52,7 @@ Turn the admin dashboard into a NewsPub reporting surface for both operations an
 - the dashboard no longer reports generation-job or equipment-specific metrics
 - recent fetch reporting preserves shared-batch execution details and normalized fetch-window context for operator review
 - recent publish reporting preserves optimization status and AI resolution diagnostics for operator review
+- recent publish reporting also preserves flattened pacing or guardrail reason codes and messages for operator review
 
 ## Exit Criteria
 
