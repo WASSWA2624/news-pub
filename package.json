@@ -7,6 +7,7 @@
   },
   "scripts": {
     "db:bootstrap": "node scripts/bootstrap-dev-db.js",
+    "db:reset": "node scripts/reset-db.js",
     "dev": "npm run db:bootstrap && nodemon --config nodemon.json",
     "dev:next": "next dev --webpack",
     "prestart": "next build",
