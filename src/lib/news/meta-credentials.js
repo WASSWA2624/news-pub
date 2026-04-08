@@ -10,7 +10,7 @@ import {
   getMetaGraphRequestBaseUrl,
 } from "@/features/destinations/meta-config";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
-import { decryptSecretValue } from "@/lib/security/secrets";
+import { tryDecryptSecretValue } from "@/lib/security/secrets";
 
 const defaultGraphApiBaseUrl = "https://graph.facebook.com/v25.0";
 
@@ -24,24 +24,45 @@ function normalizeSettings(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function decryptDestinationToken(destination) {
+function createStoredTokenDecryptionError() {
+  return new NewsPubError(
+    "The stored destination token could not be decrypted with the current encryption key. Clear it and reconnect the destination or configure Meta env credentials.",
+    {
+      status: "destination_token_reconnect_required",
+      statusCode: 400,
+    },
+  );
+}
+
+function readStoredDestinationToken(destination) {
   const ciphertext = destination?.encryptedTokenCiphertext;
   const iv = destination?.encryptedTokenIv;
   const tag = destination?.encryptedTokenTag;
 
   if (!ciphertext || !iv || !tag) {
-    return null;
+    return {
+      error: null,
+      value: null,
+    };
   }
 
-  try {
-    return decryptSecretValue({
-      ciphertext,
-      iv,
-      tag,
-    });
-  } catch {
-    return null;
+  const result = tryDecryptSecretValue({
+    ciphertext,
+    iv,
+    tag,
+  });
+
+  if (!result.error) {
+    return {
+      error: null,
+      value: result.value,
+    };
   }
+
+  return {
+    error: createStoredTokenDecryptionError(),
+    value: null,
+  };
 }
 
 function getDestinationGraphApiBaseUrl(destination) {
@@ -245,7 +266,8 @@ export async function resolveFacebookPublishCredential(destination, prismaArg) {
     return resolveFacebookPageCredentialFromUserSource(destination, source, prisma);
   }
 
-  const storedAccessToken = trimText(decryptDestinationToken(destination));
+  const storedTokenState = readStoredDestinationToken(destination);
+  const storedAccessToken = trimText(storedTokenState.value);
 
   if (storedAccessToken) {
     const resolvedCredential = buildResolvedCredential({
@@ -260,6 +282,10 @@ export async function resolveFacebookPublishCredential(destination, prismaArg) {
     await persistResolvedMetaCredential(destination, resolvedCredential, prisma);
 
     return resolvedCredential;
+  }
+
+  if (storedTokenState.error) {
+    throw storedTokenState.error;
   }
 
   throw createMisconfiguredMetaEnvError();

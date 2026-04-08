@@ -5,7 +5,7 @@
 import { env } from "@/lib/env/server";
 import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
 import { trimText } from "@/lib/news/shared";
-import { decryptSecretValue } from "@/lib/security/secrets";
+import { tryDecryptSecretValue } from "@/lib/security/secrets";
 
 /**
  * Resolves NewsPub destination credentials into the runtime shape used by Meta publishers.
@@ -19,31 +19,47 @@ function normalizeSettings(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function decryptDestinationToken(destination) {
+function createStoredTokenDecryptionError() {
+  return "Stored destination token could not be decrypted with the current encryption key. Clear the saved token or reconnect this destination.";
+}
+
+function readStoredDestinationToken(destination) {
   const ciphertext = destination?.encryptedTokenCiphertext;
   const iv = destination?.encryptedTokenIv;
   const tag = destination?.encryptedTokenTag;
 
   if (!ciphertext || !iv || !tag) {
-    return null;
+    return {
+      credentialError: null,
+      value: null,
+    };
   }
 
-  try {
-    return decryptSecretValue({
-      ciphertext,
-      iv,
-      tag,
-    });
-  } catch {
-    return null;
+  const result = tryDecryptSecretValue({
+    ciphertext,
+    iv,
+    tag,
+  });
+
+  if (!result.error) {
+    return {
+      credentialError: null,
+      value: result.value,
+    };
   }
+
+  return {
+    credentialError: createStoredTokenDecryptionError(),
+    value: null,
+  };
 }
 
 /** Builds the effective runtime connection details for one destination. */
 export function resolveDestinationRuntimeConnection(destination = {}) {
   const settings = normalizeSettings(destination?.settingsJson);
   const platform = trimText(destination?.platform).toUpperCase();
-  const storedToken = decryptDestinationToken(destination);
+  const storedTokenState = readStoredDestinationToken(destination);
+  const storedToken = storedTokenState.value;
   const storedAccessToken = trimText(storedToken) || null;
   const storedExternalAccountId = trimText(destination?.externalAccountId) || null;
   const storedGraphApiBaseUrl = trimText(settings.graphApiBaseUrl) || null;
@@ -83,11 +99,14 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
   const isReadyToPublish = platform === "WEBSITE" ? true : hasRuntimeCredentials;
   const effectiveConnectionStatus = isReadyToPublish
     ? "CONNECTED"
-    : trimText(destination?.connectionStatus) || "DISCONNECTED";
+    : storedTokenState.credentialError
+      ? "ERROR"
+      : trimText(destination?.connectionStatus) || "DISCONNECTED";
 
   return {
     accessToken,
     accountId,
+    credentialError: storedTokenState.credentialError,
     effectiveConnectionStatus,
     externalAccountId: storedExternalAccountId,
     graphApiBaseUrl,

@@ -1490,7 +1490,15 @@ describe("stream execution dedupe safety", () => {
       },
     };
 
-    await expect(runStreamFetch("stream_1", {}, prisma)).resolves.toMatchObject({
+    await expect(
+      runStreamFetch(
+        "stream_1",
+        {
+          now: new Date("2026-04-07T12:00:00.000Z"),
+        },
+        prisma,
+      ),
+    ).resolves.toMatchObject({
       id: "fetch_run_1",
       status: "SUCCEEDED",
     });

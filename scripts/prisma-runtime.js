@@ -8,6 +8,103 @@ const { PrismaMariaDb } = require("@prisma/adapter-mariadb");
 
 const NPX_COMMAND = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "npx";
 
+function trimEnvValue(value) {
+  return `${value || ""}`.trim();
+}
+
+function looksLikePlaceholderEnvValue(value) {
+  return /(^|[^a-z])(replace-with|change-this|example(?:\.|$)|your-)/i.test(trimEnvValue(value));
+}
+
+function parseDatabaseUrl(databaseUrl) {
+  const normalizedUrl = trimEnvValue(databaseUrl);
+
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(normalizedUrl);
+  } catch {
+    return null;
+  }
+}
+
+function describeDatabaseTarget(databaseUrl) {
+  const parsedUrl = parseDatabaseUrl(databaseUrl);
+
+  if (!parsedUrl) {
+    return "unknown database target";
+  }
+
+  const database = parsedUrl.pathname.replace(/^\//, "") || "(missing database)";
+  const user = decodeURIComponent(parsedUrl.username || "") || "(missing user)";
+  const host = parsedUrl.hostname || "localhost";
+  const port = parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306;
+
+  return `${user}@${host}:${port}/${database}`;
+}
+
+function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
+  const normalizedUrl = trimEnvValue(databaseUrl);
+
+  if (!normalizedUrl) {
+    throw new Error(
+      [
+        "DATABASE_URL is missing.",
+        "Copy .env.example to .env.local and point DATABASE_URL at a reachable local MySQL or MariaDB database before running database-backed workflows.",
+      ].join("\n"),
+    );
+  }
+
+  const parsedUrl = parseDatabaseUrl(normalizedUrl);
+
+  if (!parsedUrl) {
+    throw new Error(
+      [
+        "DATABASE_URL is not a valid database URL.",
+        "Update .env.local so DATABASE_URL uses a local MySQL or MariaDB connection string such as mysql://user:password@localhost:3306/news_pub.",
+      ].join("\n"),
+    );
+  }
+
+  if (!["mariadb:", "mysql:"].includes(parsedUrl.protocol)) {
+    throw new Error(
+      [
+        `DATABASE_URL must use the mysql:// or mariadb:// protocol for local NewsPub development.`,
+        `Current target: ${describeDatabaseTarget(normalizedUrl)}.`,
+      ].join("\n"),
+    );
+  }
+
+  const database = parsedUrl.pathname.replace(/^\//, "");
+  const username = decodeURIComponent(parsedUrl.username || "");
+  const password = decodeURIComponent(parsedUrl.password || "");
+
+  if (!database) {
+    throw new Error("DATABASE_URL must include a database name.");
+  }
+
+  if (!username) {
+    throw new Error(
+      [
+        "DATABASE_URL must include a database username.",
+        `Current target: ${describeDatabaseTarget(normalizedUrl)}.`,
+      ].join("\n"),
+    );
+  }
+
+  if ([username, password, database].some(looksLikePlaceholderEnvValue)) {
+    throw new Error(
+      [
+        "DATABASE_URL in .env.local still contains placeholder credentials.",
+        `Current target: ${describeDatabaseTarget(normalizedUrl)}.`,
+        "Replace it with a real local MySQL or MariaDB connection string before running npm run dev.",
+      ].join("\n"),
+    );
+  }
+}
+
 function loadRuntimeEnv() {
   loadEnv({ path: ".env.local", override: true });
   loadEnv();
@@ -108,6 +205,7 @@ function baselineExistingDatabase() {
 }
 
 function applyPrismaMigrations() {
+  assertLocalDatabaseUrlReady();
   console.log("Applying Prisma migrations...");
 
   const migrateResult = runPrismaCommand(["migrate", "deploy"], {
@@ -137,6 +235,7 @@ function applyPrismaMigrations() {
 }
 
 function createAdapterFromDatabaseUrl(databaseUrl) {
+  assertLocalDatabaseUrlReady(databaseUrl);
   const parsedUrl = new URL(databaseUrl);
   const database = parsedUrl.pathname.replace(/^\//, "");
 
@@ -161,6 +260,7 @@ function generatePrismaClient() {
 
 module.exports = {
   applyPrismaMigrations,
+  assertLocalDatabaseUrlReady,
   createAdapterFromDatabaseUrl,
   generatePrismaClient,
   loadRuntimeEnv,

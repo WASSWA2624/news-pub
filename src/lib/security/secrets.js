@@ -59,3 +59,25 @@ export function decryptSecretValue(input, secret) {
 
   return plaintext.toString("utf8");
 }
+
+/**
+ * Attempts to decrypt a persisted secret without letting unreadable legacy or
+ * mismatched ciphertext crash the calling NewsPub request path.
+ *
+ * @param {{ciphertext?: string|null, iv?: string|null, tag?: string|null}} input - Persisted secret payload.
+ * @param {string} [secret] - Optional override for the encryption secret.
+ * @returns {{error: Error|null, value: string|null}} Decrypted value plus any captured failure.
+ */
+export function tryDecryptSecretValue(input, secret) {
+  try {
+    return {
+      error: null,
+      value: decryptSecretValue(input, secret),
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error : new Error(`${error}`),
+      value: null,
+    };
+  }
+}

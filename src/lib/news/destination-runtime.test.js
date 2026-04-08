@@ -107,6 +107,35 @@ describe("destination runtime resolution", () => {
     });
   });
 
+  it("marks unreadable stored destination tokens as an error without throwing", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
+    const encryptedToken = encryptSecretValue("legacy-token", "previous-encryption-key");
+
+    const resolved = resolveDestinationRuntimeConnection({
+      connectionStatus: "CONNECTED",
+      encryptedTokenCiphertext: encryptedToken.ciphertext,
+      encryptedTokenIv: encryptedToken.iv,
+      encryptedTokenTag: encryptedToken.tag,
+      externalAccountId: "page_1",
+      platform: "FACEBOOK",
+      settingsJson: {
+        pageId: "page_1",
+      },
+      slug: "facebook-page",
+    });
+
+    expect(resolved).toMatchObject({
+      accessToken: null,
+      accountId: "page_1",
+      credentialError: expect.stringContaining("could not be decrypted"),
+      effectiveConnectionStatus: "ERROR",
+      hasRuntimeCredentials: false,
+      isReadyToPublish: false,
+      metaAuthStrategy: null,
+    });
+  });
+
   it("falls back to META_USER_ACCESS_TOKEN when no destination token is stored", async () => {
     process.env = {
       ...originalEnv,

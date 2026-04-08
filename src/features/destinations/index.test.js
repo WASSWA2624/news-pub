@@ -154,6 +154,58 @@ describe("destination feature validation", () => {
     ).toBe("override-token");
   });
 
+  it("keeps the destination snapshot available when a stored token can no longer be decrypted", async () => {
+    const { encryptSecretValue } = await import("@/lib/security/secrets");
+    const { getDestinationManagementSnapshot } = await import("./index");
+    const encryptedToken = encryptSecretValue("legacy-token", "previous-encryption-key");
+
+    const snapshot = await getDestinationManagementSnapshot({
+      destination: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            articleMatches: [],
+            connectionError: null,
+            connectionStatus: "CONNECTED",
+            encryptedTokenCiphertext: encryptedToken.ciphertext,
+            encryptedTokenIv: encryptedToken.iv,
+            encryptedTokenTag: encryptedToken.tag,
+            externalAccountId: "page_1",
+            id: "destination_legacy_1",
+            kind: "FACEBOOK_PAGE",
+            name: "Legacy Facebook Page",
+            platform: "FACEBOOK",
+            publishAttempts: [],
+            settingsJson: {
+              pageId: "page_1",
+            },
+            slug: "legacy-facebook-page",
+            streams: [],
+          },
+        ]),
+      },
+    });
+
+    expect(snapshot.destinations[0]).toMatchObject({
+      connectionError: expect.stringContaining("could not be decrypted"),
+      effectiveConnectionStatus: "ERROR",
+      hasStoredToken: true,
+      name: "Legacy Facebook Page",
+    });
+    expect(snapshot.destinations[0].validationIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "destination_stored_token_unreadable",
+          severity: "error",
+        }),
+      ]),
+    );
+    expect(snapshot.summary).toMatchObject({
+      connectedCount: 0,
+      errorCount: 1,
+      totalCount: 1,
+    });
+  });
+
   it("deletes destinations when they have no linked streams or publish history", async () => {
     const { deleteDestinationRecord } = await import("./index");
     const deleteMock = vi.fn(async ({ where }) => ({

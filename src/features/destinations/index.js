@@ -6,9 +6,9 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { env } from "@/lib/env/server";
 import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
-import { isDestinationRuntimeReady, resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
+import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
-import { decryptSecretValue, encryptSecretValue } from "@/lib/security/secrets";
+import { encryptSecretValue } from "@/lib/security/secrets";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 import {
   getDestinationSocialGuardrailOverrideFields,
@@ -89,37 +89,49 @@ export async function getDestinationManagementSnapshot(prisma) {
     },
     orderBy: [{ platform: "asc" }, { name: "asc" }],
   });
+  const snapshotDestinations = destinations.map((destination) => {
+    const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+    const validationIssues = [
+      ...getDestinationValidationIssues(destination),
+      ...(runtimeConnection.credentialError
+        ? [
+            {
+              code: "destination_stored_token_unreadable",
+              message: runtimeConnection.credentialError,
+              severity: "error",
+            },
+          ]
+        : []),
+    ];
+    const connectionErrors = [
+      trimText(destination.connectionError),
+      trimText(runtimeConnection.credentialError),
+    ].filter(Boolean);
+
+    return {
+      ...destination,
+      connectionError: connectionErrors.length ? [...new Set(connectionErrors)].join(" ") : null,
+      effectiveSocialGuardrails: getDestinationSocialGuardrails(destination),
+      effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
+      hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
+      socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
+      hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
+      articleMatchCount: destination.articleMatches.length,
+      publishAttemptCount: destination.publishAttempts.length,
+      streamCount: destination.streams.length,
+      usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
+      usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
+      validationIssues,
+      storedTokenPreview: Boolean(destination.encryptedTokenCiphertext),
+    };
+  });
 
   return {
-    destinations: destinations.map((destination) => {
-      const runtimeConnection = resolveDestinationRuntimeConnection(destination);
-
-      return {
-        ...destination,
-        effectiveSocialGuardrails: getDestinationSocialGuardrails(destination),
-        effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
-        hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
-        socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
-        hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
-        articleMatchCount: destination.articleMatches.length,
-        publishAttemptCount: destination.publishAttempts.length,
-        streamCount: destination.streams.length,
-        usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
-        usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
-        validationIssues: getDestinationValidationIssues(destination),
-        storedTokenPreview: destination.encryptedTokenCiphertext
-          ? decryptSecretValue({
-              ciphertext: destination.encryptedTokenCiphertext,
-              iv: destination.encryptedTokenIv,
-              tag: destination.encryptedTokenTag,
-            })?.slice(0, 0) ?? true
-          : false,
-      };
-    }),
+    destinations: snapshotDestinations,
     summary: {
-      connectedCount: destinations.filter((destination) => isDestinationRuntimeReady(destination)).length,
-      errorCount: destinations.filter((destination) => destination.connectionStatus === "ERROR").length,
-      totalCount: destinations.length,
+      connectedCount: snapshotDestinations.filter((destination) => destination.effectiveConnectionStatus === "CONNECTED").length,
+      errorCount: snapshotDestinations.filter((destination) => destination.effectiveConnectionStatus === "ERROR").length,
+      totalCount: snapshotDestinations.length,
     },
   };
 }

@@ -12,6 +12,9 @@ export default defineConfig({
     },
   },
   test: {
+    // Run files serially so the NewsPub suite stays stable on local Windows
+    // machines and fresh checkouts without relying on extra CLI flags.
+    fileParallelism: false,
     testTimeout: 15000,
   },
 });

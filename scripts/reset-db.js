@@ -250,7 +250,7 @@ async function main() {
     console.log("NewsPub database reset complete.");
   } catch (error) {
     console.error("NewsPub database reset failed.");
-    console.error(error);
+    console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   } finally {
     await prisma.$disconnect();
