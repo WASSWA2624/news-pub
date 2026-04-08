@@ -381,6 +381,42 @@ describe("stream feature validation", () => {
     );
   });
 
+  it("rejects stream saves when max posts per run exceeds the selected provider guard", async () => {
+    const { saveStreamRecord } = await import("./index");
+    const prisma = createPrismaStub({
+      newsProviderConfig: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "provider_1",
+          providerKey: "mediastack",
+          requestDefaultsJson: {
+            countries: ["us"],
+            languages: ["en"],
+            sort: "published_desc",
+          },
+        }),
+      },
+    });
+
+    await expect(
+      saveStreamRecord(
+        {
+          activeProviderId: "provider_1",
+          destinationId: "destination_1",
+          locale: "en",
+          maxPostsPerRun: "34",
+          mode: "REVIEW_REQUIRED",
+          name: "Too many Mediastack posts",
+        },
+        {},
+        prisma,
+      ),
+    ).rejects.toMatchObject({
+      status: "stream_validation_failed",
+    });
+
+    expect(prisma.publishingStream.upsert).not.toHaveBeenCalled();
+  });
+
   it("defaults new website streams to auto publish when no mode is submitted", async () => {
     const { saveStreamRecord } = await import("./index");
     const prisma = createPrismaStub();

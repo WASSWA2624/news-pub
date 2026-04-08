@@ -73,6 +73,19 @@ describe("configuration validation", () => {
     ]);
   });
 
+  it("flags provider-specific max posts per run values that exceed upstream request limits", () => {
+    expect(
+      getStreamValidationIssues({
+        maxPostsPerRun: 34,
+        providerKey: "mediastack",
+      }),
+    ).toMatchObject([
+      {
+        code: "provider_max_posts_per_run_out_of_range",
+      },
+    ]);
+  });
+
   it("flags templates whose linked streams use different platforms", () => {
     expect(
       getTemplateValidationIssues({

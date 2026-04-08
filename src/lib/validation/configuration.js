@@ -4,7 +4,7 @@
  * These checks keep admin-managed platform combinations aligned before fetch or
  * publish workflows depend on them.
  */
-import { getProviderRequestValidationIssues } from "@/lib/news/provider-definitions";
+import { getProviderExecutionLimits, getProviderRequestValidationIssues } from "@/lib/news/provider-definitions";
 
 function normalizeEnumValue(value) {
   return `${value ?? ""}`.trim().toUpperCase();
@@ -138,6 +138,7 @@ export function getStreamValidationIssues({
   destination,
   languageAllowlistJson,
   locale,
+  maxPostsPerRun,
   mode,
   providerDefaults,
   providerFilters,
@@ -194,6 +195,26 @@ export function getStreamValidationIssues({
   }
 
   if (providerKey) {
+    const providerExecutionLimits = getProviderExecutionLimits(providerKey);
+    const maxPostsLimit = providerExecutionLimits.maxPostsPerRun || null;
+    const parsedMaxPostsPerRun = Number.parseInt(`${maxPostsPerRun ?? ""}`, 10);
+
+    if (
+      maxPostsLimit
+      && Number.isFinite(parsedMaxPostsPerRun)
+      && (
+        parsedMaxPostsPerRun < maxPostsLimit.min
+        || parsedMaxPostsPerRun > maxPostsLimit.max
+      )
+    ) {
+      issues.push(
+        createIssue(
+          "provider_max_posts_per_run_out_of_range",
+          `Max posts per run must stay between ${maxPostsLimit.min} and ${maxPostsLimit.max} for ${formatEnumValue(providerKey)}. ${maxPostsLimit.reason}`,
+        ),
+      );
+    }
+
     for (const issue of getProviderRequestValidationIssues(providerKey, {
       countryAllowlistJson,
       languageAllowlistJson,
@@ -288,6 +309,7 @@ export function getConfigurationIssues({ destinations = [], streams = [], templa
       destination,
       languageAllowlistJson: stream.languageAllowlistJson,
       locale: stream.locale,
+      maxPostsPerRun: stream.maxPostsPerRun,
       mode: stream.mode,
       providerDefaults: stream.activeProvider?.requestDefaultsJson,
       providerFilters: stream.settingsJson?.providerFilters,

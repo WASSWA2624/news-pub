@@ -1535,6 +1535,17 @@ const providerDefinitionMap = Object.freeze({
   },
 });
 
+const providerExecutionLimits = Object.freeze({
+  mediastack: Object.freeze({
+    maxPostsPerRun: Object.freeze({
+      max: 33,
+      min: 1,
+      reason:
+        "Mediastack allows at most 100 upstream articles per request, and NewsPub fetches up to 3x the requested posts per run.",
+    }),
+  }),
+});
+
 function isFieldVisible(field, scope, values) {
   if (!field.scopes?.includes(scope)) {
     return false;
@@ -1559,6 +1570,14 @@ export function listProviderDefinitions() {
  */
 export function getProviderDefinition(providerKey) {
   return providerDefinitionMap[normalizeKey(providerKey)] || null;
+}
+
+/**
+ * Returns provider-specific execution limits that admin forms can enforce
+ * before NewsPub sends provider-shaped requests upstream.
+ */
+export function getProviderExecutionLimits(providerKey) {
+  return providerExecutionLimits[normalizeKey(providerKey)] || {};
 }
 
 /**

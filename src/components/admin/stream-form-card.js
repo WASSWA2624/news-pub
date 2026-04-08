@@ -34,7 +34,11 @@ import ProviderFilterFields from "@/components/admin/provider-filter-fields";
 import AppIcon from "@/components/common/app-icon";
 import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
-import { getStreamProviderFormValues } from "@/lib/news/provider-definitions";
+import {
+  getProviderExecutionLimits,
+  getProviderRequestDefaultValues,
+  getStreamProviderFormValues,
+} from "@/lib/news/provider-definitions";
 import { getStreamSocialPostSettings } from "@/lib/news/social-post";
 import {
   buildFetchWindowCapabilityDetails,
@@ -65,6 +69,12 @@ const HelperRow = styled(FieldHint)`
     height: 0.82rem;
     width: 0.82rem;
   }
+`;
+
+const SectionActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
 `;
 
 function trimFieldValue(value) {
@@ -200,6 +210,14 @@ function areProviderFormValuesEqual(leftValue, rightValue) {
   return `${leftValue ?? ""}` === `${rightValue ?? ""}`;
 }
 
+function buildStreamProviderFilterSeedValues(provider, stream, providerId) {
+  if (stream?.activeProviderId === providerId) {
+    return getStreamProviderFormValues(stream);
+  }
+
+  return getProviderRequestDefaultValues(provider);
+}
+
 const socialPostLinkPlacementOptions = [
   {
     description: "Choose below-title or end placement at publish time.",
@@ -239,13 +257,17 @@ export default function StreamFormCard({
   uiNowIso = "",
 }) {
   const socialPostSettings = getStreamSocialPostSettings(stream);
-  const initialProviderFormValues = useMemo(() => getStreamProviderFormValues(stream), [stream]);
   const initialActiveProviderId = stream?.activeProviderId || providerOptions[0]?.value || "";
   const initialDestinationId = stream?.destinationId || destinationOptions[0]?.value || "";
   const initialSelectedDestination =
     destinationOptions.find((option) => option.value === initialDestinationId) || null;
   const initialSelectedProvider =
     providerOptions.find((option) => option.value === initialActiveProviderId) || null;
+  const initialProviderFormValues = buildStreamProviderFilterSeedValues(
+    initialSelectedProvider,
+    stream,
+    initialActiveProviderId,
+  );
   const initialSuggestedIdentity = buildSuggestedStreamIdentity(
     initialSelectedDestination,
     initialSelectedProvider,
@@ -260,8 +282,10 @@ export default function StreamFormCard({
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
   const [mode, setMode] = useState(stream?.mode || initialSuggestedMode);
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
+  const [maxPostsPerRun, setMaxPostsPerRun] = useState(`${stream?.maxPostsPerRun ?? 5}`);
   const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
   const [providerFormValues, setProviderFormValues] = useState(initialProviderFormValues);
+  const [providerFiltersResetKey, setProviderFiltersResetKey] = useState(0);
   const [runWindowState, setRunWindowState] = useState(() => createDefaultRunWindowState(uiNowIso || new Date()));
   const [runWindowError, setRunWindowError] = useState("");
   const [nameWasEdited, setNameWasEdited] = useState(
@@ -281,11 +305,17 @@ export default function StreamFormCard({
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
+  const providerExecutionLimits = selectedProvider?.providerKey
+    ? getProviderExecutionLimits(selectedProvider.providerKey)
+    : {};
+  const maxPostsPerRunLimit = providerExecutionLimits.maxPostsPerRun || null;
   const suggestedIdentity = buildSuggestedStreamIdentity(selectedDestination, selectedProvider);
   const suggestedMode = getSuggestedStreamMode(selectedDestination);
   const issues = getStreamValidationIssues({
     destination: selectedDestination || undefined,
+    maxPostsPerRun,
     mode,
+    providerKey: selectedProvider?.providerKey,
     template: selectedTemplate?.value ? selectedTemplate : undefined,
   });
   const resolvedTemplateOptions = buildTemplateOptions(templateOptions, selectedDestination);
@@ -311,11 +341,18 @@ export default function StreamFormCard({
       ])
     : [];
 
-  const handleProviderFormValuesChange = useCallback((nextValues) => {
+  function handleProviderFormValuesChange(nextValues) {
     setProviderFormValues((currentValues) =>
       areProviderFormValuesEqual(currentValues, nextValues) ? currentValues : nextValues,
     );
-  }, []);
+  }
+
+  function resetProviderFiltersToSelectedProviderDefaults() {
+    const nextProviderFormValues = getProviderRequestDefaultValues(selectedProvider);
+
+    setProviderFormValues(nextProviderFormValues);
+    setProviderFiltersResetKey((currentValue) => currentValue + 1);
+  }
 
   const applyIdentitySuggestion = useCallback(
     (nextSuggestedIdentity) => {
@@ -488,8 +525,11 @@ export default function StreamFormCard({
                 const nextProviderId = `${value || ""}`;
                 const nextProvider =
                   providerOptions.find((option) => option.value === nextProviderId) || null;
+                const nextProviderFormValues = buildStreamProviderFilterSeedValues(nextProvider, stream, nextProviderId);
 
                 setActiveProviderId(nextProviderId);
+                setProviderFormValues(nextProviderFormValues);
+                setProviderFiltersResetKey((currentValue) => currentValue + 1);
                 applyIdentitySuggestion(buildSuggestedStreamIdentity(selectedDestination, nextProvider));
               }}
               options={providerOptions}
@@ -652,30 +692,44 @@ export default function StreamFormCard({
           </Field>
           <Field>
             <FieldLabel>Max posts per run</FieldLabel>
-            <Input defaultValue={stream?.maxPostsPerRun ?? 5} name="maxPostsPerRun" type="number" />
+            <Input
+              max={maxPostsPerRunLimit?.max}
+              min={maxPostsPerRunLimit?.min || 1}
+              name="maxPostsPerRun"
+              onChange={(event) => setMaxPostsPerRun(event.target.value)}
+              step="1"
+              type="number"
+              value={maxPostsPerRun}
+            />
             <FieldHint>
-              Keep social runs bounded so queues stay responsive. Website streams still publish every locally eligible article from the fetched pool.
+              {maxPostsPerRunLimit
+                ? `Keep this between ${maxPostsPerRunLimit.min} and ${maxPostsPerRunLimit.max} for ${selectedProvider?.label || "the selected provider"}. ${maxPostsPerRunLimit.reason}`
+                : "Keep social runs bounded so queues stay responsive. Website streams still publish every locally eligible article from the fetched pool."}
             </FieldHint>
           </Field>
           <Field>
             <FieldLabel>Duplicate window hours</FieldLabel>
             <Input
               defaultValue={stream?.duplicateWindowHours ?? 48}
+              min="1"
               name="duplicateWindowHours"
+              step="1"
               type="number"
             />
             <FieldHint>Stories published inside this cooldown stay blocked unless a manual repost bypass is requested.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Retry limit</FieldLabel>
-            <Input defaultValue={stream?.retryLimit ?? 3} name="retryLimit" type="number" />
+            <Input defaultValue={stream?.retryLimit ?? 3} min="0" name="retryLimit" step="1" type="number" />
             <FieldHint>Retryable publish attempts stop once this limit is reached.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Retry backoff minutes</FieldLabel>
             <Input
               defaultValue={stream?.retryBackoffMinutes ?? 15}
+              min="0"
               name="retryBackoffMinutes"
+              step="1"
               type="number"
             />
             <FieldHint>Use a modest backoff so flaky destinations recover without overwhelming downstream APIs.</FieldHint>
@@ -737,14 +791,28 @@ export default function StreamFormCard({
           summary="Override provider-specific request filters only when this stream needs narrower fetch behavior than the saved provider defaults. Compatible multi-stream runs fetch broadly once, then NewsPub filters locally per stream."
           title="Provider request filters"
         >
+          <SectionActionRow>
+            <SecondaryButton
+              onClick={resetProviderFiltersToSelectedProviderDefaults}
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="refresh" />
+              </ButtonIcon>
+              Reset to provider defaults
+            </SecondaryButton>
+          </SectionActionRow>
+          <FieldHint>
+            Restore this stream&apos;s provider request fields to the defaults saved on the selected provider profile.
+          </FieldHint>
           <ProviderFilterFields
-            key={`stream-provider-filters-${selectedProvider.providerKey}`}
+            key={`stream-provider-filters-${selectedProvider.providerKey}-${providerFiltersResetKey}`}
             hideManagedWindowFields
             namePrefix="providerFilter"
             onValuesChange={handleProviderFormValuesChange}
             providerKey={selectedProvider.providerKey}
             scope="stream"
-            values={initialProviderFormValues}
+            values={providerFormValues}
           />
         </AdminDisclosureSection>
       ) : null}
