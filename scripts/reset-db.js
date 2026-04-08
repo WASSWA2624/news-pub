@@ -5,6 +5,7 @@ const {
   loadRuntimeEnv,
   runPrismaCommand,
 } = require("./prisma-runtime");
+const { assertDefaultAdminAccountSeeded } = require("./default-admin-account");
 
 loadRuntimeEnv();
 
@@ -247,6 +248,9 @@ async function main() {
 
     console.log("Reseeding NewsPub baseline data...");
     runPrismaCommand(["db", "seed"]);
+    const adminUser = await assertDefaultAdminAccountSeeded(prisma);
+
+    console.log(`Verified default admin account ${adminUser.email}.`);
     console.log("NewsPub database reset complete.");
   } catch (error) {
     console.error("NewsPub database reset failed.");

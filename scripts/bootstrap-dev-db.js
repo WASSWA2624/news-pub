@@ -5,6 +5,10 @@ const {
   loadRuntimeEnv,
   runPrismaCommand,
 } = require("./prisma-runtime");
+const {
+  assertDefaultAdminAccountSeeded,
+  findDefaultAdminAccount,
+} = require("./default-admin-account");
 
 loadRuntimeEnv();
 
@@ -16,13 +20,14 @@ async function shouldSeedBaselineData() {
   });
 
   try {
-    const [localeCount, providerCount, destinationCount] = await Promise.all([
+    const [localeCount, providerCount, destinationCount, defaultAdminAccount] = await Promise.all([
       prisma.locale.count(),
       prisma.newsProviderConfig.count(),
       prisma.destination.count(),
+      findDefaultAdminAccount(prisma).catch(() => null),
     ]);
 
-    return localeCount === 0 || providerCount === 0 || destinationCount === 0;
+    return localeCount === 0 || providerCount === 0 || destinationCount === 0 || !defaultAdminAccount;
   } finally {
     await prisma.$disconnect();
   }
@@ -35,6 +40,18 @@ async function main() {
   if (await shouldSeedBaselineData()) {
     console.log("Seeding NewsPub baseline data...");
     runPrismaCommand(["db", "seed"]);
+    const { PrismaClient } = require("@prisma/client");
+    const prisma = new PrismaClient({
+      adapter: createAdapterFromDatabaseUrl(`${process.env.DATABASE_URL || ""}`),
+    });
+
+    try {
+      const adminUser = await assertDefaultAdminAccountSeeded(prisma);
+
+      console.log(`Verified default admin account ${adminUser.email}.`);
+    } finally {
+      await prisma.$disconnect();
+    }
   } else {
     console.log("Baseline data already present. Skipping seed.");
   }
