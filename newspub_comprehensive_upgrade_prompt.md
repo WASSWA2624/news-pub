@@ -64,7 +64,7 @@ For Facebook and Instagram, NewsPub must not only optimize copy but also explici
 
 1. Preserve and harden provider-aware shared-fetch batching.
 2. Make time-boundary behavior fully normalized, explicit, testable, and clearly exposed in admin UX.
-3. Make the default stream fetch window **last 24 hours to now**, clearly prefilled in stream settings and manual-run surfaces.
+3. Make the default stream fetch window **from the previous 24 hours to the next 30 minutes from now**, clearly prefilled in stream settings and manual-run surfaces.
 4. Ensure all providers expose the broadest supported time-bounded fetch path within their actual endpoint limitations.
 5. Guarantee website streams publish all locally eligible content by default and make that behavior SEO-optimized.
 6. Strengthen Facebook and Instagram AI review so filtered posts are streamlined for platform compliance before publication.
@@ -141,10 +141,11 @@ This is a required addition.
 
 For all provider-backed stream settings and manual execution controls:
 
-- the default visible time window must be **from the last 24 hours to now**
+- the default visible time window must be **from the previous 24 hours to the next 30 minutes from now**
 - the interface must make that default explicit
+- the extra 30-minute forward buffer must be explained as protection against missing the latest news because of provider indexing, API call, and processing delays
 - start and end boundaries must be clearly prefilled where the provider or endpoint supports direct bounded input
-- if an endpoint supports only relative timeframe semantics, the UI must still present the normalized 24-hour default in a clear way and explain how it maps to the provider
+- if an endpoint supports only relative timeframe semantics, the UI must still present the normalized previous-24-hours-plus-next-30-minutes default in a clear way and explain how it maps to the provider
 - if a provider endpoint cannot support a true start/end range directly, the UI must state that clearly and show the nearest supported behavior
 
 Do not hide this logic behind implicit defaults only in backend code. The admin interface must communicate it clearly.
@@ -163,7 +164,7 @@ Requirements:
 
 The default behavior remains:
 
-- last 24 hours to now
+- from the previous 24 hours to the next 30 minutes from now
 
 ### G. Website publication contract
 
@@ -245,7 +246,7 @@ Review the stream-management and stream-form interfaces comprehensively and opti
 Required outcomes:
 
 - default values should match the safest and most useful NewsPub behavior
-- default fetch window clearly reflects last 24 hours to now
+- default fetch window clearly reflects the previous 24 hours through the next 30 minutes from now
 - website stream defaults should favor complete local publication of eligible results
 - social stream defaults should favor safer review and pacing behavior where appropriate
 - provider filter labels, hints, and section summaries should explain which filters affect upstream requests versus local filtering
@@ -297,7 +298,7 @@ The repo already contains shared-fetch planning logic. Verify it end to end and 
 
 ### 2. Time-window UX gap
 
-The backend may already support normalized fetch windows, but the admin stream settings and manual execution experience must clearly expose the default last-24-hours-to-now behavior with prefilled values and endpoint-specific guidance.
+The backend may already support normalized fetch windows, but the admin stream settings and manual execution experience must clearly expose the default previous-24-hours-to-next-30-minutes-from-now behavior with prefilled values and endpoint-specific guidance.
 
 ### 3. Provider capability visibility gap
 
@@ -337,7 +338,7 @@ All changed code paths must be reflected exactly in repo-truth docs, not approxi
 3. Verify the existing shared-fetch planner and execution path before changing it.
 4. Extract or refine reusable internals so single-stream and batch-stream paths share one downstream-processing contract.
 5. Introduce or harden one normalized fetch-window model across all execution entry points.
-6. Make the default 24-hour window explicit and prefilled in stream settings and manual execution interfaces.
+6. Make the default previous-24-hours-plus-next-30-minutes window explicit and prefilled in stream settings and manual execution interfaces.
 7. Update provider adapters and provider metadata so endpoint-specific time-boundary capabilities are explicit and tested.
 8. Ensure request builders widen grouped fetch windows safely and never underfetch.
 9. Guarantee website streams post every locally eligible article unless explicitly blocked.
@@ -414,7 +415,7 @@ Add or update tests to cover all of the following.
 - normalized internal start/end windows map correctly per provider and endpoint
 - automatic checkpoint windows still work
 - explicit bounded windows override or compose correctly
-- default window resolves to last 24 hours to now
+- default window resolves to the previous 24 hours through the next 30 minutes from now
 - endpoint limitations are tested and documented
 - stream settings and manual-run surfaces expose the expected default window semantics
 
@@ -465,7 +466,7 @@ The work is complete only if all of the following are true.
 - compatible multi-stream execution performs one provider API call per compatible group
 - incompatible stream batches are partitioned safely with no underfetching and no unnecessary duplicate calls
 - every supported provider exposes a clear and tested bounded fetch path where supported
-- the default stream time boundary is last 24 hours to now and is clearly prefilled in stream settings or equivalent admin controls
+- the default stream time boundary is from the previous 24 hours to the next 30 minutes from now and is clearly prefilled in stream settings or equivalent admin controls
 - checkpoint-based incremental fetching still works correctly
 - website streams publish every locally eligible article unless blocked by explicit rules
 - website output remains SEO optimized even when AI is skipped or falls back
@@ -490,4 +491,3 @@ The work is complete only if all of the following are true.
 - keep observability first so every widened fetch, grouped run, pacing block, and publication decision is explainable afterward
 - do not claim a behavior is implemented unless code, tests, and docs all agree
 - do not leave the repo partially migrated
-
