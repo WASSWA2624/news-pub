@@ -1,493 +1,226 @@
-# NewsPub Comprehensive Upgrade Prompt — Shared Fetch Hardening, Explicit Time Windows, SEO-First Website Publishing, Meta Compliance Review, And Stream UX Defaults
+# NewsPub Gap-Only Upgrade Prompt — UI Uniformity, Responsiveness, Documentation, Cleanup, And Efficiency
 
 ## Mission
 
-Review the entire NewsPub repository comprehensively against `newspub_comprehensive_upgrade_prompt.md`, `app-write-up.md`, `README.md`, and all relevant `dev-plan/*` files, then implement and document the remaining work needed so the runtime behavior, admin UX, tests, and repo-truth documentation all match exactly.
+Review the current NewsPub repository against the existing implementation, `README.md`, `app-write-up.md`, and relevant `dev-plan/*` files, then implement **only the remaining gaps**.
 
-This prompt must be treated as an **implementation and synchrojnization prompt**, not as a greenfield redesign prompt.
+This is **not** a broad reimplementation prompt. Do **not** restate or redo work that is already present and aligned. Preserve working shared-fetch, normalized time-window behavior, SEO-first website publishing, AI skip/fallback handling, Meta pacing/compliance safeguards, and existing admin UX improvements unless a real gap, inconsistency, or regression is found.
 
-Important: the current repo already contains partial or substantial implementation for shared-fetch planning, normalized fetch-window handling, AI skip/fallback behavior, and website publication flow. Do **not** duplicate or replace that work blindly. Instead:
+Focus only on the gaps below.
 
-- verify what already exists
-- preserve working behavior
-- close the remaining gaps
-- remove contradictions
-- harden incomplete areas
-- align code, tests, UI defaults, and docs to one exact product contract
+## Gaps Confirmed From The Current Repo Review
 
-Do not leave the repository in a state where runtime behavior, tests, and docs disagree.
+### 1. UI reuse and design-language gap
 
-## Product Boundaries
+The repo already has a shared admin UI layer, but some screens still bypass it with bespoke cards, buttons, action bars, and layout primitives.
 
-Keep the bounded NewsPub product shape.
+Main risk areas include:
 
-Do **not** reintroduce open-ended generation tools, prompt-lab patterns, equipment or manufacturer domains, unrelated content pipelines, or speculative new platform scope.
+- `src/components/admin/stream-management-screen.js`
+- `src/components/admin/category-management-screen.js`
+- `src/components/admin/media-library-screen.js`
+- route-level sticky card variants in admin pages
+- route or feature code that recreates buttons, cards, summary blocks, and action rows instead of reusing the shared admin primitives
 
-Supported destination scope remains:
+Required outcome:
 
-- website
-- Facebook
-- Instagram
+- one shared admin design language
+- one shared button system
+- one shared card/surface system
+- one shared action-row and sticky-side-panel pattern
+- one shared table/list responsiveness strategy
+- eliminate visually similar but separately implemented primitives unless a real functional difference exists
 
-Supported provider scope remains the currently supported provider set unless the repo already contains an approved extension path.
+### 2. App-wide responsiveness gap
 
-## Non-Negotiable Runtime Rules
+Much of the admin UI is responsive already, but responsiveness must be verified and hardened app-wide, especially where custom screen-specific layout primitives were introduced.
 
-### 1. AI is optional at runtime
+Required outcome:
 
-If AI is disabled, missing credentials, misconfigured, unavailable, rate limited, timing out, returning invalid structured output, or otherwise unhealthy, the workflow must continue safely whenever platform and policy requirements still allow it.
+- every admin workspace remains fully usable on narrow mobile widths, tablet widths, laptop widths, and large desktop widths
+- no hidden horizontal overflow except where deliberate and justified
+- no clipped modal actions, hidden validation text, collapsed controls, or off-screen sticky panels
+- tables, action bars, summary strips, and disclosure headers must wrap cleanly
+- long labels, provider names, endpoint labels, policy summaries, and AI status text must not break layout
 
-Required behavior:
+### 3. Horizontal alignment and layout consistency gap
 
-- skip AI intervention cleanly when AI is unavailable
-- fall back to deterministic formatting where supported
-- do not block fetch, filtering, review, scheduling, retry, or website publication solely because AI failed
-- persist visible machine-readable reasons
-- surface `SKIPPED` or `FALLBACK` status clearly in admin views, logs, and analytics
-- preserve editorial override and manual publication paths
+Some screens still use one-off `space-between`, custom grid ratios, and ad hoc button wrappers that can produce inconsistent visual rhythm and imperfect horizontal alignment.
 
-### 2. Local filtering remains the source of truth
+Required outcome:
 
-Provider requests may be widened for efficiency, but stream-specific filtering, deduplication, policy handling, review logic, and destination decisions must remain in the app layer.
+- normalize horizontal alignment for cards, headers, badges, tables, form rows, toolbar actions, modal footers, and sticky sidebars
+- align icon, label, helper text, and action baselines consistently
+- remove layout drift caused by bespoke wrappers when shared primitives can solve it
+- standardize internal spacing, section rhythm, and alignment tokens across admin pages
 
-### 3. Website publishing is complete by default
+### 4. Documentation gap
 
-For website destinations, NewsPub must publish **every fetched item that passes local stream filters, duplicate rules, moderation rules, destination settings, and hold/block rules**.
+The original prompt requires professional JSDoc, but many important runtime/admin files still do not have adequate module-level or export-level documentation.
 
-No valid website article may be silently dropped just because the upstream fetch was broader, batched, or optimized for multi-stream reuse.
+High-priority files to address include, at minimum:
 
-### 4. Meta safety and pacing are mandatory
-
-For Facebook and Instagram, NewsPub must not only optimize copy but also explicitly review publishable payloads for Meta safety, policy alignment, spam-risk reduction, and posting cadence.
-
-## Main Objectives
-
-1. Preserve and harden provider-aware shared-fetch batching.
-2. Make time-boundary behavior fully normalized, explicit, testable, and clearly exposed in admin UX.
-3. Make the default stream fetch window **from the previous 24 hours to the next 30 minutes from now**, clearly prefilled in stream settings and manual-run surfaces.
-4. Ensure all providers expose the broadest supported time-bounded fetch path within their actual endpoint limitations.
-5. Guarantee website streams publish all locally eligible content by default and make that behavior SEO-optimized.
-6. Strengthen Facebook and Instagram AI review so filtered posts are streamlined for platform compliance before publication.
-7. Enforce and expose a delay between consecutive Facebook and Instagram posts to reduce account-ban risk.
-8. Review and optimize stream filter defaults, field help text, and interface behavior so the most correct defaults are preselected and obvious.
-9. Keep all changed runtime files documented with professional JSDoc and targeted inline comments.
-10. Update all affected docs, plans, and tests so the repository tells the truth.
-
-## Required Runtime Behavior
-
-### A. Shared-fetch batching for sent stream groups
-
-When one execution request contains multiple stream ids:
-
-- partition streams into the minimum safe number of compatible shared-fetch groups
-- perform exactly one provider API call per compatible group
-- build one widened provider request per compatible group
-- use that shared upstream response as the candidate pool for all streams in that group
-- then apply per-stream filtering, deduplication, AI handling, review, and publishing locally inside the app
-- preserve separate per-stream checkpoints, summaries, article matches, audit logs, and publish attempts
-- preserve single-stream execution support
-
-Do not regress any existing shared-fetch implementation that is already correct.
-
-### B. Shared-fetch compatibility rules
-
-Streams may share one upstream request only when all of the following remain compatible and safe:
-
-- same active provider key
-- same provider endpoint shape or endpoint family where request semantics match
-- same runtime credential source
-- same general time-boundary semantics
-- no stream-specific provider filter that would cause one stream to underfetch if grouped
-
-When streams are not compatible:
-
-- split them into the smallest safe number of groups
-- still avoid duplicate upstream calls whenever widening remains safe
-
-### C. Combined fetch envelope rules
-
-The shared provider request must:
-
-- widen enough to avoid missing downstream matches
-- represent the union of safe fetch-time criteria
-- never narrow in a way that underfetches for any stream in the group
-- prefer local filtering over brittle provider-side overfitting
-- keep time windows, pagination, cursors, and grouping decisions explicit and auditable
-
-### D. Normalized provider time-window contract
-
-There must be one normalized internal fetch-window contract used consistently by:
-
-- scheduled runs
-- manual runs
-- manual multi-stream runs
-- retries
-- backfills
-- diagnostics
-- shared-fetch batches
-
-Implementation requirements:
-
-- internal code uses normalized start and end boundaries
-- provider adapters map normalized boundaries to provider-specific request parameters
-- explicit manual windows are supported cleanly
-- checkpoint-driven incremental windows still work
-- explicit windows do not advance checkpoints unless explicitly requested
-- endpoint-specific time-boundary limitations are documented clearly
-
-### E. Default time-bound behavior in stream settings
-
-This is a required addition.
-
-For all provider-backed stream settings and manual execution controls:
-
-- the default visible time window must be **from the previous 24 hours to the next 30 minutes from now**
-- the interface must make that default explicit
-- the extra 30-minute forward buffer must be explained as protection against missing the latest news because of provider indexing, API call, and processing delays
-- start and end boundaries must be clearly prefilled where the provider or endpoint supports direct bounded input
-- if an endpoint supports only relative timeframe semantics, the UI must still present the normalized previous-24-hours-plus-next-30-minutes default in a clear way and explain how it maps to the provider
-- if a provider endpoint cannot support a true start/end range directly, the UI must state that clearly and show the nearest supported behavior
-
-Do not hide this logic behind implicit defaults only in backend code. The admin interface must communicate it clearly.
-
-### F. Provider support requirements
-
-For every supported provider, ensure there is a way to fetch everything within a given time boundary whenever the provider supports it.
-
-Requirements:
-
-- provider capabilities must be explicit by endpoint
-- provider adapters must expose the broadest supported bounded fetch path
-- request builders must honor normalized internal start/end windows
-- tests must prove correct mapping for each provider and endpoint mode
-- unsupported endpoint limitations must be documented and handled safely
-
-The default behavior remains:
-
-- from the previous 24 hours to the next 30 minutes from now
-
-### G. Website publication contract
-
-For website destinations:
-
-- publish everything that passes local stream filters and duplicate rules unless blocked by explicit settings, moderation, policy, or AI hold/block outcomes
-- do not apply social-style `maxPostsPerRun` limits to website streams
-- keep website publication deterministic and auditable
-- ensure website publishing remains first-class, not secondary to social flows
-- ensure broad shared-fetch responses do not cause valid website items to be skipped
-
-### H. SEO requirements for website publishing
-
-This is a required strengthening area.
-
-By default, website streams should post everything returned by the website stream filters unless blocked, and those posts must be SEO optimized.
-
-Required SEO behavior:
-
-- generate or preserve canonical slugging deterministically
-- populate SEO title and meta description fields consistently
-- keep Open Graph and Twitter metadata synchronized with canonical website content
-- ensure canonical URLs are stable
-- keep structured data valid for published story pages where that architecture already exists
-- ensure sitemap and public discovery surfaces reflect the published website content correctly
-- preserve source attribution and factual fidelity
-- ensure fallback and non-AI paths still produce valid SEO metadata
-
-Do not make SEO optimization depend on AI success.
-
-### I. Facebook and Instagram AI compliance review
-
-This is a required addition and hardening area.
-
-For Facebook and Instagram, after stream filtering but before publication:
-
-- run the AI layer as a bounded compliance-and-streamlining pass when AI is available
-- ensure the payload is aligned with Facebook and Instagram terms, safety expectations, and anti-spam heuristics as far as the product can reasonably enforce
-- preserve factual meaning and source attribution
-- reduce risky formatting, engagement bait, spam-like phrasing, overlong copy, and platform-unsafe patterns
-- keep all policy decisions visible and auditable
-- if AI is unavailable, continue using deterministic policy and guardrail logic
-- do not publish blocked content just because AI is unavailable
-
-Important: this is not open-ended content generation. It is bounded optimization, compliance review, and formatting.
-
-### J. Facebook and Instagram post-delay enforcement
-
-This is a required addition or hardening area.
-
-For Facebook and Instagram destinations:
-
-- enforce a delay between one post and the next to reduce account-ban risk
-- make the delay configurable through the existing destination or policy guardrail architecture if such configuration already exists
-- make the current delay visible in admin help text and publish diagnostics
-- prevent unsafe back-to-back auto-publication bursts
-- ensure scheduled runs and retries respect the delay
-- record when a publish was deferred or blocked because the platform pacing interval had not elapsed yet
-
-If the repo already has partial support for minimum post intervals, verify it fully covers both auto-publish and retry paths, is visible in admin UX, and is documented and tested.
-
-### K. Filtering and downstream evaluation
-
-After fetching, whether single-stream or shared-fetch:
-
-- normalize each upstream article once per fetched item
-- evaluate each fetched item against each relevant stream locally
-- keep include-keyword, exclude-keyword, locale, language, country, region, provider-filter, duplicate, review, schedule, and policy logic in the app layer
-- preserve per-stream article-match records
-- keep repost-eligible duplicate logic correct per destination and per stream
-- preserve review-required and auto-publish behavior
-
-### L. Stream filter defaults and interface optimization
-
-This is a required review area.
-
-Review the stream-management and stream-form interfaces comprehensively and optimize the defaults and settings behavior.
-
-Required outcomes:
-
-- default values should match the safest and most useful NewsPub behavior
-- default fetch window clearly reflects the previous 24 hours through the next 30 minutes from now
-- website stream defaults should favor complete local publication of eligible results
-- social stream defaults should favor safer review and pacing behavior where appropriate
-- provider filter labels, hints, and section summaries should explain which filters affect upstream requests versus local filtering
-- endpoint limitations should be explained where relevant
-- the most important controls should appear first
-- advanced filters should remain available but not overwhelm common workflows
-- filter defaults should not accidentally underfetch
-- country, language, category, keyword, exclusion, endpoint, and time-window defaults should be reviewed for clarity and correctness
-- validation messages should explain how to fix under-scoped or contradictory configurations
-
-### M. Admin forms, modal UX, and disclosure sections
-
-Apply these rules consistently across provider, destination, stream, template, SEO, category, and editor forms:
-
-- one shared form design language
-- stable modal headers and footers
-- no scroll traps
-- visible validation near the affected field
-- auto-focus or scroll to first blocking error
-- keyboard accessibility throughout
-- consistent accordion or disclosure behavior
-- collapsed sections must show useful summaries and error/completion state
-- sections with blocking issues must auto-expand
-- important information must not disappear silently when collapsed
-
-### N. Buttons and control sizing
-
-- standardize button heights across primary, secondary, destructive, toolbar, and modal-footer actions
-- standardize icon spacing and alignment
-- remove inconsistent action sizing unless required for accessibility
-
-### O. Performance and code quality
-
-- minimize unnecessary nesting
-- remove duplication where it truly reduces complexity
-- keep client components lean
-- avoid unnecessary rerenders
-- lazy-mount heavy sections only when it improves responsiveness without hurting usability
-- preserve list bounds and pagination
-- do not expand scope beyond the NewsPub product boundary
-
-## Gaps To Close
-
-Use the repo review to close these specific gaps or partial-implementation risks.
-
-### 1. Shared-fetch hardening gap
-
-The repo already contains shared-fetch planning logic. Verify it end to end and close any remaining mismatch between planner behavior, workflow execution, admin reporting, and tests.
-
-### 2. Time-window UX gap
-
-The backend may already support normalized fetch windows, but the admin stream settings and manual execution experience must clearly expose the default previous-24-hours-to-next-30-minutes-from-now behavior with prefilled values and endpoint-specific guidance.
-
-### 3. Provider capability visibility gap
-
-Provider endpoint support for date or datetime windows must be explicit in the form metadata, validation, adapter logic, tests, and docs.
-
-### 4. Website completeness plus SEO gap
-
-Website publication already aims to process every eligible candidate. Harden the guarantee, ensure tests cover it, and make sure SEO metadata remains correct even on fallback paths.
-
-### 5. Meta compliance and pacing gap
-
-The repo may already contain some policy and interval guardrails. Verify and complete the behavior so Facebook and Instagram both have:
-
-- bounded AI review and streamlining
-- deterministic fallback policy checks
-- visible compliance outcomes
-- enforced post spacing
-- test coverage
-- documentation coverage
-
-### 6. Stream defaults and filter UX gap
-
-Review the stream-management interfaces and optimize filter defaults, help text, summaries, grouping, and validation so operators clearly understand what will happen before they save or run a stream.
-
-### 7. Documentation synchronization gap
-
-All changed code paths must be reflected exactly in repo-truth docs, not approximately.
-
-## Implementation Instructions
-
-1. Review the entire repository against:
-  - `newspub_comprehensive_upgrade_prompt.md`
-  - `app-write-up.md`
-  - `README.md`
-  - all relevant `dev-plan/`* files
-2. Preserve existing correct behavior and avoid duplicate architecture.
-3. Verify the existing shared-fetch planner and execution path before changing it.
-4. Extract or refine reusable internals so single-stream and batch-stream paths share one downstream-processing contract.
-5. Introduce or harden one normalized fetch-window model across all execution entry points.
-6. Make the default previous-24-hours-plus-next-30-minutes window explicit and prefilled in stream settings and manual execution interfaces.
-7. Update provider adapters and provider metadata so endpoint-specific time-boundary capabilities are explicit and tested.
-8. Ensure request builders widen grouped fetch windows safely and never underfetch.
-9. Guarantee website streams post every locally eligible article unless explicitly blocked.
-10. Ensure website posts remain SEO optimized even when AI is skipped or falls back.
-11. Add or harden Facebook and Instagram AI compliance review as a bounded streamlining pass.
-12. Add or harden Facebook and Instagram inter-post delay enforcement across auto-publish, scheduled, and retry flows.
-13. Review and optimize stream filter defaults and the stream settings UX comprehensively.
-14. Standardize form, modal, disclosure, and button behavior where inconsistent.
-15. Add professional JSDoc to every changed exported function, route handler, component, helper, provider adapter, workflow utility, and validation module.
-16. Add targeted inline comments for non-obvious rules: grouping safety, widened fetch envelopes, checkpoint advancement, default time-window semantics, website publication completeness, Meta pacing, and fallback branches.
-17. Update all affected docs and tests so they match the implemented runtime exactly.
-
-## Files That Must Be Updated When Applicable
-
-Update all necessary runtime files, tests, and docs. At minimum, update the relevant files among these when behavior changes.
-
-### Repo-truth docs
-
-- `README.md`
-- `app-write-up.md`
-- `dev-plan/00_plan_index.md`
-- `dev-plan/10_provider_registry_and_credentials.md`
-- `dev-plan/11_destination_connections_and_streams.md`
-- `dev-plan/12_fetch_and_normalization_pipeline.md`
-- `dev-plan/13_filtering_publishability_and_deduplication.md`
-- `dev-plan/14_review_queue_and_publication_state.md`
-- `dev-plan/16_website_rendering_and_publication.md`
-- `dev-plan/17_social_destination_publication.md`
-- `dev-plan/18_scheduler_incremental_windows_and_retries.md`
-- `dev-plan/19_seo_search_and_public_discovery.md`
-- `dev-plan/20_audit_logs_and_observability.md`
-- `dev-plan/21_analytics_dashboard_and_reporting.md`
-- `dev-plan/22_performance_and_scalability.md`
-- `dev-plan/24_release_traceability_and_cutover.md`
-
-### Likely runtime and test touchpoints
-
-- `src/lib/news/shared-fetch.js`
-- `src/lib/news/fetch-window.js`
+- `src/components/admin/news-admin-ui.js`
+- `src/components/admin/destination-form-card.helpers.js`
+- `src/components/admin/stream-management-screen.helpers.js`
 - `src/lib/news/providers.js`
-- `src/lib/news/provider-definitions.js`
+- `src/lib/news/publishers.js`
+- `src/lib/news/shared-fetch.js`
+- `src/lib/news/shared.js`
+- `src/lib/news/social-post.js`
 - `src/lib/news/workflows.js`
-- `src/lib/validation/configuration.js`
-- `src/lib/content/policy.js`
-- `src/lib/ai/index.js`
 - `src/features/streams/index.js`
+- `src/features/destinations/index.js`
 - `src/features/destinations/meta-config.js`
+- relevant admin route files under `src/app/admin/`**
+
+Required outcome:
+
+- add module-level JSDoc where missing on non-trivial files
+- add or refine export-level JSDoc for helpers, route handlers, React components, workflow functions, provider adapters, and UI utilities where intent or invariants are not obvious
+- add targeted inline comments only for non-obvious logic
+- do not add noisy comments that merely restate the code
+
+### 5. Cleanup and dead-code gap
+
+The repo appears to contain legacy or unreferenced modules that should either be removed, consolidated, or explicitly wired into the current architecture.
+
+Examples to verify and clean up when confirmed safe:
+
+- `src/components/admin/category-management-screen.js`
+- `src/components/admin/media-library-screen.js`
+- `src/components/public/share-actions.js`
+- `src/features/auth/index.js`
+- `src/features/i18n/activation.js`
+- `src/features/media/media-library.js`
+
+Required outcome:
+
+- identify unused, duplicated, or obsolete modules
+- remove dead files only when confirmed safe
+- if a file is intentionally retained for a near-term path, document why and ensure it is not duplicating active logic unnecessarily
+- remove redundant helpers, duplicate style blocks, and stale screen-specific primitives that no longer serve the current app
+
+### 6. Code-efficiency gap
+
+The repo should be tightened for maintainability and runtime efficiency without changing working product behavior.
+
+Required outcome:
+
+- reduce duplicated UI primitives and repeated styling logic
+- keep client components lean
+- minimize avoidable rerenders and unnecessary derived state
+- extract reusable helpers only where it meaningfully reduces repetition or complexity
+- avoid over-abstraction
+- preserve the current product boundary and runtime behavior
+
+### 7. Uniform component contract gap
+
+Reusable UI components exist, but the contract must be enforced consistently.
+
+Required outcome:
+
+- shared components must own button sizing, icon spacing, disclosure headers, field spacing, validation placement, summary chips, and card padding
+- route-specific code should compose the shared primitives instead of re-implementing them
+- new variants should be added to shared primitives rather than copied locally
+
+## Implementation Rules
+
+1. Do **not** re-open already completed architecture unless the current code clearly violates the shipped contract.
+2. Prefer consolidating existing components over introducing new parallel primitives.
+3. Preserve behavior first; refactor only when it improves consistency, reuse, or clarity without regressions.
+4. Treat admin UX consistency as a product contract, not a cosmetic cleanup.
+5. Keep changes small, traceable, and easy to review.
+6. When deleting code, confirm it is unreferenced or superseded.
+7. When consolidating styles, centralize them in the existing shared admin UI layer rather than scattering new wrappers.
+
+## Required File Focus
+
+Prioritize the files below when applicable:
+
+### Shared admin UI layer
+
+- `src/components/admin/news-admin-ui.js`
+- `src/components/admin/admin-form-modal.js`
+- `src/components/admin/admin-form-primitives.js`
+- `src/components/admin/checkbox-search-field.js`
+- `src/components/common/searchable-select.js`
+
+### Screens and route surfaces most likely to need consolidation
+
+- `src/components/admin/stream-management-screen.js`
 - `src/components/admin/stream-form-card.js`
 - `src/components/admin/provider-filter-fields.js`
-- `src/components/admin/stream-management-screen.js`
-- relevant admin route handlers that trigger stream execution
-- relevant analytics, audit, and observability modules
-- relevant SEO and website publication modules
-- relevant provider, workflow, stream, validation, AI, and route tests
+- `src/app/admin/page.js`
+- `src/app/admin/jobs/page.js`
+- `src/app/admin/settings/page.js`
+- `src/app/admin/providers/page.js`
+- `src/app/admin/destinations/page.js`
+- `src/app/admin/streams/page.js`
+- `src/app/admin/posts/[id]/page.js`
+- `src/app/admin/posts/review/page.js`
+- `src/app/admin/posts/published/page.js`
+- `src/app/admin/media/page.js`
+- `src/app/admin/categories/page.js`
+- `src/app/admin/templates/page.js`
+- `src/app/admin/seo/page.js`
 
-Do not update documentation superficially. The docs must describe the exact behavior that ships.
+### Cleanup candidates to verify
 
-## Testing Requirements
+- `src/components/admin/category-management-screen.js`
+- `src/components/admin/media-library-screen.js`
+- `src/components/public/share-actions.js`
+- `src/features/auth/index.js`
+- `src/features/i18n/activation.js`
+- `src/features/media/media-library.js`
 
-Add or update tests to cover all of the following.
+### Documentation targets
 
-### Shared-fetch batching
+- all changed files above
+- `README.md`
+- `app-write-up.md`
+- `dev-plan/22_performance_and_scalability.md`
+- any other repo-truth docs affected by cleanup, consolidation, or UI contract changes
 
-- compatible stream groups cause exactly one upstream provider API call per compatible group
-- incompatible streams are partitioned into the minimum safe number of groups
-- grouped fetch windows widen safely without underfetching
-- downstream per-stream filtering still behaves correctly after shared fetching
-- one fetched article can match multiple streams safely
-- per-stream checkpoints remain correct in shared-fetch mode
-- retries remain idempotent
+## Testing And Verification Requirements
 
-### Provider time windows
+Add or update tests only where behavior or reusable UI contracts change.
 
-- normalized internal start/end windows map correctly per provider and endpoint
-- automatic checkpoint windows still work
-- explicit bounded windows override or compose correctly
-- default window resolves to the previous 24 hours through the next 30 minutes from now
-- endpoint limitations are tested and documented
-- stream settings and manual-run surfaces expose the expected default window semantics
+Cover at least:
 
-### Website publication completeness and SEO
+- shared admin button sizing and icon alignment where testable
+- responsive table/card behavior on narrow viewports where existing test strategy allows it
+- disclosure auto-open and validation visibility behavior after refactors
+- stream-management and admin action layouts after shared primitive consolidation
+- cleanup-sensitive areas so deleted or merged modules do not silently remove active functionality
+- any helper extraction that changes branching or render behavior
 
-- website streams publish every fetched article that passes local filters and dedupe rules unless explicitly blocked
-- broad shared-fetch responses do not silently drop valid website items
-- website paths do not inherit social `maxPostsPerRun` limits
-- non-AI and fallback paths still create valid SEO title and meta description values
-- canonical and public metadata stay in sync with published website content
+Also verify:
 
-### AI fallback and policy behavior
-
-- AI disabled
-- AI misconfigured
-- AI timeout
-- invalid AI structured output
-- deterministic fallback remains usable
-- skipped and fallback AI states remain visible in admin data
-
-### Facebook and Instagram compliance and pacing
-
-- Facebook and Instagram payloads pass through bounded compliance review
-- deterministic policy checks still run when AI is unavailable
-- risky content is held or blocked appropriately
-- minimum post interval blocks or defers back-to-back publishes correctly
-- scheduled runs and retries respect the post delay
-- admin-facing summaries and audit records show why a publish was delayed or blocked
-
-### UX and controls
-
-- accordion or disclosure sections auto-open on validation failure
-- stream forms show correct defaults for the most common workflows
-- provider filter help text distinguishes upstream fetch filters from local stream filtering
-- button-height consistency is preserved where testable
-- modal validation recovery keeps actions visible and usable
-
-### Observability
-
-- grouped fetch runs record grouping decisions and fan-out details
-- audit payloads show shared-fetch execution without exposing secrets
-- admin summaries reflect shared-fetch behavior, time-window choices, website completeness, AI skip/fallback states, and Meta pacing outcomes
+- lint passes
+- tests pass
+- no admin route loses functionality after cleanup
+- no regression in shared-fetch, fetch-window, website publishing, AI fallback, or Meta pacing flows while performing UI/documentation refactors
 
 ## Acceptance Criteria
 
-The work is complete only if all of the following are true.
+The work is complete only if all of the following are true:
 
-- compatible multi-stream execution performs one provider API call per compatible group
-- incompatible stream batches are partitioned safely with no underfetching and no unnecessary duplicate calls
-- every supported provider exposes a clear and tested bounded fetch path where supported
-- the default stream time boundary is from the previous 24 hours to the next 30 minutes from now and is clearly prefilled in stream settings or equivalent admin controls
-- checkpoint-based incremental fetching still works correctly
-- website streams publish every locally eligible article unless blocked by explicit rules
-- website output remains SEO optimized even when AI is skipped or falls back
-- Facebook and Instagram filtered posts are reviewed and streamlined for platform compliance before publication when AI is available
-- deterministic policy and guardrail logic still protects Facebook and Instagram when AI is unavailable
-- Facebook and Instagram enforce a delay between one post and the next
-- pacing and policy outcomes are visible in admin logs, history, and diagnostics
-- stream filter defaults and settings UX are clearer, safer, and easier to use
-- all major forms, modals, and disclosure sections behave consistently
-- button heights are uniform across the admin app
-- changed runtime code has professional JSDoc
-- tests reflect the real implementation
-- repo-truth docs reflect the real implementation exactly
+- the updated prompt addresses only real remaining gaps rather than re-describing already completed work
+- admin UI primitives are reused consistently across screens
+- the admin app is fully responsive across common viewport sizes
+- horizontal alignment is visibly consistent across major screens and modals
+- unnecessary or dead files are removed or explicitly justified
+- duplicated styling and one-off UI primitives are reduced materially
+- changed files are properly documented with professional JSDoc
+- repo-truth docs reflect the final shared UI and cleanup decisions accurately
+- no working NewsPub runtime behavior is regressed while closing these gaps
 
 ## Delivery Rules
 
-- make the smallest architectural change that fully satisfies the contract
-- preserve existing correct abstractions where possible
-- prefer extracting reusable helpers over duplicating logic
-- keep provider quirks inside provider adapters and provider metadata
-- keep stream-specific filtering and destination decisions in the app layer
-- keep observability first so every widened fetch, grouped run, pacing block, and publication decision is explainable afterward
-- do not claim a behavior is implemented unless code, tests, and docs all agree
-- do not leave the repo partially migrated
+- make the smallest change set that fully closes the confirmed gaps
+- do not pad the implementation with speculative redesign work
+- do not duplicate existing architecture in parallel files
+- prefer deletion and consolidation over adding new layers when safe
+- keep the final repo cleaner, more uniform, more responsive, and easier to maintain than before
+

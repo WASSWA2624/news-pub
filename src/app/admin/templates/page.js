@@ -7,9 +7,11 @@ import {
   AdminSectionTitle,
   ButtonRow,
   Card,
+  CardToolbar,
   CardHeader,
   CardDescription,
   MetaPill,
+  PillRow,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -18,10 +20,10 @@ import {
   RecordTitleBlock,
   SectionGrid,
   SmallText,
-  SummaryCard,
+  StickySideCard,
+  StickySideCardBody,
+  StickySideCardHeader,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
@@ -129,43 +131,6 @@ const GuideItemText = styled.span`
   line-height: 1.42;
 `;
 
-const StudioGrid = styled(SectionGrid)`
-  @media (min-width: 1080px) {
-    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
-  }
-`;
-
-const DirectoryHeader = styled.div`
-  align-items: start;
-  display: grid;
-  gap: 0.75rem;
-
-  @media (min-width: 860px) {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-`;
-
-const PlatformRail = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-`;
-
-const PlatformChip = styled.span`
-  align-items: center;
-  background: rgba(15, 111, 141, 0.07);
-  border: 1px solid rgba(15, 111, 141, 0.12);
-  border-radius: var(--theme-radius-lg, 2px);
-  color: #0d5f79;
-  display: inline-flex;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  min-height: 28px;
-  padding: 0 0.7rem;
-  text-transform: uppercase;
-`;
-
 const TemplateRecord = styled(RecordCard)`
   gap: 0.85rem;
   padding: 0.9rem;
@@ -176,40 +141,6 @@ const RecordLead = styled.div`
   gap: 0.4rem;
 `;
 
-const OverrideRail = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-`;
-
-const OverridePill = styled.span`
-  align-items: center;
-  background: ${({ $tone }) =>
-    $tone === "accent"
-      ? "rgba(15, 111, 141, 0.08)"
-      : "rgba(16, 32, 51, 0.05)"};
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === "accent"
-        ? "rgba(15, 111, 141, 0.14)"
-        : "rgba(16, 32, 51, 0.08)"};
-  border-radius: var(--theme-radius-lg, 2px);
-  color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
-  display: inline-flex;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  min-height: 24px;
-  padding: 0 0.55rem;
-  text-transform: uppercase;
-`;
-
-const StickyCard = styled(Card)`
-  align-self: start;
-  position: sticky;
-  top: 5.7rem;
-`;
-
 const platformValues = ["WEBSITE", "FACEBOOK", "INSTAGRAM"];
 const platformOptions = platformValues.map((value) => ({
   badge: value,
@@ -218,6 +149,12 @@ const platformOptions = platformValues.map((value) => ({
   value,
 }));
 
+/**
+ * Renders the template management route with shared directory cards, a sticky
+ * create panel, and full-workspace editing modals.
+ *
+ * @returns {Promise<JSX.Element>} The templates route.
+ */
 export default async function TemplatesPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
@@ -297,21 +234,23 @@ export default async function TemplatesPage() {
         </GuideList>
       </StudioGuide>
 
-      <StudioGrid $wide>
+      <SectionGrid $wide>
         <Card>
-          <DirectoryHeader>
+          <CardToolbar>
             <CardHeader>
               <AdminSectionTitle icon="templates">Configured templates</AdminSectionTitle>
               <CardDescription>
                 Each template card now surfaces where it wins in the fallback chain before you edit the actual content.
               </CardDescription>
             </CardHeader>
-            <PlatformRail>
+            <PillRow>
               {platformValues.map((platform) => (
-                <PlatformChip key={platform}>{formatEnumLabel(platform)}</PlatformChip>
+                <MetaPill key={platform} $tone="accent">
+                  {formatEnumLabel(platform)}
+                </MetaPill>
               ))}
-            </PlatformRail>
-          </DirectoryHeader>
+            </PillRow>
+          </CardToolbar>
           <RecordStack>
             {snapshot.templates.map((template) => (
               <TemplateRecord key={template.id}>
@@ -321,11 +260,11 @@ export default async function TemplatesPage() {
                     <SmallText>
                       {template.category?.name || template.locale || "Platform-level template"}
                     </SmallText>
-                    <OverrideRail>
-                      <OverridePill $tone="accent">{formatEnumLabel(template.platform)}</OverridePill>
-                      <OverridePill>{template.category?.name || "No category override"}</OverridePill>
-                      <OverridePill>{template.locale || "All locales"}</OverridePill>
-                    </OverrideRail>
+                    <PillRow>
+                      <MetaPill $tone="accent">{formatEnumLabel(template.platform)}</MetaPill>
+                      <MetaPill>{template.category?.name || "No category override"}</MetaPill>
+                      <MetaPill>{template.locale || "All locales"}</MetaPill>
+                    </PillRow>
                   </RecordTitleBlock>
                   <RecordMeta>
                     <MetaPill>{formatEnumLabel(template.platform)}</MetaPill>
@@ -357,36 +296,38 @@ export default async function TemplatesPage() {
           </RecordStack>
         </Card>
 
-        <StickyCard>
-          <CardHeader>
+        <StickySideCard>
+          <StickySideCardHeader>
             <AdminSectionTitle icon="plus">Add template</AdminSectionTitle>
             <CardDescription>
               Template selection follows stream, platform plus category, platform plus locale, then platform default.
             </CardDescription>
-          </CardHeader>
-          <SmallText>
-            Start a new template in a full-space modal when you need room for longer body copy and override rules.
-          </SmallText>
-          <ButtonRow>
-            <AdminFormModal
-              description="Create a new publishing template with platform, locale, category, and content-block controls in one place."
-              size="full"
-              title="Create template"
-              triggerFullWidth
-              triggerIcon="plus"
-              triggerLabel="New template"
-              triggerTone="primary"
-            >
-              <TemplateFormCard
-                action={saveTemplateAction}
-                categoryOptions={categoryOptions}
-                platformOptions={platformOptions}
-                submitLabel="Create template"
-              />
-            </AdminFormModal>
-          </ButtonRow>
-        </StickyCard>
-      </StudioGrid>
+          </StickySideCardHeader>
+          <StickySideCardBody>
+            <SmallText>
+              Start a new template in a full-space modal when you need room for longer body copy and override rules.
+            </SmallText>
+            <ButtonRow>
+              <AdminFormModal
+                description="Create a new publishing template with platform, locale, category, and content-block controls in one place."
+                size="full"
+                title="Create template"
+                triggerFullWidth
+                triggerIcon="plus"
+                triggerLabel="New template"
+                triggerTone="primary"
+              >
+                <TemplateFormCard
+                  action={saveTemplateAction}
+                  categoryOptions={categoryOptions}
+                  platformOptions={platformOptions}
+                  submitLabel="Create template"
+                />
+              </AdminFormModal>
+            </ButtonRow>
+          </StickySideCardBody>
+        </StickySideCard>
+      </SectionGrid>
     </AdminPage>
   );
 }

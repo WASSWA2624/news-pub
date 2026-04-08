@@ -31,6 +31,12 @@ import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { saveProviderAction } from "../actions";
 
+/**
+ * Renders the provider management route with shared record cards and the
+ * full-workspace provider editor.
+ *
+ * @returns {Promise<JSX.Element>} The providers route.
+ */
 export default async function ProvidersPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),
@@ -80,7 +86,7 @@ export default async function ProvidersPage() {
                 <SmallText>
                   Availability, labels, and request defaults are now edited in a dedicated workspace so the provider list stays easier to scan.
                 </SmallText>
-                <ButtonRow style={{ justifyContent: "flex-end" }}>
+                <ButtonRow $justify="flex-end">
                   <AdminFormModal
                     description="Review provider metadata, request defaults, and availability settings without crowding the dashboard grid."
                     size="full"

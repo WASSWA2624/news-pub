@@ -13,6 +13,16 @@ export const adminUiSizingContract = Object.freeze({
 });
 
 /**
+ * Shared layout tokens that keep sticky side panels and action rows aligned
+ * across NewsPub admin workspaces.
+ */
+export const adminUiLayoutContract = Object.freeze({
+  buttonRowCollapseMaxWidth: 560,
+  stickySidebarTop: "5.7rem",
+  workspaceTwoColumnBreakpoint: 1080,
+});
+
+/**
  * Returns whether a disclosure section has blocking state that should force it open.
  *
  * @param {object} section - Disclosure state metadata for one section.

@@ -5,6 +5,7 @@ import {
   AdminMetricCard,
   AdminPage,
   AdminSectionTitle,
+  ButtonRow,
   Card,
   CardHeader,
   CardDescription,
@@ -34,15 +35,8 @@ const CategoryForm = styled.form`
   gap: 0.85rem;
 `;
 
-const ActionCluster = styled.div`
-  align-items: center;
-  display: flex;
+const ActionCluster = styled(ButtonRow)`
   flex-wrap: nowrap;
-  gap: 0.45rem;
-
-  > form {
-    display: inline-flex;
-  }
 
   @media (max-width: 980px) {
     flex-wrap: wrap;
@@ -206,6 +200,12 @@ function CategoryEditorForm({ category = null, formId, submitLabel }) {
   );
 }
 
+/**
+ * Renders the category management route with a responsive table directory and
+ * shared modal-based create/edit flows.
+ *
+ * @returns {Promise<JSX.Element>} The categories route.
+ */
 export default async function CategoriesPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),

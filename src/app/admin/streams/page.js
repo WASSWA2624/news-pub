@@ -35,6 +35,13 @@ const statusOptions = statusValues.map((value) => ({
   value,
 }));
 
+/**
+ * Renders the stream management route with shared metrics and the stream
+ * targeting workspace.
+ *
+ * @param {object} props - Route search param props.
+ * @returns {Promise<JSX.Element>} The streams route.
+ */
 export default async function StreamsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;
   const [messages, snapshot] = await Promise.all([

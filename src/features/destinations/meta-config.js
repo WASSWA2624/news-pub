@@ -1,3 +1,8 @@
+/**
+ * Meta destination configuration helpers for discovery, credential-source
+ * normalization, and guardrail-aware destination settings payloads.
+ */
+
 import { env } from "@/lib/env/server";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 
@@ -93,14 +98,17 @@ function normalizeAccountHandle(value, fallbackValue = "") {
   return `@${normalizedValue}`;
 }
 
+/** Builds the stable selector key used by Meta credential-source pickers. */
 export function buildCredentialSourceKey(credentialKey) {
   return `env:${credentialKey}`;
 }
 
+/** Resolves the Graph API base URL used for discovery and publish flows. */
 export function getMetaGraphRequestBaseUrl(value) {
   return trimText(value) || trimText(env.meta.graphApiBaseUrl) || defaultGraphApiBaseUrl;
 }
 
+/** Lists the currently configured Meta credential sources available to NewsPub. */
 export function getMetaCredentialSources() {
   const sources = [];
   const normalizedSystemUserAccessToken = trimText(env.meta.systemUserAccessToken);
@@ -137,6 +145,7 @@ export function getMetaCredentialSources() {
   return sources;
 }
 
+/** Looks up one configured Meta credential source by its stable source key. */
 export function getMetaCredentialSourceByKey(sourceKey) {
   return getMetaCredentialSources().find((source) => source.sourceKey === trimText(sourceKey)) || null;
 }
@@ -479,6 +488,11 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
   return sanitizedSettings;
 }
 
+/**
+ * Returns the destination-form Meta configuration snapshot used by the admin UI.
+ *
+ * @returns {object} Meta-specific form configuration and guardrail defaults.
+ */
 export function getMetaDestinationFormConfig() {
   const hasSystemUserAccessToken = Boolean(trimText(env.meta.systemUserAccessToken));
   const hasDiscoveryAccessToken = Boolean(trimText(env.meta.userAccessToken));
@@ -497,6 +511,7 @@ export function getMetaDestinationFormConfig() {
   };
 }
 
+/** Returns the effective default Meta pacing and posting guardrails. */
 export function getDestinationSocialGuardrailDefaults() {
   return {
     ...socialGuardrailDefaults,
@@ -512,6 +527,7 @@ export function getDestinationSocialGuardrailDefaults() {
   };
 }
 
+/** Resolves the effective Meta guardrails for one destination record. */
 export function getDestinationSocialGuardrails(destination = {}) {
   const defaults = getDestinationSocialGuardrailDefaults();
   const settings = normalizeSettings(destination?.settingsJson);
@@ -523,10 +539,12 @@ export function getDestinationSocialGuardrails(destination = {}) {
   }, {});
 }
 
+/** Returns whether a destination explicitly overrides shared Meta credentials. */
 export function usesDestinationCredentialOverrides(destination = {}) {
   return normalizeSettings(destination?.settingsJson).useDestinationCredentialOverrides === true;
 }
 
+/** Returns only the guardrail fields explicitly overridden by the destination. */
 export function getDestinationSocialGuardrailOverrideFields(destination = {}) {
   const settings = normalizeSettings(destination?.settingsJson);
   const overrides = normalizeSettings(settings.socialGuardrails);
@@ -545,6 +563,10 @@ export function getDestinationSocialGuardrailOverrideFields(destination = {}) {
   }, {});
 }
 
+/**
+ * Builds the sanitized destination settings payload persisted for Meta-aware
+ * destinations while keeping kind-specific fields scoped correctly.
+ */
 export function buildDestinationSettingsPayload({
   advancedSettings = {},
   defaults = getDestinationSocialGuardrailDefaults(),
@@ -597,6 +619,11 @@ export function buildDestinationSettingsPayload({
   return sanitizeDestinationSettingsByKind(nextSettings, kind);
 }
 
+/**
+ * Discovers connected Meta pages and Instagram accounts for the admin form.
+ *
+ * @returns {Promise<object>} Discovery snapshot with sources, assets, and errors.
+ */
 export async function getMetaDiscoverySnapshot() {
   const sources = getMetaCredentialSources().filter((source) => source.sourceType === "env");
   const pageRecords = new Map();
@@ -658,6 +685,10 @@ export async function getMetaDiscoverySnapshot() {
   };
 }
 
+/**
+ * Resolves one selected Meta page or Instagram account into the destination
+ * fields and settings patch used by the admin form.
+ */
 export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targetType } = {}) {
   const normalizedSourceKey = trimText(sourceKey);
   const normalizedTargetId = trimText(targetId);

@@ -84,12 +84,14 @@ Required admin route families:
 Release 1 admin forms share one interaction contract across provider, destination, stream, template, modal, and editorial screens.
 
 - shared control sizing tokens keep primary buttons, secondary buttons, icon buttons, compact pills, and select triggers aligned across cards, tables, toolbars, and modal footers
+- shared sticky side panels, split card headers, icon badges, and metadata pill rails must be reused by directory-style admin screens instead of recreated per route
 - shared disclosure sections show a section title, summary, and blocking state even while collapsed, and auto-open when a section contains validation errors or missing required data
 - shared validation summaries and field-level helper or error text keep problems close to the relevant section and field
 - submit failures scroll and focus the first blocking field so keyboard-only editors can recover quickly
 - modal editors keep header context stable, contain overscroll, and keep footer actions reachable during long edits
 - dashboard, jobs, post-editor, and settings surfaces expose AI runtime health plus `SKIPPED` or `FALLBACK` reasons without treating optional AI issues as hard failures
 - manual story creation, post editing, category editing, and media upload flows reuse the same disclosure, validation, and footer-action contract
+- obsolete standalone admin screens and duplicate UI primitives should be removed once their shared-route replacements are live
 
 ## Source Of Truth Rules
 

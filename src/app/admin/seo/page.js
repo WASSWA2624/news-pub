@@ -19,6 +19,11 @@ import { getSeoManagementSnapshot } from "@/features/seo";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 
+/**
+ * Renders the compact SEO review route for published website story metadata.
+ *
+ * @returns {Promise<JSX.Element>} The SEO route.
+ */
 export default async function SeoPage() {
   const [messages, snapshot] = await Promise.all([
     getMessages(defaultLocale),

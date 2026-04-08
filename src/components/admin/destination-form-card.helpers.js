@@ -1,3 +1,8 @@
+/**
+ * Shared normalization and payload helpers for the destination editor, with
+ * special handling for Meta credential discovery and guardrail overrides.
+ */
+
 import { formatEnumLabel } from "@/components/admin/news-admin-ui";
 import { getDestinationPlatformForKind } from "@/lib/validation/configuration";
 

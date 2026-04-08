@@ -25,6 +25,7 @@ Harden NewsPub for realistic batch sizes, public traffic, and repeated scheduled
 8. Reuse one upstream provider call for compatible stream batches so NewsPub avoids unnecessary duplicate fetches without underfetching.
 9. Extract shared admin field, disclosure, and action primitives where they reduce component nesting and rerender churn without adding new client-only layers unnecessarily.
 10. Keep stream-management fetch-window guidance derived from existing provider metadata so manual-run UX stays explicit without extra round trips.
+11. Remove superseded standalone admin screens or duplicate helper modules once the shared route surfaces cover the same responsibilities.
 
 ## Required Outputs
 
@@ -42,6 +43,7 @@ Harden NewsPub for realistic batch sizes, public traffic, and repeated scheduled
 - repeated media usage does not trigger avoidable reprocessing
 - reused admin UI primitives simplify long-form screens without regressing responsiveness on lower-end devices
 - stream settings and run-configuration modals stay responsive while still showing explicit fetch-window defaults and provider capability guidance
+- dead admin or feature modules do not remain in the repo once their active shared replacements are in place
 
 ## Exit Criteria
 

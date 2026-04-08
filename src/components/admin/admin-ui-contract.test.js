@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adminUiLayoutContract,
   adminUiSizingContract,
   getAutoOpenDisclosureIds,
   hasBlockingDisclosureState,
@@ -10,6 +11,12 @@ describe("admin UI contract", () => {
   it("keeps button and field heights aligned under one shared sizing contract", () => {
     expect(adminUiSizingContract.buttonMinHeight).toBe(adminUiSizingContract.controlMinHeight);
     expect(adminUiSizingContract.iconButtonSize).toBe(adminUiSizingContract.controlMinHeight);
+  });
+
+  it("pins shared layout breakpoints and sticky sidebar offsets under one contract", () => {
+    expect(adminUiLayoutContract.buttonRowCollapseMaxWidth).toBe(560);
+    expect(adminUiLayoutContract.workspaceTwoColumnBreakpoint).toBe(1080);
+    expect(adminUiLayoutContract.stickySidebarTop).toBe("5.7rem");
   });
 
   it("detects blocking disclosure state from errors, missing fields, or blocking warnings", () => {

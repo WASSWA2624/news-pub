@@ -1,3 +1,8 @@
+/**
+ * Destination management feature services for admin snapshots, Meta-aware
+ * credential handling, and destination CRUD.
+ */
+
 import { createAuditEventRecord } from "@/lib/analytics";
 import { env } from "@/lib/env/server";
 import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
@@ -51,6 +56,12 @@ function pickManagedMetaCredentialSettings(...settingsValues) {
   }, {});
 }
 
+/**
+ * Returns the destination-management snapshot consumed by the admin route.
+ *
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Destination directory snapshot.
+ */
 export async function getDestinationManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const destinations = await db.destination.findMany({
@@ -113,6 +124,16 @@ export async function getDestinationManagementSnapshot(prisma) {
   };
 }
 
+/**
+ * Creates or updates one destination record, including stored token metadata
+ * and any Meta discovery-derived settings.
+ *
+ * @param {object} input - Submitted destination data.
+ * @param {object} [options] - Save options.
+ * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Saved destination record.
+ */
 export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const slug = trimText(input.slug);
@@ -263,6 +284,15 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
   return destination;
 }
 
+/**
+ * Deletes one destination record and records the audit event payload.
+ *
+ * @param {string} id - Destination id.
+ * @param {object} [options] - Delete options.
+ * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Deleted destination record.
+ */
 export async function deleteDestinationRecord(id, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const destination = await db.destination.findUnique({

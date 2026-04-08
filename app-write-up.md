@@ -65,12 +65,14 @@ Optional AI failures must never become hidden blockers for valid NewsPub work.
 Release 1 admin forms and editors must reuse one shared interaction language across provider, destination, stream, template, settings, and post-editing surfaces.
 
 - shared field labels, helper text, error text, validation summaries, and pending-action buttons must behave consistently across the admin workspace
+- shared sticky side cards, split card headers, metadata pill rails, and platform icon badges must be reused across stream, destination, template, and taxonomy directory screens instead of recreated per route
 - shared disclosure sections must expose a title, summary, and status metadata while collapsed, auto-open when they contain blocking errors or missing required data, and remain keyboard accessible with correct `aria-expanded` behavior
 - shared control sizing tokens must keep primary buttons, secondary buttons, destructive buttons, icon buttons, compact pills, and select triggers aligned across cards, tables, toolbars, and modal footers
 - submit failures must scroll and focus the first blocking form control instead of leaving operators to search for the error manually
 - modal editing flows must preserve header context, keep footer actions stable, and avoid nested scroll traps during long edits
 - manual story creation, category editing, and media upload modals must use the same shared disclosure and validation recovery contract as provider, destination, stream, template, and post-editor forms
 - dashboard, jobs, post editor, and settings surfaces must surface AI runtime state and machine-readable skip or fallback reasons in operator-friendly language
+- legacy standalone admin screens or duplicate helper modules must be removed when their responsibilities are fully covered by the shared admin UI and active feature routes
 
 ### Documentation Standards
 

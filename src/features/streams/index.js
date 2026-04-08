@@ -1,3 +1,7 @@
+/**
+ * Stream management feature services for admin snapshots and stream CRUD.
+ */
+
 import { createAuditEventRecord } from "@/lib/analytics";
 import { env } from "@/lib/env/server";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";

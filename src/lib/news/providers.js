@@ -1,3 +1,8 @@
+/**
+ * Provider adapters that normalize upstream news APIs into the shared NewsPub
+ * article contract and fetch-window behavior.
+ */
+
 import { env } from "@/lib/env/server";
 import {
   getProviderTimeBoundarySupport,
@@ -90,6 +95,10 @@ function normalizeDateValue(value) {
   return Number.isNaN(parsedValue.getTime()) ? null : parsedValue;
 }
 
+/**
+ * Returns the normalized automatic fetch window used when a provider run does
+ * not supply explicit manual bounds.
+ */
 export function resolveAutomaticProviderDateWindow(
   { checkpoint, defaultWindowHours = 24, now = new Date() } = {},
 ) {
@@ -115,6 +124,7 @@ function formatProviderDateWindowValue(value, precision) {
   return precision === "datetime" ? resolvedValue.toISOString() : resolvedValue.toISOString().slice(0, 10);
 }
 
+/** Convenience wrapper for applying the normalized automatic window to a provider request. */
 export function applyAutomaticDateWindowToRequestValues(
   providerKey,
   requestValues = {},
@@ -562,16 +572,19 @@ function getFetchRequestInit(extraHeaders = {}) {
   };
 }
 
+/** Lists the provider catalog entries exposed to the admin and workflow layers. */
 export function listNewsProviders() {
   return listProviderDefinitions()
     .map((provider) => getOfficialProviderCatalogEntry(provider.key))
     .filter(Boolean);
 }
 
+/** Returns one provider catalog entry by key. */
 export function getNewsProviderDefinition(providerKey) {
   return getOfficialProviderCatalogEntry(providerKey);
 }
 
+/** Resolves the configured credential value for one provider key. */
 export function resolveNewsProviderCredential(providerKey) {
   const normalizedKey = normalizeProviderKey(providerKey);
 
@@ -590,6 +603,7 @@ export function resolveNewsProviderCredential(providerKey) {
   return null;
 }
 
+/** Returns whether the given provider currently has credentials configured. */
 export function getProviderCredentialState(providerKey) {
   return resolveNewsProviderCredential(providerKey) ? "configured" : "missing";
 }

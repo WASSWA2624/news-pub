@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Shared searchable select used across NewsPub admin and supporting forms.
+ */
+
 import { useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 

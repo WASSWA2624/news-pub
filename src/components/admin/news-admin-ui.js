@@ -1,9 +1,16 @@
+/**
+ * Shared NewsPub admin design primitives for route surfaces, cards, action
+ * rows, tables, and compact record layouts.
+ */
+
 import Link from "next/link";
 import styled, { css } from "styled-components";
 
+import { adminUiLayoutContract } from "@/components/admin/admin-ui-contract";
 import AppIcon from "@/components/common/app-icon";
 import { controlSurfaceCss, elevatedSurfaceCss, focusRingCss } from "@/components/common/ui-surface";
 
+/** Shared outer page frame for every admin route. */
 export const AdminPage = styled.main`
   display: grid;
   gap: 0.6rem;
@@ -51,41 +58,83 @@ export const AdminDescription = styled.p`
   max-width: 62ch;
 `;
 
+function getAdminIconBadgeColors(tone) {
+  if (tone === "accent") {
+    return {
+      background: "linear-gradient(180deg, rgba(224, 165, 58, 0.18), rgba(224, 165, 58, 0.1))",
+      border: "rgba(168, 113, 12, 0.16)",
+      color: "#8f630c",
+    };
+  }
+
+  if (tone === "facebook") {
+    return {
+      background: "linear-gradient(180deg, rgba(24, 119, 242, 0.16), rgba(24, 119, 242, 0.08))",
+      border: "rgba(24, 119, 242, 0.18)",
+      color: "#1666d3",
+    };
+  }
+
+  if (tone === "instagram") {
+    return {
+      background: "linear-gradient(180deg, rgba(225, 48, 108, 0.16), rgba(225, 48, 108, 0.08))",
+      border: "rgba(225, 48, 108, 0.18)",
+      color: "#b42357",
+    };
+  }
+
+  if (tone === "website") {
+    return {
+      background: "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))",
+      border: "rgba(15, 111, 141, 0.18)",
+      color: "#0d5f79",
+    };
+  }
+
+  if (tone === "danger") {
+    return {
+      background: "linear-gradient(180deg, rgba(176, 46, 34, 0.14), rgba(176, 46, 34, 0.08))",
+      border: "rgba(176, 46, 34, 0.16)",
+      color: "#a63725",
+    };
+  }
+
+  if (tone === "success") {
+    return {
+      background: "linear-gradient(180deg, rgba(27, 138, 73, 0.14), rgba(27, 138, 73, 0.08))",
+      border: "rgba(27, 138, 73, 0.16)",
+      color: "#197341",
+    };
+  }
+
+  if (tone === "muted") {
+    return {
+      background: "rgba(16, 32, 51, 0.06)",
+      border: "rgba(16, 32, 51, 0.08)",
+      color: "#30435f",
+    };
+  }
+
+  return {
+    background: "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))",
+    border: "rgba(15, 111, 141, 0.18)",
+    color: "#0d5f79",
+  };
+}
+
+/**
+ * Compact icon badge used across admin cards, records, and scoped picker rows.
+ *
+ * Supported tones intentionally cover both semantic states and the recurring
+ * destination platforms so route code does not have to recreate the same badge
+ * styling locally.
+ */
 export const AdminIconBadge = styled.span`
   align-items: center;
-  background:
-    ${({ $tone }) =>
-      $tone === "accent"
-        ? "linear-gradient(180deg, rgba(224, 165, 58, 0.18), rgba(224, 165, 58, 0.1))"
-        : $tone === "danger"
-          ? "linear-gradient(180deg, rgba(176, 46, 34, 0.14), rgba(176, 46, 34, 0.08))"
-          : $tone === "success"
-            ? "linear-gradient(180deg, rgba(27, 138, 73, 0.14), rgba(27, 138, 73, 0.08))"
-            : $tone === "muted"
-              ? "rgba(16, 32, 51, 0.06)"
-              : "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))"};
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === "accent"
-        ? "rgba(168, 113, 12, 0.16)"
-        : $tone === "danger"
-          ? "rgba(176, 46, 34, 0.16)"
-          : $tone === "success"
-            ? "rgba(27, 138, 73, 0.16)"
-            : $tone === "muted"
-              ? "rgba(16, 32, 51, 0.08)"
-              : "rgba(15, 111, 141, 0.18)"};
+  background: ${({ $tone }) => getAdminIconBadgeColors($tone).background};
+  border: 1px solid ${({ $tone }) => getAdminIconBadgeColors($tone).border};
   border-radius: var(--theme-radius-md, 1px);
-  color: ${({ $tone }) =>
-    $tone === "accent"
-      ? "#8f630c"
-      : $tone === "danger"
-        ? "#a63725"
-        : $tone === "success"
-          ? "#197341"
-          : $tone === "muted"
-            ? "#30435f"
-            : "#0d5f79"};
+  color: ${({ $tone }) => getAdminIconBadgeColors($tone).color};
   display: inline-flex;
   flex: 0 0 auto;
   height: ${({ $size }) => $size || "2.4rem"};
@@ -196,6 +245,7 @@ export const SummaryLabel = styled.span`
   line-height: 1.35;
 `;
 
+/** Responsive two-column layout used by admin workspaces with side panels. */
 export const SectionGrid = styled.div`
   align-items: start;
   display: grid;
@@ -212,6 +262,7 @@ export const SidebarStack = styled.div`
   gap: 0.6rem;
 `;
 
+/** Base elevated card surface for admin panels and inset work areas. */
 export const Card = styled.section`
   ${elevatedSurfaceCss}
   background: linear-gradient(
@@ -227,9 +278,21 @@ export const Card = styled.section`
   padding: clamp(0.62rem, 1.7vw, 0.82rem);
 `;
 
+/** Default stacked card header used by route cards and sticky panels. */
 export const CardHeader = styled.div`
   display: grid;
   gap: 0.18rem;
+`;
+
+/** Shared split header that keeps copy and trailing actions aligned responsively. */
+export const CardToolbar = styled.div`
+  align-items: start;
+  display: grid;
+  gap: 0.75rem;
+
+  @media (min-width: 860px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 `;
 
 export const CardTitle = styled.h2`
@@ -259,6 +322,67 @@ export const CardDescription = styled.p`
   font-size: 0.82rem;
   line-height: 1.45;
   margin: 0;
+`;
+
+/**
+ * Sticky secondary panel shell used by admin create/composer sidebars.
+ *
+ * The desktop constraint keeps long side panels usable without pushing action
+ * controls off-screen on shorter viewports.
+ */
+export const StickySideCard = styled(Card)`
+  align-self: start;
+  overflow: hidden;
+
+  @media (min-width: ${adminUiLayoutContract.workspaceTwoColumnBreakpoint}px) {
+    grid-template-rows: auto minmax(0, 1fr);
+    max-height: calc(100dvh - var(--admin-sticky-top, ${adminUiLayoutContract.stickySidebarTop}) - 0.5rem);
+    position: sticky;
+    top: var(--admin-sticky-top, ${adminUiLayoutContract.stickySidebarTop});
+  }
+`;
+
+/** Sticky panel header variant that preserves the shared card rhythm on scroll. */
+export const StickySideCardHeader = styled(CardHeader)`
+  @media (min-width: ${adminUiLayoutContract.workspaceTwoColumnBreakpoint}px) {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.94)),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 52%);
+    border-bottom: 1px solid rgba(16, 32, 51, 0.08);
+    margin: calc(clamp(0.62rem, 1.7vw, 0.82rem) * -1) calc(clamp(0.62rem, 1.7vw, 0.82rem) * -1) 0;
+    padding: clamp(0.62rem, 1.7vw, 0.82rem);
+  }
+`;
+
+/** Shared content wrapper for sticky side panels. */
+export const StickySideCardBody = styled.div`
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+`;
+
+/** Shared scroll area for tall sticky side panels on desktop. */
+export const StickySideCardScrollArea = styled(StickySideCardBody)`
+  min-height: 0;
+
+  @media (min-width: ${adminUiLayoutContract.workspaceTwoColumnBreakpoint}px) {
+    margin-right: -0.2rem;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+    scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
+    scrollbar-width: thin;
+  }
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(36, 75, 115, 0.26);
+    border: 3px solid transparent;
+    border-radius: var(--theme-radius-lg, 2px);
+    background-clip: padding-box;
+  }
 `;
 
 export const RecordStack = styled.div`
@@ -310,12 +434,60 @@ export const RecordMeta = styled.div`
   gap: 0.28rem;
 `;
 
+/** Shared wrapping rail for compact chips, pills, and tag-like metadata. */
+export const PillRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+`;
+
+/** Shared compact pill for metadata, scope counts, and directory chips. */
 export const MetaPill = styled.span`
   align-items: center;
-  background: rgba(36, 75, 115, 0.08);
-  border: 1px solid rgba(36, 75, 115, 0.12);
+  background: ${({ $tone }) =>
+    $tone === "accent"
+      ? "rgba(15, 111, 141, 0.08)"
+      : $tone === "facebook"
+        ? "rgba(24, 119, 242, 0.1)"
+        : $tone === "instagram"
+          ? "rgba(225, 48, 108, 0.1)"
+          : $tone === "success"
+            ? "rgba(27, 138, 73, 0.1)"
+            : $tone === "warning"
+              ? "rgba(168, 113, 12, 0.12)"
+              : $tone === "danger"
+                ? "rgba(176, 46, 34, 0.1)"
+                : "rgba(36, 75, 115, 0.08)"};
+  border: 1px solid ${({ $tone }) =>
+    $tone === "accent"
+      ? "rgba(15, 111, 141, 0.14)"
+      : $tone === "facebook"
+        ? "rgba(24, 119, 242, 0.18)"
+        : $tone === "instagram"
+          ? "rgba(225, 48, 108, 0.18)"
+          : $tone === "success"
+            ? "rgba(27, 138, 73, 0.16)"
+            : $tone === "warning"
+              ? "rgba(168, 113, 12, 0.2)"
+              : $tone === "danger"
+                ? "rgba(176, 46, 34, 0.18)"
+                : "rgba(36, 75, 115, 0.12)"};
   border-radius: 0;
-  color: #244b73;
+  color: ${({ $tone }) =>
+    $tone === "accent"
+      ? "#0d5f79"
+      : $tone === "facebook"
+        ? "#1666d3"
+        : $tone === "instagram"
+          ? "#b42357"
+          : $tone === "success"
+            ? "#197341"
+            : $tone === "warning"
+              ? "#8f630c"
+              : $tone === "danger"
+                ? "#a63725"
+                : "#244b73"};
   display: inline-flex;
   font-size: 0.64rem;
   font-weight: 800;
@@ -544,17 +716,19 @@ export const CheckboxChip = styled.label`
   }
 `;
 
+/** Shared action row that keeps buttons/forms wrapping cleanly at narrow widths. */
 export const ButtonRow = styled.div`
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.32rem;
+  justify-content: ${({ $justify }) => $justify || "flex-start"};
 
   > form {
     display: inline-flex;
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: ${adminUiLayoutContract.buttonRowCollapseMaxWidth}px) {
     > button,
     > a,
     > form {
@@ -768,6 +942,20 @@ export const SmallText = styled.p`
   font-size: 0.78rem;
   line-height: 1.4;
   margin: 0;
+`;
+
+/** Shared inline metadata line with icon-safe spacing and wrapping. */
+export const InlineMetaText = styled(SmallText)`
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+
+  svg {
+    flex: 0 0 auto;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
 `;
 
 export function ActionIcon({ name }) {

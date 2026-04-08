@@ -11,13 +11,17 @@ import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 
 import {
+  AdminIconBadge,
+  AdminSectionTitle,
   ButtonRow,
   Card,
+  CardToolbar,
   CardDescription,
   CardHeader,
-  CardTitle,
   FieldErrorText,
+  InlineMetaText,
   MetaPill,
+  PillRow,
   PrimaryButton,
   RecordCard,
   RecordHeader,
@@ -26,7 +30,11 @@ import {
   RecordTitle,
   RecordTitleBlock,
   SectionGrid,
+  SecondaryButton,
   SmallText,
+  StickySideCard,
+  StickySideCardHeader,
+  StickySideCardScrollArea,
   StatusBadge,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
@@ -42,19 +50,16 @@ import {
 import AppIcon from "@/components/common/app-icon";
 import StreamFormCard from "@/components/admin/stream-form-card";
 
-const TargetingCard = styled.section`
+const TargetingCard = styled(Card)`
   background:
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.09), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 253, 0.96));
   border: 1px solid rgba(16, 32, 51, 0.07);
-  border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 12px 28px rgba(17, 31, 55, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.68);
-  display: grid;
   gap: 0.75rem;
   overflow: hidden;
-  padding: clamp(0.72rem, 1.8vw, 0.9rem);
 `;
 
 const TargetingLayout = styled.div`
@@ -107,83 +112,27 @@ const TitleWithIcon = styled.span`
   }
 `;
 
-const ActionRow = styled.div`
+const ActionRow = styled(CardToolbar)`
   align-items: center;
-  display: grid;
-  gap: 0.55rem;
-
-  @media (min-width: 860px) {
-    align-items: center;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
 `;
 
-const TargetSummary = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-`;
+const TargetSummary = styled(PillRow)``;
 
-const SummaryPill = styled.span`
-  align-items: center;
-  background:
-    ${({ $tone }) =>
-      $tone === "accent"
-        ? "linear-gradient(180deg, rgba(15, 111, 141, 0.12), rgba(13, 95, 121, 0.08))"
-        : "rgba(255, 255, 255, 0.84)"};
-  border: 1px solid
-    ${({ $tone }) =>
-      $tone === "accent"
-        ? "rgba(15, 111, 141, 0.16)"
-        : "rgba(16, 32, 51, 0.08)"};
-  border-radius: var(--theme-radius-lg, 2px);
-  color: ${({ $tone }) => ($tone === "accent" ? "#0d5f79" : "#30435f")};
-  display: inline-flex;
-  font-size: 0.68rem;
-  font-weight: 800;
+const SummaryPill = styled(MetaPill)`
   gap: 0.35rem;
   min-height: calc(var(--admin-control-min-height) - 8px);
   padding: 0 0.62rem;
 `;
 
-const PrimaryActionButton = styled.button`
-  align-items: center;
-  background:
-    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.16), transparent 34%),
-    linear-gradient(135deg, #0f6f8d 0%, #0d5f79 100%);
-  border: 1px solid transparent;
-  border-radius: var(--theme-radius-lg, 2px);
+const PrimaryActionButton = styled(PrimaryButton)`
   box-shadow:
     0 16px 30px rgba(15, 96, 121, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  color: white;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
-  display: inline-flex;
-  font-size: 0.76rem;
-  font-weight: 800;
-  gap: 0.42rem;
-  min-height: var(--admin-button-min-height);
-  opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
-  padding: var(--admin-control-padding-block) var(--admin-control-padding-inline);
-  transition:
-    box-shadow 160ms ease,
-    transform 160ms ease;
 
   &:hover {
     box-shadow: ${({ disabled }) =>
       disabled ? "0 12px 24px rgba(15, 96, 121, 0.18)" : "0 16px 30px rgba(15, 96, 121, 0.22)"};
-    transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
   }
-
-  svg {
-    display: block;
-    height: 0.9rem;
-    width: 0.9rem;
-  }
-`;
-
-const RunActionForm = styled.div`
-  display: inline-flex;
 `;
 
 const pulseBar = keyframes`
@@ -509,12 +458,10 @@ const ScopeGroupGrid = styled.div`
   }
 `;
 
-const ScopeGroupCard = styled.section`
+const ScopeGroupCard = styled(Card)`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 252, 255, 0.9));
   border: 1px solid rgba(16, 32, 51, 0.06);
-  border-radius: var(--theme-radius-lg, 2px);
-  display: grid;
   gap: 0.5rem;
   padding: 0.62rem;
 `;
@@ -552,45 +499,17 @@ const ScopeRail = styled.div`
   }
 `;
 
-const ScopeActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-`;
+const ScopeActions = styled(ButtonRow)``;
 
-const ScopeActionsBar = styled.div`
+const ScopeActionsBar = styled(CardToolbar)`
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  justify-content: space-between;
 `;
 
-const ScopeActionButton = styled.button`
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.92)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 52%);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  border-radius: var(--theme-radius-lg, 2px);
-  color: #22344f;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
-  display: inline-flex;
+const ScopeActionButton = styled(SecondaryButton)`
   font-size: 0.66rem;
   font-weight: 800;
   min-height: calc(var(--admin-control-min-height) - 8px);
-  opacity: ${({ disabled }) => (disabled ? 0.52 : 1)};
   padding: 0 0.62rem;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-
-  &:hover {
-    border-color: ${({ disabled }) =>
-      disabled ? "rgba(16, 32, 51, 0.08)" : "rgba(15, 111, 141, 0.18)"};
-    transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
-  }
 `;
 
 const ScopeCheckbox = styled.label`
@@ -639,31 +558,8 @@ const ScopeCheckboxLeading = styled.span`
   min-width: 0;
 `;
 
-const ScopeDestinationBadge = styled.span`
-  align-items: center;
-  background: ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "rgba(24, 119, 242, 0.14)"
-      : $platform === "INSTAGRAM"
-        ? "rgba(225, 48, 108, 0.14)"
-        : "rgba(15, 111, 141, 0.12)"};
-  border: 1px solid ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "rgba(24, 119, 242, 0.18)"
-      : $platform === "INSTAGRAM"
-        ? "rgba(225, 48, 108, 0.18)"
-        : "rgba(15, 111, 141, 0.16)"};
-  border-radius: var(--theme-radius-md, 1px);
-  color: ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "#1666d3"
-      : $platform === "INSTAGRAM"
-        ? "#b42357"
-        : "#0d5f79"};
-  display: inline-flex;
-  flex: 0 0 auto;
+const ScopeDestinationBadge = styled(AdminIconBadge)`
   height: 1.7rem;
-  justify-content: center;
   width: 1.7rem;
 
   svg {
@@ -694,19 +590,11 @@ const ScopeCheckboxMeta = styled.span`
   line-height: 1.25;
 `;
 
-const ScopeCount = styled.span`
-  align-items: center;
-  background: ${({ $active }) =>
-    $active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.08)"};
-  border: 1px solid ${({ $active }) =>
-    $active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.12)"};
-  border-radius: var(--theme-radius-lg, 2px);
+const ScopeCount = styled(MetaPill)`
+  background: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.08)")};
+  border-color: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.16)" : "rgba(36, 75, 115, 0.12)")};
   color: inherit;
-  display: inline-flex;
-  flex: 0 0 auto;
   font-size: 0.62rem;
-  font-weight: 800;
-  min-height: var(--admin-compact-pill-min-height);
   padding: 0 0.42rem;
 `;
 
@@ -743,12 +631,6 @@ const NoteText = styled.p`
   margin: 0;
 `;
 
-const StreamsGrid = styled(SectionGrid)`
-  @media (min-width: 1080px) {
-    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
-  }
-`;
-
 const StreamRecord = styled(RecordCard)`
   gap: 0.72rem;
 `;
@@ -760,31 +642,8 @@ const StreamIdentityHeader = styled.div`
   min-width: 0;
 `;
 
-const StreamPlatformBadge = styled.span`
-  align-items: center;
-  background: ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "linear-gradient(180deg, rgba(24, 119, 242, 0.16), rgba(24, 119, 242, 0.08))"
-      : $platform === "INSTAGRAM"
-        ? "linear-gradient(180deg, rgba(225, 48, 108, 0.16), rgba(225, 48, 108, 0.08))"
-        : "linear-gradient(180deg, rgba(15, 111, 141, 0.16), rgba(15, 111, 141, 0.08))"};
-  border: 1px solid ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "rgba(24, 119, 242, 0.18)"
-      : $platform === "INSTAGRAM"
-        ? "rgba(225, 48, 108, 0.18)"
-        : "rgba(15, 111, 141, 0.18)"};
-  border-radius: var(--theme-radius-lg, 2px);
-  color: ${({ $platform }) =>
-    $platform === "FACEBOOK"
-      ? "#1666d3"
-      : $platform === "INSTAGRAM"
-        ? "#b42357"
-        : "#0d5f79"};
-  display: inline-flex;
-  flex: 0 0 auto;
+const StreamPlatformBadge = styled(AdminIconBadge)`
   height: 2.35rem;
-  justify-content: center;
   width: 2.35rem;
 
   svg {
@@ -800,68 +659,7 @@ const StreamIdentityCopy = styled.div`
   min-width: 0;
 `;
 
-const StreamInlineMeta = styled(SmallText)`
-  align-items: center;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.38rem;
-
-  svg {
-    flex: 0 0 auto;
-    height: 0.82rem;
-    width: 0.82rem;
-  }
-`;
-
-const StreamActions = styled(ButtonRow)`
-  justify-content: flex-start;
-`;
-
-const StickyCard = styled(Card)`
-  align-self: start;
-  overflow: hidden;
-
-  @media (min-width: 1080px) {
-    grid-template-rows: auto minmax(0, 1fr);
-    max-height: calc(100vh - 6.7rem);
-    position: sticky;
-    top: 5.7rem;
-  }
-`;
-
-const StickyHeader = styled(CardHeader)`
-  @media (min-width: 1080px) {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.94)),
-      radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 52%);
-    border-bottom: 1px solid rgba(16, 32, 51, 0.08);
-    margin: calc(clamp(0.75rem, 2vw, 0.95rem) * -1) calc(clamp(0.75rem, 2vw, 0.95rem) * -1) 0;
-    padding: clamp(0.75rem, 2vw, 0.95rem);
-  }
-`;
-
-const StickyScrollArea = styled.div`
-  min-height: 0;
-
-  @media (min-width: 1080px) {
-    margin-right: -0.2rem;
-    overflow-y: auto;
-    padding-right: 0.4rem;
-    scrollbar-color: rgba(36, 75, 115, 0.26) transparent;
-    scrollbar-width: thin;
-  }
-
-  &::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(36, 75, 115, 0.26);
-    border: 3px solid transparent;
-    border-radius: var(--theme-radius-lg, 2px);
-    background-clip: padding-box;
-  }
-`;
+const StreamInlineMeta = styled(InlineMetaText)``;
 
 const {
   compareDestinationGroupKeys,
@@ -874,6 +672,18 @@ const {
   getTone,
   summarizeRunCounts,
 } = streamManagementUtils;
+
+function getDestinationPlatformTone(platform) {
+  if (platform === "FACEBOOK") {
+    return "facebook";
+  }
+
+  if (platform === "INSTAGRAM") {
+    return "instagram";
+  }
+
+  return "website";
+}
 
 function RunProgressModal({ runState, onClose }) {
   useEffect(() => {
@@ -1547,17 +1357,15 @@ export default function StreamManagementScreen({
                 </SummaryPill>
               </TargetSummary>
               <ScopeActions>
-                <RunActionForm>
-                  <PrimaryActionButton
-                    disabled={!runnableStreams.length || isRunInProgress}
-                    onClick={handleRunSelected}
-                    type="button"
-                  >
-                    <AppIcon name="bolt" size={14} />
-                    Run selected
-                    <ScopeCount $active>{runnableStreams.length}</ScopeCount>
-                  </PrimaryActionButton>
-                </RunActionForm>
+                <PrimaryActionButton
+                  disabled={!runnableStreams.length || isRunInProgress}
+                  onClick={handleRunSelected}
+                  type="button"
+                >
+                  <AppIcon name="bolt" size={14} />
+                  Run selected
+                  <ScopeCount $active>{runnableStreams.length}</ScopeCount>
+                </PrimaryActionButton>
               </ScopeActions>
             </ActionRow>
             <ScopeHeader>
@@ -1630,12 +1438,12 @@ export default function StreamManagementScreen({
                             return (
                               <ScopeCheckbox $active={isActive} key={destination.value}>
                                 <ScopeCheckboxLeading>
-                                  <input
+                              <input
                                     checked={isActive}
                                     onChange={() => toggleDestination(destination.value)}
                                     type="checkbox"
                                   />
-                                  <ScopeDestinationBadge $platform={destination.platform}>
+                                  <ScopeDestinationBadge $tone={getDestinationPlatformTone(destination.platform)}>
                                     <AppIcon
                                       name={getDestinationPlatformIcon(destination.platform)}
                                       size={14}
@@ -1681,15 +1489,10 @@ export default function StreamManagementScreen({
         </TargetingLayout>
       </TargetingCard>
 
-      <StreamsGrid $wide>
+      <SectionGrid $wide>
         <Card>
           <CardHeader>
-            <CardTitle>
-              <TitleWithIcon>
-                <AppIcon name="streams" size={16} />
-                {streamsSectionTitle}
-              </TitleWithIcon>
-            </CardTitle>
+            <AdminSectionTitle icon="streams">{streamsSectionTitle}</AdminSectionTitle>
             <CardDescription>{streamsSectionDescription}</CardDescription>
           </CardHeader>
           <RecordStack>
@@ -1699,7 +1502,7 @@ export default function StreamManagementScreen({
                   <RecordHeader>
                     <RecordTitleBlock>
                       <StreamIdentityHeader>
-                        <StreamPlatformBadge $platform={stream.destination?.platform || "WEBSITE"}>
+                        <StreamPlatformBadge $tone={getDestinationPlatformTone(stream.destination?.platform || "WEBSITE")}>
                           <AppIcon
                             name={getDestinationPlatformIcon(stream.destination?.platform || "WEBSITE")}
                             size={16}
@@ -1743,7 +1546,7 @@ export default function StreamManagementScreen({
                   <SmallText>
                     Scheduling, targeting rules, provider filters, and template selection now open in a full-workspace modal.
                   </SmallText>
-                  <StreamActions>
+                  <ButtonRow>
                     <AdminFormModal
                       description="Edit stream cadence, destination targeting, provider filters, and publish mode in a scrollable full-size workspace."
                       size="full"
@@ -1776,7 +1579,7 @@ export default function StreamManagementScreen({
                         Delete
                       </ConfirmSubmitButton>
                     </form>
-                  </StreamActions>
+                  </ButtonRow>
                 </StreamRecord>
               ))
             ) : selectedDestinationCount ? (
@@ -1793,17 +1596,12 @@ export default function StreamManagementScreen({
           </RecordStack>
         </Card>
 
-        <StickyCard>
-          <StickyHeader>
-            <CardTitle>
-              <TitleWithIcon>
-                <AppIcon name="plus" size={16} />
-                {addStreamTitle}
-              </TitleWithIcon>
-            </CardTitle>
+        <StickySideCard>
+          <StickySideCardHeader>
+            <AdminSectionTitle icon="plus">{addStreamTitle}</AdminSectionTitle>
             <CardDescription>{addStreamDescription}</CardDescription>
-          </StickyHeader>
-          <StickyScrollArea>
+          </StickySideCardHeader>
+          <StickySideCardScrollArea>
             {filteredDestinationOptions.length ? (
               <>
                 <SmallText>
@@ -1839,9 +1637,9 @@ export default function StreamManagementScreen({
                   : "No destinations are configured yet. Add a destination first, then come back to create streams for it."}
               </SmallText>
             )}
-          </StickyScrollArea>
-        </StickyCard>
-      </StreamsGrid>
+          </StickySideCardScrollArea>
+        </StickySideCard>
+      </SectionGrid>
 
       <RunConfigurationModal
         errorMessage={runConfiguration?.errorMessage || ""}

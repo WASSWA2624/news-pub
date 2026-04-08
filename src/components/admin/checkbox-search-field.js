@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Searchable multi-checkbox field used by admin forms when option lists are
+ * too long for plain checkbox rails.
+ */
+
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 

@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Shared disclosure and validation primitives used by NewsPub admin forms.
+ */
+
 import { useId, useState } from "react";
 import styled from "styled-components";
 
