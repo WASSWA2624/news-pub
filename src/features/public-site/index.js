@@ -13,6 +13,7 @@ import {
 import { createImagePlaceholderDataUrl, getRenderableImageUrl } from "@/lib/media";
 import { normalizeDisplayText } from "@/lib/normalization";
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
+import { isPrismaConnectionError } from "@/lib/prisma";
 import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
@@ -28,6 +29,22 @@ import {
  */
 export const publicDataRevalidateSeconds = 300;
 export const publicListingPageSize = 12;
+
+async function withPublicSiteDatabaseFallback(load, fallback) {
+  try {
+    return await load();
+  } catch (error) {
+    if (!isPrismaConnectionError(error)) {
+      throw error;
+    }
+
+    return fallback(error);
+  }
+}
+
+function createEmptyPagination(page) {
+  return createPagination(0, normalizePage(page), publicListingPageSize);
+}
 
 /** Serializes persisted dates so public page models stay JSON-friendly. */
 function serializeDate(value) {
@@ -1068,38 +1085,53 @@ async function getLatestPublishedPosts(
  * @returns {Promise<object>} Public home-page view model.
  */
 export async function getPublishedHomePageData({ locale = defaultLocale } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
-  const [latestPosts, localizedPublishedStoryCount, topCategories, publishedStoryCount] = await Promise.all([
-    getLatestPublishedPosts(db, locale, {
-      take: publicHomeLatestInitialCount + 1,
-    }),
-    db.post.count({
-      where: buildPublishedLocaleWhere(locale),
-    }),
-    getPublishedCategoryCounts(db),
-    db.post.count({
-      where: buildPublishedWebsiteWhere(),
-    }),
-  ]);
-  const cards = latestPosts.map((post) => mapPostCard(post, locale));
-  const featuredStory = cards[0] || null;
-  const latestStories = cards.slice(1, publicHomeLatestInitialCount + 1);
-  const latestStoryCount = Math.max(localizedPublishedStoryCount - (featuredStory ? 1 : 0), 0);
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const [latestPosts, localizedPublishedStoryCount, topCategories, publishedStoryCount] = await Promise.all([
+        getLatestPublishedPosts(db, locale, {
+          take: publicHomeLatestInitialCount + 1,
+        }),
+        db.post.count({
+          where: buildPublishedLocaleWhere(locale),
+        }),
+        getPublishedCategoryCounts(db),
+        db.post.count({
+          where: buildPublishedWebsiteWhere(),
+        }),
+      ]);
+      const cards = latestPosts.map((post) => mapPostCard(post, locale));
+      const featuredStory = cards[0] || null;
+      const latestStories = cards.slice(1, publicHomeLatestInitialCount + 1);
+      const latestStoryCount = Math.max(localizedPublishedStoryCount - (featuredStory ? 1 : 0), 0);
 
-  return {
-    featuredStory,
-    hasMoreLatestStories: latestStoryCount > latestStories.length,
-    latestStories,
-    summary: {
-      categoryCount: topCategories.length,
-      latestStoryCount,
-      publishedStoryCount,
+      return {
+        featuredStory,
+        hasMoreLatestStories: latestStoryCount > latestStories.length,
+        latestStories,
+        summary: {
+          categoryCount: topCategories.length,
+          latestStoryCount,
+          publishedStoryCount,
+        },
+        topCategories: topCategories.slice(0, 6).map((category) => ({
+          count: category.count,
+          ...mapCategory(category, locale),
+        })),
+      };
     },
-    topCategories: topCategories.slice(0, 6).map((category) => ({
-      count: category.count,
-      ...mapCategory(category, locale),
-    })),
-  };
+    () => ({
+      featuredStory: null,
+      hasMoreLatestStories: false,
+      latestStories: [],
+      summary: {
+        categoryCount: 0,
+        latestStoryCount: 0,
+        publishedStoryCount: 0,
+      },
+      topCategories: [],
+    }),
+  );
 }
 
 /**
@@ -1113,14 +1145,19 @@ export async function getPublishedCategoryNavigationData(
   { locale = defaultLocale, limit = 8 } = {},
   prisma,
 ) {
-  const db = await resolvePrismaClient(prisma);
-  const categories = await getPublishedCategoryCounts(db);
-  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 8;
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const categories = await getPublishedCategoryCounts(db);
+      const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 8;
 
-  return categories.slice(0, safeLimit).map((category) => ({
-    count: category.count,
-    ...mapCategory(category, locale),
-  }));
+      return categories.slice(0, safeLimit).map((category) => ({
+        count: category.count,
+        ...mapCategory(category, locale),
+      }));
+    },
+    () => [],
+  );
 }
 
 /**
@@ -1131,11 +1168,18 @@ export async function getPublishedCategoryNavigationData(
  * @returns {Promise<{countries: Array<object>}>} Search-filter data.
  */
 export async function getPublishedSearchFilterData({ locale = defaultLocale } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
 
-  return {
-    countries: await getPublishedCountryCounts(db, locale),
-  };
+      return {
+        countries: await getPublishedCountryCounts(db, locale),
+      };
+    },
+    () => ({
+      countries: [],
+    }),
+  );
 }
 
 /**
@@ -1149,53 +1193,69 @@ export async function getPublishedHomeLatestStoriesData(
   { locale = defaultLocale, skip = 1, take = publicHomeLatestIncrementCount } = {},
   prisma,
 ) {
-  const db = await resolvePrismaClient(prisma);
-  const safeSkip = Number.isFinite(skip) ? Math.max(0, Math.trunc(skip)) : 1;
-  const safeTake = Number.isFinite(take) ? Math.max(1, Math.trunc(take)) : publicHomeLatestIncrementCount;
-  const posts = await getLatestPublishedPosts(db, locale, {
-    skip: safeSkip,
-    take: safeTake + 1,
-  });
-  const cards = posts.map((post) => mapPostCard(post, locale));
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const safeSkip = Number.isFinite(skip) ? Math.max(0, Math.trunc(skip)) : 1;
+      const safeTake = Number.isFinite(take) ? Math.max(1, Math.trunc(take)) : publicHomeLatestIncrementCount;
+      const posts = await getLatestPublishedPosts(db, locale, {
+        skip: safeSkip,
+        take: safeTake + 1,
+      });
+      const cards = posts.map((post) => mapPostCard(post, locale));
 
-  return {
-    hasMore: cards.length > safeTake,
-    items: cards.slice(0, safeTake),
-  };
+      return {
+        hasMore: cards.length > safeTake,
+        items: cards.slice(0, safeTake),
+      };
+    },
+    () => ({
+      hasMore: false,
+      items: [],
+    }),
+  );
 }
 
 /** Returns the paginated published-story index for a locale. */
 export async function getPublishedNewsIndexData({ locale = defaultLocale, page = 1 } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
-  const requestedPage = normalizePage(page);
-  const totalItems = await db.post.count({
-    where: buildPublishedWebsiteWhere({
-      translations: {
-        some: {
-          locale,
-        },
-      },
-    }),
-  });
-  const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-  const posts = await db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    select: publicPostSelect,
-    skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-    take: pagination.pageSize,
-    where: buildPublishedWebsiteWhere({
-      translations: {
-        some: {
-          locale,
-        },
-      },
-    }),
-  });
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const requestedPage = normalizePage(page);
+      const totalItems = await db.post.count({
+        where: buildPublishedWebsiteWhere({
+          translations: {
+            some: {
+              locale,
+            },
+          },
+        }),
+      });
+      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+      const posts = await db.post.findMany({
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: publicPostSelect,
+        skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
+        take: pagination.pageSize,
+        where: buildPublishedWebsiteWhere({
+          translations: {
+            some: {
+              locale,
+            },
+          },
+        }),
+      });
 
-  return {
-    items: posts.map((post) => mapPostCard(post, locale)),
-    pagination,
-  };
+      return {
+        items: posts.map((post) => mapPostCard(post, locale)),
+        pagination,
+      };
+    },
+    () => ({
+      items: [],
+      pagination: createEmptyPagination(page),
+    }),
+  );
 }
 
 /** Returns a category landing page backed by published website stories. */
@@ -1295,57 +1355,73 @@ export async function searchPublishedStories(
   { locale = defaultLocale, page = 1, search = "", country = "" } = {},
   prisma,
 ) {
-  const db = await resolvePrismaClient(prisma);
-  const requestedPage = normalizePage(page);
-  const normalizedCountry = normalizeCountry(country);
-  const queryContext = buildPublicSearchQueryContext(search);
-  const where = buildSearchWhere(locale, search, normalizedCountry);
-  const totalItems = await db.post.count({ where });
-  const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-  let items = [];
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const requestedPage = normalizePage(page);
+      const normalizedCountry = normalizeCountry(country);
+      const queryContext = buildPublicSearchQueryContext(search);
+      const where = buildSearchWhere(locale, search, normalizedCountry);
+      const totalItems = await db.post.count({ where });
+      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+      let items = [];
 
-  if (queryContext.query) {
-    const rankedPosts = (
-      await db.post.findMany({
-        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: buildPublicSearchSelect(locale),
-        where,
-      })
-    )
-      .map((post) => ({
-        post,
-        ranking: rankPublishedSearchPost(post, locale, queryContext),
-      }))
-      .sort(compareRankedSearchPosts);
-    const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
-    const endIndex = startIndex + pagination.pageSize;
+      if (queryContext.query) {
+        const rankedPosts = (
+          await db.post.findMany({
+            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+            select: buildPublicSearchSelect(locale),
+            where,
+          })
+        )
+          .map((post) => ({
+            post,
+            ranking: rankPublishedSearchPost(post, locale, queryContext),
+          }))
+          .sort(compareRankedSearchPosts);
+        const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
+        const endIndex = startIndex + pagination.pageSize;
 
-    items = rankedPosts.slice(startIndex, endIndex).map(({ post, ranking }) => ({
-      ...mapPostCard(post, locale),
-      searchMeta: {
-        matchedTerms: ranking.matchedTerms,
-        primaryReason: ranking.primaryReason,
-      },
-    }));
-  } else {
-    const posts = await db.post.findMany({
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-      select: publicPostSelect,
-      skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-      take: pagination.pageSize,
-      where,
-    });
+        items = rankedPosts.slice(startIndex, endIndex).map(({ post, ranking }) => ({
+          ...mapPostCard(post, locale),
+          searchMeta: {
+            matchedTerms: ranking.matchedTerms,
+            primaryReason: ranking.primaryReason,
+          },
+        }));
+      } else {
+        const posts = await db.post.findMany({
+          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+          select: publicPostSelect,
+          skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
+          take: pagination.pageSize,
+          where,
+        });
 
-    items = posts.map((post) => mapPostCard(post, locale));
-  }
+        items = posts.map((post) => mapPostCard(post, locale));
+      }
 
-  return {
-    country: normalizedCountry,
-    countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
-    items,
-    pagination,
-    query: queryContext.query,
-  };
+      return {
+        country: normalizedCountry,
+        countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+        items,
+        pagination,
+        query: queryContext.query,
+      };
+    },
+    () => {
+      const normalizedCountry = normalizeCountry(country);
+      const queryContext = buildPublicSearchQueryContext(search);
+
+      return {
+        country: normalizedCountry,
+        countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+        items: [],
+        pagination: createEmptyPagination(page),
+        query: queryContext.query,
+      };
+    },
+  );
 }
 
 /** Returns the published story page model plus lightweight related-story cards. */

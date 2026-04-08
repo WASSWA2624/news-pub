@@ -100,6 +100,34 @@ describe("seo feature inventory", () => {
     expect(urls).not.toContain("https://example.com/en/search");
   });
 
+  it("falls back to static sitemap entries when published-content queries cannot reach the database", async () => {
+    const databaseError = {
+      cause: {
+        message: "Access denied for user 'news_pub'@'localhost' (using password: YES)",
+      },
+      message: "pool timeout: failed to retrieve a connection from pool after 10012ms",
+      name: "DriverAdapterError",
+    };
+    const prisma = {
+      category: {
+        findMany: vi.fn().mockRejectedValue(databaseError),
+      },
+      post: {
+        findMany: vi.fn().mockRejectedValue(databaseError),
+      },
+    };
+    const { getSitemapEntries } = await import("./index");
+
+    const entries = await getSitemapEntries(prisma);
+    const urls = entries.map((entry) => entry.url);
+
+    expect(urls).toContain("https://example.com/en");
+    expect(urls).toContain("https://example.com/en/about");
+    expect(urls).toContain("https://example.com/en/news");
+    expect(urls).not.toContain("https://example.com/en/search");
+    expect(urls).not.toContain("https://example.com/en/news/breaking-story");
+  });
+
   it("builds an admin seo snapshot from published website metadata", async () => {
     const prisma = {
       category: {

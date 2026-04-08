@@ -624,6 +624,45 @@ describe("public site data", () => {
     ]);
   });
 
+  it("returns empty public navigation, filters, and listing data when build-time database access is unavailable", async () => {
+    const databaseError = {
+      cause: {
+        message: "Access denied for user 'news_pub'@'localhost' (using password: YES)",
+      },
+      message: "pool timeout: failed to retrieve a connection from pool after 10012ms",
+      name: "DriverAdapterError",
+    };
+    const prisma = {
+      category: {
+        findMany: vi.fn().mockRejectedValue(databaseError),
+      },
+      fetchedArticle: {
+        findMany: vi.fn().mockRejectedValue(databaseError),
+      },
+      post: {
+        count: vi.fn().mockRejectedValue(databaseError),
+        findMany: vi.fn().mockRejectedValue(databaseError),
+      },
+    };
+    const {
+      getPublishedCategoryNavigationData,
+      getPublishedNewsIndexData,
+      getPublishedSearchFilterData,
+    } = await import("./index");
+
+    await expect(getPublishedCategoryNavigationData({ locale: "en" }, prisma)).resolves.toEqual([]);
+    await expect(getPublishedSearchFilterData({ locale: "en" }, prisma)).resolves.toEqual({
+      countries: [],
+    });
+    await expect(getPublishedNewsIndexData({ locale: "en", page: "2" }, prisma)).resolves.toMatchObject({
+      items: [],
+      pagination: {
+        currentPage: 1,
+        totalItems: 0,
+      },
+    });
+  });
+
   it("builds a story page with source attribution and related stories", async () => {
     const prisma = {
       post: {

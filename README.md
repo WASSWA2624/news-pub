@@ -119,7 +119,7 @@ Copy [`.env.example`](./.env.example) to `.env.local` for local development, the
 
 - `.env.local` must stay untracked and must never be committed.
 - Any credential that was previously committed or shared from this repo must be rotated before it is used again.
-- `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run `prisma:*` commands or `npm run build`.
+- `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run migrations, seeding, or the live dev server.
 - `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are local bootstrap credentials only and must be replaced before any shared, staging, or production deployment.
 - Run `npm run repo:check` before opening a PR to catch tracked env files, obvious secrets, and lockfile drift.
 - If you change `package.json`, update `package-lock.json` in the same change so `npm ci` keeps working from a fresh checkout.
