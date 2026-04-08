@@ -1,3 +1,7 @@
+/**
+ * Feature services for NewsPub category management, validation, and audit logging.
+ */
+
 import { createAuditEventRecord } from "@/lib/analytics";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import {
@@ -60,6 +64,9 @@ async function createUniqueCategorySlug(db, rawSlug, currentCategoryId = null) {
 
   return candidateSlug;
 }
+/**
+ * Returns the admin snapshot used by the NewsPub category management screen.
+ */
 
 export async function getCategoryManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -88,6 +95,9 @@ export async function getCategoryManagementSnapshot(prisma) {
     },
   };
 }
+/**
+ * Creates or updates a NewsPub category record.
+ */
 
 export async function saveCategoryRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -139,6 +149,9 @@ export async function saveCategoryRecord(input, { actorId } = {}, prisma) {
 
   return category;
 }
+/**
+ * Deletes a NewsPub category record after validation checks pass.
+ */
 
 export async function deleteCategoryRecord(id, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);

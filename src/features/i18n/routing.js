@@ -1,3 +1,7 @@
+/**
+ * Locale-aware routing helpers for building NewsPub public URLs and path metadata.
+ */
+
 import { defaultLocale, isSupportedLocale, supportedLocales } from "@/features/i18n/config";
 
 const localeSegmentPattern = /^[a-z]{2}(?:-[a-z]{2})?$/i;
@@ -74,10 +78,16 @@ function requireSupportedLocale(locale) {
 function joinPathSegments(segments) {
   return segments.length ? `/${segments.join("/")}` : "";
 }
+/**
+ * Builds the locale root path for a NewsPub public route.
+ */
 
 export function buildLocaleRootPath(locale = defaultLocale) {
   return buildLocalizedPath(locale);
 }
+/**
+ * Builds a locale-prefixed public path for NewsPub.
+ */
 
 export function buildLocalizedPath(locale, ...segments) {
   const normalizedLocale = requireSupportedLocale(locale);
@@ -85,10 +95,16 @@ export function buildLocalizedPath(locale, ...segments) {
 
   return `/${normalizedLocale}${joinPathSegments(normalizedSegments)}`;
 }
+/**
+ * Builds the canonical locale-prefixed path for a NewsPub public route.
+ */
 
 export function buildCanonicalPath(locale, ...segments) {
   return buildLocalizedPath(locale, ...segments);
 }
+/**
+ * Builds alternate-language links for a NewsPub public route.
+ */
 
 export function buildAlternateLanguageLinks(...segments) {
   let options = {};
@@ -118,6 +134,9 @@ export function buildAlternateLanguageLinks(...segments) {
     normalizedLocales.map((locale) => [locale, buildLocalizedPath(locale, normalizedSegments)]),
   );
 }
+/**
+ * Builds locale-aware metadata helpers for NewsPub public pages.
+ */
 
 export function buildPublicPageMetadata({ description, locale, locales, segments = [], title }) {
   const normalizedLocale = normalizeLocale(locale);
@@ -140,6 +159,9 @@ export function buildPublicPageMetadata({ description, locale, locales, segments
     title,
   };
 }
+/**
+ * Returns the locale prefix metadata parsed from an incoming pathname.
+ */
 
 export function getPathLocalePrefix(pathname) {
   const normalizedPathname = normalizePathname(pathname);

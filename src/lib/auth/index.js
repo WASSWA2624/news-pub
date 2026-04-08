@@ -1,3 +1,7 @@
+/**
+ * Core NewsPub admin authentication services for credential checks, sessions, and server-side guards.
+ */
+
 import crypto from "node:crypto";
 
 import { cookies } from "next/headers";
@@ -174,10 +178,16 @@ function getSessionTokenFromRequest(request) {
   return request.cookies.get(SESSION_COOKIE_NAME)?.value || null;
 }
 
+/**
+ * Normalizes admin email input for case-insensitive NewsPub authentication checks.
+ */
 export function normalizeEmail(email) {
   return email.trim().toLowerCase();
 }
 
+/**
+ * Creates the scrypt password-hash format used for NewsPub admin credentials.
+ */
 export function createPasswordHash(password) {
   const salt = crypto.randomBytes(16);
   const derivedKey = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH, {
@@ -197,6 +207,9 @@ export function createPasswordHash(password) {
   ].join("$");
 }
 
+/**
+ * Verifies a plaintext password against the stored NewsPub admin password hash.
+ */
 export function verifyPassword(password, passwordHash) {
   const params = getPasswordHashParameters(passwordHash);
 
@@ -220,10 +233,16 @@ export function verifyPassword(password, passwordHash) {
   return crypto.timingSafeEqual(expectedKey, actualKey);
 }
 
+/**
+ * Hashes an admin session token before it is persisted or looked up.
+ */
 export function hashSessionToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Authenticates admin credentials, creates a stored session, and records the login audit event.
+ */
 export async function authenticateAdminCredentials({ email, password, userAgent = null }) {
   const prisma = getPrismaClient();
   const normalizedEmail = normalizeEmail(email);
@@ -289,6 +308,9 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
   };
 }
 
+/**
+ * Invalidates a stored NewsPub admin session and records the reason in the audit log.
+ */
 export async function invalidateAdminSession(sessionToken, reason = "logout") {
   if (!sessionToken) {
     return null;
@@ -323,6 +345,9 @@ export async function invalidateAdminSession(sessionToken, reason = "logout") {
   });
 }
 
+/**
+ * Validates the request cookie against the stored NewsPub admin session state.
+ */
 export async function validateRequestAdminSession(request) {
   const sessionToken = getSessionTokenFromRequest(request);
 
@@ -354,6 +379,9 @@ export async function validateRequestAdminSession(request) {
   };
 }
 
+/**
+ * Returns the current admin session when one is present and valid.
+ */
 export async function getOptionalAdminSession() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value || null;
@@ -371,6 +399,9 @@ export async function getOptionalAdminSession() {
   return validation;
 }
 
+/**
+ * Requires a valid admin page session or redirects to the sanitized NewsPub login target.
+ */
 export async function requireAdminPageSession(nextPath = ADMIN_HOME_PATH) {
   const validation = await getOptionalAdminSession();
 
@@ -381,6 +412,9 @@ export async function requireAdminPageSession(nextPath = ADMIN_HOME_PATH) {
   return validation;
 }
 
+/**
+ * Builds the success payload returned after a NewsPub admin login.
+ */
 export function buildLoginSuccessPayload(user, expiresAt) {
   return {
     expiresAt: expiresAt.toISOString(),
@@ -389,6 +423,9 @@ export function buildLoginSuccessPayload(user, expiresAt) {
   };
 }
 
+/**
+ * Builds the success payload returned after a NewsPub admin logout.
+ */
 export function buildLogoutSuccessPayload() {
   return {
     success: true,

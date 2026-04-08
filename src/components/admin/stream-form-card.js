@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin stream editor that configures NewsPub filters, schedules, fetch windows, and publish behavior.
+ */
+
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

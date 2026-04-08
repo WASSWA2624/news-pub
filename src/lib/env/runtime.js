@@ -1,3 +1,7 @@
+/**
+ * Runtime environment parsing and normalization for NewsPub server, auth, AI, and publishing settings.
+ */
+
 import { z } from "zod";
 
 const localeCodePattern = /^[a-z]{2}(?:-[a-z]{2})?$/;
@@ -422,6 +426,9 @@ function mapServerEnv(parsedEnv) {
     },
   };
 }
+/**
+ * Formats an environment-validation error for operator-facing output.
+ */
 
 export function formatEnvValidationError(error) {
   const lines = error.issues.map((issue) => {
@@ -440,6 +447,9 @@ export function formatEnvValidationError(error) {
     "Update your env file to match .env.example before starting the app.",
   ].join("\n");
 }
+/**
+ * Parses the shared environment settings used by NewsPub runtime code.
+ */
 
 export function parseSharedEnv(rawEnv) {
   const result = sharedEnvSchema.safeParse(rawEnv);
@@ -450,6 +460,9 @@ export function parseSharedEnv(rawEnv) {
 
   return mapSharedEnv(result.data);
 }
+/**
+ * Parses the full server environment contract used by NewsPub.
+ */
 
 export function parseServerEnv(rawEnv) {
   const result = serverEnvSchema.safeParse(rawEnv);

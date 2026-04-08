@@ -1,3 +1,7 @@
+/**
+ * Admin page for reviewing NewsPub job history, retries, and publish diagnostics.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

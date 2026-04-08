@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Client login screen for NewsPub admin authentication, redirect recovery, and inline form feedback.
+ */
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import styled from "styled-components";
@@ -290,6 +294,9 @@ const FinePrint = styled.p`
   margin: 0;
 `;
 
+/**
+ * Renders the NewsPub admin login form with redirect recovery and inline validation feedback.
+ */
 export default function AdminLoginScreen({ nextPath }) {
   const router = useRouter();
   const [email, setEmail] = useState("");

@@ -1,3 +1,7 @@
+/**
+ * Admin page for managing NewsPub publishing destinations and connection state.
+ */
+
 import {
   AdminIconBadge,
   AdminEyebrow,

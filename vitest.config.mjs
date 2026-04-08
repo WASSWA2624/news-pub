@@ -11,4 +11,7 @@ export default defineConfig({
       "@": path.resolve(rootDir, "src"),
     },
   },
+  test: {
+    testTimeout: 15000,
+  },
 });

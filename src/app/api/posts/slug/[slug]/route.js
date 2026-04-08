@@ -1,3 +1,7 @@
+/**
+ * Public API route for looking up a published NewsPub story by slug.
+ */
+
 import { NextResponse } from "next/server";
 
 import {
@@ -11,11 +15,7 @@ import {
 } from "@/lib/validation/api-request";
 
 /**
- * Returns one published localized post record resolved by canonical slug.
- *
- * @param {Request} request - Incoming request with an optional locale query param.
- * @param {{ params: Promise<{ slug: string }> | { slug: string } }} context - Route params.
- * @returns {Promise<Response>} A JSON response containing the localized public story payload.
+ * Handles GET requests for the public NewsPub story lookup API.
  */
 export async function GET(request, { params }) {
   const resolvedParams = await params;

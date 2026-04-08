@@ -1,3 +1,7 @@
+/**
+ * Language metadata helpers used by NewsPub stream rules, provider filters, and public labels.
+ */
+
 import { formatCountryFlagEmoji, formatCountryFlagImageUrl, normalizeCountryCode } from "../countries/index.js";
 
 const representativeCountryByLanguageCode = Object.freeze({
@@ -100,6 +104,9 @@ const representativeCountryByLanguageCode = Object.freeze({
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
+/**
+ * Normalizes a language code into the format NewsPub uses internally.
+ */
 
 export function normalizeLanguageCode(value) {
   return trimText(value).toLowerCase().replace(/_/g, "-").slice(0, 16);
@@ -117,6 +124,9 @@ function getLocaleRegionCode(value) {
 
   return /^[a-z]{2}$/.test(regionCandidate) ? normalizeCountryCode(regionCandidate) : "";
 }
+/**
+ * Returns a representative country code for a given NewsPub language code.
+ */
 
 export function getRepresentativeCountryCodeForLanguage(value) {
   const normalizedValue = normalizeLanguageCode(value);
@@ -135,10 +145,16 @@ export function getRepresentativeCountryCodeForLanguage(value) {
     || representativeCountryByLanguageCode[normalizedValue.split("-")[0]]
     || "";
 }
+/**
+ * Formats a language code into a representative flag emoji.
+ */
 
 export function formatLanguageFlagEmoji(value) {
   return formatCountryFlagEmoji(getRepresentativeCountryCodeForLanguage(value));
 }
+/**
+ * Builds the CDN image URL for a representative language flag icon.
+ */
 
 export function formatLanguageFlagImageUrl(value, size = "24x18") {
   return formatCountryFlagImageUrl(getRepresentativeCountryCodeForLanguage(value), size);

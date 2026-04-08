@@ -1,3 +1,7 @@
+/**
+ * Public API route for loading the latest published NewsPub stories.
+ */
+
 import { NextResponse } from "next/server";
 
 import { defaultLocale, isSupportedLocale } from "@/features/i18n/config";
@@ -17,10 +21,7 @@ function normalizeTake(value) {
 }
 
 /**
- * Returns the next page of public home stories for progressive loading.
- *
- * @param {Request} request - Incoming request with locale and pagination query params.
- * @returns {Promise<Response>} A JSON response containing the latest-story payload.
+ * Handles GET requests for the public NewsPub latest-stories API.
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);

@@ -1,3 +1,7 @@
+/**
+ * Runtime credential resolution for NewsPub destinations, including Meta env fallbacks and publish readiness checks.
+ */
+
 import { env } from "@/lib/env/server";
 import { META_AUTH_STRATEGIES } from "@/lib/news/meta-credentials";
 import { trimText } from "@/lib/news/shared";

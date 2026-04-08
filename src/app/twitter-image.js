@@ -1,3 +1,7 @@
+/**
+ * Twitter card image generator for the NewsPub public website.
+ */
+
 import { ImageResponse } from "next/og";
 
 export const size = {
@@ -7,6 +11,9 @@ export const size = {
 
 export const contentType = "image/png";
 
+/**
+ * Renders the NewsPub Twitter card image asset.
+ */
 export default function TwitterImage() {
   return new ImageResponse(
     (

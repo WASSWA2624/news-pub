@@ -1,3 +1,7 @@
+/**
+ * Destination publisher adapters for NewsPub website and Meta publication attempts.
+ */
+
 import { env } from "@/lib/env/server";
 import { resolveDestinationRuntimeConnection } from "@/lib/news/destination-runtime";
 import {
@@ -11,10 +15,7 @@ import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 const defaultGraphApiBaseUrl = "https://graph.facebook.com/v25.0";
 
 /**
- * Outbound destination publishers for Facebook and Instagram.
- *
- * The adapters keep platform quirks isolated from the main NewsPub workflow so
- * publish history, retries, and audit logging can stay consistent.
+ * Error type used when an outbound NewsPub destination publish attempt fails.
  */
 export class DestinationPublishError extends NewsPubError {
   constructor(
@@ -222,6 +223,9 @@ function sectionContainsValue(section, value) {
   return Boolean(normalizedValue) && normalizeSectionKey(section).includes(normalizedValue);
 }
 
+/**
+ * Formats a NewsPub Facebook headline using the bounded bold-title convention.
+ */
 export function formatFacebookTitle(value) {
   const normalizedValue = trimText(value);
 
@@ -540,6 +544,9 @@ async function executeFacebookPublish(runtimeConnection, accessToken, destinatio
   };
 }
 
+/**
+ * Builds the bounded Facebook post body from the resolved NewsPub social payload.
+ */
 export function buildFacebookMessage(payload) {
   const bodySections = extractFacebookBodySections(payload);
   const summarySections = splitBodySections(payload.summary);

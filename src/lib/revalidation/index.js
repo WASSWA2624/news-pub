@@ -1,15 +1,19 @@
+/**
+ * Revalidation helpers for NewsPub public routes affected by website publication.
+ */
+
 import { revalidatePath } from "next/cache";
 
 import { supportedLocales } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
-/**
- * Revalidation helpers for the NewsPub public publishing surface.
- */
 function normalizeRevalidationLocale(locale) {
   return typeof locale === "string" ? locale.trim().toLowerCase() : "";
 }
 
+/**
+ * Normalizes one application path before it is passed into NewsPub cache revalidation.
+ */
 export function normalizeRevalidationPath(path) {
   if (typeof path !== "string") {
     return null;
@@ -28,6 +32,9 @@ export function normalizeRevalidationPath(path) {
   return trimmedPath.startsWith("/") ? trimmedPath : `/${trimmedPath}`;
 }
 
+/**
+ * Returns a de-duplicated list of normalized NewsPub revalidation paths.
+ */
 export function dedupeRevalidationPaths(paths = []) {
   const normalizedPaths = [];
   const seenPaths = new Set();
@@ -56,6 +63,9 @@ function resolveLocales(locales = supportedLocales) {
   return normalizedLocales.filter((locale) => supportedLocales.includes(locale));
 }
 
+/**
+ * Builds the public routes that must be revalidated after a NewsPub website post changes.
+ */
 export function buildPublishedPostRevalidationPaths({
   categorySlugs = [],
   locales = supportedLocales,
@@ -81,6 +91,9 @@ export function buildPublishedPostRevalidationPaths({
 
   return dedupeRevalidationPaths(paths);
 }
+/**
+ * Revalidates each normalized NewsPub path in sequence and returns the final path list.
+ */
 
 export async function revalidatePaths(paths, implementation = revalidatePath) {
   const normalizedPaths = dedupeRevalidationPaths(paths);

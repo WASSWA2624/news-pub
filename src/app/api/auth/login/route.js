@@ -1,3 +1,7 @@
+/**
+ * Admin authentication API route for creating NewsPub admin sessions.
+ */
+
 import { z } from "zod";
 
 import { createLoginResponse } from "@/lib/auth/api";
@@ -8,6 +12,9 @@ const loginSchema = z.object({
   password: z.string().min(1).max(255),
 });
 
+/**
+ * Handles POST requests for the NewsPub admin login API.
+ */
 export async function POST(request) {
   const result = await validateJsonRequest(request, loginSchema);
 

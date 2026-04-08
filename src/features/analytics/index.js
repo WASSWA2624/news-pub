@@ -1,3 +1,7 @@
+/**
+ * Feature services that assemble the NewsPub admin dashboard, observability, and reporting snapshot.
+ */
+
 import { hasAdminPermission, ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 import {
   isFailureAuditAction,

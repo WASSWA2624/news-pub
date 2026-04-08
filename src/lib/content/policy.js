@@ -1,3 +1,7 @@
+/**
+ * Policy-scoring helpers that keep NewsPub AI and publishing outputs within bounded platform rules.
+ */
+
 import { env } from "@/lib/env/server";
 import { dedupeStrings, normalizeSearchText, trimText } from "@/lib/news/shared";
 

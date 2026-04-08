@@ -1,3 +1,7 @@
+/**
+ * Admin page for reviewing NewsPub SEO settings and public-discovery controls.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

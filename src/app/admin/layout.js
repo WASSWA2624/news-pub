@@ -1,3 +1,7 @@
+/**
+ * Admin layout that loads the authenticated NewsPub operator and wraps admin pages with the shared shell.
+ */
+
 import AdminAccessDeniedPage from "@/components/admin/admin-access-denied";
 import AdminShell from "@/components/layout/admin-shell";
 import { getOptionalAdminSession, normalizeAdminRedirectTarget, requireAdminPageSession } from "@/lib/auth";
@@ -13,12 +17,18 @@ import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+/**
+ * Builds route metadata for NewsPub admin dashboard page.
+ */
 export async function generateMetadata() {
   return {
     title: "NewsPub Admin",
     description: "Operational workspace for NewsPub providers, streams, publishing, and analytics.",
   };
 }
+/**
+ * Renders the shared NewsPub admin layout.
+ */
 
 export default async function AdminLayout({ children }) {
   const requestHeaders = await headers();

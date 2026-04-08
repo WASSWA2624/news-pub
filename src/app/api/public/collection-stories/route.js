@@ -1,3 +1,7 @@
+/**
+ * Public API route for loading NewsPub story collections such as category and search results.
+ */
+
 import { NextResponse } from "next/server";
 
 import { defaultLocale, isSupportedLocale } from "@/features/i18n/config";
@@ -14,10 +18,7 @@ function normalizePage(value, fallback = 1) {
 }
 
 /**
- * Returns paginated public collection data for news, category, and search views.
- *
- * @param {Request} request - Incoming request with collection view query params.
- * @returns {Promise<Response>} A JSON response for public listing pagination.
+ * Handles GET requests for the public NewsPub collection-stories API.
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);

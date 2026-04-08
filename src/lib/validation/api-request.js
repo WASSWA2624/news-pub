@@ -1,3 +1,7 @@
+/**
+ * Shared request-validation helpers for NewsPub route params and JSON API payloads.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -11,6 +15,9 @@ export const slugParamSchema = z.object({
 
 const emptyBodySchema = z.object({}).passthrough();
 
+/**
+ * Validates a JSON API request body and returns either parsed data or a standard error response.
+ */
 export async function validateJsonRequest(request, schema = emptyBodySchema) {
   const contentType = request.headers.get("content-type") || "";
 
@@ -74,6 +81,9 @@ export async function validateJsonRequest(request, schema = emptyBodySchema) {
   };
 }
 
+/**
+ * Validates route params against a schema and returns either parsed data or a standard error response.
+ */
 export function validateParams(params, schema) {
   const result = schema.safeParse(params);
 

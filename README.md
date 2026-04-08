@@ -113,11 +113,24 @@ Follow the files in [`dev-plan`](./dev-plan) in exact numeric order.
 
 Implementation is complete only when step 24 proves full traceability to the current [`app-write-up.md`](./app-write-up.md).
 
+## Environment And Repo Hygiene
+
+Copy [`.env.example`](./.env.example) to `.env.local` for local development, then replace the placeholder values before you run the app.
+
+- `.env.local` must stay untracked and must never be committed.
+- Any credential that was previously committed or shared from this repo must be rotated before it is used again.
+- `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run `prisma:*` commands or `npm run build`.
+- `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are local bootstrap credentials only and must be replaced before any shared, staging, or production deployment.
+- Run `npm run repo:check` before opening a PR to catch tracked env files, obvious secrets, and lockfile drift.
+- If you change `package.json`, update `package-lock.json` in the same change so `npm ci` keeps working from a fresh checkout.
+
 ## Verification
 
-Run the close-out checks from the repo root:
+Run the close-out checks from the repo root in this order:
 
 ```bash
+npm ci
+npm run repo:check
 npm run prisma:generate
 npm run lint
 npm test

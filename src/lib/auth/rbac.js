@@ -1,3 +1,7 @@
+/**
+ * NewsPub RBAC permissions and authorization helpers for admin pages, APIs, and navigation visibility.
+ */
+
 export const ADMIN_PERMISSIONS = Object.freeze({
   EDIT_POSTS: "edit_posts",
   MANAGE_CATEGORIES: "manage_categories",
@@ -293,10 +297,16 @@ function resolveRole(userOrRole) {
   return userOrRole?.role || null;
 }
 
+/**
+ * Returns whether a role is a supported NewsPub admin role.
+ */
 export function isAdminRole(role) {
   return typeof role === "string" && adminRoleSet.has(role);
 }
 
+/**
+ * Returns whether the supplied user or role has the requested NewsPub admin permission.
+ */
 export function hasAdminPermission(userOrRole, permission) {
   const role = resolveRole(userOrRole);
 
@@ -307,14 +317,23 @@ export function hasAdminPermission(userOrRole, permission) {
   return Boolean(ADMIN_PERMISSION_MATRIX[role]?.[permission]);
 }
 
+/**
+ * Returns the human-readable title for a NewsPub admin permission.
+ */
 export function getAdminPermissionTitle(permission) {
   return adminPermissionMetadata[permission]?.title || "Restricted admin action";
 }
 
+/**
+ * Returns the action-oriented copy used when a NewsPub admin permission is denied.
+ */
 export function getAdminPermissionAction(permission) {
   return adminPermissionMetadata[permission]?.action || "perform this admin action";
 }
 
+/**
+ * Builds the standard permission-denied payload for NewsPub admin pages and APIs.
+ */
 export function getAdminAuthorizationFailure(permission, userOrRole) {
   return {
     message: `You do not have permission to ${getAdminPermissionAction(permission)}.`,
@@ -325,10 +344,16 @@ export function getAdminAuthorizationFailure(permission, userOrRole) {
   };
 }
 
+/**
+ * Returns the NewsPub admin navigation items visible to the supplied user or role.
+ */
 export function getAdminNavigation(userOrRole) {
   return ADMIN_NAV_ITEMS.filter((item) => hasAdminPermission(userOrRole, item.permission));
 }
 
+/**
+ * Returns the required permission metadata for a NewsPub admin route pathname.
+ */
 export function getAdminPageAccess(pathname) {
   const normalizedPathname = normalizeAdminPathname(pathname);
 
@@ -345,10 +370,16 @@ export function getAdminPageAccess(pathname) {
   };
 }
 
+/**
+ * Returns the publish-related permission required for an immediate or scheduled NewsPub publish action.
+ */
 export function getRequiredPermissionForPublishAction(publishAt) {
   return publishAt ? ADMIN_PERMISSIONS.SCHEDULE_POSTS : ADMIN_PERMISSIONS.PUBLISH_POSTS;
 }
 
+/**
+ * Returns the NewsPub post-edit permissions implied by an update payload.
+ */
 export function getRequiredPermissionsForPostUpdate(payload = {}) {
   const permissions = [];
 

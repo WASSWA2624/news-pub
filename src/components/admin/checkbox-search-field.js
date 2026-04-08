@@ -278,6 +278,9 @@ function normalizeOptionValue(value) {
   return `${value ?? ""}`;
 }
 
+/**
+ * Renders the Checkbox Search Field in the NewsPub admin workspace.
+ */
 export default function CheckboxSearchField({
   description = "",
   name,

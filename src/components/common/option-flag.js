@@ -1,3 +1,7 @@
+/**
+ * Compact flag badge component used to annotate NewsPub locale and country options.
+ */
+
 import styled from "styled-components";
 
 import ResponsiveImage from "@/components/common/responsive-image";

@@ -1,3 +1,7 @@
+/**
+ * Admin page for editing one NewsPub canonical story and its publication diagnostics.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,

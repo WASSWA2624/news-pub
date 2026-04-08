@@ -1,7 +1,14 @@
+/**
+ * Feature services for NewsPub provider management snapshots and provider CRUD.
+ */
+
 import { createAuditEventRecord } from "@/lib/analytics";
 import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
 import { listNewsProviders, getProviderCredentialState } from "@/lib/news/providers";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
+/**
+ * Returns the admin snapshot used by the NewsPub provider management screen.
+ */
 
 export async function getProviderManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -25,6 +32,9 @@ export async function getProviderManagementSnapshot(prisma) {
     supportedProviders: catalog,
   };
 }
+/**
+ * Creates or updates a NewsPub provider configuration record.
+ */
 
 export async function saveProviderRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);

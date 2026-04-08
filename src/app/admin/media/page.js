@@ -1,3 +1,7 @@
+/**
+ * Admin page for browsing and uploading NewsPub media assets.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

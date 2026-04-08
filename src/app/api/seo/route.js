@@ -1,12 +1,13 @@
+/**
+ * Admin API route for the NewsPub SEO settings snapshot.
+ */
+
 import { getSeoManagementSnapshot } from "@/features/seo";
 import { handleAdminGet } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
 /**
- * Returns the SEO configuration snapshot shown in the admin workspace.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The SEO snapshot response.
+ * Handles GET requests for the NewsPub SEO admin API.
  */
 export async function GET(request) {
   return handleAdminGet(

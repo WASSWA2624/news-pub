@@ -292,6 +292,9 @@ function isAllowedFacebookPage(pageRecord) {
 
   return allowedPageIds.has(pageId);
 }
+/**
+ * Discovers connected Meta assets from the selected NewsPub credential source.
+ */
 
 export async function discoverAssetsFromSource(source) {
   if (!source?.accessToken) {

@@ -1,3 +1,7 @@
+/**
+ * Admin page for managing NewsPub publishing streams, filters, schedules, and manual runs.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

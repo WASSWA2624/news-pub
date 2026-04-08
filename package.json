@@ -14,6 +14,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "repo:check": "node scripts/check-repo-hygiene.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",

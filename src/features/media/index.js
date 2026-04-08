@@ -1,3 +1,7 @@
+/**
+ * Feature services for uploading, listing, and validating NewsPub media assets.
+ */
+
 import path from "node:path";
 
 import sharp from "sharp";
@@ -189,6 +193,9 @@ function ensureSafeMediaSize(byteLength) {
     );
   }
 }
+/**
+ * Ingests a remote media asset into the NewsPub media library.
+ */
 
 export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
   const safeUrl = sanitizeExternalUrl(input.sourceUrl);

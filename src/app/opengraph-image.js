@@ -1,3 +1,7 @@
+/**
+ * Open Graph image generator for the NewsPub public website.
+ */
+
 import { ImageResponse } from "next/og";
 
 export const size = {
@@ -7,6 +11,9 @@ export const size = {
 
 export const contentType = "image/png";
 
+/**
+ * Renders the NewsPub Open Graph image asset.
+ */
 export default function OpenGraphImage() {
   return new ImageResponse(
     (

@@ -1,8 +1,15 @@
+/**
+ * Public API route handlers for recording NewsPub view analytics events.
+ */
+
 import { NextResponse } from "next/server";
 
 import { captureViewEventSchema, recordViewEvent } from "@/lib/analytics";
 import { validateJsonRequest } from "@/lib/validation/api-request";
 
+/**
+ * Handles POST requests for the public NewsPub view-tracking API.
+ */
 export async function POST(request) {
   const result = await validateJsonRequest(request, captureViewEventSchema);
 

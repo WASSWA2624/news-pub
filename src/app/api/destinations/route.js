@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and mutating NewsPub publishing destinations.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -37,6 +41,9 @@ const destinationSchema = z.object({
   token: z.string().trim().optional().or(z.literal("")),
 });
 
+/**
+ * Handles GET requests for the NewsPub destinations admin API.
+ */
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_DESTINATIONS);
 
@@ -56,6 +63,9 @@ export async function GET(request) {
   }
 }
 
+/**
+ * Handles PUT requests for the NewsPub destinations admin API.
+ */
 export async function PUT(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_DESTINATIONS);
 

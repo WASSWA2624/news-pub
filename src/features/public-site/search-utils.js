@@ -1,3 +1,7 @@
+/**
+ * Search helpers for building the public NewsPub story search experience.
+ */
+
 import { createSlug, normalizeDisplayText, normalizeSearchText } from "@/lib/normalization";
 
 export const maxPublicSearchQueryLength = 191;

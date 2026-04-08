@@ -1,3 +1,7 @@
+/**
+ * Admin page for browsing published NewsPub stories and recent publish outcomes.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,
@@ -25,6 +29,9 @@ import {
 import { getPostInventorySnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+/**
+ * Renders the NewsPub admin posts published page.
+ */
 
 export default async function PublishedPostsPage({ searchParams }) {
   const resolvedSearchParams = await searchParams;

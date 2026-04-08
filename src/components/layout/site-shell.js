@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Public site shell that wraps NewsPub pages with the shared header, search, navigation, and footer chrome.
+ */
+
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";

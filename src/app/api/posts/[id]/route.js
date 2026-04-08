@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for loading and updating one NewsPub canonical post.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -21,6 +25,9 @@ const updatePostSchema = z.object({
   title: z.string().optional(),
 });
 
+/**
+ * Handles GET requests for the NewsPub post-detail admin API.
+ */
 export async function GET(request, { params }) {
   const auth = await requireAdminApiSession(request);
 
@@ -56,6 +63,9 @@ export async function GET(request, { params }) {
   }
 }
 
+/**
+ * Handles PATCH requests for the NewsPub post-detail admin API.
+ */
 export async function PATCH(request, { params }) {
   const auth = await requireAdminApiSession(request);
 

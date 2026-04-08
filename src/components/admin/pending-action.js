@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Pending-state primitives for NewsPub admin forms and submit actions.
+ */
+
 import { useFormStatus } from "react-dom";
 import styled, { keyframes } from "styled-components";
 
@@ -55,6 +59,9 @@ function PendingSpinner({ tone }) {
   );
 }
 
+/**
+ * Renders the Pending Submit Button in the NewsPub admin workspace.
+ */
 export function PendingSubmitButton({
   children,
   disabled = false,
@@ -84,6 +91,9 @@ export function PendingSubmitButton({
   );
 }
 
+/**
+ * Renders the Form Pending State in the NewsPub admin workspace.
+ */
 export function FormPendingState({
   idleText = "",
   pendingText = "Processing...",

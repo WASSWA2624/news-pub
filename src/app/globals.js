@@ -1,3 +1,7 @@
+/**
+ * Global CSS tokens and baseline element styles for the NewsPub admin and public shells.
+ */
+
 import { createGlobalStyle } from "styled-components";
 
 import { adminUiSizingContract } from "@/components/admin/admin-ui-contract";

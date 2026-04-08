@@ -1,3 +1,7 @@
+/**
+ * Feature services for NewsPub canonical post creation, editing, review, and publication state.
+ */
+
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import {
@@ -816,6 +820,9 @@ function parsePublishAt(value) {
 
   return publishAt;
 }
+/**
+ * Returns the admin inventory snapshot for NewsPub canonical posts.
+ */
 
 export async function getPostInventorySnapshot(options = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -870,6 +877,9 @@ export async function getPostInventorySnapshot(options = {}, prisma) {
     },
   };
 }
+/**
+ * Returns the data needed to render the NewsPub manual story creation flow.
+ */
 
 export async function getManualPostCreationSnapshot({ locale = defaultLocale } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -1026,6 +1036,9 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
     statusValues: postStatusValues,
   };
 }
+/**
+ * Creates a manual NewsPub canonical post and routes it through the normal workflow.
+ */
 
 export async function createManualPostRecord(input = {}, { actorId = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -1405,6 +1418,9 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     db,
   );
 }
+/**
+ * Creates a repost request for an existing NewsPub canonical post.
+ */
 
 export async function repostPostRecord(input = {}, { actorId = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);

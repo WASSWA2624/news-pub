@@ -1,3 +1,7 @@
+/**
+ * Locale-aware NewsPub published-story page.
+ */
+
 import { notFound } from "next/navigation";
 
 import { PublicStoryPage } from "@/components/public";

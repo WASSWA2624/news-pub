@@ -1,3 +1,7 @@
+/**
+ * Icon component that renders the shared NewsPub admin and public symbol set.
+ */
+
 import styled from "styled-components";
 
 const IconSvg = styled.svg`
@@ -481,6 +485,9 @@ function renderIcon(name) {
       );
   }
 }
+/**
+ * Renders the app Icon in NewsPub UI.
+ */
 
 export default function AppIcon({
   className,

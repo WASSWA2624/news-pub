@@ -1,3 +1,7 @@
+/**
+ * Bounded NewsPub AI optimization helpers with deterministic skip and fallback handling.
+ */
+
 import { z } from "zod";
 
 import { evaluateDestinationPolicy } from "@/lib/content/policy";

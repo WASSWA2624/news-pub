@@ -1,3 +1,7 @@
+/**
+ * Protected API route for triggering NewsPub cache revalidation.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -24,6 +28,9 @@ const revalidateSchema = z
     }
   });
 
+/**
+ * Handles POST requests for the NewsPub cache revalidation API.
+ */
 export async function POST(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.REVALIDATE_SITE);
 

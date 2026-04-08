@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin template editor for NewsPub website and social publishing templates.
+ */
+
 import { useId, useRef, useState } from "react";
 import styled from "styled-components";
 

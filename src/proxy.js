@@ -1,3 +1,7 @@
+/**
+ * Request proxy that normalizes locale-prefixed admin URLs and protects NewsPub admin routes before they reach the app.
+ */
+
 import { NextResponse } from "next/server";
 
 import { getPathLocalePrefix } from "@/features/i18n/routing";
@@ -24,6 +28,9 @@ function createForwardResponse(request, routeKind) {
   });
 }
 
+/**
+ * Normalizes locale-prefixed admin URLs and enforces the first-pass NewsPub admin auth gate.
+ */
 export function proxy(request) {
   const { pathname, search } = request.nextUrl;
   const requestPath = `${pathname}${search}`;

@@ -1,3 +1,7 @@
+/**
+ * Admin API route for running one or more NewsPub publishing streams on demand, including shared-fetch batches.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -29,6 +33,9 @@ const streamRunSchema = z
     }
   });
 
+/**
+ * Handles POST requests for the NewsPub on-demand stream run API.
+ */
 export async function POST(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_STREAMS);
 

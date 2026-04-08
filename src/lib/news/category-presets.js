@@ -1,3 +1,7 @@
+/**
+ * Category presets that seed NewsPub editorial taxonomy and stream-category defaults.
+ */
+
 import { createSlug, normalizeDisplayText } from "../normalization/index.js";
 import { listProviderDefinitions } from "./provider-definitions.js";
 
@@ -72,6 +76,9 @@ function buildFallbackDescription(label, providerLabels) {
   return `${label} coverage aligned with supported provider categories${providerText}.`;
 }
 
+/**
+ * Returns the SEO-friendly slug NewsPub should use for a suggested category value.
+ */
 export function getSuggestedCategorySlug(value, fallback = "category") {
   const normalizedValue = normalizeCategoryValue(value);
 
@@ -82,6 +89,9 @@ export function getSuggestedCategorySlug(value, fallback = "category") {
   return CATEGORY_SEO_SLUG_OVERRIDES[normalizedValue] || createSlug(normalizedValue, fallback);
 }
 
+/**
+ * Returns the merged provider category catalog used to seed NewsPub editorial taxonomy.
+ */
 export function getSupportedProviderCategoryCatalog() {
   const categoryMap = new Map();
 
@@ -129,6 +139,9 @@ export function getSupportedProviderCategoryCatalog() {
     });
 }
 
+/**
+ * Returns the normalized NewsPub category presets built from the supported provider catalog.
+ */
 export function getSupportedCategoryPresets() {
   return getSupportedProviderCategoryCatalog().map((category) => ({
     description:
@@ -142,6 +155,9 @@ export function getSupportedCategoryPresets() {
   }));
 }
 
+/**
+ * Returns the persisted category record shape derived from the supported NewsPub presets.
+ */
 export function getSupportedCategoryPresetRecords() {
   return getSupportedCategoryPresets().map(({ description, name, slug }) => ({
     description,

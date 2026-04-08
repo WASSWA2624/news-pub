@@ -1,3 +1,7 @@
+/**
+ * Core NewsPub ingest, filtering, optimization, review, and publication workflows.
+ */
+
 import { createAuditEventRecord, recordObservabilityEvent } from "@/lib/analytics";
 import { optimizeDestinationPayload } from "@/lib/ai";
 import { getDestinationSocialGuardrails } from "@/features/destinations/meta-config";
@@ -33,9 +37,6 @@ import { isDestinationRuntimeReady } from "@/lib/news/destination-runtime";
 import { DestinationPublishError, publishExternalDestination } from "@/lib/news/publishers";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
-/**
- * Core NewsPub ingest, filtering, review, scheduling, and publication workflows.
- */
 function toAbsoluteUrl(path) {
   return new URL(path, env.app.url).toString();
 }
@@ -60,6 +61,9 @@ function getStreamMaxPostsPerRun(stream) {
   return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 5}`, 10) || 5);
 }
 
+/**
+ * Resolves the normalized fetch window used for one NewsPub stream execution.
+ */
 export function resolveStreamFetchWindow({ checkpoint = null, now = new Date() } = {}) {
   return resolveExecutionFetchWindow({
     checkpoint,
@@ -149,6 +153,9 @@ function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = 
   };
 }
 
+/**
+ * Resolves the best available image URL for a fetched article, falling back to source discovery when needed.
+ */
 export async function resolveFetchedArticleImageUrl(article = {}) {
   const directImageUrl = trimText(article.imageUrl);
 
@@ -303,6 +310,9 @@ function getDuplicateMatchReferenceDate(duplicateMatch) {
   );
 }
 
+/**
+ * Classifies how an existing article match should affect a new NewsPub publication attempt.
+ */
 export function classifyDuplicateCandidate(
   duplicateMatch,
   { duplicateWindowHours = 48, now = new Date() } = {},
@@ -326,6 +336,9 @@ export function classifyDuplicateCandidate(
     : "repost_eligible_duplicate";
 }
 
+/**
+ * Selects the candidate set that a NewsPub stream run may publish within its current batch limit.
+ */
 export function selectStreamRunCandidates(
   { maxPostsPerRun = 1, repostEligibleDuplicates = [], uniqueEligibleCandidates = [] } = {},
 ) {
@@ -630,6 +643,8 @@ function getHoldReasonCodes({ policy, stream }) {
 }
 
 function getOptimizationObservabilityAction(status) {
+  // AI skip and fallback states stay visible in observability instead of being
+  // collapsed into a generic success or hard-failure bucket.
   if (status === "SKIPPED") {
     return "AI_OPTIMIZATION_SKIPPED";
   }
@@ -768,6 +783,9 @@ function limitHashtagString(value, maxCount) {
   return getHashtagTokens(value).slice(0, maxCount).join(" ");
 }
 
+/**
+ * Applies destination-specific pacing and duplicate guardrails before a social publish attempt is sent.
+ */
 export async function applySocialPublishingGuardrails({
   bypassDuplicateCooldown = false,
   db,
@@ -1323,6 +1341,8 @@ async function executePublishAttempt(
       responseJson: failedAttempt.responseJson,
     });
 
+    // Jobs history, post history, and audit events all consume the same
+    // flattened diagnostic reason so Meta pacing and policy blocks read alike.
     await db.articleMatch.update({
       where: {
         id: attempt.articleMatchId,
@@ -1484,6 +1504,9 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
   });
 }
 
+/**
+ * Publishes one NewsPub article match through the canonical destination workflow.
+ */
 export async function publishArticleMatch(articleMatchId, { publishAt } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const articleMatch = await db.articleMatch.findUnique({
@@ -1673,6 +1696,9 @@ export async function retryPublishAttempt(attemptId, { actorId = null, automated
   return executePublishAttempt(db, nextAttempt.id);
 }
 
+/**
+ * Triggers a manual repost flow for an existing NewsPub article match.
+ */
 export async function manualRepostArticleMatch(articleMatchId, { actorId = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const articleMatch = await db.articleMatch.findUnique({
@@ -1943,6 +1969,8 @@ async function finalizeSuccessfulFetchRun(
     summary,
   );
 
+  // Manual and diagnostic windows stay checkpoint-neutral unless the caller
+  // explicitly opts in to advancing the stream checkpoint on success.
   if (executionContext.fetchWindow.writeCheckpointOnSuccess) {
     await db.providerFetchCheckpoint.upsert({
       where: {
@@ -2474,6 +2502,9 @@ export async function runMultipleStreamFetches(
   };
 }
 
+/**
+ * Returns whether a NewsPub stream is due for another scheduled execution.
+ */
 export function isStreamDueForScheduledRun(stream, now = new Date()) {
   if ((stream?.scheduleIntervalMinutes || 0) <= 0) {
     return false;
@@ -2590,6 +2621,9 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
   };
 }
 
+/**
+ * Returns the destination connection snapshot reused by NewsPub jobs and settings surfaces.
+ */
 export async function getDestinationConnectionSnapshot(prisma) {
   return getDestinationManagementSnapshot(prisma);
 }

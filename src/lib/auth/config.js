@@ -1,3 +1,7 @@
+/**
+ * Route and cookie configuration for NewsPub admin authentication and redirect handling.
+ */
+
 export const ADMIN_HOME_PATH = "/admin";
 export const ADMIN_LOGIN_PATH = "/admin/login";
 export const ADMIN_REDIRECT_PARAM = "next";
@@ -38,14 +42,23 @@ const publicAdminApiPaths = new Set([
   "/api/analytics/views",
 ]);
 
+/**
+ * Returns whether a pathname targets the NewsPub admin login route.
+ */
 export function isAdminLoginPath(pathname) {
   return pathname === ADMIN_LOGIN_PATH;
 }
 
+/**
+ * Returns whether a pathname belongs to a protected NewsPub admin page.
+ */
 export function isProtectedAdminPagePath(pathname) {
   return pathname.startsWith("/admin") && !isAdminLoginPath(pathname);
 }
 
+/**
+ * Returns whether a pathname belongs to a protected NewsPub admin API route.
+ */
 export function isProtectedAdminApiPath(pathname) {
   if (publicAdminApiPaths.has(pathname) || publicAdminApiPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     return false;
@@ -58,6 +71,9 @@ export function isProtectedAdminApiPath(pathname) {
   return protectedAdminApiPrefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
+/**
+ * Normalizes a requested redirect target to a safe internal NewsPub admin path.
+ */
 export function normalizeAdminRedirectTarget(value) {
   if (typeof value !== "string") {
     return ADMIN_HOME_PATH;
@@ -76,6 +92,9 @@ export function normalizeAdminRedirectTarget(value) {
   return trimmedValue;
 }
 
+/**
+ * Builds the NewsPub admin login URL with a sanitized next-path redirect.
+ */
 export function buildAdminLoginHref(nextPath = ADMIN_HOME_PATH) {
   const url = new URL(ADMIN_LOGIN_PATH, "https://news-pub.local");
 

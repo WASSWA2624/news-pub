@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin destination editor for NewsPub website and Meta connection settings, credentials, and guardrails.
+ */
+
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

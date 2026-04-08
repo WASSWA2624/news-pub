@@ -1,3 +1,7 @@
+/**
+ * Shared surface, elevation, and focus-ring styles reused across NewsPub UI components.
+ */
+
 import { css } from "styled-components";
 
 /**

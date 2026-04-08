@@ -1,3 +1,7 @@
+/**
+ * Admin page for managing NewsPub destination templates.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

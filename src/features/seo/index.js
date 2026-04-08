@@ -1,3 +1,7 @@
+/**
+ * Feature services for NewsPub SEO settings, sitemap data, and public metadata inputs.
+ */
+
 import { defaultLocale, supportedLocales } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments, publicStaticRoutes } from "@/features/i18n/routing";
 import { env } from "@/lib/env/server";
@@ -21,6 +25,9 @@ function mapStaticRouteEntry(locale, route) {
     url: buildAbsoluteUrl(buildLocalizedPath(locale, route.segments)),
   };
 }
+/**
+ * Returns the robots configuration used by the NewsPub public site.
+ */
 
 export function getRobotsConfiguration() {
   return {

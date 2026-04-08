@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin modal form for uploading and annotating NewsPub media assets.
+ */
+
 import { useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

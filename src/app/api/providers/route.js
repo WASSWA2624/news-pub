@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and mutating NewsPub provider settings.
+ */
+
 import { z } from "zod";
 
 import { getProviderManagementSnapshot, saveProviderRecord } from "@/features/providers";
@@ -15,6 +19,9 @@ const providerSchema = z.object({
   requestDefaultsJson: z.record(z.string(), z.any()).optional(),
 });
 
+/**
+ * Handles GET requests for the NewsPub providers admin API.
+ */
 export async function GET(request) {
   return handleAdminGet(
     request,
@@ -25,10 +32,7 @@ export async function GET(request) {
 }
 
 /**
- * Creates or updates a provider configuration.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The saved provider response.
+ * Handles PUT requests for the NewsPub providers admin API.
  */
 export async function PUT(request) {
   return handleAdminMutation(

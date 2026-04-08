@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Homepage lead-story component that presents the latest published NewsPub stories with editorial hierarchy.
+ */
+
 import { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";

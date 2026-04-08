@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Client search component that powers the NewsPub public story search experience.
+ */
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styled, { css } from "styled-components";

@@ -1,3 +1,7 @@
+/**
+ * Root application layout for NewsPub metadata, fonts, providers, and styled-components rendering.
+ */
+
 import { Manrope, Newsreader } from "next/font/google";
 
 import AppProviders from "@/components/common/app-providers";
@@ -62,6 +66,9 @@ export const viewport = {
   themeColor: "#edf4f3",
 };
 
+/**
+ * Wraps the NewsPub app with global providers, fonts, and document metadata.
+ */
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

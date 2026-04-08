@@ -1,3 +1,7 @@
+/**
+ * Structured-article markdown and HTML renderers for NewsPub canonical story content.
+ */
+
 import { getRenderableImageUrl } from "@/lib/media";
 import { sanitizeExternalUrl } from "@/lib/security";
 

@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and mutating NewsPub categories.
+ */
+
 import { z } from "zod";
 
 import { deleteCategoryRecord, getCategoryManagementSnapshot, saveCategoryRecord } from "@/features/categories";
@@ -15,6 +19,9 @@ const deleteCategorySchema = z.object({
   id: z.string().trim().min(1),
 });
 
+/**
+ * Handles GET requests for the NewsPub categories admin API.
+ */
 export async function GET(request) {
   return handleAdminGet(
     request,
@@ -25,10 +32,7 @@ export async function GET(request) {
 }
 
 /**
- * Creates or updates a category from the admin workspace.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The saved category response.
+ * Handles PUT requests for the NewsPub categories admin API.
  */
 export async function PUT(request) {
   return handleAdminMutation(
@@ -44,10 +48,7 @@ export async function PUT(request) {
 }
 
 /**
- * Deletes an existing category from the admin workspace.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The deleted category response.
+ * Handles DELETE requests for the NewsPub categories admin API.
  */
 export async function DELETE(request) {
   return handleAdminMutation(

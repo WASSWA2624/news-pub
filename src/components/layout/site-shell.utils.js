@@ -1,3 +1,7 @@
+/**
+ * Helpers that build NewsPub public navigation, footer sections, and pathname-aware shell state.
+ */
+
 function normalizePathname(pathname) {
   if (typeof pathname !== "string" || !pathname.trim()) {
     return "/";

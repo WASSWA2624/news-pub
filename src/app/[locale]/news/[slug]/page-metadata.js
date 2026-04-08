@@ -1,3 +1,7 @@
+/**
+ * Metadata helpers for locale-aware NewsPub published-story pages.
+ */
+
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { buildPageMetadata } from "@/lib/seo";
 

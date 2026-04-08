@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin form for creating a manual NewsPub story through the same canonical editorial workflow as fetched content.
+ */
+
 import { useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

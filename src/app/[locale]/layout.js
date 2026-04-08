@@ -1,3 +1,7 @@
+/**
+ * Locale layout that validates supported locales, loads messages, and wraps the NewsPub public shell.
+ */
+
 import { notFound } from "next/navigation";
 
 import { StructuredDataBundle } from "@/components/seo";
@@ -11,12 +15,18 @@ import { buildOrganizationJsonLd } from "@/lib/seo";
 
 export const dynamicParams = false;
 
+/**
+ * Precomputes the supported locale params for the NewsPub public route tree.
+ */
 export function generateStaticParams() {
   return supportedLocales.map((locale) => ({
     locale,
   }));
 }
 
+/**
+ * Builds metadata for the locale-aware NewsPub public shell.
+ */
 export async function generateMetadata({ params }) {
   const { locale } = await params;
 
@@ -31,6 +41,9 @@ export async function generateMetadata({ params }) {
     description: messages.site.tagline,
   };
 }
+/**
+ * Renders the locale-aware NewsPub public layout.
+ */
 
 export default async function LocaleLayout({ children, params }) {
   const { locale } = await params;

@@ -1,3 +1,7 @@
+/**
+ * Admin page for managing NewsPub providers and provider defaults.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

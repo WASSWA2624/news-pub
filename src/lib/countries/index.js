@@ -1,6 +1,13 @@
+/**
+ * Country lookup metadata used by NewsPub stream filters, provider forms, and public labels.
+ */
+
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
+/**
+ * Normalizes a country code into the compact format NewsPub uses internally.
+ */
 
 export function normalizeCountryCode(value) {
   const normalizedValue = trimText(value).toLowerCase();
@@ -11,6 +18,9 @@ export function normalizeCountryCode(value) {
 
   return normalizedValue.slice(0, 8);
 }
+/**
+ * Formats a country code into a localized display label.
+ */
 
 export function formatCountryLabel(countryCode, locale = "en") {
   const normalizedCountry = normalizeCountryCode(countryCode).toUpperCase();
@@ -30,6 +40,9 @@ export function formatCountryLabel(countryCode, locale = "en") {
     return normalizedCountry;
   }
 }
+/**
+ * Formats a country code into its corresponding flag emoji.
+ */
 
 export function formatCountryFlagEmoji(countryCode) {
   const normalizedCountry = normalizeCountryCode(countryCode).toUpperCase();
@@ -42,6 +55,9 @@ export function formatCountryFlagEmoji(countryCode) {
     ...normalizedCountry.split("").map((char) => 127397 + char.charCodeAt(0)),
   );
 }
+/**
+ * Builds the CDN image URL for a country flag icon.
+ */
 
 export function formatCountryFlagImageUrl(countryCode, size = "24x18") {
   const normalizedCountry = normalizeCountryCode(countryCode);

@@ -249,6 +249,9 @@ export function getProviderTimeBoundarySupport(providerKey, values = {}) {
   };
 }
 
+/**
+ * Returns the provider-specific start and end field keys that map the normalized NewsPub fetch window upstream.
+ */
 export function getProviderDateWindowConfig(providerKey, values = {}) {
   const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, values);
 
@@ -1544,14 +1547,23 @@ function isFieldVisible(field, scope, values) {
   return true;
 }
 
+/**
+ * Returns the full NewsPub provider-definition catalog.
+ */
 export function listProviderDefinitions() {
   return Object.values(providerDefinitionMap);
 }
 
+/**
+ * Returns one NewsPub provider definition by key.
+ */
 export function getProviderDefinition(providerKey) {
   return providerDefinitionMap[normalizeKey(providerKey)] || null;
 }
 
+/**
+ * Returns the scoped provider form definition with values normalized for the current admin surface.
+ */
 export function getProviderFormDefinition(providerKey, scope, values = {}) {
   const definition = getProviderDefinition(providerKey);
 
@@ -1572,6 +1584,9 @@ export function getProviderFormDefinition(providerKey, scope, values = {}) {
   };
 }
 
+/**
+ * Sanitizes provider field values before NewsPub persists or reuses them in request payloads.
+ */
 export function sanitizeProviderFieldValues(providerKey, values = {}, { preserveEmpty = false } = {}) {
   const definition = getProviderDefinition(providerKey);
 
@@ -1606,6 +1621,9 @@ export function sanitizeProviderFieldValues(providerKey, values = {}, { preserve
   return result;
 }
 
+/**
+ * Merges provider default values with stream-specific overrides while discarding empty entries.
+ */
 export function mergeProviderFieldValues(defaults = {}, overrides = {}) {
   const merged = {
     ...(defaults || {}),
@@ -1648,6 +1666,9 @@ function resolveAllowlistValues(values = [], providerFilters = {}, key) {
   return normalizeAllowlistValues(readMultiValue(providerFilters, key));
 }
 
+/**
+ * Resolves the provider request values that NewsPub should send for one stream execution.
+ */
 export function resolveStreamProviderRequestValues(
   providerKey,
   {
@@ -1729,6 +1750,9 @@ export function resolveStreamProviderRequestValues(
   return requestValues;
 }
 
+/**
+ * Returns provider-specific validation issues for the current NewsPub request configuration.
+ */
 export function getProviderRequestValidationIssues(providerKey, options = {}) {
   const normalizedProviderKey = normalizeKey(providerKey);
   const requestValues = resolveStreamProviderRequestValues(normalizedProviderKey, options);
@@ -1763,6 +1787,9 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
   return issues;
 }
 
+/**
+ * Returns the provider field values that should prefill the NewsPub stream editor.
+ */
 export function getStreamProviderFormValues(stream = {}) {
   const providerFilters = stream?.settingsJson?.providerFilters || {};
   const savedCountryAllowlist = readMultiValue(stream, "countryAllowlistJson");
@@ -1779,6 +1806,9 @@ export function getStreamProviderFormValues(stream = {}) {
   };
 }
 
+/**
+ * Returns the stored provider request defaults in a safe object shape.
+ */
 export function getProviderRequestDefaultValues(providerConfig = {}) {
   return providerConfig?.requestDefaultsJson && typeof providerConfig.requestDefaultsJson === "object"
     ? providerConfig.requestDefaultsJson

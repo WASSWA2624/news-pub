@@ -1,3 +1,7 @@
+/**
+ * SEO utilities for NewsPub canonical URLs, metadata, and structured public discovery.
+ */
+
 import { defaultLocale } from "@/features/i18n/config";
 import { buildAlternateLanguageLinks, buildCanonicalPath, buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { env } from "@/lib/env/server";

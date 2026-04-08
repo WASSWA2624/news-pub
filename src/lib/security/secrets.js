@@ -1,3 +1,7 @@
+/**
+ * AES-GCM secret helpers used to protect persisted NewsPub destination credentials.
+ */
+
 import crypto from "node:crypto";
 
 import { env } from "@/lib/env/server";
@@ -5,6 +9,9 @@ import { env } from "@/lib/env/server";
 function createEncryptionKey(secret = env.destinations.encryptionKey) {
   return crypto.createHash("sha256").update(secret).digest();
 }
+/**
+ * Encrypts a secret value before NewsPub persists it to the database.
+ */
 
 export function encryptSecretValue(value, secret) {
   const normalizedValue = typeof value === "string" ? value.trim() : "";
@@ -28,6 +35,9 @@ export function encryptSecretValue(value, secret) {
     tag: tag.toString("base64url"),
   };
 }
+/**
+ * Decrypts a secret value previously persisted by NewsPub.
+ */
 
 export function decryptSecretValue(input, secret) {
   if (!input?.ciphertext || !input?.iv || !input?.tag) {

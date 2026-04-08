@@ -1,3 +1,7 @@
+/**
+ * Locale-aware NewsPub category landing page.
+ */
+
 import { notFound } from "next/navigation";
 
 import { StructuredDataBundle } from "@/components/seo";
@@ -9,6 +13,9 @@ import { buildBreadcrumbJsonLd, buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
 
+/**
+ * Builds metadata for a locale-aware NewsPub category landing page.
+ */
 export async function generateMetadata({ params, searchParams }) {
   const { locale, slug } = await params;
   const resolvedSearchParams = await searchParams;
@@ -27,6 +34,9 @@ export async function generateMetadata({ params, searchParams }) {
     title,
   });
 }
+/**
+ * Renders the NewsPub locale category slug page.
+ */
 
 export default async function CategoryPage({ params, searchParams }) {
   const { locale, slug } = await params;

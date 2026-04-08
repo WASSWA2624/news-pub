@@ -1,10 +1,14 @@
+/**
+ * Shared NewsPub primitives used across ingest, review, publishing, and admin workflows.
+ */
+
 import crypto from "node:crypto";
 
 import { defaultLocale } from "@/features/i18n/config";
 import { buildHtmlFromStructuredArticle, buildMarkdownFromStructuredArticle } from "@/lib/markdown";
 
 /**
- * Shared NewsPub primitives used across ingest, review, publishing, and admin flows.
+ * Base error type for NewsPub runtime, API, and workflow failures.
  */
 export class NewsPubError extends Error {
   constructor(message, { status = "news_pub_error", statusCode = 500 } = {}) {
@@ -15,14 +19,23 @@ export class NewsPubError extends Error {
   }
 }
 
+/**
+ * Trims a string-like value into the normalized NewsPub text shape.
+ */
 export function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * Collapses display text into one trimmed, whitespace-normalized string.
+ */
 export function normalizeDisplayText(value) {
   return trimText(value).replace(/\s+/g, " ");
 }
 
+/**
+ * Normalizes text into the lowercase, accent-insensitive search form used by NewsPub matching.
+ */
 export function normalizeSearchText(value) {
   return normalizeDisplayText(value)
     .normalize("NFKD")
@@ -30,6 +43,9 @@ export function normalizeSearchText(value) {
     .toLowerCase();
 }
 
+/**
+ * Creates a URL-safe slug for NewsPub stories, categories, and related records.
+ */
 export function createSlug(value, fallback = "story") {
   const normalized = normalizeSearchText(value)
     .replace(/&/g, " and ")
@@ -39,6 +55,9 @@ export function createSlug(value, fallback = "story") {
   return normalized || fallback;
 }
 
+/**
+ * Creates a deterministic SHA-256 hash for NewsPub cache and deduplication keys.
+ */
 export function createContentHash(...values) {
   const hash = crypto.createHash("sha256");
 
@@ -50,14 +69,23 @@ export function createContentHash(...values) {
   return hash.digest("hex");
 }
 
+/**
+ * Returns a trimmed, order-preserving list of unique strings.
+ */
 export function dedupeStrings(values = []) {
   return [...new Set((values || []).map((value) => trimText(`${value}`)).filter(Boolean))];
 }
 
+/**
+ * Serializes a Date instance to ISO-8601 when one is present.
+ */
 export function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
 }
 
+/**
+ * Resolves the Prisma client used by NewsPub runtime helpers.
+ */
 export async function resolvePrismaClient(prisma) {
   if (prisma) {
     return prisma;
@@ -68,6 +96,9 @@ export async function resolvePrismaClient(prisma) {
   return getPrismaClient();
 }
 
+/**
+ * Builds pagination metadata for NewsPub admin and public listings.
+ */
 export function createPagination(totalItems, currentPage = 1, pageSize = 12) {
   const resolvedPageSize = Math.max(1, Number.parseInt(`${pageSize || 12}`, 10) || 12);
   const resolvedCurrentPage = Math.max(1, Number.parseInt(`${currentPage || 1}`, 10) || 1);
@@ -88,6 +119,9 @@ export function createPagination(totalItems, currentPage = 1, pageSize = 12) {
   };
 }
 
+/**
+ * Normalizes array input into a trimmed unique string list.
+ */
 export function normalizeStringList(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -96,6 +130,9 @@ export function normalizeStringList(value) {
   return dedupeStrings(value);
 }
 
+/**
+ * Builds the structured article payload and render artifacts used by canonical NewsPub stories.
+ */
 export function buildStoryStructuredArticle({
   body,
   categoryNames = [],

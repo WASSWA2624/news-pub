@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Client logout control for ending NewsPub admin sessions from shared shell surfaces.
+ */
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import styled from "styled-components";
@@ -43,6 +47,9 @@ const Button = styled.button`
   }
 `;
 
+/**
+ * Renders the NewsPub admin logout control and pending-state feedback.
+ */
 export default function AdminLogoutButton({ className }) {
   const router = useRouter();
   const [error, setError] = useState("");

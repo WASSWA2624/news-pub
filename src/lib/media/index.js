@@ -1,3 +1,7 @@
+/**
+ * Media ingestion helpers for NewsPub remote image discovery, validation, and storage preparation.
+ */
+
 import { sanitizeMediaUrl } from "@/lib/security";
 
 function trimText(value) {
@@ -38,6 +42,9 @@ function createPreviewDescription({ caption, sourceUrl }) {
 
   return "The original image could not be loaded, so a placeholder preview is shown instead.";
 }
+/**
+ * Returns whether a URL points to one of NewsPub's reserved fixture images.
+ */
 
 export function isReservedFixtureImageUrl(url) {
   const normalizedUrl = trimText(url);
@@ -54,6 +61,9 @@ export function isReservedFixtureImageUrl(url) {
     return false;
   }
 }
+/**
+ * Creates an inline placeholder image data URL for NewsPub media fallbacks.
+ */
 
 export function createImagePlaceholderDataUrl(options = {}) {
   const width = normalizeImageDimension(options.width, 1400);
@@ -99,6 +109,9 @@ export function createImagePlaceholderDataUrl(options = {}) {
 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
+/**
+ * Returns the safest renderable image URL for a NewsPub media reference.
+ */
 
 export function getRenderableImageUrl(url, options = {}) {
   const normalizedUrl = sanitizeMediaUrl(url);
@@ -261,6 +274,9 @@ function extractImageCandidatesFromJsonLd(html, pageUrl) {
 
   return candidates;
 }
+/**
+ * Extracts the best remote image URL candidate from a block of HTML.
+ */
 
 export function extractRemoteImageUrlFromHtml(html, pageUrl = "") {
   const page = trimText(pageUrl);
@@ -400,6 +416,9 @@ export async function validateRemoteMediaUrl(url, options = {}) {
     };
   }
 }
+/**
+ * Discovers the best remote image URL for a NewsPub source page.
+ */
 
 export async function discoverRemoteImageUrl(pageUrl, options = {}) {
   const safePageUrl = sanitizeMediaUrl(pageUrl);

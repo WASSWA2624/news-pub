@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and mutating NewsPub destination templates.
+ */
+
 import { z } from "zod";
 
 import { getTemplateManagementSnapshot, saveTemplateRecord } from "@/features/templates";
@@ -17,6 +21,9 @@ const templateSchema = z.object({
   titleTemplate: z.string().optional(),
 });
 
+/**
+ * Handles GET requests for the NewsPub templates admin API.
+ */
 export async function GET(request) {
   return handleAdminGet(
     request,
@@ -27,10 +34,7 @@ export async function GET(request) {
 }
 
 /**
- * Creates or updates a destination template.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The saved template response.
+ * Handles PUT requests for the NewsPub templates admin API.
  */
 export async function PUT(request) {
   return handleAdminMutation(

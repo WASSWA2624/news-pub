@@ -1,3 +1,7 @@
+/**
+ * Helpers that prepare manual-run windows and provider capability messaging for the NewsPub stream workspace.
+ */
+
 import {
   DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
   DEFAULT_FETCH_WINDOW_HOURS,

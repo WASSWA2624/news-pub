@@ -1,3 +1,7 @@
+/**
+ * Admin page for managing NewsPub editorial categories.
+ */
+
 import {
   AdminEyebrow,
   AdminHero,

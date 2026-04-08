@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin modal form for editing NewsPub canonical post content, publishing state, and diagnostics.
+ */
+
 import { useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

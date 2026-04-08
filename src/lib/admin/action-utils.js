@@ -1,3 +1,7 @@
+/**
+ * Form and redirect helpers shared by NewsPub admin server actions.
+ */
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 

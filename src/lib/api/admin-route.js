@@ -1,3 +1,7 @@
+/**
+ * Admin API helpers that centralize NewsPub auth checks, validation, and error envelopes.
+ */
+
 import { NextResponse } from "next/server";
 
 import { requireAdminApiPermission } from "@/lib/auth/api";

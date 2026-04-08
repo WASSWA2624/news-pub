@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin shell that frames authenticated NewsPub workspaces with shared navigation, status, and operator controls.
+ */
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";

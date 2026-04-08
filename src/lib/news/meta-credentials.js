@@ -1,3 +1,7 @@
+/**
+ * Meta credential resolution helpers for NewsPub Facebook publishing and credential refresh metadata.
+ */
+
 import { env } from "@/lib/env/server";
 import {
   buildCredentialSourceKey,
@@ -131,12 +135,18 @@ function createMisconfiguredMetaEnvError() {
   );
 }
 
+/**
+ * Returns whether a Meta API failure is the token-expired condition that should trigger credential refresh handling.
+ */
 export function isMetaTokenExpiredError(error) {
   const responseError = error?.responseJson?.error || error?.responseJson || {};
 
   return Number(responseError?.code) === 190;
 }
 
+/**
+ * Persists refreshed Meta credential metadata back onto the destination record when possible.
+ */
 export async function persistResolvedMetaCredential(destination, metadata = {}, prisma) {
   const currentSettings = normalizeSettings(destination?.settingsJson);
   const nextSettingsJson = getMetaCredentialMetadataPatch(currentSettings, metadata);
@@ -201,6 +211,9 @@ async function resolveFacebookPageCredentialFromUserSource(destination, source, 
   return resolvedCredential;
 }
 
+/**
+ * Resolves the credential NewsPub should use for the next Facebook publish attempt.
+ */
 export async function resolveFacebookPublishCredential(destination, prismaArg) {
   const prisma = prismaArg ? await resolvePrismaClient(prismaArg) : null;
   const accountId = getFacebookAccountId(destination);
@@ -252,6 +265,9 @@ export async function resolveFacebookPublishCredential(destination, prismaArg) {
   throw createMisconfiguredMetaEnvError();
 }
 
+/**
+ * Refreshes the Facebook publish credential after a token-expired failure or explicit retry.
+ */
 export async function refreshFacebookPublishCredential(destination, prismaArg) {
   const prisma = prismaArg ? await resolvePrismaClient(prismaArg) : null;
   const systemUserAccessToken = trimText(env.meta.systemUserAccessToken);

@@ -1,17 +1,13 @@
+/**
+ * Shared-fetch planning helpers that decide when NewsPub streams can safely widen one provider request together.
+ */
+
 import {
   getProviderEndpointShape,
   getProviderTimeBoundarySupport,
   resolveStreamProviderRequestValues,
 } from "@/lib/news/provider-definitions";
 import { mergeExecutionFetchWindows, serializeFetchWindow } from "@/lib/news/fetch-window";
-
-/**
- * Shared-fetch planning helpers for provider-aware multi-stream execution.
- *
- * NewsPub groups only the streams that can safely share one upstream request,
- * widens the provider request envelope where that is supported, and leaves the
- * rest of the stream-specific filtering inside the app layer.
- */
 
 const PROVIDER_CREDENTIAL_SOURCES = Object.freeze({
   mediastack: "MEDIASTACK_API_KEY",
@@ -177,6 +173,8 @@ function buildRequestSignature(requestValues, strategy, timeBoundarySupport) {
   const signature = {};
   const timeManagedFieldKeys = new Set(getTimeManagedFieldKeys(timeBoundarySupport));
 
+  // Time-window fields are partitioned by capability mode separately, so the
+  // signature keeps only the restrictive non-time filters that must stay identical.
   for (const fieldKey of strategy?.identicalFields || []) {
     if (timeManagedFieldKeys.has(fieldKey)) {
       continue;
@@ -198,6 +196,8 @@ function mergeSharedRequestValues(requestValuesList, strategy, timeBoundarySuppo
     delete baseRequestValues[fieldKey];
   }
 
+  // NewsPub widens only the fields that the provider contract marks as safe to
+  // union; stricter scalar filters stay in the signature and split the group.
   for (const fieldKey of strategy?.unionArrayFields || []) {
     const mergedValues = normalizeArray(requestValuesList.flatMap((requestValues) => requestValues?.[fieldKey] || []));
 
@@ -389,4 +389,3 @@ export function serializeSharedFetchGroup(group) {
     window: serializeFetchWindow(group.sharedFetchWindow),
   };
 }
-

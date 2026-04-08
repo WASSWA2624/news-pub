@@ -1,6 +1,13 @@
+/**
+ * Fallback admin screen that explains NewsPub RBAC access denials to authenticated operators.
+ */
+
 import NoticePage from "@/components/common/notice-page";
 import { getAdminPermissionTitle } from "@/lib/auth/rbac";
 
+/**
+ * Renders the Admin Access Denied Page in the NewsPub admin workspace.
+ */
 export default function AdminAccessDeniedPage({ pathname, permission, user }) {
   const requiredPermission = getAdminPermissionTitle(permission);
 

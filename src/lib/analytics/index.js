@@ -1,3 +1,7 @@
+/**
+ * Analytics and audit-log helpers used across NewsPub admin, workflow, and public tracking flows.
+ */
+
 import crypto from "node:crypto";
 
 import { z } from "zod";
@@ -170,6 +174,9 @@ async function resolvePrismaClient(prisma) {
 
   return getPrismaClient();
 }
+/**
+ * Returns a stable hashed analytics value for privacy-preserving NewsPub metrics.
+ */
 
 export function hashAnalyticsValue(value, secret = env.auth.session.secret, scope = "analytics") {
   return crypto
@@ -282,6 +289,9 @@ export async function recordViewEvent(input, options = {}, prisma) {
     },
   });
 }
+/**
+ * Serializes an audit event into the shape expected by NewsPub admin surfaces.
+ */
 
 export function serializeAuditEvent(event) {
   return {
@@ -294,10 +304,16 @@ export function serializeAuditEvent(event) {
     payload: event.payloadJson || null,
   };
 }
+/**
+ * Returns whether an audit action should be classified as a failure in NewsPub reporting.
+ */
 
 export function isFailureAuditAction(action) {
   return observabilityFailureActionValues.includes(action);
 }
+/**
+ * Returns whether an audit action should be classified as a warning in NewsPub reporting.
+ */
 
 export function isWarningAuditAction(action) {
   return observabilityWarningActionValues.includes(action);

@@ -1,3 +1,7 @@
+/**
+ * Feature services for NewsPub operational settings and runtime-health snapshots.
+ */
+
 import { resolvePrismaClient } from "@/lib/news/shared";
 import { env } from "@/lib/env/server";
 import { getConfigurationIssues } from "@/lib/validation/configuration";

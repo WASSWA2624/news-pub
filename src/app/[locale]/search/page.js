@@ -1,3 +1,7 @@
+/**
+ * Locale-aware NewsPub public search-results page.
+ */
+
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
@@ -7,6 +11,9 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
 
+/**
+ * Builds metadata for the locale-aware NewsPub public search page.
+ */
 export async function generateMetadata({ params, searchParams }) {
   const { locale } = await params;
   const resolvedSearchParams = await searchParams;
@@ -29,6 +36,9 @@ export async function generateMetadata({ params, searchParams }) {
     title: pageContent.metaTitle || pageContent.title || messages.site.title,
   });
 }
+/**
+ * Renders the NewsPub locale search page.
+ */
 
 export default async function SearchPage({ params, searchParams }) {
   const { locale } = await params;

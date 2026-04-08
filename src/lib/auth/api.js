@@ -1,3 +1,7 @@
+/**
+ * Admin API authentication helpers for NewsPub session cookies, login, logout, and permission enforcement.
+ */
+
 import { NextResponse } from "next/server";
 
 import { SESSION_COOKIE_NAME } from "@/lib/auth/config";
@@ -22,10 +26,16 @@ function getSessionCookieSettings(expiresAt) {
   };
 }
 
+/**
+ * Stores the validated NewsPub admin session token on the response cookie.
+ */
 export function setAdminSessionCookie(response, sessionToken, expiresAt) {
   response.cookies.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieSettings(expiresAt));
 }
 
+/**
+ * Expires the NewsPub admin session cookie on the response.
+ */
 export function clearAdminSessionCookie(response) {
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     ...getSessionCookieSettings(new Date(0)),
@@ -33,6 +43,9 @@ export function clearAdminSessionCookie(response) {
   });
 }
 
+/**
+ * Validates the current admin API session and returns a standard auth response when it is missing or stale.
+ */
 export async function requireAdminApiSession(request) {
   const validation = await validateRequestAdminSession(request);
 
@@ -58,10 +71,16 @@ export async function requireAdminApiSession(request) {
   return validation;
 }
 
+/**
+ * Builds the standard 403 JSON payload for an admin API permission failure.
+ */
 export function createAdminAuthorizationFailureResponse(permission, user) {
   return NextResponse.json(getAdminAuthorizationFailure(permission, user), { status: 403 });
 }
 
+/**
+ * Returns a permission failure response when the authenticated admin lacks the requested capability.
+ */
 export function ensureAdminApiPermission(user, permission) {
   if (hasAdminPermission(user, permission)) {
     return null;
@@ -70,6 +89,9 @@ export function ensureAdminApiPermission(user, permission) {
   return createAdminAuthorizationFailureResponse(permission, user);
 }
 
+/**
+ * Combines admin session validation with RBAC checks for protected NewsPub APIs.
+ */
 export async function requireAdminApiPermission(request, permission) {
   const auth = await requireAdminApiSession(request);
 
@@ -88,6 +110,9 @@ export async function requireAdminApiPermission(request, permission) {
   return auth;
 }
 
+/**
+ * Authenticates admin credentials, creates the session cookie, and returns the standard NewsPub login payload.
+ */
 export async function createLoginResponse({ email, password, userAgent }) {
   const result = await authenticateAdminCredentials({ email, password, userAgent });
 
@@ -109,6 +134,9 @@ export async function createLoginResponse({ email, password, userAgent }) {
   return response;
 }
 
+/**
+ * Invalidates the current admin session token and clears the NewsPub session cookie.
+ */
 export async function createLogoutResponse(sessionToken) {
   await invalidateAdminSession(sessionToken);
 

@@ -1,3 +1,7 @@
+/**
+ * Feature services that assemble NewsPub public home, collection, story, and static page data.
+ */
+
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import {

@@ -1,3 +1,7 @@
+/**
+ * Low-level password and session helpers used by the NewsPub admin authentication stack.
+ */
+
 import crypto from "node:crypto";
 
 function extractBearerToken(value) {
@@ -31,6 +35,9 @@ function areSecretsEqual(providedSecret, expectedSecret) {
   return crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 }
 
+/**
+ * Returns whether has Request Secret for NewsPub admin authentication.
+ */
 export function hasRequestSecret(
   request,
   expectedSecret,

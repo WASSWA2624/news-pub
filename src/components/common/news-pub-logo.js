@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Brand mark component for NewsPub headers, navigation, and metadata surfaces.
+ */
+
 import { useId } from "react";
 
 /**

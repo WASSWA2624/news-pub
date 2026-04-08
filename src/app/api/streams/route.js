@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and mutating NewsPub publishing streams.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -30,6 +34,9 @@ const streamSchema = z.object({
   timezone: z.string().trim().min(1),
 });
 
+/**
+ * Handles GET requests for the NewsPub streams admin API.
+ */
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_STREAMS);
 
@@ -49,6 +56,9 @@ export async function GET(request) {
   }
 }
 
+/**
+ * Handles PUT requests for the NewsPub streams admin API.
+ */
 export async function PUT(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_STREAMS);
 

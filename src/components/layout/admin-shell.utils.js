@@ -1,3 +1,7 @@
+/**
+ * Responsive layout constants and helpers shared by the NewsPub admin shell.
+ */
+
 export const MOBILE_BREAKPOINT = 720;
 export const DESKTOP_BREAKPOINT = 1220;
 export const TABLET_HEADER_BREAKPOINT = 720;

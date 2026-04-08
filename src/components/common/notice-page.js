@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Reusable notice-page composition for static NewsPub messaging and fallback screens.
+ */
+
 import styled from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
@@ -143,6 +147,9 @@ const FooterNote = styled.p`
   margin: 0;
 `;
 
+/**
+ * Renders a reusable NewsPub notice page with title, body copy, and optional navigation actions.
+ */
 export default function NoticePage({
   badges = [],
   description,

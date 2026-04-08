@@ -174,6 +174,9 @@ const SectionTitleRow = styled.span`
   min-width: 0;
 `;
 
+/**
+ * Renders the Admin Hero Heading in the NewsPub admin workspace.
+ */
 export function AdminHeroHeading({ description, icon, title, tone = "primary" }) {
   return (
     <AdminHeroHeadingRow>
@@ -190,6 +193,9 @@ export function AdminHeroHeading({ description, icon, title, tone = "primary" })
   );
 }
 
+/**
+ * Renders the Admin Metric Card in the NewsPub admin workspace.
+ */
 export function AdminMetricCard({ icon, label, tone = "primary", value }) {
   return (
     <SummaryCard>
@@ -302,6 +308,9 @@ export const CardTitle = styled.h2`
   margin: 0;
 `;
 
+/**
+ * Renders the Admin Section Title in the NewsPub admin workspace.
+ */
 export function AdminSectionTitle({ children, icon, tone = "accent" }) {
   return (
     <CardTitle>
@@ -958,10 +967,16 @@ export const InlineMetaText = styled(SmallText)`
   }
 `;
 
+/**
+ * Renders the Action Icon in the NewsPub admin workspace.
+ */
 export function ActionIcon({ name }) {
   return <AppIcon name={name} size={18} />;
 }
 
+/**
+ * Formats format Date Time in the NewsPub admin workspace.
+ */
 export function formatDateTime(value) {
   if (!value) {
     return "Not yet";
@@ -973,6 +988,9 @@ export function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+/**
+ * Formats format Enum Label in the NewsPub admin workspace.
+ */
 export function formatEnumLabel(value) {
   return `${value || ""}`
     .trim()

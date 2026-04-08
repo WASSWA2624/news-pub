@@ -1,3 +1,7 @@
+/**
+ * styled-components primitives for the reusable searchable select control used across NewsPub admin forms.
+ */
+
 import styled, { keyframes } from "styled-components";
 
 import OptionFlag from "@/components/common/option-flag";

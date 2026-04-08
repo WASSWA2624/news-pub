@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Admin provider editor that captures NewsPub provider labels, request defaults, and default-selection rules.
+ */
+
 import { useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 

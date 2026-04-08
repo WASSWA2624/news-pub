@@ -1,6 +1,13 @@
+/**
+ * Feature services for NewsPub destination-template management and template CRUD.
+ */
+
 import { createAuditEventRecord } from "@/lib/analytics";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { getTemplateValidationIssues } from "@/lib/validation/configuration";
+/**
+ * Returns the admin snapshot used by the NewsPub template management screen.
+ */
 
 export async function getTemplateManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
@@ -52,6 +59,9 @@ export async function getTemplateManagementSnapshot(prisma) {
     },
   };
 }
+/**
+ * Creates or updates a NewsPub destination template record.
+ */
 
 export async function saveTemplateRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);

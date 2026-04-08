@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for NewsPub job history and operator-triggered job actions.
+ */
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -22,6 +26,9 @@ const jobRunSchema = z
     streamIds: z.array(z.string().trim().min(1)).min(1).optional(),
   });
 
+/**
+ * Handles GET requests for the NewsPub jobs admin API.
+ */
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.VIEW_JOBS);
 
@@ -44,6 +51,9 @@ export async function GET(request) {
   }
 }
 
+/**
+ * Handles POST requests for the NewsPub jobs admin API.
+ */
 export async function POST(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.VIEW_JOBS);
 

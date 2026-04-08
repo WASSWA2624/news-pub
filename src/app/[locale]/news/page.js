@@ -1,3 +1,7 @@
+/**
+ * Locale-aware NewsPub news index page.
+ */
+
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
@@ -6,6 +10,9 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
 
+/**
+ * Builds metadata for the locale-aware NewsPub story index.
+ */
 export async function generateMetadata({ params, searchParams }) {
   const { locale } = await params;
   const resolvedSearchParams = await searchParams;
@@ -21,6 +28,9 @@ export async function generateMetadata({ params, searchParams }) {
     title: pageContent.metaTitle || pageContent.title || messages.site.title,
   });
 }
+/**
+ * Renders the NewsPub locale news page.
+ */
 
 export default async function NewsIndexPage({ params, searchParams }) {
   const { locale } = await params;

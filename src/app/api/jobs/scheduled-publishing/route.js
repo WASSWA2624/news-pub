@@ -1,3 +1,7 @@
+/**
+ * Protected API route for running scheduled NewsPub publishing work.
+ */
+
 import { NextResponse } from "next/server";
 
 import { requireAdminApiPermission } from "@/lib/auth/api";
@@ -12,6 +16,9 @@ function hasCronAuthorization(request) {
   });
 }
 
+/**
+ * Handles POST requests for the NewsPub scheduled publishing job API.
+ */
 export async function POST(request) {
   if (!hasCronAuthorization(request)) {
     const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.VIEW_JOBS);

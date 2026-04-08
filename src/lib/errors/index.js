@@ -1,3 +1,7 @@
+/**
+ * Standard NewsPub API and workflow error helpers with consistent operator-safe responses.
+ */
+
 import { NextResponse } from "next/server";
 
 import { NewsPubError } from "@/lib/news/shared";
@@ -39,6 +43,9 @@ export function normalizeAppError(error, fallbackMessage = "A NewsPub error occu
     statusCode: Number.isInteger(error?.statusCode) ? error.statusCode : 500,
   };
 }
+/**
+ * Creates the standard API error payload returned by NewsPub routes.
+ */
 
 export function createApiErrorPayload(error, fallbackMessage) {
   const normalizedError = normalizeAppError(error, fallbackMessage);
@@ -54,6 +61,9 @@ export function createApiErrorPayload(error, fallbackMessage) {
     statusCode: normalizedError.statusCode,
   };
 }
+/**
+ * Creates the standard API error response returned by NewsPub routes.
+ */
 
 export function createApiErrorResponse(error, fallbackMessage) {
   const payload = createApiErrorPayload(error, fallbackMessage);

@@ -1,3 +1,7 @@
+/**
+ * Admin page for creating a manual NewsPub story.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,

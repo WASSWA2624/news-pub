@@ -1,12 +1,13 @@
+/**
+ * Admin API route for the NewsPub dashboard metrics and runtime-health summary.
+ */
+
 import { getAdminDashboardSnapshot } from "@/features/analytics";
 import { handleAdminGet } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
 /**
- * Returns the authenticated admin metrics snapshot used by the dashboard.
- *
- * @param {Request} request - Incoming route request.
- * @returns {Promise<Response>} The admin metrics response.
+ * Handles GET requests for the NewsPub metrics admin API.
  */
 export async function GET(request) {
   return handleAdminGet(

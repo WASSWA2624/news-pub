@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Client submit control that adds confirmation handling to sensitive NewsPub admin actions.
+ */
+
 import { useEffect, useId, useRef } from "react";
 import styled from "styled-components";
 

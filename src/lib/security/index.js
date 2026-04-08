@@ -1,3 +1,7 @@
+/**
+ * Security helpers for NewsPub secret encryption, decryption, and sensitive-value handling.
+ */
+
 const safeAbsoluteProtocols = new Set(["http:", "https:"]);
 const safeHrefProtocols = new Set(["http:", "https:", "mailto:", "tel:"]);
 const blockedHtmlTags = Object.freeze([
@@ -104,10 +108,16 @@ function sanitizeStructuredSection(section) {
 
   return nextSection;
 }
+/**
+ * Sanitizes an external URL before NewsPub renders or stores it.
+ */
 
 export function sanitizeExternalUrl(value) {
   return normalizeAbsoluteUrl(value, safeAbsoluteProtocols);
 }
+/**
+ * Sanitizes a hyperlink URL before NewsPub renders it into HTML.
+ */
 
 export function sanitizeHrefUrl(value) {
   const normalizedValue = normalizeUrlText(value);
@@ -126,6 +136,9 @@ export function sanitizeHrefUrl(value) {
 
   return normalizeAbsoluteUrl(normalizedValue, safeHrefProtocols);
 }
+/**
+ * Sanitizes a media URL before NewsPub fetches or renders it.
+ */
 
 export function sanitizeMediaUrl(value) {
   const normalizedValue = normalizeUrlText(value);
@@ -144,6 +157,9 @@ export function sanitizeMediaUrl(value) {
 
   return sanitizeExternalUrl(normalizedValue);
 }
+/**
+ * Sanitizes an HTML fragment before NewsPub stores or renders it.
+ */
 
 export function sanitizeHtmlFragment(value) {
   if (typeof value !== "string") {
@@ -182,6 +198,9 @@ export function sanitizeHtmlFragment(value) {
 
   return sanitizedValue.trim();
 }
+/**
+ * Sanitizes structured content JSON before NewsPub persists or renders it.
+ */
 
 export function sanitizeStructuredContentJson(value) {
   const clonedValue = cloneJsonValue(value);

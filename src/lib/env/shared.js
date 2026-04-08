@@ -1,3 +1,7 @@
+/**
+ * Shared environment parsing helpers reused across NewsPub runtime and tooling code.
+ */
+
 import { parseSharedEnv } from "@/lib/env/runtime";
 
 const sharedEnvSource = {

@@ -1,3 +1,7 @@
+/**
+ * Responsive image wrapper used for NewsPub story, card, and media rendering.
+ */
+
 import Image from "next/image";
 
 const DEFAULT_WIDTH = 1200;

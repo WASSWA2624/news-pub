@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for listing and creating NewsPub canonical posts.
+ */
+
 import { z } from "zod";
 
 import { NextResponse } from "next/server";
@@ -27,6 +31,9 @@ const createManualPostSchema = z.object({
   title: z.string().optional(),
 });
 
+/**
+ * Handles GET requests for the NewsPub posts admin API.
+ */
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.VIEW_POST_INVENTORY);
 
@@ -50,6 +57,9 @@ export async function GET(request) {
   }
 }
 
+/**
+ * Handles POST requests for the NewsPub posts admin API.
+ */
 export async function POST(request) {
   const auth = await requireAdminApiSession(request);
 

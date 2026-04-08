@@ -1,3 +1,7 @@
+/**
+ * Storage adapter helpers for local and S3-backed NewsPub media persistence.
+ */
+
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -43,6 +47,9 @@ function createLocalStorageAbsolutePath(basePath, key) {
 function createPublicUrl(baseUrl, key) {
   return `${normalizeBaseUrl(baseUrl)}/${key}`;
 }
+/**
+ * Creates the local-filesystem storage adapter used by NewsPub media uploads.
+ */
 
 export function createLocalStorageAdapter(config) {
   return {
@@ -78,6 +85,9 @@ export function createLocalStorageAdapter(config) {
     },
   };
 }
+/**
+ * Creates the S3-compatible storage adapter used by NewsPub media uploads.
+ */
 
 export function createS3StorageAdapter(config, overrides = {}) {
   const client =
@@ -131,6 +141,9 @@ export function createS3StorageAdapter(config, overrides = {}) {
     },
   };
 }
+/**
+ * Creates the active NewsPub storage adapter from the configured media settings.
+ */
 
 export function createStorageAdapter(mediaConfig = env.media, overrides = {}) {
   if (mediaConfig.driver === "local") {

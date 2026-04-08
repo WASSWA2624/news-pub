@@ -1,3 +1,7 @@
+/**
+ * Admin page for NewsPub runtime settings, environment health, and operational checks.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,

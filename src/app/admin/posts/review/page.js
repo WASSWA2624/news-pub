@@ -1,3 +1,7 @@
+/**
+ * Admin page for reviewing held NewsPub stories awaiting editorial action.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,

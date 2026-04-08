@@ -1,3 +1,7 @@
+/**
+ * Search-page helpers that shape NewsPub public search results and empty states.
+ */
+
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
 function buildSearchHref(searchPath, { country = "", query = "" } = {}) {

@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Client analytics tracker that records NewsPub public view events without blocking rendering.
+ */
+
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
@@ -24,6 +28,9 @@ function shouldSkipRecentDuplicate(key, now) {
   }
 }
 
+/**
+ * Tracks NewsPub public view events after the page becomes visible to the reader.
+ */
 export default function PublicViewTracker({ eventType, locale, postId = null }) {
   const pathname = usePathname();
 

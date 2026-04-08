@@ -1,3 +1,7 @@
+/**
+ * Admin API route handlers for browsing and uploading NewsPub media assets.
+ */
+
 import { NextResponse } from "next/server";
 
 import { getMediaLibrarySnapshot, uploadMediaAsset } from "@/features/media";
@@ -16,6 +20,9 @@ function getFormDataFile(formData, key) {
   return value && typeof value === "object" && typeof value.arrayBuffer === "function" ? value : null;
 }
 
+/**
+ * Handles GET requests for the NewsPub media admin API.
+ */
 export async function GET(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_MEDIA);
 
@@ -31,6 +38,9 @@ export async function GET(request) {
   });
 }
 
+/**
+ * Handles POST requests for the NewsPub media admin API.
+ */
 export async function POST(request) {
   const auth = await requireAdminApiPermission(request, ADMIN_PERMISSIONS.MANAGE_MEDIA);
 

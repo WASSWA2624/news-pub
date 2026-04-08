@@ -1,6 +1,13 @@
+/**
+ * React helpers for rendering structured SEO data on NewsPub public pages.
+ */
+
 function serializeJsonLd(data) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+/**
+ * Renders the structured Data Script in NewsPub UI.
+ */
 
 export function StructuredDataScript({ data, id }) {
   if (!data) {
@@ -17,6 +24,9 @@ export function StructuredDataScript({ data, id }) {
     />
   );
 }
+/**
+ * Renders the structured Data Bundle in NewsPub UI.
+ */
 
 export function StructuredDataBundle({ idPrefix = "structured-data", items = [] }) {
   const entries = (items || []).filter(Boolean);

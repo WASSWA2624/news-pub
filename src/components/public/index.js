@@ -1,3 +1,7 @@
+/**
+ * Shared NewsPub public-page compositions for home, collection, story, and static routes.
+ */
+
 import Link from "next/link";
 import styled, { css } from "styled-components";
 

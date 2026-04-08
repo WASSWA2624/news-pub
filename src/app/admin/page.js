@@ -1,3 +1,7 @@
+/**
+ * NewsPub admin dashboard page.
+ */
+
 import {
   ActionIcon,
   AdminEyebrow,

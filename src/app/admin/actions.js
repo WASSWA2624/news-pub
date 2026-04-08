@@ -1,5 +1,9 @@
 "use server";
 
+/**
+ * Server actions that power NewsPub admin forms, manual runs, editorial updates, and media uploads.
+ */
+
 import { deleteCategoryRecord, saveCategoryRecord } from "@/features/categories";
 import { deleteDestinationRecord, saveDestinationRecord } from "@/features/destinations";
 import { uploadMediaAsset } from "@/features/media";
