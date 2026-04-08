@@ -35,6 +35,7 @@ import AppIcon from "@/components/common/app-icon";
 import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import {
+  MULTI_VALUE_EMPTY_SENTINEL,
   getProviderDefinition,
   getProviderExecutionLimits,
   getProviderRequestDefaultValues,
@@ -106,6 +107,42 @@ const SectionActionRow = styled.div`
 
 function trimFieldValue(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function parseScopedFormValues(formElement, prefix) {
+  if (!(formElement instanceof HTMLFormElement)) {
+    return {};
+  }
+
+  const groupedEntries = new Map();
+
+  for (const [rawKey, rawValue] of new FormData(formElement).entries()) {
+    if (!rawKey.startsWith(prefix)) {
+      continue;
+    }
+
+    const key = `${rawKey.slice(prefix.length)}`.trim();
+    const value = typeof rawValue === "string" ? rawValue.trim() : "";
+
+    if (!key) {
+      continue;
+    }
+
+    if (!groupedEntries.has(key)) {
+      groupedEntries.set(key, []);
+    }
+
+    groupedEntries.get(key).push(value);
+  }
+
+  return [...groupedEntries.entries()].reduce((result, [key, values]) => {
+    const hadSentinel = values.includes(MULTI_VALUE_EMPTY_SENTINEL);
+    const cleanedValues = values.filter((value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL);
+
+    result[key] = values.length > 1 || hadSentinel ? cleanedValues : cleanedValues[0] || "";
+
+    return result;
+  }, {});
 }
 
 function createOptionalStreamSlug(value) {
@@ -366,6 +403,11 @@ export default function StreamFormCard({
     destination: selectedDestination || undefined,
     maxPostsPerRun,
     mode,
+    providerDefaults:
+      selectedProvider?.requestDefaultsJson
+      || stream?.activeProvider?.requestDefaultsJson
+      || {},
+    providerFilters: providerFormValues,
     providerKey: selectedProvider?.providerKey,
     template: selectedTemplate?.value ? selectedTemplate : undefined,
   });
@@ -395,6 +437,16 @@ export default function StreamFormCard({
   function handleProviderFormValuesChange(nextValues) {
     setProviderFormValues((currentValues) =>
       areProviderFormValuesEqual(currentValues, nextValues) ? currentValues : nextValues,
+    );
+  }
+
+  function syncProviderFormValuesFromForm() {
+    const nextProviderFormValues = parseScopedFormValues(formRef.current, "providerFilter.");
+
+    setProviderFormValues((currentValues) =>
+      areProviderFormValuesEqual(currentValues, nextProviderFormValues)
+        ? currentValues
+        : nextProviderFormValues,
     );
   }
 
@@ -493,7 +545,14 @@ export default function StreamFormCard({
   }
 
   return (
-    <StreamForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
+    <StreamForm
+      action={action}
+      id={formId}
+      onChangeCapture={syncProviderFormValuesFromForm}
+      onInputCapture={syncProviderFormValuesFromForm}
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
 
       <AdminValidationSummary
