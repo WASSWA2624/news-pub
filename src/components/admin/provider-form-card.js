@@ -28,11 +28,45 @@ import { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
 import SearchableSelect from "@/components/common/searchable-select";
 import ProviderFilterFields from "@/components/admin/provider-filter-fields";
-import { getProviderRequestDefaultValues, listProviderDefinitions } from "@/lib/news/provider-definitions";
+import {
+  MULTI_VALUE_EMPTY_SENTINEL,
+  getProviderRequestDefaultValues,
+  getProviderRequestValidationIssues,
+  listProviderDefinitions,
+  sanitizeProviderFieldValues,
+} from "@/lib/news/provider-definitions";
 
 const ProviderForm = styled.form`
   display: grid;
   gap: 0.95rem;
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(var(--theme-text-rgb), 0.6);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.94) inset,
+      0 10px 22px rgba(22, 36, 49, 0.06);
+  }
+
+  input[type="text"]:hover,
+  input[type="number"]:hover,
+  input[type="date"]:hover,
+  input[type="datetime-local"]:hover,
+  textarea:hover,
+  select:hover {
+    border-color: rgba(var(--theme-text-rgb), 0.74);
+  }
+
+  input[aria-invalid="true"],
+  textarea[aria-invalid="true"],
+  select[aria-invalid="true"] {
+    border-color: rgba(var(--theme-danger-rgb), 0.75);
+  }
 `;
 
 const SectionActionRow = styled.div`
@@ -79,6 +113,42 @@ const providerBaseUrls = Object.freeze({
   newsdata: "https://newsdata.io/api/1/latest",
 });
 
+function parseScopedFormValues(formElement, prefix) {
+  if (!(formElement instanceof HTMLFormElement)) {
+    return {};
+  }
+
+  const groupedEntries = new Map();
+
+  for (const [rawKey, rawValue] of new FormData(formElement).entries()) {
+    if (!rawKey.startsWith(prefix)) {
+      continue;
+    }
+
+    const key = `${rawKey.slice(prefix.length)}`.trim();
+    const value = typeof rawValue === "string" ? rawValue.trim() : "";
+
+    if (!key) {
+      continue;
+    }
+
+    if (!groupedEntries.has(key)) {
+      groupedEntries.set(key, []);
+    }
+
+    groupedEntries.get(key).push(value);
+  }
+
+  return [...groupedEntries.entries()].reduce((result, [key, values]) => {
+    const hadSentinel = values.includes(MULTI_VALUE_EMPTY_SENTINEL);
+    const cleanedValues = values.filter((value) => value && value !== MULTI_VALUE_EMPTY_SENTINEL);
+
+    result[key] = values.length > 1 || hadSentinel ? cleanedValues : cleanedValues[0] || "";
+
+    return result;
+  }, {});
+}
+
 /**
  * Renders the provider editor used by the admin workspace modal.
  *
@@ -103,6 +173,8 @@ export default function ProviderFormCard({
   const [providerKey, setProviderKey] = useState(provider?.providerKey || providerDefinitions[0]?.key || "");
   const [metadataResetKey, setMetadataResetKey] = useState(0);
   const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
+  const [requestDefaultsMode, setRequestDefaultsMode] = useState("saved");
+  const [requestDefaultsDraft, setRequestDefaultsDraft] = useState(() => getProviderRequestDefaultValues(provider));
   const [availabilityResetKey, setAvailabilityResetKey] = useState(0);
   const formId = useId();
   const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
@@ -112,14 +184,30 @@ export default function ProviderFormCard({
   const nextDescription = isExistingProviderSelection
     ? provider?.description || providerDescriptions[providerKey] || ""
     : providerDescriptions[providerKey] || "";
-  const nextRequestDefaults = isExistingProviderSelection
+  const savedRequestDefaults = isExistingProviderSelection
     ? getProviderRequestDefaultValues(provider)
     : selectedDefinition?.defaultRequestDefaults || {};
+  const officialRequestDefaults = selectedDefinition?.defaultRequestDefaults || {};
+  const nextRequestDefaults = requestDefaultsMode === "official"
+    ? officialRequestDefaults
+    : savedRequestDefaults;
   const requestDefaultCount = Object.keys(nextRequestDefaults || {}).length;
   const formRef = useRef(null);
+  const providerValidationIssues = getProviderRequestValidationIssues(providerKey, {
+    providerDefaults: sanitizeProviderFieldValues(providerKey, requestDefaultsDraft),
+  });
+
+  function syncRequestDefaultsDraft() {
+    const nextDraft = sanitizeProviderFieldValues(
+      providerKey,
+      parseScopedFormValues(formRef.current, "requestDefault."),
+    );
+
+    setRequestDefaultsDraft(nextDraft);
+  }
 
   function handleSubmit(event) {
-    if (formRef.current?.checkValidity()) {
+    if (providerValidationIssues.length === 0 && formRef.current?.checkValidity()) {
       return;
     }
 
@@ -128,11 +216,17 @@ export default function ProviderFormCard({
   }
 
   return (
-    <ProviderForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
+    <ProviderForm
+      action={action}
+      id={formId}
+      onChangeCapture={syncRequestDefaultsDraft}
+      onInputCapture={syncRequestDefaultsDraft}
+      onSubmit={handleSubmit}
+      ref={formRef}
+    >
       <AdminValidationSummary
-        items={[]}
-        title="Provider metadata is ready to save."
-        tone="success"
+        items={providerValidationIssues.map((issue) => issue.message)}
+        title="Fix the provider request defaults before saving."
       />
 
       <AdminDisclosureSection
@@ -156,6 +250,8 @@ export default function ProviderFormCard({
               name="providerKey"
               onChange={(value) => {
                 setProviderKey(`${value || ""}`);
+                setRequestDefaultsMode("saved");
+                setRequestDefaultsDraft({});
                 setMetadataResetKey((currentValue) => currentValue + 1);
                 setRequestDefaultsResetKey((currentValue) => currentValue + 1);
               }}
@@ -224,7 +320,11 @@ export default function ProviderFormCard({
       >
         <SectionActionRow>
           <SecondaryButton
-            onClick={() => setRequestDefaultsResetKey((currentValue) => currentValue + 1)}
+            onClick={() => {
+              setRequestDefaultsMode("saved");
+              setRequestDefaultsDraft(savedRequestDefaults);
+              setRequestDefaultsResetKey((currentValue) => currentValue + 1);
+            }}
             type="button"
           >
             <ButtonIcon>
@@ -232,13 +332,27 @@ export default function ProviderFormCard({
             </ButtonIcon>
             Reset request defaults
           </SecondaryButton>
+          <SecondaryButton
+            onClick={() => {
+              setRequestDefaultsMode("official");
+              setRequestDefaultsDraft(officialRequestDefaults);
+              setRequestDefaultsResetKey((currentValue) => currentValue + 1);
+            }}
+            type="button"
+          >
+            <ButtonIcon>
+              <ActionIcon name="sparkles" />
+            </ButtonIcon>
+            Restore official defaults
+          </SecondaryButton>
         </SectionActionRow>
         <FieldHint>
-          Restore the selected provider&apos;s default request settings before saving when you want to discard local tweaks.
+          Reset returns to the saved provider defaults. Restore official defaults replaces them with the baseline that ships with the selected provider integration.
         </FieldHint>
         <ProviderFilterFields
-          key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}`}
+          key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}-${requestDefaultsMode}`}
           namePrefix="requestDefault"
+          onValuesChange={setRequestDefaultsDraft}
           providerKey={providerKey}
           scope="provider"
           values={nextRequestDefaults}
@@ -286,6 +400,7 @@ export default function ProviderFormCard({
 
       <AdminModalFooterActions>
         <PendingSubmitButton
+          disabled={providerValidationIssues.length > 0}
           form={formId}
           icon="save"
           pendingLabel="Saving provider..."

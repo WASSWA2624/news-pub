@@ -98,6 +98,65 @@ describe("admin actions", () => {
     expect(redirect).toHaveBeenCalledWith("/admin/providers");
   });
 
+  it("redirects provider save failures back with the provider validation message", async () => {
+    const revalidatePath = vi.fn();
+    const redirect = vi.fn(() => {
+      throw new Error("NEXT_REDIRECT");
+    });
+    const saveProviderRecord = vi.fn().mockRejectedValue(new Error("NewsAPI query is too long."));
+    const sanitizeProviderFieldValues = vi.fn().mockReturnValue({
+      endpoint: "everything",
+    });
+
+    vi.doMock("next/cache", () => ({
+      revalidatePath,
+    }));
+    vi.doMock("next/navigation", () => ({
+      redirect,
+    }));
+    vi.doMock("@/features/providers", () => ({
+      saveProviderRecord,
+    }));
+    vi.doMock("@/lib/auth", () => ({
+      requireAdminPageSession: vi.fn().mockResolvedValue({
+        user: {
+          id: "admin_1",
+        },
+      }),
+    }));
+    vi.doMock("@/lib/news/provider-definitions", () => ({
+      MULTI_VALUE_EMPTY_SENTINEL: "__empty__",
+      sanitizeProviderFieldValues,
+    }));
+    vi.doMock("@/features/categories", () => ({ deleteCategoryRecord: vi.fn(), saveCategoryRecord: vi.fn() }));
+    vi.doMock("@/features/destinations", () => ({ deleteDestinationRecord: vi.fn(), saveDestinationRecord: vi.fn() }));
+    vi.doMock("@/features/media", () => ({ uploadMediaAsset: vi.fn() }));
+    vi.doMock("@/features/templates", () => ({ saveTemplateRecord: vi.fn() }));
+    vi.doMock("@/features/settings", () => ({ getSettingsSnapshot: vi.fn() }));
+    vi.doMock("@/features/posts", () => ({
+      createManualPostRecord: vi.fn(),
+      repostPostRecord: vi.fn(),
+      updatePostEditorialRecord: vi.fn(),
+    }));
+    vi.doMock("@/features/streams", () => ({ deleteStreamRecord: vi.fn(), saveStreamRecord: vi.fn() }));
+    vi.doMock("@/lib/news/workflows", () => ({
+      runMultipleStreamFetches: vi.fn(),
+      retryPublishAttempt: vi.fn(),
+      runScheduledStreams: vi.fn(),
+      runStreamFetch: vi.fn(),
+    }));
+
+    const { saveProviderAction } = await import("./actions");
+    const formData = new FormData();
+    formData.set("providerKey", "newsapi");
+    formData.set("label", "News API");
+    formData.set("requestDefault.endpoint", "everything");
+
+    await expect(saveProviderAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/providers");
+    expect(redirect).toHaveBeenCalledWith("/admin/providers?error=NewsAPI%20query%20is%20too%20long.");
+  });
+
   it("redirects stream deletion failures back with an encoded error message", async () => {
     const revalidatePath = vi.fn();
     const redirect = vi.fn(() => {

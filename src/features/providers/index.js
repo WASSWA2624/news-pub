@@ -3,7 +3,7 @@
  */
 
 import { createAuditEventRecord } from "@/lib/analytics";
-import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
+import { getProviderRequestValidationIssues, sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
 import { listNewsProviders, getProviderCredentialState } from "@/lib/news/providers";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 /**
@@ -44,6 +44,17 @@ export async function saveProviderRecord(input, { actorId } = {}, prisma) {
 
   if (!providerKey || !label) {
     throw new NewsPubError("Provider key and label are required.", {
+      status: "provider_validation_failed",
+      statusCode: 400,
+    });
+  }
+
+  const validationIssues = getProviderRequestValidationIssues(providerKey, {
+    providerDefaults: requestDefaultsJson,
+  });
+
+  if (validationIssues.length) {
+    throw new NewsPubError(validationIssues[0].message, {
       status: "provider_validation_failed",
       statusCode: 400,
     });

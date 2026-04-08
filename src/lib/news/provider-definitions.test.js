@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getProviderEndpointShape,
   getProviderFormDefinition,
+  getProviderRequestValidationIssues,
   getProviderTimeBoundarySupport,
 } from "./provider-definitions";
 
@@ -91,5 +92,50 @@ describe("provider definition option metadata", () => {
       input: "date",
       precision: "datetime",
     });
+  });
+
+  it('flags NewsAPI "Everything" queries longer than 500 characters', () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        endpoint: "everything",
+        q: "a".repeat(501),
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsapi_everything_query_too_long",
+      },
+    ]);
+  });
+
+  it("flags NewsData archive defaults without a complete date range", () => {
+    const issues = getProviderRequestValidationIssues("newsdata", {
+      providerDefaults: {
+        endpoint: "archive",
+        fromDate: "2026-04-01",
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsdata_archive_requires_date_range",
+      },
+    ]);
+  });
+
+  it("flags NewsData category and exclude-category filters when both are present", () => {
+    const issues = getProviderRequestValidationIssues("newsdata", {
+      providerDefaults: {
+        category: ["politics"],
+        excludeCategories: ["sports"],
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsdata_category_and_exclude_incompatible",
+      },
+    ]);
   });
 });

@@ -660,8 +660,12 @@ export const FieldErrorText = styled.p`
 const fieldStyles = css`
   ${controlSurfaceCss}
   ${focusRingCss}
-  border: 1px solid rgba(var(--theme-text-rgb), 0.48);
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.58);
   border-radius: 0;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.94) inset,
+    0 10px 22px rgba(22, 36, 49, 0.06);
   color: #1f314b;
   font-size: 0.88rem;
   min-height: var(--admin-control-min-height);
@@ -677,7 +681,7 @@ const fieldStyles = css`
   }
 
   &:hover {
-    border-color: rgba(var(--theme-text-rgb), 0.62);
+    border-color: rgba(var(--theme-text-rgb), 0.72);
   }
 
   &[aria-invalid="true"] {

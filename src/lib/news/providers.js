@@ -484,7 +484,8 @@ function buildNewsDataRequest({
   appendScalarParam(url, "qInMeta", requestValues.qInMeta);
   appendIncludeExcludeListParam(url, "language", requestValues.language, requestValues.excludeLanguages);
   appendIncludeExcludeListParam(url, "country", requestValues.country, requestValues.excludeCountries);
-  appendIncludeExcludeListParam(url, "category", requestValues.category, requestValues.excludeCategories);
+  appendListParam(url, "category", requestValues.category);
+  appendListParam(url, "excludecategory", requestValues.excludeCategories);
   appendScalarParam(url, "sort", requestValues.sort);
   appendListParam(url, "datatype", requestValues.datatype);
   appendScalarParam(url, "prioritydomain", requestValues.prioritydomain);

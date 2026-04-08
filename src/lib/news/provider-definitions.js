@@ -1544,6 +1544,20 @@ const providerExecutionLimits = Object.freeze({
         "Mediastack allows at most 100 upstream articles per request, and NewsPub fetches up to 3x the requested posts per run.",
     }),
   }),
+  newsapi: Object.freeze({
+    maxPostsPerRun: Object.freeze({
+      max: 100,
+      min: 1,
+      reason: "NewsAPI pageSize cannot exceed 100 articles per request.",
+    }),
+  }),
+  newsdata: Object.freeze({
+    maxPostsPerRun: Object.freeze({
+      max: 50,
+      min: 1,
+      reason: "NewsData request size limits vary by plan, so NewsPub caps stream runs at 50 to avoid obvious upstream failures.",
+    }),
+  }),
 });
 
 function isFieldVisible(field, scope, values) {
@@ -1784,13 +1798,24 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
     const category = readSingleValue(requestValues, "category");
     const domains = readSingleValue(requestValues, "domains");
 
-    if (endpoint === "everything" && !query && !domains) {
-      issues.push(
-        createValidationIssue(
-          "provider_newsapi_everything_requires_scope",
-          'NewsAPI "Everything" needs a keyword query or at least one domain. Add one of those filters or switch back to Top Headlines.',
-        ),
-      );
+    if (endpoint === "everything") {
+      if (query.length > 500) {
+        issues.push(
+          createValidationIssue(
+            "provider_newsapi_everything_query_too_long",
+            'NewsAPI "Everything" query (q) must stay within 500 characters.',
+          ),
+        );
+      }
+
+      if (!query && !domains) {
+        issues.push(
+          createValidationIssue(
+            "provider_newsapi_everything_requires_scope",
+            'NewsAPI "Everything" needs a keyword query or at least one domain. Add one of those filters or switch back to Top Headlines.',
+          ),
+        );
+      }
     }
 
     if (endpoint === "top-headlines" && !query && !country && !category) {
@@ -1798,6 +1823,41 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
         createValidationIssue(
           "provider_newsapi_top_headlines_requires_scope",
           'NewsAPI "Top Headlines" needs a keyword query, country, or category. Add one of those filters or update the provider defaults.',
+        ),
+      );
+    }
+  }
+
+  if (normalizedProviderKey === "newsdata") {
+    const endpoint = readSingleValue(requestValues, "endpoint") || "latest";
+    const fromDate = readSingleValue(requestValues, "fromDate");
+    const toDate = readSingleValue(requestValues, "toDate");
+    const categories = readMultiValue(requestValues, "category");
+    const excludeCategories = readMultiValue(requestValues, "excludeCategories");
+
+    if (endpoint === "archive") {
+      if (!fromDate || !toDate) {
+        issues.push(
+          createValidationIssue(
+            "provider_newsdata_archive_requires_date_range",
+            'NewsData "Archive" requires both from/to dates before NewsPub can save these request defaults.',
+          ),
+        );
+      } else if (new Date(fromDate).getTime() > new Date(toDate).getTime()) {
+        issues.push(
+          createValidationIssue(
+            "provider_newsdata_archive_invalid_date_range",
+            "NewsData archive from-date must be earlier than or equal to the to-date.",
+          ),
+        );
+      }
+    }
+
+    if (categories.length && excludeCategories.length) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsdata_category_and_exclude_incompatible",
+          "NewsData category filters cannot be combined with exclude-category filters in the same request.",
         ),
       );
     }

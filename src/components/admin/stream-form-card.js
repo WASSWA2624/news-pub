@@ -35,6 +35,7 @@ import AppIcon from "@/components/common/app-icon";
 import SearchableSelect from "@/components/common/searchable-select";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
 import {
+  getProviderDefinition,
   getProviderExecutionLimits,
   getProviderRequestDefaultValues,
   getStreamProviderFormValues,
@@ -57,6 +58,28 @@ import {
 const StreamForm = styled.form`
   display: grid;
   gap: 0.95rem;
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(var(--theme-text-rgb), 0.6);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.94) inset,
+      0 10px 22px rgba(22, 36, 49, 0.06);
+  }
+
+  input[type="text"]:hover,
+  input[type="number"]:hover,
+  input[type="date"]:hover,
+  input[type="datetime-local"]:hover,
+  textarea:hover,
+  select:hover {
+    border-color: rgba(var(--theme-text-rgb), 0.74);
+  }
 `;
 
 const StreamFieldGrid = styled(FieldGrid)`
@@ -222,6 +245,10 @@ function buildStreamProviderFilterSeedValues(provider, stream, providerId) {
   return getProviderRequestDefaultValues(provider);
 }
 
+function getOfficialProviderDefaultValues(providerKey) {
+  return getProviderDefinition(providerKey)?.defaultRequestDefaults || {};
+}
+
 const socialPostLinkPlacementOptions = [
   {
     description: "Choose below-title or end placement at publish time.",
@@ -372,9 +399,17 @@ export default function StreamFormCard({
   }
 
   function resetProviderFiltersToSelectedProviderDefaults() {
-    const nextProviderFormValues = getProviderRequestDefaultValues(selectedProvider);
+    const savedProviderDefaults = getProviderRequestDefaultValues(selectedProvider);
+    const nextProviderFormValues = Object.keys(savedProviderDefaults).length
+      ? savedProviderDefaults
+      : getOfficialProviderDefaultValues(selectedProvider?.providerKey);
 
     setProviderFormValues(nextProviderFormValues);
+    setProviderFiltersResetKey((currentValue) => currentValue + 1);
+  }
+
+  function restoreProviderFiltersToOfficialDefaults() {
+    setProviderFormValues(getOfficialProviderDefaultValues(selectedProvider?.providerKey));
     setProviderFiltersResetKey((currentValue) => currentValue + 1);
   }
 
@@ -856,9 +891,18 @@ export default function StreamFormCard({
               </ButtonIcon>
               Reset to provider defaults
             </SecondaryButton>
+            <SecondaryButton
+              onClick={restoreProviderFiltersToOfficialDefaults}
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="sparkles" />
+              </ButtonIcon>
+              Restore official defaults
+            </SecondaryButton>
           </SectionActionRow>
           <FieldHint>
-            Restore this stream&apos;s provider request fields to the defaults saved on the selected provider profile.
+            Reset uses the saved provider profile defaults and falls back to official defaults when none are saved. Restore official defaults always reloads the integration baseline.
           </FieldHint>
           <ProviderFilterFields
             key={`stream-provider-filters-${selectedProvider.providerKey}-${providerFiltersResetKey}-${formResetKey}`}

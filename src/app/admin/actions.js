@@ -41,24 +41,28 @@ export async function saveProviderAction(formData) {
   const auth = await requireAdminPageSession("/admin/providers");
   const providerKey = trimFormValue(formData.get("providerKey")).toLowerCase();
 
-  await saveProviderRecord(
-    {
-      baseUrl: formData.get("baseUrl"),
-      description: formData.get("description"),
-      isDefault: getFormBoolean(formData, "isDefault"),
-      isEnabled: getFormBoolean(formData, "isEnabled"),
-      isSelectable: getFormBoolean(formData, "isSelectable"),
-      label: formData.get("label"),
-      providerKey,
-      requestDefaultsJson: sanitizeProviderFieldValues(
+  try {
+    await saveProviderRecord(
+      {
+        baseUrl: formData.get("baseUrl"),
+        description: formData.get("description"),
+        isDefault: getFormBoolean(formData, "isDefault"),
+        isEnabled: getFormBoolean(formData, "isEnabled"),
+        isSelectable: getFormBoolean(formData, "isSelectable"),
+        label: formData.get("label"),
         providerKey,
-        parseScopedFormFields(formData, "requestDefault."),
-      ),
-    },
-    {
-      actorId: getActionActorId(auth),
-    },
-  );
+        requestDefaultsJson: sanitizeProviderFieldValues(
+          providerKey,
+          parseScopedFormFields(formData, "requestDefault."),
+        ),
+      },
+      {
+        actorId: getActionActorId(auth),
+      },
+    );
+  } catch (error) {
+    redirectWithActionError("/admin/providers", error, "Provider save failed.");
+  }
 
   redirectWithRevalidation("/admin/providers");
 }

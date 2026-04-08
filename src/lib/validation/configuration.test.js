@@ -86,6 +86,25 @@ describe("configuration validation", () => {
     ]);
   });
 
+  it("flags NewsAPI stream limits above the provider page size cap", () => {
+    expect(
+      getStreamValidationIssues({
+        maxPostsPerRun: 101,
+        providerDefaults: {
+          category: "business",
+          endpoint: "top-headlines",
+        },
+        providerKey: "newsapi",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "provider_max_posts_per_run_out_of_range",
+        }),
+      ]),
+    );
+  });
+
   it("flags templates whose linked streams use different platforms", () => {
     expect(
       getTemplateValidationIssues({

@@ -22,10 +22,11 @@ import { focusRingCss } from "@/components/common/ui-surface";
 
 const DisclosureCard = styled.section`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(248, 251, 255, 0.96)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 56%);
-  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
+    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(242, 247, 255, 0.98)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 52%);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.22);
   border-radius: var(--theme-radius-lg, 2px);
+  box-shadow: 0 12px 28px rgba(22, 36, 49, 0.08);
   display: grid;
   overflow: hidden;
 `;
@@ -34,9 +35,10 @@ const DisclosureToggle = styled.button`
   ${focusRingCss}
   align-items: start;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 251, 255, 0.74)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 60%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.9)),
+    radial-gradient(circle at top right, rgba(15, 111, 141, 0.07), transparent 60%);
   border: 1px solid transparent;
+  border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.18);
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -51,8 +53,8 @@ const DisclosureToggle = styled.button`
 
   &:hover {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 249, 255, 0.84)),
-      radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 60%);
+      linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 244, 255, 0.94)),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 60%);
   }
 `;
 
@@ -138,8 +140,8 @@ const DisclosureMetaPill = styled.span`
 
 const DisclosureToggleIcon = styled.span`
   align-items: center;
-  background: rgba(16, 32, 51, 0.05);
-  border: 1px solid rgba(var(--theme-text-rgb), 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.24);
   border-radius: var(--theme-radius-lg, 2px);
   color: #22344f;
   display: inline-flex;
@@ -157,7 +159,7 @@ const DisclosureToggleIcon = styled.span`
 `;
 
 const DisclosureBody = styled.div`
-  border-top: 1px solid rgba(var(--theme-text-rgb), 0.14);
+  border-top: 1px solid rgba(var(--theme-text-rgb), 0.18);
   display: ${({ $open }) => ($open ? "grid" : "none")};
   gap: 0.9rem;
   padding: 0.92rem;

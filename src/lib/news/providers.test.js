@@ -454,4 +454,56 @@ describe("news providers", () => {
     expect(requestedUrl.pathname).toBe("/api/1/latest");
     expect(requestedUrl.searchParams.get("timeframe")).toBe("30");
   });
+
+  it("uses NewsData archive exclusion params without minus-prefixed categories", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          nextPage: null,
+          results: [],
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      fetchWindow: {
+        end: new Date("2026-04-05T23:59:59.000Z"),
+        start: new Date("2026-04-01T00:00:00.000Z"),
+        usesExplicitBoundaries: true,
+        usesProviderCheckpoint: false,
+        writeCheckpointOnSuccess: false,
+      },
+      now: new Date("2026-04-05T23:59:59.000Z"),
+      providerKey: "newsdata",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "archive",
+            language: ["en"],
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 4,
+        settingsJson: {
+          providerFilters: {
+            excludeCategories: ["sports"],
+            fromDate: "2026-04-01",
+            q: "policy",
+            toDate: "2026-04-05",
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.pathname).toBe("/api/1/archive");
+    expect(requestedUrl.searchParams.get("category")).toBeNull();
+    expect(requestedUrl.searchParams.get("excludecategory")).toBe("sports");
+    expect(requestedUrl.searchParams.get("from_date")).toBe("2026-04-01");
+    expect(requestedUrl.searchParams.get("to_date")).toBe("2026-04-05");
+  });
 });
