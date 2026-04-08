@@ -9,14 +9,17 @@ const siteName = "NewsPub";
 const defaultOpenGraphImagePath = "/opengraph-image";
 const defaultTwitterImagePath = "/twitter-image";
 
+/** Trims optional metadata strings before they are reused across tags and JSON-LD. */
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Deduplicates metadata arrays while preserving their original order. */
 function dedupeStrings(values = []) {
   return [...new Set((values || []).map((value) => trimText(value)).filter(Boolean))];
 }
 
+/** Detects whether a metadata value is already an absolute URL. */
 function isAbsoluteUrl(value) {
   try {
     new URL(value);
@@ -26,6 +29,7 @@ function isAbsoluteUrl(value) {
   }
 }
 
+/** Serializes metadata query params while omitting empty values. */
 function createQueryString(query = {}) {
   const params = new URLSearchParams();
 
@@ -40,6 +44,7 @@ function createQueryString(query = {}) {
   return params.toString();
 }
 
+/** Appends metadata query params to either relative paths or absolute URLs. */
 function appendQueryToPath(pathOrUrl, query = {}) {
   const queryString = createQueryString(query);
 
@@ -60,12 +65,14 @@ function appendQueryToPath(pathOrUrl, query = {}) {
   return `${pathOrUrl}${pathOrUrl.includes("?") ? "&" : "?"}${queryString}`;
 }
 
+/** Normalizes metadata authors into the structure expected by the Next.js metadata API. */
 function normalizeMetadataAuthors(authors = []) {
   const names = dedupeStrings(authors);
 
   return names.length ? names.map((name) => ({ name })) : undefined;
 }
 
+/** Maps one social image candidate into a normalized absolute-image descriptor. */
 function createSocialImageEntry(image, fallbackAlt) {
   if (typeof image === "string") {
     const url = trimText(image);
@@ -96,6 +103,7 @@ function createSocialImageEntry(image, fallbackAlt) {
   };
 }
 
+/** Ensures social metadata always has at least one valid image fallback. */
 function normalizeSocialImages(image, fallbackPath, fallbackAlt) {
   const entries = (Array.isArray(image) ? image : image ? [image] : [])
     .map((entry) => createSocialImageEntry(entry, fallbackAlt))
@@ -111,6 +119,7 @@ function normalizeSocialImages(image, fallbackPath, fallbackAlt) {
       ];
 }
 
+/** Builds alternate-language metadata only when more than one locale is active. */
 function buildAlternateMetadata({ locales, query, segments }) {
   const alternateLanguageLinks = buildAlternateLanguageLinks(segments, {
     locales,
@@ -134,6 +143,46 @@ function buildAlternateMetadata({ locales, query, segments }) {
   return languages;
 }
 
+/** Removes HTML tags before body text is reused for lightweight SEO calculations. */
+function extractTextContent(value) {
+  return trimText(typeof value === "string" ? value.replace(/<[^>]*>/g, " ") : "").replace(/\s+/g, " ");
+}
+
+/** Counts words so article structured data can expose a real body length when content exists. */
+function countWords(value) {
+  const text = extractTextContent(value);
+
+  return text ? text.split(" ").filter(Boolean).length : 0;
+}
+
+/** Heuristic that keeps newsroom-style authors represented as organizations in JSON-LD. */
+function inferAuthorEntityType(name) {
+  return /\b(editorial|desk|team|staff|news|media|wire)\b/i.test(name) ? "Organization" : "Person";
+}
+
+/** Builds schema.org author entries from the normalized story author list. */
+function buildArticleAuthorEntries(article = {}) {
+  const authors = dedupeStrings(article.authors);
+
+  return authors.length
+    ? authors.map((name) => ({
+        "@type": inferAuthorEntityType(name),
+        name,
+      }))
+    : [
+        {
+          "@type": "Organization",
+          name: siteName,
+        },
+      ];
+}
+
+/** Extracts human-readable category names for article JSON-LD and keyword context. */
+function getArticleCategoryNames(article = {}) {
+  return dedupeStrings((article.categories || []).map((category) => category?.name));
+}
+
+/** Resolves relative NewsPub paths against the configured public app URL. */
 export function buildAbsoluteUrl(pathOrUrl = "/") {
   const normalizedValue = trimText(pathOrUrl) || "/";
 
@@ -274,27 +323,57 @@ export function buildArticleJsonLd({ article } = {}) {
     return null;
   }
 
+  const canonicalUrl = buildAbsoluteUrl(article.canonicalUrl);
+  const imageUrl = article.seoImage?.url || article.image?.url;
+  const categoryNames = getArticleCategoryNames(article);
+  const keywordList = dedupeStrings(article.keywords);
+  const wordCount = countWords(article.contentHtml || article.contentMd);
+
   return {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
-    author: [
-      {
-        "@type": "Organization",
-        name: siteName,
-      },
-    ],
+    ...(categoryNames.length
+      ? {
+          about: categoryNames.map((name) => ({
+            "@type": "Thing",
+            name,
+          })),
+          articleSection: categoryNames[0],
+        }
+      : {}),
+    ...(article.metaTitle && article.metaTitle !== article.title
+      ? {
+          alternativeHeadline: article.metaTitle,
+        }
+      : {}),
+    author: buildArticleAuthorEntries(article),
     dateModified: article.updatedAt || article.publishedAt || undefined,
     datePublished: article.publishedAt || undefined,
-    description: article.summary || article.metaDescription || undefined,
+    description: article.metaDescription || article.summary || undefined,
     headline: article.title,
-    image: article.image?.url ? [buildAbsoluteUrl(article.image.url)] : undefined,
+    image: imageUrl ? [buildAbsoluteUrl(imageUrl)] : undefined,
     inLanguage: article.locale || defaultLocale,
-    mainEntityOfPage: buildAbsoluteUrl(article.canonicalUrl),
+    ...(keywordList.length
+      ? {
+          keywords: keywordList.join(", "),
+        }
+      : {}),
+    mainEntityOfPage: canonicalUrl,
     publisher: {
       "@type": "Organization",
       name: siteName,
-      url: buildAbsoluteUrl(buildLocalizedPath(defaultLocale, publicRouteSegments.home)),
+      url: buildAbsoluteUrl(buildLocalizedPath(article.locale || defaultLocale, publicRouteSegments.home)),
     },
-    url: buildAbsoluteUrl(article.canonicalUrl),
+    ...(imageUrl
+      ? {
+          thumbnailUrl: buildAbsoluteUrl(imageUrl),
+        }
+      : {}),
+    url: canonicalUrl,
+    ...(wordCount
+      ? {
+          wordCount,
+        }
+      : {}),
   };
 }

@@ -3,41 +3,34 @@ import { notFound } from "next/navigation";
 import { PublicStoryPage } from "@/components/public";
 import { StructuredDataBundle } from "@/components/seo";
 import { getMessages } from "@/features/i18n/get-messages";
-import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedStoryPageData } from "@/features/public-site";
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildPageMetadata } from "@/lib/seo";
+import { buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo";
 
+import { buildStoryPageMetadata } from "./page-metadata";
+
+/**
+ * Locale-aware story detail route for published NewsPub articles.
+ *
+ * The route reuses the same page data model for metadata, structured data, and the rendered article so the public
+ * detail page cannot drift away from the SEO pipeline.
+ */
 export const revalidate = 300;
 
+/** Builds the strongest available metadata for one published story. */
 export async function generateMetadata({ params }) {
   const { locale, slug } = await params;
   const messages = await getMessages(locale);
   const pageData = await getPublishedStoryPageData({ locale, slug });
 
-  if (!pageData) {
-    return buildPageMetadata({
-      description: messages.site.tagline,
-      locale,
-      segments: publicRouteSegments.newsPost(slug),
-      title: messages.site.title,
-    });
-  }
-
-  return buildPageMetadata({
-    canonicalUrl: pageData.article.canonicalUrl,
-    description: pageData.article.metaDescription || pageData.article.summary,
-    image: pageData.article.image,
-    keywords: pageData.article.keywords,
+  return buildStoryPageMetadata({
     locale,
-    modifiedTime: pageData.article.updatedAt,
-    openGraphTitle: pageData.article.metaTitle || pageData.article.title,
-    publishedTime: pageData.article.publishedAt,
-    segments: publicRouteSegments.newsPost(slug),
-    title: pageData.article.metaTitle || pageData.article.title,
-    type: "article",
+    messages,
+    pageData,
+    slug,
   });
 }
 
+/** Renders the public story detail view plus breadcrumb and article JSON-LD. */
 export default async function StoryPage({ params }) {
   const { locale, slug } = await params;
   const [messages, pageData] = await Promise.all([

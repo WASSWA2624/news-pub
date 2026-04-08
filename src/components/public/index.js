@@ -8,13 +8,17 @@ import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
 import { publicPageUtils } from "@/components/public/public-page-utils";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+
+/**
+ * Shared public-site surfaces for NewsPub home, collection, story, and static routes.
+ */
 const {
+  buildSourceAttributionNote,
   createShareLinks,
   estimateReadingMinutes,
   formatDateLabel,
   formatDateTimeLabel,
   formatDisplayText,
-  formatProviderLabel,
   getMediaIdentity,
   resolveCompactStoryMedia,
   trimStoryContentHtml,
@@ -678,12 +682,6 @@ const StoryBreadcrumbCurrent = styled.span`
 const StoryHeroLayout = styled.div`
   display: grid;
   gap: 1.05rem;
-
-  @media (min-width: 1040px) {
-    align-items: start;
-    gap: 1.4rem;
-    grid-template-columns: minmax(0, 1.9fr) minmax(250px, 330px);
-  }
 `;
 
 const StoryHeroContent = styled.div`
@@ -790,48 +788,6 @@ const StoryActionLink = styled.a`
   }
 `;
 
-const StoryMetaGrid = styled.div`
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(var(--theme-story-line-rgb), 0.48);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  display: grid;
-  gap: 0.58rem;
-  padding: 0.72rem 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-`;
-
-const StoryMetaCard = styled.article`
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(var(--theme-story-line-rgb), 0.38);
-  border-radius: var(--theme-radius-md);
-  display: grid;
-  gap: 0.16rem;
-  padding: 0.54rem 0.62rem;
-`;
-
-const StoryMetaLabel = styled.span`
-  ${storyLabelStyles}
-  align-items: center;
-  display: inline-flex;
-  font-weight: 700;
-  gap: 0.26rem;
-
-  svg {
-    display: block;
-    height: 0.84rem;
-    width: 0.84rem;
-  }
-`;
-
-const StoryMetaValue = styled.span`
-  ${editorialHeadingStyles}
-  font-size: 1.12rem;
-  font-weight: 700;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-`;
-
 const StoryTagRow = styled(ChipRow)`
   gap: 0.42rem;
 `;
@@ -841,137 +797,6 @@ const StoryTag = styled(ChipLink)`
   border-color: rgba(var(--theme-story-accent-rgb), 0.14);
   color: var(--theme-story-accent);
   padding: 0.3rem 0.64rem;
-`;
-
-const StoryHighlightStrip = styled.section`
-  background:
-    linear-gradient(135deg, var(--theme-story-highlight-from), var(--theme-story-highlight-to)),
-    radial-gradient(circle at top right, rgba(255, 214, 132, 0.25), transparent 35%);
-  border: 1px solid rgba(var(--theme-story-ink-rgb), 0.16);
-  border-radius: var(--theme-radius-lg);
-  box-shadow: 0 18px 50px rgba(var(--theme-story-ink-rgb), 0.12);
-  color: var(--theme-story-highlight-text);
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 2.5vw, 1.4rem);
-
-  @media (min-width: 900px) {
-    align-items: start;
-    gap: 1.25rem;
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  }
-`;
-
-const StoryHighlightIntro = styled.div`
-  display: grid;
-  gap: 0.5rem;
-`;
-
-const StoryHighlightTitle = styled.h2`
-  ${editorialHeadingStyles}
-  color: inherit;
-  font-size: clamp(1.5rem, 2.8vw, 2rem);
-  line-height: 1.05;
-  margin: 0;
-`;
-
-const StoryHighlightText = styled.p`
-  color: rgba(255, 247, 235, 0.88);
-  font-size: 0.97rem;
-  line-height: 1.72;
-  margin: 0;
-  max-width: none;
-`;
-
-const StoryHighlightGrid = styled.div`
-  display: grid;
-  gap: 0.75rem;
-
-  @media (min-width: 560px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-`;
-
-const StoryHighlightCard = styled.div`
-  background: rgba(255, 247, 235, 0.08);
-  border: 1px solid rgba(255, 239, 214, 0.12);
-  border-radius: var(--theme-radius-md);
-  display: grid;
-  gap: 0.3rem;
-  padding: 0.85rem 0.95rem;
-`;
-
-const StoryHighlightLabel = styled.span`
-  color: rgba(255, 241, 219, 0.72);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-`;
-
-const StoryHighlightValue = styled.span`
-  ${editorialHeadingStyles}
-  color: var(--theme-story-highlight-text);
-  font-size: 1.15rem;
-  font-weight: 700;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-`;
-
-const StoryHeroAside = styled.aside`
-  ${storyPaperPanelStyles}
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
-  padding: 1.1rem;
-
-  @media (max-width: 1039px) {
-    padding: 1rem;
-  }
-`;
-
-const StoryHeroAsideTitle = styled.h2`
-  ${editorialHeadingStyles}
-  font-size: 1.45rem;
-  line-height: 1.12;
-  margin: 0;
-`;
-
-const StoryHeroAsideText = styled.p`
-  color: rgba(var(--theme-story-muted-rgb), 0.9);
-  font-size: 0.88rem;
-  line-height: 1.6;
-  margin: 0;
-`;
-
-const StoryFactList = styled.div`
-  display: grid;
-  gap: 0.8rem;
-`;
-
-const StoryFact = styled.div`
-  border-top: 1px solid rgba(var(--theme-story-line-rgb), 0.54);
-  display: grid;
-  gap: 0.25rem;
-  padding-top: 0.75rem;
-
-  &:first-child {
-    border-top: none;
-    padding-top: 0;
-  }
-`;
-
-const StoryFactLabel = styled.span`
-  ${storyLabelStyles}
-  font-weight: 700;
-`;
-
-const StoryFactValue = styled.span`
-  ${editorialHeadingStyles}
-  font-size: 1.14rem;
-  font-weight: 700;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
 `;
 
 const StoryLayout = styled.div`
@@ -1023,14 +848,6 @@ const StorySectionHeader = styled.div`
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   justify-content: space-between;
-`;
-
-const StorySectionLead = styled.p`
-  color: rgba(var(--theme-story-muted-rgb), 0.9);
-  font-size: 0.9rem;
-  line-height: 1.6;
-  margin: 0;
-  max-width: none;
 `;
 
 const StoryContentPanel = styled.section`
@@ -1089,64 +906,9 @@ const StoryDateline = styled.p`
   margin: 0;
 `;
 
-const StoryDatelineSource = styled.span`
-  color: var(--theme-story-ink);
-  font-weight: 800;
-`;
-
 const StoryReadingFrame = styled.div`
   display: grid;
   gap: 1rem;
-`;
-
-const StoryReadingHeader = styled.div`
-  align-items: start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem 1rem;
-  justify-content: space-between;
-`;
-
-const StoryReadingTitleGroup = styled.div`
-  display: grid;
-  gap: 0.45rem;
-`;
-
-const StoryReadingTitle = styled.h2`
-  ${editorialHeadingStyles}
-  font-size: clamp(1.7rem, 3vw, 2.2rem);
-  line-height: 1.04;
-  margin: 0;
-`;
-
-const StoryReadingText = styled.p`
-  color: rgba(var(--theme-story-muted-rgb), 0.9);
-  font-size: 0.95rem;
-  line-height: 1.65;
-  margin: 0;
-  max-width: none;
-`;
-
-const StoryReadingBadge = styled.span`
-  align-items: center;
-  background: rgba(var(--theme-story-accent-rgb), 0.06);
-  border: 1px solid rgba(var(--theme-story-accent-rgb), 0.12);
-  border-radius: var(--theme-radius-lg, 2px);
-  color: var(--theme-story-accent);
-  display: inline-flex;
-  font-size: 0.75rem;
-  font-weight: 800;
-  gap: 0.32rem;
-  letter-spacing: 0.12em;
-  min-height: 2.4rem;
-  padding: 0.4rem 0.85rem;
-  text-transform: uppercase;
-
-  svg {
-    display: block;
-    height: 0.88rem;
-    width: 0.88rem;
-  }
 `;
 
 const StoryMediaGallery = styled.div`
@@ -1192,11 +954,14 @@ const StoryContent = styled.div`
     margin: 1.5rem 0;
   }
 
-  img {
+  iframe,
+  img,
+  video {
     border: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
     border-radius: var(--theme-radius-md);
     display: block;
     max-width: 100%;
+    width: 100%;
   }
 
   figcaption {
@@ -1219,7 +984,8 @@ const StoryContent = styled.div`
   }
 
   h2,
-  h3 {
+  h3,
+  h4 {
     ${editorialHeadingStyles}
     line-height: 1.12;
     margin: 2.1rem 0 0.95rem;
@@ -1233,8 +999,14 @@ const StoryContent = styled.div`
     font-size: clamp(1.2rem, 2.1vw, 1.52rem);
   }
 
+  h4 {
+    font-size: clamp(1.02rem, 1.7vw, 1.18rem);
+  }
+
   ul,
   ol {
+    display: grid;
+    gap: 0.55rem;
     margin: 0 0 1.35rem 1.35rem;
     padding: 0;
   }
@@ -1252,10 +1024,24 @@ const StoryContent = styled.div`
     padding: 1.05rem 1.15rem;
   }
 
+  blockquote > :last-child {
+    margin-bottom: 0;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid rgba(var(--theme-story-line-rgb), 0.56);
+    margin: 1.8rem 0;
+  }
+
   a {
     color: var(--theme-story-accent);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.16em;
+  }
+
+  strong {
+    color: var(--theme-story-ink);
   }
 `;
 
@@ -1284,24 +1070,6 @@ const StoryRailText = styled.p`
 const StoryRelatedList = styled.div`
   display: grid;
   gap: 0.8rem;
-`;
-
-const StoryRelatedCard = styled(Link)`
-  background: rgba(255, 255, 255, 0.54);
-  border: 1px solid rgba(var(--theme-story-line-rgb), 0.36);
-  border-radius: var(--theme-radius-md);
-  color: var(--theme-story-ink);
-  display: grid;
-  gap: 0.32rem;
-  padding: 0.8rem 0.9rem;
-`;
-
-const StoryRelatedEyebrow = styled.span`
-  color: rgba(var(--theme-story-label-rgb), 0.76);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 `;
 
 const StoryShareGrid = styled.div`
@@ -1363,6 +1131,13 @@ const SectionBody = styled.div`
   }
 `;
 
+/**
+ * Renders one story media block while preserving the source-provided caption when it adds context.
+ *
+ * @param {object|null} media - Public story media payload.
+ * @param {{eager?: boolean, showCaption?: boolean}} [options={}] - Render controls for loading priority and caption visibility.
+ * @returns {JSX.Element|null} Story media markup or `null` when no media is available.
+ */
 function renderStoryMedia(media, { eager = false, showCaption = true } = {}) {
   if (!media?.kind) {
     return null;
@@ -1403,7 +1178,17 @@ function renderStoryMedia(media, { eager = false, showCaption = true } = {}) {
   );
 }
 
-function HomeStoryList({ emptyLabel, items = [], locale }) {
+/**
+ * Renders the compact story list used by featured-story, related-story, and archive surfaces.
+ *
+ * @param {object} props - Story list props.
+ * @param {string} props.emptyLabel - Empty-state copy.
+ * @param {Array<object>} [props.items] - Story cards to render.
+ * @param {string} props.locale - Active locale code.
+ * @param {string} [props.readMoreLabel="Read more"] - CTA label rendered beneath each story card.
+ * @returns {JSX.Element} Compact story list markup or an empty state.
+ */
+function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read more" }) {
   if (!items.length) {
     return <EmptyState>{emptyLabel}</EmptyState>;
   }
@@ -1455,7 +1240,7 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
               ) : null}
               {item.summary ? <CompactStoryExcerpt>{item.summary}</CompactStoryExcerpt> : null}
               <CompactStoryReadMore href={item.path}>
-                Read more
+                {readMoreLabel}
                 <AppIcon name="arrow-right" size={13} />
               </CompactStoryReadMore>
             </CompactStoryBody>
@@ -1464,10 +1249,6 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
       })}
     </CompactStoryList>
   );
-}
-
-function StoryList({ emptyLabel, items = [], locale }) {
-  return <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />;
 }
 
 /**
@@ -1514,6 +1295,7 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
                 emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
                 items={[pageData.featuredStory]}
                 locale={locale}
+                readMoreLabel={common.readMoreAction || "Read more"}
               />
             </Panel>
           ) : null}
@@ -1529,7 +1311,10 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
               emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
               initialHasMore={pageData.hasMoreLatestStories}
               initialItems={pageData.latestStories}
+              loadingLabel={common.loadingAction || "Loading..."}
+              loadingLiveLabel={common.loadingMoreStatus || "Loading more stories"}
               locale={locale}
+              readMoreLabel={common.readMoreAction || "Read more"}
               requestErrorLabel={common.viewMoreError || "Could not load more stories right now."}
               viewMoreLabel={common.viewMoreAction || "View more"}
             />
@@ -1652,9 +1437,12 @@ export function PublicCollectionPage({
           initialHasMore={Boolean(pageData?.pagination?.hasNextPage)}
           initialItems={pageData.items}
           initialPage={pageData?.pagination?.currentPage || 1}
+          loadingLabel={common.loadingAction || "Loading..."}
+          loadingLiveLabel={common.loadingMoreStatus || "Loading more stories"}
           locale={locale}
           mode="collection"
           query={query}
+          readMoreLabel={common.readMoreAction || "Read more"}
           requestErrorLabel={common.viewMoreError || "Could not load more stories right now."}
           viewMoreLabel={common.viewMoreAction || "View more"}
         />
@@ -1671,6 +1459,7 @@ export function PublicCollectionPage({
  */
 export function PublicStoryPage({ locale, messages, pageData }) {
   const common = messages.common || {};
+  const story = messages.story || {};
   const article = pageData.article;
   const primaryMedia = article.primaryMedia || (article.image?.url ? { ...article.image, kind: "image" } : null);
   const additionalMedia = (article.media || []).filter(
@@ -1678,39 +1467,46 @@ export function PublicStoryPage({ locale, messages, pageData }) {
   );
   const publishedLabel = formatDateLabel(locale, article.publishedAt);
   const updatedLabel = formatDateLabel(locale, article.updatedAt);
-  const readingMinutes = estimateReadingMinutes(article.contentHtml);
+  const showUpdatedLabel = Boolean(updatedLabel && updatedLabel !== publishedLabel);
+  const readingMinutes = estimateReadingMinutes(article.contentHtml || article.summary || article.title);
   const newsPath = buildLocalizedPath(locale, publicRouteSegments.news);
   const articleTitle = formatDisplayText(article.title, article.slug);
-  const articleSummary = formatDisplayText(article.summary, article.title);
-  const articleSourceName = formatDisplayText(article.sourceName, "News source");
-  const articleProviderLabel =
-    formatProviderLabel(article.providerKey) || formatProviderLabel(article.sourceName) || "NewsPub";
+  const articleSummary = formatDisplayText(article.summary);
+  const articleSourceName = formatDisplayText(article.sourceName, story.sourceFallback || "News source");
   const articlePrimaryCategory =
-    article.categories?.[0] ? formatDisplayText(article.categories[0].name, article.categories[0].slug) : "General";
-  const articleCategoryCount = article.categories?.length || 0;
-  const shareLinks = createShareLinks(articleTitle, article.canonicalUrl);
+    article.categories?.[0]
+      ? formatDisplayText(article.categories[0].name, article.categories[0].slug)
+      : story.categoryFallback || "General";
+  const articleSectionLabel = article.categories?.length ? articlePrimaryCategory : story.articleSectionLabel || "Story";
   const storyBodyHtml = trimStoryContentHtml(article.contentHtml);
+  const hasStoryBody = Boolean(storyBodyHtml || articleSummary);
+  const shareLinks = createShareLinks(articleTitle, article.canonicalUrl);
+  const sourceAttributionNote = buildSourceAttributionNote(article.sourceAttribution, {
+    sourceName: articleSourceName,
+    sourceUrl: article.sourceUrl,
+  });
+  const readMoreLabel = common.readMoreAction || "Read more";
 
   return (
     <PageMain>
       <PublicViewTracker eventType="POST_VIEW" locale={locale} postId={article.id} />
       <StoryHero>
         <StoryHeroBar>
-          <StoryBreadcrumbs aria-label="Breadcrumb">
+          <StoryBreadcrumbs aria-label={story.breadcrumbLabel || "Breadcrumb"}>
             <StoryBreadcrumbLink href={buildLocalizedPath(locale, publicRouteSegments.home)}>
-              Home
+              {story.breadcrumbHomeLabel || "Home"}
             </StoryBreadcrumbLink>
             <AppIcon name="chevron-right" size={13} />
             <StoryBreadcrumbLink href={newsPath}>
-              News
+              {story.breadcrumbNewsLabel || "News"}
             </StoryBreadcrumbLink>
             <AppIcon name="chevron-right" size={13} />
-            <StoryBreadcrumbCurrent>{article.sourceName}</StoryBreadcrumbCurrent>
+            <StoryBreadcrumbCurrent aria-current="page">{articleTitle}</StoryBreadcrumbCurrent>
           </StoryBreadcrumbs>
           <StoryHeroStatus>
             <StoryStatusDot aria-hidden="true" />
             <AppIcon name="badge-check" size={14} />
-            Published story
+            {story.publishedStatusLabel || "Published story"}
           </StoryHeroStatus>
         </StoryHeroBar>
 
@@ -1720,14 +1516,10 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               <AppIcon name="news" size={14} />
               {articleSourceName}
             </StorySourceBadge>
-            <StoryTitle>{articleTitle}</StoryTitle>
-            <StoryLead>{articleSummary}</StoryLead>
+            <StoryTitle id="story-headline">{articleTitle}</StoryTitle>
+            {articleSummary ? <StoryLead>{articleSummary}</StoryLead> : null}
 
             <StoryBylineRow>
-              <StoryBylineItem>
-                <AppIcon name="news" size={14} />
-                <strong>{articleSourceName}</strong>
-              </StoryBylineItem>
               {publishedLabel ? (
                 <StoryBylineItem>
                   <AppIcon name="calendar" size={14} />
@@ -1736,9 +1528,9 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               ) : null}
               <StoryBylineItem>
                 <AppIcon name="clock" size={14} />
-                {readingMinutes} min read
+                {readingMinutes} {story.minuteReadLabel || "min read"}
               </StoryBylineItem>
-              {updatedLabel ? (
+              {showUpdatedLabel ? (
                 <StoryBylineItem>
                   <AppIcon name="refresh" size={14} />
                   {common.updatedLabel || "Updated"} {updatedLabel}
@@ -1750,49 +1542,16 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               {article.sourceUrl ? (
                 <StoryActionLink href={article.sourceUrl} rel="noreferrer" target="_blank">
                   <AppIcon name="external-link" size={14} />
-                  Read original source
+                  {story.readSourceAction || "Read original source"}
                 </StoryActionLink>
               ) : null}
-              <StoryActionLink $secondary href="#story-content">
-                <AppIcon name="arrow-right" size={14} />
-                Jump to article
-              </StoryActionLink>
+              {hasStoryBody ? (
+                <StoryActionLink $secondary href="#story-content">
+                  <AppIcon name="arrow-right" size={14} />
+                  {story.jumpToArticleAction || "Jump to article"}
+                </StoryActionLink>
+              ) : null}
             </StoryActionRow>
-
-            <StoryMetaGrid>
-              {publishedLabel ? (
-                <StoryMetaCard>
-                  <StoryMetaLabel>
-                    <AppIcon name="calendar" size={13} />
-                    {common.publishedLabel || "Published"}
-                  </StoryMetaLabel>
-                  <StoryMetaValue>{publishedLabel}</StoryMetaValue>
-                </StoryMetaCard>
-              ) : null}
-              {updatedLabel ? (
-                <StoryMetaCard>
-                  <StoryMetaLabel>
-                    <AppIcon name="refresh" size={13} />
-                    {common.updatedLabel || "Updated"}
-                  </StoryMetaLabel>
-                  <StoryMetaValue>{updatedLabel}</StoryMetaValue>
-                </StoryMetaCard>
-              ) : null}
-              <StoryMetaCard>
-                <StoryMetaLabel>
-                  <AppIcon name="clock" size={13} />
-                  Reading time
-                </StoryMetaLabel>
-                <StoryMetaValue>{readingMinutes} min read</StoryMetaValue>
-              </StoryMetaCard>
-              <StoryMetaCard>
-                <StoryMetaLabel>
-                  <AppIcon name="tag" size={13} />
-                  Filed under
-                </StoryMetaLabel>
-                <StoryMetaValue>{articlePrimaryCategory}</StoryMetaValue>
-              </StoryMetaCard>
-            </StoryMetaGrid>
 
             {article.categories?.length ? (
               <StoryTagRow>
@@ -1805,36 +1564,6 @@ export function PublicStoryPage({ locale, messages, pageData }) {
               </StoryTagRow>
             ) : null}
           </StoryHeroContent>
-
-          <StoryHeroAside>
-            <StoryContentIntro>
-              <StoryHeroAsideTitle>Edition notes</StoryHeroAsideTitle>
-              <StoryHeroAsideText>
-                Source, filing, and timing details stay close so the story reads like a finished front-page piece.
-              </StoryHeroAsideText>
-            </StoryContentIntro>
-
-            <StoryFactList>
-              <StoryFact>
-                <StoryFactLabel>Source</StoryFactLabel>
-                <StoryFactValue>{articleSourceName}</StoryFactValue>
-              </StoryFact>
-              {updatedLabel ? (
-                <StoryFact>
-                  <StoryFactLabel>{common.updatedLabel || "Updated"}</StoryFactLabel>
-                  <StoryFactValue>{updatedLabel}</StoryFactValue>
-                </StoryFact>
-              ) : null}
-              <StoryFact>
-                <StoryFactLabel>Categories</StoryFactLabel>
-                <StoryFactValue>{articleCategoryCount} topics</StoryFactValue>
-              </StoryFact>
-              <StoryFact>
-                <StoryFactLabel>Provider</StoryFactLabel>
-                <StoryFactValue>{articleProviderLabel}</StoryFactValue>
-              </StoryFact>
-            </StoryFactList>
-          </StoryHeroAside>
         </StoryHeroLayout>
 
         {primaryMedia ? (
@@ -1845,74 +1574,39 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 
         <StoryLayout>
           <StoryMainColumn>
-            <StoryHighlightStrip>
-              <StoryHighlightIntro>
-                <StorySectionKicker>At a glance</StorySectionKicker>
-                <StoryHighlightTitle>Fast context before you dive into the full report.</StoryHighlightTitle>
-                <StoryHighlightText>
-                  This page is arranged for quick scanning first, then deep reading: source, timing, topic, and the
-                  full article all stay visible without making the layout feel crowded.
-                </StoryHighlightText>
-              </StoryHighlightIntro>
-              <StoryHighlightGrid>
-                <StoryHighlightCard>
-                  <StoryHighlightLabel>Primary topic</StoryHighlightLabel>
-                  <StoryHighlightValue>{articlePrimaryCategory}</StoryHighlightValue>
-                </StoryHighlightCard>
-                <StoryHighlightCard>
-                  <StoryHighlightLabel>Published</StoryHighlightLabel>
-                  <StoryHighlightValue>{publishedLabel || "Recently"}</StoryHighlightValue>
-                </StoryHighlightCard>
-                <StoryHighlightCard>
-                  <StoryHighlightLabel>Source</StoryHighlightLabel>
-                  <StoryHighlightValue>{articleSourceName}</StoryHighlightValue>
-                </StoryHighlightCard>
-                <StoryHighlightCard>
-                  <StoryHighlightLabel>Reading time</StoryHighlightLabel>
-                  <StoryHighlightValue>{readingMinutes} min read</StoryHighlightValue>
-                </StoryHighlightCard>
-              </StoryHighlightGrid>
-            </StoryHighlightStrip>
-
-            <StoryContentPanel>
-              <StoryReadingFrame id="story-content">
-                <StoryReadingHeader>
-                  <StoryReadingTitleGroup>
-                    <StorySectionKicker>Full report</StorySectionKicker>
-                <StoryReadingTitle>{articleTitle}</StoryReadingTitle>
-                <StoryReadingText>{articleSummary}</StoryReadingText>
-              </StoryReadingTitleGroup>
-                  <StoryReadingBadge>
-                    <AppIcon name="sparkles" size={14} />
-                    {articleProviderLabel}
-                  </StoryReadingBadge>
-                </StoryReadingHeader>
-                <StoryContentIntro>
-                  <StoryDateline>
-                    <StoryDatelineSource>{articleSourceName}</StoryDatelineSource>
-                    {publishedLabel ? <span>{publishedLabel}</span> : null}
-                    {updatedLabel ? <span>{common.updatedLabel || "Updated"} {updatedLabel}</span> : null}
-                  </StoryDateline>
-                </StoryContentIntro>
-                <StoryContent dangerouslySetInnerHTML={{ __html: storyBodyHtml }} />
-              </StoryReadingFrame>
-            </StoryContentPanel>
+            {hasStoryBody ? (
+              <StoryContentPanel aria-labelledby="story-headline">
+                <StoryReadingFrame id="story-content">
+                  <StoryContentIntro>
+                    <StorySectionKicker>{articleSectionLabel}</StorySectionKicker>
+                    <StoryDateline>
+                      {publishedLabel ? <span>{common.publishedLabel || "Published"} {publishedLabel}</span> : null}
+                      {showUpdatedLabel ? <span>{common.updatedLabel || "Updated"} {updatedLabel}</span> : null}
+                    </StoryDateline>
+                  </StoryContentIntro>
+                  {storyBodyHtml ? (
+                    <StoryContent dangerouslySetInnerHTML={{ __html: storyBodyHtml }} />
+                  ) : articleSummary ? (
+                    <StoryContent>
+                      <p>{articleSummary}</p>
+                    </StoryContent>
+                  ) : null}
+                </StoryReadingFrame>
+              </StoryContentPanel>
+            ) : null}
 
             {additionalMedia.length ? (
               <StoryMediaPanel>
                 <StorySectionHeader>
                   <div style={{ display: "grid", gap: "0.35rem" }}>
-                    <StorySectionKicker>Gallery</StorySectionKicker>
+                    <StorySectionKicker>{story.additionalMediaKicker || "Media"}</StorySectionKicker>
                     <SectionTitle>
                       <SectionTitleRow>
                         <AppIcon name="image" size={16} />
-                        Additional media
+                        {story.additionalMediaTitle || "Additional media"}
                       </SectionTitleRow>
                     </SectionTitle>
                   </div>
-                  <StorySectionLead>
-                    Supporting visuals stay grouped here so the main reading column can remain focused and calm.
-                  </StorySectionLead>
                 </StorySectionHeader>
                 <StoryMediaGallery>
                   {additionalMedia.map((media) => (
@@ -1922,6 +1616,25 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                   ))}
                 </StoryMediaGallery>
               </StoryMediaPanel>
+            ) : null}
+
+            {pageData.relatedStories?.length ? (
+              <StoryRailSection>
+                <StoryRailTitle>
+                  <SectionTitleRow>
+                    <AppIcon name="news" size={16} />
+                    {common.relatedPostsTitle || "Related stories"}
+                  </SectionTitleRow>
+                </StoryRailTitle>
+                <StoryRelatedList>
+                  <HomeStoryList
+                    emptyLabel={common.emptyStateDescription || "More stories will appear here soon."}
+                    items={pageData.relatedStories}
+                    locale={locale}
+                    readMoreLabel={readMoreLabel}
+                  />
+                </StoryRelatedList>
+              </StoryRailSection>
             ) : null}
           </StoryMainColumn>
 
@@ -1943,7 +1656,10 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                   <SidebarTitle>{articleSourceName}</SidebarTitle>
                 )}
               </SidebarList>
-              <StoryRailText>{article.sourceAttribution || "Original source details for this article."}</StoryRailText>
+              {sourceAttributionNote ? <StoryRailText>{sourceAttributionNote}</StoryRailText> : null}
+              {!article.sourceUrl && !sourceAttributionNote ? (
+                <StoryRailText>{story.sourceAttributionFallback || "Original source details for this article."}</StoryRailText>
+              ) : null}
             </StoryRailSection>
 
             {shareLinks.length ? (
@@ -1954,7 +1670,6 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                     {common.shareTitle || "Share this story"}
                   </SectionTitleRow>
                 </StoryRailTitle>
-                <StoryRailText>{common.shareDescription || "Share this story with your audience."}</StoryRailText>
                 <StoryShareGrid>
                   {shareLinks.map((link) => (
                     <StoryShareLink href={link.href} key={link.label} rel="noreferrer" target="_blank">
@@ -1965,23 +1680,6 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                 </StoryShareGrid>
               </StoryRailSection>
             ) : null}
-
-              <StoryRailSection>
-                <StoryRailTitle>
-                  <SectionTitleRow>
-                    <AppIcon name="news" size={16} />
-                    {common.relatedPostsTitle || "Related stories"}
-                  </SectionTitleRow>
-                </StoryRailTitle>
-                <StoryRailText>More coverage connected by source or category so the next read is easy to pick.</StoryRailText>
-                <StoryRelatedList>
-                  <HomeStoryList
-                    emptyLabel={common.emptyStateDescription || "More stories will appear here soon."}
-                    items={pageData.relatedStories}
-                    locale={locale}
-                  />
-                </StoryRelatedList>
-            </StoryRailSection>
           </StorySidebar>
         </StoryLayout>
       </StoryHero>

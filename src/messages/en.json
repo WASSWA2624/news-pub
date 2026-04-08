@@ -29,9 +29,12 @@
     "common": {
       "emptyStateDescription": "Published stories will appear here once connected streams begin releasing content.",
       "latestPostsTitle": "Latest stories",
+      "loadingAction": "Loading...",
+      "loadingMoreStatus": "Loading more stories",
       "nextPage": "Next",
       "previousPage": "Previous",
       "publishedLabel": "Published",
+      "readMoreAction": "Read more",
       "referencesHeading": "Source attribution",
       "relatedPostsTitle": "Related stories",
       "resultsLabel": "Published stories",
@@ -69,6 +72,21 @@
       "description": "Search the public NewsPub website for published stories, source names, category pages, and country-based coverage.",
       "metaTitle": "Search published stories",
       "metaDescription": "Search published NewsPub website stories."
+    },
+    "story": {
+      "additionalMediaKicker": "Media",
+      "additionalMediaTitle": "Additional media",
+      "articleSectionLabel": "Story",
+      "breadcrumbHomeLabel": "Home",
+      "breadcrumbLabel": "Breadcrumb",
+      "breadcrumbNewsLabel": "News",
+      "categoryFallback": "General",
+      "jumpToArticleAction": "Jump to article",
+      "minuteReadLabel": "min read",
+      "publishedStatusLabel": "Published story",
+      "readSourceAction": "Read original source",
+      "sourceAttributionFallback": "Original source details for this article.",
+      "sourceFallback": "News source"
     },
     "pages": {
       "about": {

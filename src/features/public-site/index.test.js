@@ -32,6 +32,10 @@ function createPublishedPost(overrides = {}) {
     ],
     publishedAt: new Date("2026-04-03T08:00:00.000Z"),
     slug: "breaking-story",
+    sourceArticle: {
+      author: "Casey Reporter",
+      imageUrl: null,
+    },
     sourceName: "Example Source",
     sourceUrl: "https://example.com/story",
     status: "PUBLISHED",
@@ -41,11 +45,24 @@ function createPublishedPost(overrides = {}) {
         contentMd: "Breaking story body.",
         locale: "en",
         seoRecord: {
+          authorsJson: ["NewsPub Editorial"],
           canonicalUrl: "https://example.com/en/news/breaking-story",
           keywordsJson: ["breaking", "technology"],
           metaDescription: "Breaking story meta description",
           metaTitle: "Breaking story meta title",
-          ogImage: null,
+          noindex: false,
+          ogDescription: "Breaking story open graph description",
+          ogImage: {
+            alt: "Breaking story SEO image",
+            caption: "SEO image",
+            height: 630,
+            publicUrl: "https://cdn.example.com/story-seo.jpg",
+            sourceUrl: null,
+            width: 1200,
+          },
+          ogTitle: "Breaking story open graph title",
+          twitterDescription: "Breaking story twitter description",
+          twitterTitle: "Breaking story twitter title",
         },
         sourceAttribution: "Source: Example Source - https://example.com/story",
         structuredContentJson: {
@@ -397,15 +414,81 @@ describe("public site data", () => {
     );
 
     expect(pageData.article).toMatchObject({
+      authors: ["NewsPub Editorial"],
       canonicalUrl: "https://example.com/en/news/breaking-story",
+      openGraphDescription: "Breaking story open graph description",
+      openGraphTitle: "Breaking story open graph title",
       path: "/en/news/breaking-story",
+      seoImage: {
+        url: "https://cdn.example.com/story-seo.jpg",
+      },
       sourceAttribution: "Source: Example Source - https://example.com/story",
       sourceName: "Example Source",
       title: "Breaking story",
+      twitterDescription: "Breaking story twitter description",
+      twitterTitle: "Breaking story twitter title",
     });
     expect(pageData.relatedStories[0]).toMatchObject({
       path: "/en/news/related-story",
       title: "Related story",
+    });
+  });
+
+  it("falls back to source-article authors and keeps dedicated SEO image metadata", async () => {
+    const prisma = {
+      post: {
+        findFirst: vi.fn().mockResolvedValue(createPublishedPost({
+          translations: [
+            {
+              contentHtml: "<p>Breaking story body.</p>",
+              contentMd: "Breaking story body.",
+              locale: "en",
+              seoRecord: {
+                authorsJson: [],
+                canonicalUrl: "https://example.com/en/news/breaking-story",
+                keywordsJson: ["breaking", "technology"],
+                metaDescription: "Breaking story meta description",
+                metaTitle: "Breaking story meta title",
+                noindex: true,
+                ogDescription: "Breaking story open graph description",
+                ogImage: {
+                  alt: "Breaking story SEO image",
+                  caption: "SEO image",
+                  height: 630,
+                  publicUrl: "https://cdn.example.com/story-seo.jpg",
+                  sourceUrl: null,
+                  width: 1200,
+                },
+                ogTitle: "Breaking story open graph title",
+                twitterDescription: "Breaking story twitter description",
+                twitterTitle: "Breaking story twitter title",
+              },
+              sourceAttribution: "Source: Example Source - https://example.com/story",
+              structuredContentJson: {
+                sections: [],
+              },
+              summary: "Breaking story summary",
+              title: "Breaking story",
+            },
+          ],
+        })),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const { getPublishedStoryPageData } = await import("./index");
+
+    const pageData = await getPublishedStoryPageData(
+      {
+        locale: "en",
+        slug: "breaking-story",
+      },
+      prisma,
+    );
+
+    expect(pageData.article.authors).toEqual(["Casey Reporter"]);
+    expect(pageData.article.noindex).toBe(true);
+    expect(pageData.article.seoImage).toMatchObject({
+      url: "https://cdn.example.com/story-seo.jpg",
     });
   });
 

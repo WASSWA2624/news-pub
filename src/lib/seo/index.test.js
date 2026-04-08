@@ -21,11 +21,16 @@ describe("seo helpers", () => {
     const { buildPageMetadata } = await import("./index");
 
     const metadata = buildPageMetadata({
+      authors: ["NewsPub Editorial"],
       description: "Browse the published story library.",
       locale: "en",
       noindex: true,
+      openGraphDescription: "Open graph description",
+      openGraphTitle: "Open graph title",
       segments: ["news"],
       title: "Published stories",
+      twitterDescription: "Twitter description",
+      twitterTitle: "Twitter title",
     });
 
     expect(metadata.alternates).toEqual({
@@ -38,9 +43,19 @@ describe("seo helpers", () => {
       },
     ]);
     expect(metadata.twitter.images).toEqual(["https://example.com/twitter-image"]);
+    expect(metadata.authors).toEqual([{ name: "NewsPub Editorial" }]);
+    expect(metadata.openGraph).toMatchObject({
+      authors: ["NewsPub Editorial"],
+      description: "Open graph description",
+      title: "Open graph title",
+    });
     expect(metadata.robots).toMatchObject({
       follow: true,
       index: false,
+    });
+    expect(metadata.twitter).toMatchObject({
+      description: "Twitter description",
+      title: "Twitter title",
     });
   });
 
@@ -104,12 +119,28 @@ describe("seo helpers", () => {
     ]);
     const article = buildArticleJsonLd({
       article: {
+        authors: ["NewsPub Editorial", "Jane Reporter"],
         canonicalUrl: "https://example.com/en/news/breaking-story",
+        categories: [
+          {
+            name: "Technology",
+          },
+          {
+            name: "AI",
+          },
+        ],
+        contentHtml: "<p>Breaking story summary with enough words to count accurately.</p>",
         image: {
           url: "https://cdn.example.com/story.jpg",
         },
+        keywords: ["breaking", "technology"],
         locale: "en",
+        metaDescription: "Breaking story meta description.",
+        metaTitle: "Breaking story meta title",
         publishedAt: "2026-04-03T08:00:00.000Z",
+        seoImage: {
+          url: "https://cdn.example.com/story-seo.jpg",
+        },
         summary: "Breaking story summary.",
         title: "Breaking story",
         updatedAt: "2026-04-03T09:00:00.000Z",
@@ -123,9 +154,35 @@ describe("seo helpers", () => {
     expect(breadcrumb.itemListElement).toHaveLength(3);
     expect(article).toMatchObject({
       "@type": "NewsArticle",
+      articleSection: "Technology",
+      alternativeHeadline: "Breaking story meta title",
       headline: "Breaking story",
       inLanguage: "en",
+      keywords: "breaking, technology",
+      thumbnailUrl: "https://cdn.example.com/story-seo.jpg",
       url: "https://example.com/en/news/breaking-story",
     });
+    expect(article.author).toEqual([
+      {
+        "@type": "Organization",
+        name: "NewsPub Editorial",
+      },
+      {
+        "@type": "Person",
+        name: "Jane Reporter",
+      },
+    ]);
+    expect(article.about).toEqual([
+      {
+        "@type": "Thing",
+        name: "Technology",
+      },
+      {
+        "@type": "Thing",
+        name: "AI",
+      },
+    ]);
+    expect(article.image).toEqual(["https://cdn.example.com/story-seo.jpg"]);
+    expect(article.wordCount).toBeGreaterThan(0);
   });
 });

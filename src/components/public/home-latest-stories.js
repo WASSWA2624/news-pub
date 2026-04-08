@@ -237,9 +237,10 @@ const HomeListError = styled.p`
  * @param {string} props.emptyLabel - Empty-state copy.
  * @param {Array<object>} [props.items] - Story cards to render.
  * @param {string} props.locale - Active locale code.
+ * @param {string} [props.readMoreLabel="Read more"] - CTA label for each story card.
  * @returns {JSX.Element} The rendered list or empty state.
  */
-function HomeStoryList({ emptyLabel, items = [], locale }) {
+function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read more" }) {
   if (!items.length) {
     return <EmptyState>{emptyLabel}</EmptyState>;
   }
@@ -291,7 +292,7 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
               ) : null}
               {item.summary ? <CompactStoryExcerpt>{item.summary}</CompactStoryExcerpt> : null}
               <CompactStoryReadMore href={item.path}>
-                Read more
+                {readMoreLabel}
                 <AppIcon name="arrow-right" size={13} />
               </CompactStoryReadMore>
             </CompactStoryBody>
@@ -306,6 +307,9 @@ function HomeStoryList({ emptyLabel, items = [], locale }) {
  * Handles incremental loading for public home and collection story lists.
  *
  * @param {object} props - Pagination and rendering props.
+ * @param {string} [props.loadingLabel="Loading..."] - Button label shown while the next page is loading.
+ * @param {string} [props.loadingLiveLabel="Loading more stories"] - Screen-reader status announced during loading.
+ * @param {string} [props.readMoreLabel="Read more"] - CTA label used inside each compact story card.
  * @returns {JSX.Element} The story list with progressive loading controls.
  */
 export default function HomeLatestStories({
@@ -316,9 +320,12 @@ export default function HomeLatestStories({
   initialHasMore = false,
   initialItems = [],
   initialPage = 1,
+  loadingLabel = "Loading...",
+  loadingLiveLabel = "Loading more stories",
   locale,
   mode = "home",
   query = "",
+  readMoreLabel = "Read more",
   requestErrorLabel = "Could not load more stories right now.",
   viewMoreLabel = "View more",
 }) {
@@ -380,9 +387,9 @@ export default function HomeLatestStories({
   return (
     <>
       <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
-        {isLoading ? "Loading more stories" : ""}
+        {isLoading ? loadingLiveLabel : ""}
       </span>
-      <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} />
+      <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} readMoreLabel={readMoreLabel} />
       {error ? (
         <HomeListError role="status">
           <AppIcon name="warning" size={14} />
@@ -398,7 +405,7 @@ export default function HomeLatestStories({
             type="button"
           >
             <AppIcon name={isLoading ? "refresh" : "arrow-right"} size={14} />
-            {isLoading ? "Loading..." : viewMoreLabel}
+            {isLoading ? loadingLabel : viewMoreLabel}
           </HomeViewMoreButton>
         </HomeListFooter>
       ) : null}

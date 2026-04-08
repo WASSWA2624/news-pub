@@ -19,24 +19,29 @@ import { publicHomeLatestIncrementCount, publicHomeLatestInitialCount } from "./
 export const publicDataRevalidateSeconds = 300;
 export const publicListingPageSize = 12;
 
+/** Serializes persisted dates so public page models stay JSON-friendly. */
 function serializeDate(value) {
   return value instanceof Date ? value.toISOString() : null;
 }
 
+/** Trims optional string values pulled from the database or provider payloads. */
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Normalizes page inputs so public pagination never requests impossible pages. */
 function normalizePage(value) {
   const parsedValue = Number.parseInt(`${value || 1}`.trim(), 10);
 
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 1;
 }
 
+/** Clamps free-text search queries to a safe length for provider-agnostic matching. */
 function normalizeSearch(value) {
   return trimText(value).slice(0, 191);
 }
 
+/** Maps category slugs to light-touch editorial emoji used in public navigation chips. */
 function getCategoryLogoEmoji(category = {}) {
   const slug = trimText(category.slug).toLowerCase();
   const name = trimText(category.name).toLowerCase();
@@ -81,6 +86,13 @@ function getCategoryLogoEmoji(category = {}) {
   return "📰";
 }
 
+/**
+ * Maps a stored media asset into a render-safe public image payload.
+ *
+ * @param {object|null} asset - Prisma-selected media asset.
+ * @param {string} [fallbackAlt="Story image"] - Alt text fallback when the asset metadata is incomplete.
+ * @returns {{alt: string, caption: string|null, height: number|null, url: string, width: number|null}|null} Public image payload or `null`.
+ */
 function mapImage(asset, fallbackAlt = "Story image") {
   if (!asset) {
     return null;
@@ -109,6 +121,7 @@ function mapImage(asset, fallbackAlt = "Story image") {
 const imageExtensions = new Set([".avif", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"]);
 const videoExtensions = new Set([".m4v", ".mov", ".mp4", ".ogg", ".ogv", ".webm"]);
 
+/** Extracts a normalized pathname so media-kind inference can inspect file extensions safely. */
 function getUrlPathname(url) {
   try {
     return new URL(url).pathname.toLowerCase();
@@ -117,6 +130,7 @@ function getUrlPathname(url) {
   }
 }
 
+/** Returns the trailing extension for a remote asset URL when one is available. */
 function getUrlExtension(url) {
   const pathname = getUrlPathname(url);
   const lastDotIndex = pathname.lastIndexOf(".");
@@ -124,14 +138,17 @@ function getUrlExtension(url) {
   return lastDotIndex >= 0 ? pathname.slice(lastDotIndex) : "";
 }
 
+/** Heuristic used to classify rich media blocks that arrive with loose provider metadata. */
 function isVideoLikeValue(value) {
   return trimText(value).toLowerCase().includes("video");
 }
 
+/** Heuristic used to classify image-like provider payloads. */
 function isImageLikeValue(value) {
   return trimText(value).toLowerCase().includes("image");
 }
 
+/** Converts public YouTube URLs into embeddable URLs while rejecting unsupported shapes. */
 function resolveYouTubeEmbedUrl(url) {
   try {
     const parsedUrl = new URL(url);
@@ -167,6 +184,7 @@ function resolveYouTubeEmbedUrl(url) {
   return null;
 }
 
+/** Converts public Vimeo URLs into embed URLs for the story media gallery. */
 function resolveVimeoEmbedUrl(url) {
   try {
     const parsedUrl = new URL(url);
@@ -188,10 +206,17 @@ function resolveVimeoEmbedUrl(url) {
   }
 }
 
+/** Sanitizes third-party video URLs before they are rendered inside iframes. */
 function resolveEmbeddableVideoUrl(url) {
   return sanitizeExternalUrl(resolveYouTubeEmbedUrl(url) || resolveVimeoEmbedUrl(url) || "");
 }
 
+/**
+ * Infers the most appropriate media renderer from mixed provider metadata.
+ *
+ * @param {{kind?: string, mimeType?: string, type?: string, url?: string}} input - Candidate media metadata.
+ * @returns {"embed"|"image"|"video"} Public media kind.
+ */
 function inferMediaKind({ kind, mimeType, type, url }) {
   const normalizedMimeType = trimText(mimeType).toLowerCase();
 
@@ -220,6 +245,14 @@ function inferMediaKind({ kind, mimeType, type, url }) {
   return "image";
 }
 
+/**
+ * Normalizes remote image URLs into the same payload shape as stored media assets.
+ *
+ * @param {string} url - Candidate source image URL.
+ * @param {string} [fallbackAlt="Story image"] - Alt text fallback for the image.
+ * @param {object} [metadata={}] - Supplemental metadata that can refine alt text and dimensions.
+ * @returns {{alt: string, caption: string|null, height: number|null, url: string, width: number|null}|null} Public image payload or `null`.
+ */
 function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
   const alt = metadata.alt || metadata.caption || fallbackAlt;
   const safeUrl = getRenderableImageUrl(url, {
@@ -241,6 +274,12 @@ function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
     : null;
 }
 
+/**
+ * Creates a placeholder image when published story media is unavailable.
+ *
+ * @param {object} [options={}] - Placeholder configuration.
+ * @returns {{alt: string, caption: null, height: number, kind: string, sourceUrl: string|null, url: string, width: number}} Placeholder image payload.
+ */
 function createFallbackPrimaryMedia({
   fallbackAlt = "Story image",
   sourceName = "",
@@ -266,6 +305,13 @@ function createFallbackPrimaryMedia({
   };
 }
 
+/**
+ * Maps one stored or structured media item into a public gallery item.
+ *
+ * @param {object} rawItem - Structured content media object.
+ * @param {string} [fallbackAlt="Story media"] - Alt text fallback.
+ * @returns {object|null} Public gallery item or `null` when the source cannot be sanitized.
+ */
 function mapMediaItem(rawItem, fallbackAlt = "Story media") {
   const sourceUrl =
     rawItem?.url
@@ -325,6 +371,7 @@ function mapMediaItem(rawItem, fallbackAlt = "Story media") {
     : null;
 }
 
+/** Appends media only when the item has not already been included in the gallery. */
 function appendUniqueMedia(items, media) {
   if (!media?.kind) {
     return items;
@@ -341,6 +388,13 @@ function appendUniqueMedia(items, media) {
   return items;
 }
 
+/**
+ * Extracts gallery-ready media from stored structured content.
+ *
+ * @param {object|null} structuredContentJson - Stored structured content JSON.
+ * @param {string} [fallbackAlt="Story media"] - Alt text fallback for extracted media.
+ * @returns {Array<object>} Ordered media gallery items.
+ */
 function extractStructuredMedia(structuredContentJson, fallbackAlt = "Story media") {
   if (!structuredContentJson || typeof structuredContentJson !== "object") {
     return [];
@@ -373,6 +427,7 @@ function extractStructuredMedia(structuredContentJson, fallbackAlt = "Story medi
   return media;
 }
 
+/** Maps a category record into the locale-aware public navigation shape. */
 function mapCategory(category, locale) {
   return {
     description: category.description || null,
@@ -384,6 +439,54 @@ function mapCategory(category, locale) {
   };
 }
 
+/**
+ * Normalizes JSON-backed SEO arrays into unique, trimmed string values.
+ *
+ * @param {unknown} values - Raw JSON array from the SEO record.
+ * @returns {string[]} Stable string list safe for metadata and JSON-LD output.
+ */
+function normalizeSeoStringList(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return [...new Set(
+    values
+      .map((value) => {
+        if (typeof value === "string") {
+          return trimText(value);
+        }
+
+        if (value && typeof value === "object") {
+          return trimText(value.name || value.label || value.value);
+        }
+
+        return "";
+      })
+      .filter(Boolean),
+  )];
+}
+
+/**
+ * Prefers explicit SEO authors while falling back to the source article author when needed.
+ *
+ * @param {object|null} seoRecord - Translation SEO record.
+ * @param {string} sourceAuthor - Source article author fallback.
+ * @returns {string[]} Author names suitable for metadata and structured-data output.
+ */
+function resolveStoryAuthors(seoRecord, sourceAuthor) {
+  const seoAuthors = normalizeSeoStringList(seoRecord?.authorsJson);
+
+  return seoAuthors.length ? seoAuthors : normalizeSeoStringList([sourceAuthor]);
+}
+
+/**
+ * Maps a published post into the compact card model reused across public listings and related-story modules.
+ *
+ * @param {object} post - Prisma-selected published post.
+ * @param {string} [locale=defaultLocale] - Requested locale.
+ * @returns {object} Locale-aware story card.
+ */
 function mapPostCard(post, locale = defaultLocale) {
   const translation = pickTranslation(post.translations || [], locale);
   const fallbackAlt = translation?.title || post.slug;
@@ -419,6 +522,7 @@ function mapPostCard(post, locale = defaultLocale) {
   };
 }
 
+/** Builds the shared public-story filter for website-published posts. */
 function buildPublishedWebsiteWhere(extraWhere = {}) {
   return {
     publishAttempts: {
@@ -432,6 +536,7 @@ function buildPublishedWebsiteWhere(extraWhere = {}) {
   };
 }
 
+/** Narrows the published-story filter to one locale without changing publication rules. */
 function buildPublishedLocaleWhere(locale, extraWhere = {}) {
   return buildPublishedWebsiteWhere({
     translations: {
@@ -443,6 +548,7 @@ function buildPublishedLocaleWhere(locale, extraWhere = {}) {
   });
 }
 
+/** Shared media selection used by story cards, story detail pages, and SEO images. */
 const mediaAssetSelect = Object.freeze({
   alt: true,
   caption: true,
@@ -452,6 +558,12 @@ const mediaAssetSelect = Object.freeze({
   width: true,
 });
 
+/**
+ * Shared published-post selection for public pages.
+ *
+ * The selection intentionally includes richer SEO fields than most listing pages need so the story-detail route can
+ * build metadata, structured data, and on-page fallbacks from one consistent record shape.
+ */
 const publicPostSelect = Object.freeze({
   categories: {
     select: {
@@ -487,6 +599,7 @@ const publicPostSelect = Object.freeze({
   slug: true,
   sourceArticle: {
     select: {
+      author: true,
       imageUrl: true,
     },
   },
@@ -502,13 +615,19 @@ const publicPostSelect = Object.freeze({
       locale: true,
       seoRecord: {
         select: {
+          authorsJson: true,
           canonicalUrl: true,
           keywordsJson: true,
           metaDescription: true,
           metaTitle: true,
+          noindex: true,
+          ogDescription: true,
           ogImage: {
             select: mediaAssetSelect,
           },
+          ogTitle: true,
+          twitterDescription: true,
+          twitterTitle: true,
         },
       },
       sourceAttribution: true,
@@ -614,6 +733,13 @@ async function getLatestPublishedPosts(
   });
 }
 
+/**
+ * Builds the localized home-page payload with a featured story, latest-story list, and ranked category summary.
+ *
+ * @param {{locale?: string}} [options={}] - Home-page query options.
+ * @param {object} prisma - Optional Prisma client override used by tests and server routes.
+ * @returns {Promise<object>} Public home-page view model.
+ */
 export async function getPublishedHomePageData({ locale = defaultLocale } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const [latestPosts, localizedPublishedStoryCount, topCategories, publishedStoryCount] = await Promise.all([
@@ -649,6 +775,13 @@ export async function getPublishedHomePageData({ locale = defaultLocale } = {}, 
   };
 }
 
+/**
+ * Returns a compact category navigation set for public headers and landing-page sidebars.
+ *
+ * @param {{locale?: string, limit?: number}} [options={}] - Navigation query options.
+ * @param {object} prisma - Optional Prisma client override used by tests and server routes.
+ * @returns {Promise<Array<object>>} Locale-aware category navigation items.
+ */
 export async function getPublishedCategoryNavigationData(
   { locale = defaultLocale, limit = 8 } = {},
   prisma,
@@ -663,6 +796,13 @@ export async function getPublishedCategoryNavigationData(
   }));
 }
 
+/**
+ * Builds the public search-filter payload backed by published-story coverage.
+ *
+ * @param {{locale?: string}} [options={}] - Search-filter query options.
+ * @param {object} prisma - Optional Prisma client override used by tests and server routes.
+ * @returns {Promise<{countries: Array<object>}>} Search-filter data.
+ */
 export async function getPublishedSearchFilterData({ locale = defaultLocale } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
 
@@ -671,6 +811,13 @@ export async function getPublishedSearchFilterData({ locale = defaultLocale } = 
   };
 }
 
+/**
+ * Loads one incremental batch of latest stories for the public home page.
+ *
+ * @param {{locale?: string, skip?: number, take?: number}} [options={}] - Batch query options.
+ * @param {object} prisma - Optional Prisma client override used by tests and server routes.
+ * @returns {Promise<{hasMore: boolean, items: Array<object>}>} Paginated latest-story batch.
+ */
 export async function getPublishedHomeLatestStoriesData(
   { locale = defaultLocale, skip = 1, take = publicHomeLatestIncrementCount } = {},
   prisma,
@@ -867,6 +1014,13 @@ function buildSearchWhere(locale, search, country) {
   });
 }
 
+/**
+ * Searches published public stories by locale, free-text query, and optional country coverage.
+ *
+ * @param {{locale?: string, page?: number|string, search?: string, country?: string}} [options={}] - Search options.
+ * @param {object} prisma - Optional Prisma client override used by tests and server routes.
+ * @returns {Promise<object>} Paginated search result model.
+ */
 export async function searchPublishedStories(
   { locale = defaultLocale, page = 1, search = "", country = "" } = {},
   prisma,
@@ -937,8 +1091,12 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
       ],
     }),
   });
+  const seoKeywords = normalizeSeoStringList(translation.seoRecord?.keywordsJson);
+  const storyAuthors = resolveStoryAuthors(translation.seoRecord, post.sourceArticle?.author);
   const image = mapImage(post.featuredImage, translation.title)
     || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
+  const seoImage = mapImage(translation.seoRecord?.ogImage, translation.title)
+    || image;
   const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
   const primaryMedia = media[0]
     || (image
@@ -959,19 +1117,25 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     id: post.id,
     image,
     media,
-    keywords: Array.isArray(translation.seoRecord?.keywordsJson)
-      ? translation.seoRecord.keywordsJson
-      : [],
+    authors: storyAuthors,
+    keywords: seoKeywords,
     locale: translation.locale,
     metaDescription: translation.seoRecord?.metaDescription || translation.summary,
     metaTitle: translation.seoRecord?.metaTitle || translation.title,
+    noindex: Boolean(translation.seoRecord?.noindex),
+    openGraphDescription:
+      translation.seoRecord?.ogDescription ||
+      translation.seoRecord?.metaDescription ||
+      translation.summary,
+    openGraphTitle:
+      translation.seoRecord?.ogTitle ||
+      translation.seoRecord?.metaTitle ||
+      translation.title,
     path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
     primaryMedia,
     providerKey: post.providerKey,
     publishedAt: serializeDate(post.publishedAt),
-    seoImage:
-      mapImage(translation.seoRecord?.ogImage, translation.title) ||
-      image,
+    seoImage,
     slug: post.slug,
     sourceAttribution: translation.sourceAttribution,
     sourceName: post.sourceName,
@@ -979,6 +1143,14 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     structuredContentJson: translation.structuredContentJson,
     summary: translation.summary,
     title: translation.title,
+    twitterDescription:
+      translation.seoRecord?.twitterDescription ||
+      translation.seoRecord?.metaDescription ||
+      translation.summary,
+    twitterTitle:
+      translation.seoRecord?.twitterTitle ||
+      translation.seoRecord?.metaTitle ||
+      translation.title,
     updatedAt: serializeDate(post.updatedAt),
   };
 
@@ -988,5 +1160,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
   };
 }
 
+/** Alias kept for route-level readability when category pages are used as landing pages. */
 export const getPublishedLandingPageData = getPublishedCategoryPageData;
+/** Alias kept for API handlers that still reference the older search helper name. */
 export const searchPublishedPosts = searchPublishedStories;

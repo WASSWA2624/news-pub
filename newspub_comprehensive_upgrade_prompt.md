@@ -1,226 +1,188 @@
-# NewsPub Gap-Only Upgrade Prompt — UI Uniformity, Responsiveness, Documentation, Cleanup, And Efficiency
+```markdown
+# NewsPub Gap-Only Upgrade Prompt
 
-## Mission
+Review the current codebase **as it exists now** and implement **only the missing work** required by the gaps below. Do **not** rewrite already-correct areas, do **not** restate completed capabilities, and do **not** broaden scope beyond these items. Update all affected files across the codebase where necessary.
 
-Review the current NewsPub repository against the existing implementation, `README.md`, `app-write-up.md`, and relevant `dev-plan/*` files, then implement **only the remaining gaps**.
+## Scope Boundaries
 
-This is **not** a broad reimplementation prompt. Do **not** restate or redo work that is already present and aligned. Preserve working shared-fetch, normalized time-window behavior, SEO-first website publishing, AI skip/fallback handling, Meta pacing/compliance safeguards, and existing admin UX improvements unless a real gap, inconsistency, or regression is found.
+- Treat the public story detail route as the page rendered by:
+  - `src/app/[locale]/news/[slug]/page.js`
+  - `src/components/public/index.js` (`PublicStoryPage`)
+  - related helpers in `src/features/public-site/index.js`, `src/lib/seo/index.js`, and any supporting SEO/public UI modules.
+- Keep the work **gap-only**. Preserve the existing architecture, App Router structure, data flow, and working features.
+- Do not introduce speculative features unless they are required to close a listed gap.
 
-Focus only on the gaps below.
+## Gap 1 — Full Code Documentation Is Not Yet Complete
 
-## Gaps Confirmed From The Current Repo Review
+The repository already contains some inline documentation, but coverage is incomplete and inconsistent across many files. Close that gap.
 
-### 1. UI reuse and design-language gap
+### Required implementation
 
-The repo already has a shared admin UI layer, but some screens still bypass it with bespoke cards, buttons, action bars, and layout primitives.
+- Add **complete, meaningful documentation** to all touched files and all important existing modules that currently lack it, especially in:
+  - `src/components/`**
+  - `src/features/**`
+  - `src/lib/**`
+  - `src/app/**`
+  - `src/store/**`
+  - `scripts/**`
+- Use concise, high-value documentation only. Avoid noise comments.
+- Add or improve:
+  - file-level purpose comments where helpful,
+  - JSDoc for exported functions, utilities, data mappers, and complex internal helpers,
+  - prop documentation for non-trivial React components,
+  - inline comments only for logic that is non-obvious.
+- Document assumptions, fallbacks, sanitization behavior, SEO decisions, and rendering constraints where they are not obvious.
+- Remove stale, misleading, or low-value comments.
 
-Main risk areas include:
+### Documentation quality rules
 
-- `src/components/admin/stream-management-screen.js`
-- `src/components/admin/category-management-screen.js`
-- `src/components/admin/media-library-screen.js`
-- route-level sticky card variants in admin pages
-- route or feature code that recreates buttons, cards, summary blocks, and action rows instead of reusing the shared admin primitives
+- Documentation must explain **why** something exists, not just paraphrase the code.
+- Keep wording precise and professional.
+- Do not add comments to trivial one-line assignments or obvious JSX.
+- Ensure documentation stays aligned with the actual implementation.
 
-Required outcome:
+### Acceptance criteria
 
-- one shared admin design language
-- one shared button system
-- one shared card/surface system
-- one shared action-row and sticky-side-panel pattern
-- one shared table/list responsiveness strategy
-- eliminate visually similar but separately implemented primitives unless a real functional difference exists
+- Every exported non-trivial function/component in touched areas is documented.
+- Complex data transformation and SEO helpers are documented.
+- No obvious undocumented “core flow” modules remain in the story page pipeline.
+- No misleading or redundant comments remain.
 
-### 2. App-wide responsiveness gap
+## Gap 2 — The `/en/news-id` Story Detail Experience Still Needs Editorial and UX Refinement
 
-Much of the admin UI is responsive already, but responsiveness must be verified and hardened app-wide, especially where custom screen-specific layout primitives were introduced.
+Improve the public article detail experience so it is more attractive to read, better organized, less repetitive, and stronger on all screen sizes. Apply this to the actual detail page route in this repository.
 
-Required outcome:
+### Current gap signals to address
 
-- every admin workspace remains fully usable on narrow mobile widths, tablet widths, laptop widths, and large desktop widths
-- no hidden horizontal overflow except where deliberate and justified
-- no clipped modal actions, hidden validation text, collapsed controls, or off-screen sticky panels
-- tables, action bars, summary strips, and disclosure headers must wrap cleanly
-- long labels, provider names, endpoint labels, policy summaries, and AI status text must not break layout
+The current story page already has a strong structure, but there are still visible gaps:
 
-### 3. Horizontal alignment and layout consistency gap
+- article metadata is repeated across multiple blocks,
+- some sections feel verbose or generic instead of editorially useful,
+- the reading hierarchy can be cleaner,
+- several labels/copy strings are hardcoded and not consistently content-driven,
+- the page should feel more premium and readable on mobile, tablet, laptop, and wide screens.
 
-Some screens still use one-off `space-between`, custom grid ratios, and ad hoc button wrappers that can produce inconsistent visual rhythm and imperfect horizontal alignment.
+### Required implementation
 
-Required outcome:
+#### A. Eliminate duplicated story information
 
-- normalize horizontal alignment for cards, headers, badges, tables, form rows, toolbar actions, modal footers, and sticky sidebars
-- align icon, label, helper text, and action baselines consistently
-- remove layout drift caused by bespoke wrappers when shared primitives can solve it
-- standardize internal spacing, section rhythm, and alignment tokens across admin pages
+Reduce repetition across hero, facts, highlight strip, reading header, sidebar, and other article-detail sections.
 
-### 4. Documentation gap
+- Remove redundant repeats of the same source/date/category/reading-time information unless each occurrence has a distinct user purpose.
+- Keep one clear primary presentation of core article facts and only one secondary supporting presentation where it improves usability.
+- Ensure the article summary is not unnecessarily repeated in multiple blocks.
+- Ensure media, source attribution, and related stories do not restate information already presented more clearly elsewhere.
 
-The original prompt requires professional JSDoc, but many important runtime/admin files still do not have adequate module-level or export-level documentation.
+#### B. Improve article reading experience
 
-High-priority files to address include, at minimum:
+Refine the story page into a cleaner editorial layout.
 
-- `src/components/admin/news-admin-ui.js`
-- `src/components/admin/destination-form-card.helpers.js`
-- `src/components/admin/stream-management-screen.helpers.js`
-- `src/lib/news/providers.js`
-- `src/lib/news/publishers.js`
-- `src/lib/news/shared-fetch.js`
-- `src/lib/news/shared.js`
-- `src/lib/news/social-post.js`
-- `src/lib/news/workflows.js`
-- `src/features/streams/index.js`
-- `src/features/destinations/index.js`
-- `src/features/destinations/meta-config.js`
-- relevant admin route files under `src/app/admin/`**
+- Strengthen visual hierarchy for:
+  - source/context,
+  - headline,
+  - summary/standfirst,
+  - byline/meta row,
+  - primary media,
+  - article body,
+  - related content.
+- Improve typography rhythm, spacing, line length, paragraph readability, and section separation.
+- Make the article body easier to scan with better treatment for headings, lists, quotes, embedded media, and long-form content.
+- Ensure the main reading column remains the visual priority.
+- Make side content supportive, not competitive.
+- Improve CTA wording and placement so the page feels polished rather than mechanically generated.
 
-Required outcome:
+#### C. Improve responsiveness on all screen sizes
 
-- add module-level JSDoc where missing on non-trivial files
-- add or refine export-level JSDoc for helpers, route handlers, React components, workflow functions, provider adapters, and UI utilities where intent or invariants are not obvious
-- add targeted inline comments only for non-obvious logic
-- do not add noisy comments that merely restate the code
+The story page must look intentionally designed across all breakpoints.
 
-### 5. Cleanup and dead-code gap
+- Audit mobile, tablet, desktop, and wide-screen behavior.
+- Eliminate awkward stacking, cramped metadata rows, inconsistent spacing, and weak horizontal alignment.
+- Ensure image/media areas, tags, side rail content, action rows, and related stories reflow cleanly.
+- Ensure no section looks overloaded on small screens or sparse on large screens.
+- Preserve strong readability and hierarchy at every breakpoint.
 
-The repo appears to contain legacy or unreferenced modules that should either be removed, consolidated, or explicitly wired into the current architecture.
+#### D. Make the page more content-driven and less generic
 
-Examples to verify and clean up when confirmed safe:
+- Replace generic filler copy with useful, article-aware presentation where possible.
+- Prefer real article/category/source data over decorative explanatory copy.
+- Avoid sections that exist only to describe the layout itself.
+- Keep editorial UI text concise and purposeful.
 
-- `src/components/admin/category-management-screen.js`
-- `src/components/admin/media-library-screen.js`
-- `src/components/public/share-actions.js`
-- `src/features/auth/index.js`
-- `src/features/i18n/activation.js`
-- `src/features/media/media-library.js`
+#### E. Improve localization readiness
 
-Required outcome:
+Even if the immediate concern is `/en/...`, close the gap properly.
 
-- identify unused, duplicated, or obsolete modules
-- remove dead files only when confirmed safe
-- if a file is intentionally retained for a near-term path, document why and ensure it is not duplicating active logic unnecessarily
-- remove redundant helpers, duplicate style blocks, and stale screen-specific primitives that no longer serve the current app
+- Move remaining hardcoded user-facing story page strings into the existing message/localization system where appropriate.
+- Keep the page fully compatible with locale-aware rendering.
+- Do not regress current locale routing or metadata behavior.
 
-### 6. Code-efficiency gap
+### Acceptance criteria
 
-The repo should be tightened for maintainability and runtime efficiency without changing working product behavior.
+- The detail page feels cleaner, more premium, and easier to read.
+- Repeated article facts are reduced substantially.
+- Mobile and desktop layouts both look intentional and balanced.
+- The page remains data-driven and maintainable.
+- User-facing text on the story page is no longer inconsistently hardcoded.
 
-Required outcome:
+## Gap 3 — Story Detail SEO Is Good but Not Yet Maximized
 
-- reduce duplicated UI primitives and repeated styling logic
-- keep client components lean
-- minimize avoidable rerenders and unnecessary derived state
-- extract reusable helpers only where it meaningfully reduces repetition or complexity
-- avoid over-abstraction
-- preserve the current product boundary and runtime behavior
+The code already includes metadata and `NewsArticle` structured data, but the story page is not yet fully exploiting the available SEO data model. Close that gap without breaking existing behavior.
 
-### 7. Uniform component contract gap
+### Required implementation
 
-Reusable UI components exist, but the contract must be enforced consistently.
+#### A. Use the strongest SEO fields consistently
 
-Required outcome:
+Audit the story-page SEO pipeline and ensure the best available fields are used consistently.
 
-- shared components must own button sizing, icon spacing, disclosure headers, field spacing, validation placement, summary chips, and card padding
-- route-specific code should compose the shared primitives instead of re-implementing them
-- new variants should be added to shared primitives rather than copied locally
+- Prefer the article’s dedicated SEO fields wherever present.
+- Use the best available image for metadata/social previews. If a dedicated SEO image exists, ensure it is actually used.
+- Ensure metadata title/description/canonical/open graph/twitter values are driven by the strongest available article SEO values with safe fallbacks.
+- Keep canonical behavior stable and correct.
 
-## Implementation Rules
+#### B. Improve structured data depth for article pages
 
-1. Do **not** re-open already completed architecture unless the current code clearly violates the shipped contract.
-2. Prefer consolidating existing components over introducing new parallel primitives.
-3. Preserve behavior first; refactor only when it improves consistency, reuse, or clarity without regressions.
-4. Treat admin UX consistency as a product contract, not a cosmetic cleanup.
-5. Keep changes small, traceable, and easy to review.
-6. When deleting code, confirm it is unreferenced or superseded.
-7. When consolidating styles, centralize them in the existing shared admin UI layer rather than scattering new wrappers.
+Extend structured data where the data already exists or can be safely derived.
 
-## Required File Focus
+- Keep `NewsArticle` valid and enhance it with relevant supported properties when available, such as article section/category context, keywords, image, publisher/source context, and other article metadata already present in the model.
+- Ensure breadcrumb structured data remains correct.
+- Avoid adding invalid or fabricated schema fields.
 
-Prioritize the files below when applicable:
+#### C. Strengthen on-page SEO semantics
 
-### Shared admin UI layer
+- Ensure the page has one clear H1.
+- Ensure heading hierarchy below the H1 is logical and non-skipped.
+- Improve semantic markup for article content, source attribution, related stories, media captions, and navigational context where appropriate.
+- Ensure internal linking to category/news pages is useful and not excessive.
+- Ensure noindex/index behavior is unchanged unless explicitly required by actual publishing state.
 
-- `src/components/admin/news-admin-ui.js`
-- `src/components/admin/admin-form-modal.js`
-- `src/components/admin/admin-form-primitives.js`
-- `src/components/admin/checkbox-search-field.js`
-- `src/components/common/searchable-select.js`
+#### D. Improve content uniqueness and crawl value
 
-### Screens and route surfaces most likely to need consolidation
+- Reduce boilerplate copy that adds little search value.
+- Make above-the-fold content more article-specific.
+- Ensure titles, summaries, captions, and related modules reinforce the article topic rather than repeating generic platform language.
 
-- `src/components/admin/stream-management-screen.js`
-- `src/components/admin/stream-form-card.js`
-- `src/components/admin/provider-filter-fields.js`
-- `src/app/admin/page.js`
-- `src/app/admin/jobs/page.js`
-- `src/app/admin/settings/page.js`
-- `src/app/admin/providers/page.js`
-- `src/app/admin/destinations/page.js`
-- `src/app/admin/streams/page.js`
-- `src/app/admin/posts/[id]/page.js`
-- `src/app/admin/posts/review/page.js`
-- `src/app/admin/posts/published/page.js`
-- `src/app/admin/media/page.js`
-- `src/app/admin/categories/page.js`
-- `src/app/admin/templates/page.js`
-- `src/app/admin/seo/page.js`
+### Acceptance criteria
 
-### Cleanup candidates to verify
+- Story metadata uses the best available SEO-specific fields.
+- Social preview metadata is improved without regressions.
+- Structured data is richer but still valid.
+- The rendered article page has stronger semantic SEO and less boilerplate.
 
-- `src/components/admin/category-management-screen.js`
-- `src/components/admin/media-library-screen.js`
-- `src/components/public/share-actions.js`
-- `src/features/auth/index.js`
-- `src/features/i18n/activation.js`
-- `src/features/media/media-library.js`
+## Required Validation
 
-### Documentation targets
+After implementing the gaps above:
 
-- all changed files above
-- `README.md`
-- `app-write-up.md`
-- `dev-plan/22_performance_and_scalability.md`
-- any other repo-truth docs affected by cleanup, consolidation, or UI contract changes
+- update or add automated tests for the story-page metadata, structured-data generation, and any changed public-page helpers,
+- update tests for any moved localization strings or changed rendering behavior,
+- verify the story page still renders safely when optional data is missing,
+- verify there are no regressions for canonical URLs, article JSON-LD, related stories, or media fallbacks.
 
-## Testing And Verification Requirements
+## Output Requirements
 
-Add or update tests only where behavior or reusable UI contracts change.
+- Modify all necessary files across the codebase.
+- Keep the implementation production-ready, concise, and maintainable.
+- Preserve existing working behavior unless changing it is required to close one of the listed gaps.
+- Do not include a broad rewrite plan in the output; implement the code changes directly.
 
-Cover at least:
-
-- shared admin button sizing and icon alignment where testable
-- responsive table/card behavior on narrow viewports where existing test strategy allows it
-- disclosure auto-open and validation visibility behavior after refactors
-- stream-management and admin action layouts after shared primitive consolidation
-- cleanup-sensitive areas so deleted or merged modules do not silently remove active functionality
-- any helper extraction that changes branching or render behavior
-
-Also verify:
-
-- lint passes
-- tests pass
-- no admin route loses functionality after cleanup
-- no regression in shared-fetch, fetch-window, website publishing, AI fallback, or Meta pacing flows while performing UI/documentation refactors
-
-## Acceptance Criteria
-
-The work is complete only if all of the following are true:
-
-- the updated prompt addresses only real remaining gaps rather than re-describing already completed work
-- admin UI primitives are reused consistently across screens
-- the admin app is fully responsive across common viewport sizes
-- horizontal alignment is visibly consistent across major screens and modals
-- unnecessary or dead files are removed or explicitly justified
-- duplicated styling and one-off UI primitives are reduced materially
-- changed files are properly documented with professional JSDoc
-- repo-truth docs reflect the final shared UI and cleanup decisions accurately
-- no working NewsPub runtime behavior is regressed while closing these gaps
-
-## Delivery Rules
-
-- make the smallest change set that fully closes the confirmed gaps
-- do not pad the implementation with speculative redesign work
-- do not duplicate existing architecture in parallel files
-- prefer deletion and consolidation over adding new layers when safe
-- keep the final repo cleaner, more uniform, more responsive, and easier to maintain than before
+```
 
