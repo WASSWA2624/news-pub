@@ -103,6 +103,7 @@ export default function ProviderFormCard({
   const [providerKey, setProviderKey] = useState(provider?.providerKey || providerDefinitions[0]?.key || "");
   const [metadataResetKey, setMetadataResetKey] = useState(0);
   const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
+  const [availabilityResetKey, setAvailabilityResetKey] = useState(0);
   const formId = useId();
   const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
   const isExistingProviderSelection = provider?.providerKey === providerKey;
@@ -195,7 +196,7 @@ export default function ProviderFormCard({
             Reset to defaults
           </SecondaryButton>
         </SectionActionRow>
-        <Field>
+        <Field key={`provider-notes-${providerKey}-${metadataResetKey}`}>
           <FieldLabel>Description</FieldLabel>
           <Textarea defaultValue={nextDescription} name="description" />
           <FieldHint>
@@ -256,7 +257,18 @@ export default function ProviderFormCard({
         summary="Control whether the provider is available for new streams and whether it can serve as the workspace default."
         title="Availability"
       >
-        <ToggleRow>
+        <SectionActionRow>
+          <SecondaryButton
+            onClick={() => setAvailabilityResetKey((currentValue) => currentValue + 1)}
+            type="button"
+          >
+            <ButtonIcon>
+              <ActionIcon name="refresh" />
+            </ButtonIcon>
+            Reset availability
+          </SecondaryButton>
+        </SectionActionRow>
+        <ToggleRow key={`provider-availability-${providerKey}-${availabilityResetKey}`}>
           <ToggleChip>
             <input defaultChecked={provider?.isEnabled ?? true} name="isEnabled" type="checkbox" />
             Enabled

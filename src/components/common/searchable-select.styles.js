@@ -87,7 +87,17 @@ export const TriggerButton = styled.button`
       0 16px 30px rgba(16, 32, 51, 0.08),
       0 0 0 4px
         ${({ $invalid }) => ($invalid ? "rgba(180, 35, 24, 0.14)" : "rgba(0, 95, 115, 0.14)")};
-    outline: none;
+    outline: 2px solid
+      ${({ $invalid }) =>
+        $invalid ? "rgba(var(--theme-danger-rgb), 0.85)" : "rgba(var(--theme-primary-rgb), 0.85)"};
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    &:focus-visible {
+      box-shadow: none;
+      outline: 2px solid CanvasText;
+    }
   }
 `;
 

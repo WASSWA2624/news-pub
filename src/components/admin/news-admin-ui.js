@@ -26,7 +26,7 @@ export const AdminHero = styled.section`
     radial-gradient(circle at top left, rgba(var(--theme-accent-rgb), 0.09), transparent 34%),
     radial-gradient(circle at 86% 18%, rgba(var(--theme-primary-rgb), 0.06), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(var(--theme-surface-alt-rgb), 0.97));
-  border: 1px solid rgba(16, 32, 51, 0.08);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: 0;
   display: grid;
   gap: 0.28rem;
@@ -232,7 +232,7 @@ export const SummaryCard = styled.article`
     rgba(255, 255, 255, 0.99),
     rgba(var(--theme-surface-alt-rgb), 0.97)
   );
-  border: 1px solid rgba(16, 32, 51, 0.08);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: 0;
   display: grid;
   gap: 0.12rem;
@@ -276,7 +276,7 @@ export const Card = styled.section`
     rgba(255, 255, 255, 0.99),
     rgba(var(--theme-surface-alt-rgb), 0.975)
   );
-  border: 1px solid rgba(16, 32, 51, 0.08);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: 0;
   display: grid;
   gap: 0.55rem;
@@ -357,7 +357,7 @@ export const StickySideCardHeader = styled(CardHeader)`
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.94)),
       radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 52%);
-    border-bottom: 1px solid rgba(16, 32, 51, 0.08);
+    border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.14);
     margin: calc(clamp(0.62rem, 1.7vw, 0.82rem) * -1) calc(clamp(0.62rem, 1.7vw, 0.82rem) * -1) 0;
     padding: clamp(0.62rem, 1.7vw, 0.82rem);
   }
@@ -406,7 +406,7 @@ export const RecordCard = styled.article`
     rgba(var(--theme-surface-alt-rgb), 0.99),
     rgba(255, 255, 255, 0.97)
   );
-  border: 1px solid rgba(16, 32, 51, 0.08);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: 0;
   display: grid;
   gap: 0.5rem;
@@ -512,7 +512,7 @@ export const FormSection = styled.div`
   padding-top: 0.58rem;
 
   &:not(:first-child) {
-    border-top: 1px solid rgba(16, 32, 51, 0.08);
+    border-top: 1px solid rgba(var(--theme-text-rgb), 0.12);
   }
 `;
 
@@ -540,7 +540,7 @@ export const DataTable = styled.table`
 
   th,
   td {
-    border-bottom: 1px solid rgba(16, 32, 51, 0.08);
+    border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.12);
     padding: 0.46rem 0.34rem;
     text-align: left;
     vertical-align: top;
@@ -590,7 +590,7 @@ export const DataTable = styled.table`
         rgba(var(--theme-surface-alt-rgb), 0.99),
         rgba(255, 255, 255, 0.97)
       );
-      border: 1px solid rgba(16, 32, 51, 0.08);
+      border: 1px solid rgba(var(--theme-text-rgb), 0.14);
       border-radius: 0;
       display: grid;
       gap: 0.34rem;
@@ -660,7 +660,7 @@ export const FieldErrorText = styled.p`
 const fieldStyles = css`
   ${controlSurfaceCss}
   ${focusRingCss}
-  border: 1px solid rgba(16, 32, 51, 0.12);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.48);
   border-radius: 0;
   color: #1f314b;
   font-size: 0.88rem;
@@ -676,12 +676,29 @@ const fieldStyles = css`
     outline: none;
   }
 
+  &:hover {
+    border-color: rgba(var(--theme-text-rgb), 0.62);
+  }
+
   &[aria-invalid="true"] {
-    border-color: rgba(var(--theme-danger-rgb), 0.42);
+    border-color: rgba(var(--theme-danger-rgb), 0.7);
     box-shadow:
       var(--theme-shadow-sm),
-      0 0 0 4px rgba(var(--theme-danger-rgb), 0.08);
-    outline: none;
+      0 0 0 4px rgba(var(--theme-danger-rgb), 0.12);
+  }
+
+  &[aria-invalid="true"]:focus-visible {
+    box-shadow:
+      var(--theme-shadow-sm),
+      0 0 0 4px rgba(var(--theme-danger-rgb), 0.18);
+    outline-color: rgba(var(--theme-danger-rgb), 0.85);
+  }
+
+  @media (forced-colors: active) {
+    &[aria-invalid="true"] {
+      border-color: CanvasText;
+      box-shadow: none;
+    }
   }
 `;
 
@@ -708,7 +725,7 @@ export const CheckboxRow = styled.div`
 export const CheckboxChip = styled.label`
   align-items: center;
   background: rgba(16, 32, 51, 0.04);
-  border: 1px solid rgba(16, 32, 51, 0.08);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.16);
   border-radius: 0;
   color: #22344f;
   cursor: pointer;
@@ -786,7 +803,15 @@ const buttonStyles = css`
   }
 
   &:focus-visible {
-    outline: none;
+    outline: 2px solid rgba(var(--theme-primary-rgb), 0.85);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    &:focus-visible {
+      box-shadow: none !important;
+      outline: 2px solid CanvasText;
+    }
   }
 
   &:disabled {
@@ -821,7 +846,7 @@ export const SecondaryButton = styled.button`
     rgba(255, 255, 255, 0.995),
     rgba(var(--theme-surface-alt-rgb), 0.975)
   );
-  border: 1px solid rgba(16, 32, 51, 0.1);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.16);
   color: #22344f;
 
   &:focus-visible {
@@ -853,7 +878,7 @@ export const LinkButton = styled(Link)`
     rgba(255, 255, 255, 0.995),
     rgba(var(--theme-surface-alt-rgb), 0.975)
   );
-  border: 1px solid rgba(16, 32, 51, 0.1);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.16);
   color: #22344f;
 `;
 

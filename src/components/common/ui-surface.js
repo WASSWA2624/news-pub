@@ -41,11 +41,21 @@ export const controlSurfaceCss = css`
 export const focusRingCss = css`
   &:focus-visible,
   &:focus-within {
-    border-color: rgba(var(--theme-primary-rgb), 0.36);
+    border-color: rgba(var(--theme-primary-rgb), 0.75);
     box-shadow:
       var(--theme-shadow-sm),
-      0 0 0 4px rgba(var(--theme-primary-rgb), 0.1);
-    outline: none;
+      0 0 0 4px rgba(var(--theme-primary-rgb), 0.22);
+    outline: 2px solid rgba(var(--theme-primary-rgb), 0.85);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    &:focus-visible,
+    &:focus-within {
+      border-color: CanvasText;
+      box-shadow: none;
+      outline: 2px solid CanvasText;
+    }
   }
 `;
 

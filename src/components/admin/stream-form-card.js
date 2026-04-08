@@ -46,6 +46,10 @@ import {
   createRunFetchWindowRequest,
 } from "@/components/admin/stream-management-screen.helpers";
 import {
+  applyStreamFormResetSeed,
+  createStreamFormResetSeed,
+} from "@/components/admin/stream-form-card.helpers";
+import {
   getStreamValidationIssues,
   isDestinationKindAutoPublishCapable,
 } from "@/lib/validation/configuration";
@@ -275,6 +279,15 @@ export default function StreamFormCard({
   const initialSuggestedMode = getSuggestedStreamMode(initialSelectedDestination);
   const initialName = stream?.name || initialSuggestedIdentity.name;
   const initialSlug = stream?.slug || initialSuggestedIdentity.slug;
+  const initialRunWindowState = createDefaultRunWindowState(uiNowIso || new Date());
+  const initialNameWasEdited = Boolean(
+    normalizeDisplayText(initialName)
+    && normalizeDisplayText(initialName) !== initialSuggestedIdentity.name,
+  );
+  const initialSlugWasEdited = Boolean(
+    trimFieldValue(initialSlug) && trimFieldValue(initialSlug) !== initialSuggestedIdentity.slug,
+  );
+  const initialModeWasEdited = Boolean(stream?.mode && stream.mode !== initialSuggestedMode);
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
   const [activeProviderId, setActiveProviderId] = useState(initialActiveProviderId);
@@ -286,22 +299,33 @@ export default function StreamFormCard({
   const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
   const [providerFormValues, setProviderFormValues] = useState(initialProviderFormValues);
   const [providerFiltersResetKey, setProviderFiltersResetKey] = useState(0);
-  const [runWindowState, setRunWindowState] = useState(() => createDefaultRunWindowState(uiNowIso || new Date()));
+  const [formResetKey, setFormResetKey] = useState(0);
+  const [runWindowState, setRunWindowState] = useState(initialRunWindowState);
   const [runWindowError, setRunWindowError] = useState("");
-  const [nameWasEdited, setNameWasEdited] = useState(
-    Boolean(
-      normalizeDisplayText(initialName)
-      && normalizeDisplayText(initialName) !== initialSuggestedIdentity.name,
-    ),
-  );
-  const [slugWasEdited, setSlugWasEdited] = useState(
-    Boolean(trimFieldValue(initialSlug) && trimFieldValue(initialSlug) !== initialSuggestedIdentity.slug),
-  );
-  const [modeWasEdited, setModeWasEdited] = useState(
-    Boolean(stream?.mode && stream.mode !== initialSuggestedMode),
-  );
+  const [nameWasEdited, setNameWasEdited] = useState(initialNameWasEdited);
+  const [slugWasEdited, setSlugWasEdited] = useState(initialSlugWasEdited);
+  const [modeWasEdited, setModeWasEdited] = useState(initialModeWasEdited);
   const formId = useId();
   const formRef = useRef(null);
+  const initialSeedRef = useRef(
+    createStreamFormResetSeed({
+      activeProviderId: initialActiveProviderId,
+      defaultTemplateId: stream?.defaultTemplateId || "",
+      destinationId: initialDestinationId,
+      maxPostsPerRun: `${stream?.maxPostsPerRun ?? 5}`,
+      mode: stream?.mode || initialSuggestedMode,
+      modeWasEdited: initialModeWasEdited,
+      name: initialName,
+      nameWasEdited: initialNameWasEdited,
+      postLinkPlacement: socialPostSettings.linkPlacement,
+      providerKey: initialSelectedProvider?.providerKey,
+      providerFormValues: initialProviderFormValues,
+      runWindowState: initialRunWindowState,
+      slug: initialSlug,
+      slugWasEdited: initialSlugWasEdited,
+      status: stream?.status || "ACTIVE",
+    }),
+  );
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
@@ -352,6 +376,29 @@ export default function StreamFormCard({
 
     setProviderFormValues(nextProviderFormValues);
     setProviderFiltersResetKey((currentValue) => currentValue + 1);
+  }
+
+  function resetStreamFormDefaults() {
+    formRef.current?.reset();
+    applyStreamFormResetSeed(initialSeedRef.current, {
+      setActiveProviderId,
+      setDefaultTemplateId,
+      setDestinationId,
+      setMaxPostsPerRun,
+      setMode,
+      setModeWasEdited,
+      setName,
+      setNameWasEdited,
+      setPostLinkPlacement,
+      setProviderFormValues,
+      setRunWindowState,
+      setSlug,
+      setSlugWasEdited,
+      setStatus,
+    });
+    setFormResetKey((currentValue) => currentValue + 1);
+    setProviderFiltersResetKey((currentValue) => currentValue + 1);
+    setRunWindowError("");
   }
 
   const applyIdentitySuggestion = useCallback(
@@ -440,7 +487,15 @@ export default function StreamFormCard({
         summary="Choose the destination, provider, workflow mode, and template compatibility before editing targeting rules."
         title="Core setup"
       >
-        <StreamFieldGrid>
+        <SectionActionRow>
+          <SecondaryButton onClick={resetStreamFormDefaults} type="button">
+            <ButtonIcon>
+              <ActionIcon name="refresh" />
+            </ButtonIcon>
+            Reset stream form
+          </SecondaryButton>
+        </SectionActionRow>
+        <StreamFieldGrid key={`stream-core-${formResetKey}`}>
           <Field>
             <FieldLabel>Name</FieldLabel>
             <Input
@@ -609,7 +664,7 @@ export default function StreamFormCard({
             {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
           </Field>
         </StreamFieldGrid>
-        <Field>
+        <Field key={`stream-description-${formResetKey}`}>
           <FieldLabel>Description</FieldLabel>
           <Textarea defaultValue={stream?.description || ""} name="description" />
           <FieldHint>Describe the stream in operator language so future edits are faster and safer.</FieldHint>
@@ -676,7 +731,7 @@ export default function StreamFormCard({
         summary="Set the run cadence, result limits, duplicate window, and retry policy that shape end-to-end automation."
         title="Scheduling and limits"
       >
-        <StreamFieldGrid>
+        <StreamFieldGrid key={`stream-scheduling-${formResetKey}`}>
           <Field>
             <FieldLabel>Schedule interval minutes</FieldLabel>
             <Input
@@ -749,7 +804,7 @@ export default function StreamFormCard({
         summary="Control the optional plain-text CTA link inserted into supported social destination payloads."
         title="Social post options"
       >
-        <StreamFieldGrid>
+        <StreamFieldGrid key={`stream-social-${formResetKey}`}>
           <Field>
             <FieldLabel>Post link URL</FieldLabel>
             <Input
@@ -806,7 +861,7 @@ export default function StreamFormCard({
             Restore this stream&apos;s provider request fields to the defaults saved on the selected provider profile.
           </FieldHint>
           <ProviderFilterFields
-            key={`stream-provider-filters-${selectedProvider.providerKey}-${providerFiltersResetKey}`}
+            key={`stream-provider-filters-${selectedProvider.providerKey}-${providerFiltersResetKey}-${formResetKey}`}
             hideManagedWindowFields
             namePrefix="providerFilter"
             onValuesChange={handleProviderFormValuesChange}
@@ -829,7 +884,7 @@ export default function StreamFormCard({
         summary="Apply keyword filters and category targeting so fetched stories stay within the editorial lane this destination expects."
         title="Targeting rules"
       >
-        <Field>
+        <Field key={`stream-targeting-include-${formResetKey}`}>
           <FieldLabel>Include keywords</FieldLabel>
           <Textarea
             defaultValue={(stream?.includeKeywordsJson || []).join(", ")}
@@ -837,7 +892,7 @@ export default function StreamFormCard({
           />
           <FieldHint>Use comma-separated terms that must appear in the normalized source article before the stream accepts it.</FieldHint>
         </Field>
-        <Field>
+        <Field key={`stream-targeting-exclude-${formResetKey}`}>
           <FieldLabel>Exclude keywords</FieldLabel>
           <Textarea
             defaultValue={(stream?.excludeKeywordsJson || []).join(", ")}
@@ -846,6 +901,7 @@ export default function StreamFormCard({
           <FieldHint>Use comma-separated terms that should immediately disqualify a fetched story from this stream.</FieldHint>
         </Field>
         <CheckboxSearchField
+          key={`stream-targeting-categories-${formResetKey}`}
           description="Assign internal NewsPub categories used for matching, landing pages, and publication organization."
           name="categoryIds"
           options={categoryOptions}

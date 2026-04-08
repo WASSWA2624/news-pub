@@ -23,6 +23,7 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from "@/components/admin/news-admin-ui";
+import { focusRingCss } from "@/components/common/ui-surface";
 
 const FooterPortalContext = createContext(null);
 
@@ -65,7 +66,7 @@ const Surface = styled.section`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.996), rgba(246, 250, 255, 0.99)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 34%);
-  border: 1px solid rgba(16, 32, 51, 0.09);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: var(--theme-radius-lg, 2px);
   box-shadow:
     0 32px 72px rgba(11, 18, 30, 0.24),
@@ -87,7 +88,7 @@ const Header = styled.div`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92)),
     radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 48%);
-  border-bottom: 1px solid rgba(16, 32, 51, 0.08);
+  border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.14);
   display: grid;
   gap: 0.55rem;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -117,9 +118,10 @@ const Description = styled.p`
 `;
 
 const CloseButton = styled.button`
+  ${focusRingCss}
   align-items: center;
   background: rgba(16, 32, 51, 0.05);
-  border: 1px solid rgba(16, 32, 51, 0.09);
+  border: 1px solid rgba(var(--theme-text-rgb), 0.16);
   border-radius: var(--theme-radius-lg, 2px);
   color: #22344f;
   cursor: pointer;
@@ -139,11 +141,6 @@ const CloseButton = styled.button`
   &:hover {
     border-color: rgba(15, 111, 141, 0.18);
     transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    box-shadow: 0 0 0 4px rgba(15, 111, 141, 0.12);
-    outline: none;
   }
 `;
 
@@ -173,7 +170,7 @@ const Footer = styled.div`
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.98)),
     radial-gradient(circle at top left, rgba(15, 111, 141, 0.06), transparent 42%);
-  border-top: 1px solid rgba(16, 32, 51, 0.08);
+  border-top: 1px solid rgba(var(--theme-text-rgb), 0.14);
   padding: clamp(0.68rem, 1.7vw, 0.86rem) clamp(0.75rem, 1.7vw, 0.95rem);
 `;
 
