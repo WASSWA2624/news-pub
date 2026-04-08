@@ -7,6 +7,10 @@
 import styled from "styled-components";
 
 import {
+  DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
+  DEFAULT_FETCH_WINDOW_HOURS,
+} from "@/lib/news/fetch-window";
+import {
   Field,
   FieldGrid,
   FieldHint,
@@ -109,7 +113,7 @@ export default function FetchWindowControls({
   onStartChange,
   onWriteCheckpointChange,
   startValue = "",
-  windowHint = "NewsPub defaults manual runs to the last 24 hours through now, then maps that normalized window safely to the selected provider endpoints.",
+  windowHint = `NewsPub defaults manual runs to the previous ${DEFAULT_FETCH_WINDOW_HOURS} hours through the next ${DEFAULT_FETCH_WINDOW_FORWARD_MINUTES} minutes from now. The extra forward buffer helps avoid missing the latest stories while providers finish indexing and NewsPub completes API and processing work.`,
   writeCheckpointOnSuccess = false,
 }) {
   return (
@@ -140,7 +144,7 @@ export default function FetchWindowControls({
       {typeof onReset === "function" ? (
         <ResetRow>
           <SecondaryButton disabled={disabled} onClick={onReset} type="button">
-            Reset to last 24 hours
+            {`Reset to ${DEFAULT_FETCH_WINDOW_HOURS}h + ${DEFAULT_FETCH_WINDOW_FORWARD_MINUTES}m buffer`}
           </SecondaryButton>
         </ResetRow>
       ) : null}

@@ -23,7 +23,7 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 6. Normalize every fetched provider item into the shared `FetchedArticle` contract.
 7. Validate normalized payloads before downstream filtering.
 8. Record fetch-run summaries, warnings, failures, shared-group details, and endpoint-specific time-boundary semantics in audit logs and job views.
-9. Expose manual run-now triggers for single-stream and batched stream execution without bypassing validation, and make those entry points share one explicit default window of the last 24 hours through now.
+9. Expose manual run-now triggers for single-stream and batched stream execution without bypassing validation, and make those entry points share one explicit default window of the previous 24 hours through the next 30 minutes from now.
 10. Document the shared provider contract, adapters, checkpoint flow, shared-group rules, and normalization utilities with JSDoc, and add inline comments where provider quirks, dedupe inputs, or incremental-window rules are not obvious from the code alone.
 
 ## Required Outputs
@@ -39,7 +39,7 @@ Implement the end-to-end fetch pipeline that pulls provider data, applies the in
 - stream checkpoints are read before fetch execution
 - compatible multi-stream execution requests make one upstream provider call per safe shared group instead of one call per stream
 - explicit bounded windows can be applied without accidentally advancing checkpoints
-- the default explicit manual window resolves to the last 24 hours through now and stays visible in both single-stream and batch execution controls
+- the default explicit manual window resolves to the previous 24 hours through the next 30 minutes from now and stays visible in both single-stream and batch execution controls
 - malformed provider payloads fail validation instead of silently entering later stages
 - normalization and checkpoint code explains provider-specific edge cases and workflow invariants without relying on tribal knowledge
 - fetch summaries and failures are visible in the admin job timeline

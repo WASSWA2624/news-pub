@@ -1,4 +1,5 @@
 import {
+  DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
   DEFAULT_FETCH_WINDOW_HOURS,
   createDefaultFetchWindowPreview,
   formatFetchWindowInputValue,
@@ -173,21 +174,23 @@ function buildCapabilityBadge(timeBoundarySupport) {
 }
 
 function buildCapabilityDescription(timeBoundarySupport) {
-  const defaultWindowLabel = `last ${DEFAULT_FETCH_WINDOW_HOURS} hours to now`;
+  const defaultWindowLabel = `the previous ${DEFAULT_FETCH_WINDOW_HOURS} hours through the next ${DEFAULT_FETCH_WINDOW_FORWARD_MINUTES} minutes from now`;
+  const forwardBufferClause =
+    "The extra forward buffer helps NewsPub avoid missing the newest stories while providers finish indexing and the app completes API and processing work.";
 
   if (timeBoundarySupport?.mode === "direct" && timeBoundarySupport?.precision === "date") {
-    return `${timeBoundarySupport.summary} NewsPub pre-fills ${defaultWindowLabel} and sends the nearest supported start and end dates upstream.`;
+    return `${timeBoundarySupport.summary} NewsPub pre-fills ${defaultWindowLabel}, sends the nearest supported start and end dates upstream, and keeps the exact operator-visible buffer in local filtering. ${forwardBufferClause}`;
   }
 
   if (timeBoundarySupport?.mode === "direct") {
-    return `${timeBoundarySupport.summary} NewsPub pre-fills ${defaultWindowLabel} and sends explicit start and end datetimes upstream.`;
+    return `${timeBoundarySupport.summary} NewsPub pre-fills ${defaultWindowLabel}, sends explicit start and end datetimes upstream, and keeps the exact operator-visible buffer in local filtering. ${forwardBufferClause}`;
   }
 
   if (timeBoundarySupport?.mode === "relative") {
-    return `${timeBoundarySupport.summary} NewsPub still shows ${defaultWindowLabel}, maps it to the broadest supported relative lookback upstream, and then keeps exact local filtering active.`;
+    return `${timeBoundarySupport.summary} NewsPub still shows ${defaultWindowLabel}, maps it to the broadest supported relative lookback upstream, and then keeps exact local filtering active. ${forwardBufferClause}`;
   }
 
-  return `${timeBoundarySupport?.summary || "This endpoint relies on local filtering."} NewsPub still defaults manual runs to ${defaultWindowLabel} and applies the exact boundary locally after fetching.`;
+  return `${timeBoundarySupport?.summary || "This endpoint relies on local filtering."} NewsPub still defaults manual runs to ${defaultWindowLabel}, applies the exact boundary locally after fetching, and uses the forward buffer to protect against late-arriving provider items.`;
 }
 
 function buildProviderRequestValues(stream = {}) {

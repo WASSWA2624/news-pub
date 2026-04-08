@@ -113,6 +113,10 @@ function buildSuggestedStreamIdentity(destination, provider) {
   };
 }
 
+function getSuggestedStreamMode(destination) {
+  return destination?.platform === "WEBSITE" ? "AUTO_PUBLISH" : "REVIEW_REQUIRED";
+}
+
 function buildTemplateOptions(templateOptions, destination) {
   return templateOptions.map((option) => {
     if (!option.value) {
@@ -242,6 +246,7 @@ export default function StreamFormCard({
     initialSelectedDestination,
     initialSelectedProvider,
   );
+  const initialSuggestedMode = getSuggestedStreamMode(initialSelectedDestination);
   const initialName = stream?.name || initialSuggestedIdentity.name;
   const initialSlug = stream?.slug || initialSuggestedIdentity.slug;
   const [name, setName] = useState(initialName);
@@ -249,7 +254,7 @@ export default function StreamFormCard({
   const [activeProviderId, setActiveProviderId] = useState(initialActiveProviderId);
   const [destinationId, setDestinationId] = useState(initialDestinationId);
   const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
-  const [mode, setMode] = useState(stream?.mode || "REVIEW_REQUIRED");
+  const [mode, setMode] = useState(stream?.mode || initialSuggestedMode);
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
   const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
   const [providerFormValues, setProviderFormValues] = useState(initialProviderFormValues);
@@ -264,12 +269,16 @@ export default function StreamFormCard({
   const [slugWasEdited, setSlugWasEdited] = useState(
     Boolean(trimFieldValue(initialSlug) && trimFieldValue(initialSlug) !== initialSuggestedIdentity.slug),
   );
+  const [modeWasEdited, setModeWasEdited] = useState(
+    Boolean(stream?.mode && stream.mode !== initialSuggestedMode),
+  );
   const formId = useId();
   const formRef = useRef(null);
   const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
   const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
   const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
   const suggestedIdentity = buildSuggestedStreamIdentity(selectedDestination, selectedProvider);
+  const suggestedMode = getSuggestedStreamMode(selectedDestination);
   const issues = getStreamValidationIssues({
     destination: selectedDestination || undefined,
     mode,
@@ -447,6 +456,11 @@ export default function StreamFormCard({
 
                 setDestinationId(nextDestinationId);
                 applyIdentitySuggestion(buildSuggestedStreamIdentity(nextDestination, selectedProvider));
+
+                if (!modeWasEdited) {
+                  setMode(getSuggestedStreamMode(nextDestination));
+                  setModeWasEdited(false);
+                }
               }}
               options={destinationOptions}
               placeholder="Select a destination"
@@ -493,12 +507,19 @@ export default function StreamFormCard({
               ariaLabel="Stream mode"
               invalid={issues.length > 0}
               name="mode"
-              onChange={(value) => setMode(`${value || ""}`)}
+              onChange={(value) => {
+                const nextMode = `${value || ""}` || suggestedMode;
+
+                setMode(nextMode);
+                setModeWasEdited(nextMode !== suggestedMode);
+              }}
               options={resolvedModeOptions}
               placeholder="Select a mode"
               value={mode}
             />
-            <FieldHint>Review Required keeps stories held for editors. Auto Publish only works for compatible destinations.</FieldHint>
+            <FieldHint>
+              Website streams default to Auto Publish so every locally eligible story can ship promptly. Social destinations stay safer by default in Review Required mode, and Auto Publish only works for compatible destination kinds.
+            </FieldHint>
           </Field>
           <Field as="div">
             <FieldLabel>Status</FieldLabel>
@@ -552,11 +573,11 @@ export default function StreamFormCard({
       </AdminDisclosureSection>
 
       <AdminDisclosureSection
-        completionLabel="24-hour default ready"
+        completionLabel="24h + 30m default ready"
         defaultOpen
         meta={[
           {
-            label: "Last 24 hours to now",
+            label: "24h lookback + 30m buffer",
             tone: "accent",
           },
           {
@@ -564,7 +585,7 @@ export default function StreamFormCard({
             tone: runWindowState.writeCheckpointOnSuccess ? "warning" : "muted",
           },
         ]}
-        summary="NewsPub resolves one normalized manual window for every run. Provider-specific request parameters are mapped from this explicit boundary instead of relying on hidden defaults."
+        summary="NewsPub resolves one normalized manual window for every run. The default spans the previous 24 hours through the next 30 minutes so the newest stories are protected from provider indexing, API, and processing delays before provider-specific mapping is applied."
         title="Fetch window defaults"
       >
         <FetchWindowControls

@@ -8,12 +8,12 @@ import {
 } from "./stream-management-screen.helpers";
 
 describe("stream management run-window helpers", () => {
-  it("creates the default last-24-hours run window state for admin controls", () => {
+  it("creates the default previous-24-hours-plus-next-30-minutes run window state for admin controls", () => {
     const now = new Date("2026-04-08T12:00:00.000Z");
     const windowState = createDefaultRunWindowState(now);
 
     expect(windowState).toEqual({
-      endInputValue: formatFetchWindowInputValue(now),
+      endInputValue: formatFetchWindowInputValue(new Date("2026-04-08T12:30:00.000Z")),
       startInputValue: formatFetchWindowInputValue(
         new Date(now.getTime() - 24 * 60 * 60 * 1000),
       ),
@@ -84,16 +84,19 @@ describe("stream management run-window helpers", () => {
       expect.arrayContaining([
         expect.objectContaining({
           badge: "Relative lookback",
+          description: expect.stringContaining("next 30 minutes from now"),
           label: "NewsData | Latest",
           mode: "relative",
         }),
         expect.objectContaining({
           badge: "Local-only bounds",
+          description: expect.stringContaining("next 30 minutes from now"),
           label: "NewsAPI | Top Headlines",
           mode: "local_only",
         }),
         expect.objectContaining({
           badge: "Direct date bounds",
+          description: expect.stringContaining("next 30 minutes from now"),
           label: "Mediastack | Default",
           mode: "direct",
         }),

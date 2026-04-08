@@ -135,6 +135,9 @@ function resolveRelativeWindowHours(fetchWindow, now = new Date()) {
     return "";
   }
 
+  // Relative-lookback endpoints cannot express a future buffer directly, so
+  // NewsPub rounds the normalized window up to the nearest safe hour and lets
+  // exact start/end filtering stay in the app layer.
   const durationHours = Math.max(
     1,
     Math.ceil((Math.max(resolvedEnd.getTime(), resolvedNow.getTime()) - resolvedStart.getTime()) / (60 * 60 * 1000)),

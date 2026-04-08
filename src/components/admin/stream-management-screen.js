@@ -1083,7 +1083,7 @@ function RunConfigurationModal({
       title="Run streams with explicit bounds"
     >
       <SmallText>
-        Manual runs default to the last 24 hours through now. Scheduled runs still use checkpoints automatically, while this dialog keeps the manual boundary explicit and auditable.
+        Manual runs default to the previous 24 hours through the next 30 minutes from now. The extra forward buffer helps protect the latest stories from provider indexing, API, and processing delays. Scheduled runs still use checkpoints automatically, while this dialog keeps the manual boundary explicit and auditable.
       </SmallText>
       <FetchWindowControls
         capabilityDetails={capabilityDetails}

@@ -549,7 +549,7 @@ describe("stream selection and scheduling helpers", () => {
     vi.resetModules();
   });
 
-  it("derives fetch windows from the checkpoint and falls back to the previous 24 hours", async () => {
+  it("derives fetch windows from the checkpoint and keeps the 30-minute forward buffer", async () => {
     const { resolveStreamFetchWindow } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
 
@@ -561,7 +561,7 @@ describe("stream selection and scheduling helpers", () => {
         now,
       }),
     ).toMatchObject({
-      end: now,
+      end: new Date("2026-04-05T13:04:56.000Z"),
       source: "checkpoint",
       start: new Date("2026-04-04T11:00:00.000Z"),
       usesExplicitBoundaries: false,
@@ -575,7 +575,7 @@ describe("stream selection and scheduling helpers", () => {
         now,
       }),
     ).toMatchObject({
-      end: now,
+      end: new Date("2026-04-05T13:04:56.000Z"),
       source: "default",
       start: new Date("2026-04-04T12:34:56.000Z"),
       usesExplicitBoundaries: false,
@@ -1267,7 +1267,7 @@ describe("shared stream execution and website completeness", () => {
       expect.objectContaining({
         update: expect.objectContaining({
           cursorJson: null,
-          lastSuccessfulFetchAt: now,
+          lastSuccessfulFetchAt: new Date("2026-04-07T12:30:00.000Z"),
         }),
       }),
     );

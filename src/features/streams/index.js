@@ -57,6 +57,17 @@ function normalizeOptionalSocialPostLinkUrl(value) {
   }
 }
 
+function getDefaultStreamModeForDestination(destination = {}) {
+  return destination?.platform === "WEBSITE" ? "AUTO_PUBLISH" : "REVIEW_REQUIRED";
+}
+
+/**
+ * Returns the stream-management snapshot used by the admin workspace,
+ * including related destination, provider, template, and validation data.
+ *
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Stream workspace snapshot.
+ */
 export async function getStreamManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const [streams, destinations, providers, templates, categories] = await Promise.all([
@@ -169,6 +180,20 @@ export async function getStreamManagementSnapshot(prisma) {
   };
 }
 
+/**
+ * Creates or updates one publishing stream and keeps provider allowlists,
+ * social-post settings, categories, and checkpoints synchronized.
+ *
+ * When the caller does not specify a mode, website destinations default to
+ * `AUTO_PUBLISH` so eligible website stories can publish completely by
+ * default, while social destinations remain in `REVIEW_REQUIRED`.
+ *
+ * @param {object} input - Submitted stream data.
+ * @param {object} [options] - Save options.
+ * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Saved stream record.
+ */
 export async function saveStreamRecord(input, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const name = trimText(input.name);
@@ -268,6 +293,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     linkPlacement: normalizeSocialPostLinkPlacement(input.postLinkPlacement),
     linkUrl: input.postLinkUrl,
   });
+  const resolvedMode = trimText(input.mode) || getDefaultStreamModeForDestination(destination);
   const normalizedSocialPost = {
     ...socialPost,
     linkUrl: normalizeOptionalSocialPostLinkUrl(socialPost.linkUrl),
@@ -277,7 +303,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     destination,
     languageAllowlistJson,
     locale: trimText(input.locale),
-    mode: trimText(input.mode) || "REVIEW_REQUIRED",
+    mode: resolvedMode,
     providerDefaults: activeProvider.requestDefaultsJson,
     providerFilters,
     providerKey: activeProvider.providerKey,
@@ -307,7 +333,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       languageAllowlistJson,
       locale: trimText(input.locale),
       maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
-      mode: trimText(input.mode) || "REVIEW_REQUIRED",
+      mode: resolvedMode,
       name,
       retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
       retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
@@ -332,7 +358,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       languageAllowlistJson,
       locale: trimText(input.locale),
       maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
-      mode: trimText(input.mode) || "REVIEW_REQUIRED",
+      mode: resolvedMode,
       name,
       retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
       retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
@@ -396,6 +422,15 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
   return stream;
 }
 
+/**
+ * Deletes one publishing stream and records the resulting audit payload.
+ *
+ * @param {string} id - Stream id.
+ * @param {object} [options] - Delete options.
+ * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {object} [prisma] - Optional Prisma client override.
+ * @returns {Promise<object>} Deleted stream record.
+ */
 export async function deleteStreamRecord(id, { actorId } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const existingStream = await db.publishingStream.findUnique({

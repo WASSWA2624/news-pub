@@ -215,7 +215,7 @@ describe("news providers", () => {
     expect(requestedUrl.searchParams.get("category")).toBe("technology");
     expect(requestedUrl.searchParams.get("datatype")).toBe("news,analysis");
     expect(requestedUrl.searchParams.get("prioritydomain")).toBe("top");
-    expect(requestedUrl.searchParams.get("timeframe")).toBe("24");
+    expect(requestedUrl.searchParams.get("timeframe")).toBe("25");
     expect(requestedUrl.searchParams.get("image")).toBe("1");
     expect(requestedUrl.searchParams.get("removeduplicate")).toBe("1");
     expect(result).toMatchObject({
@@ -300,7 +300,7 @@ describe("news providers", () => {
     expect(requestedUrl.searchParams.get("domains")).toBe("bbc.co.uk,techcrunch.com");
     expect(requestedUrl.searchParams.get("excludeDomains")).toBe("example.com");
     expect(requestedUrl.searchParams.get("from")).toBe("2026-04-03T06:00:00.000Z");
-    expect(requestedUrl.searchParams.get("to")).toBe("2026-04-05T12:34:56.000Z");
+    expect(requestedUrl.searchParams.get("to")).toBe("2026-04-05T13:04:56.000Z");
     expect(requestedUrl.searchParams.get("sortBy")).toBe("popularity");
     expect(requestInit.headers["x-api-key"]).toBe("newsapi-key");
     expect(result).toMatchObject({

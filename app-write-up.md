@@ -14,7 +14,7 @@ Release 1 must:
 
 - let an authenticated admin configure providers, destinations, streams, templates, schedules, and review rules without code changes
 - fetch broadly within the incremental or explicit window, reuse one upstream call for compatible multi-stream batches when safe, then filter locally
-- prefill stream settings plus manual run controls with the operator-visible default fetch window of the last 24 hours through now and explain endpoint-specific provider mapping clearly
+- prefill stream settings plus manual run controls with the operator-visible default fetch window of the previous 24 hours through the next 30 minutes from now, explain the forward buffer clearly, and explain endpoint-specific provider mapping
 - persist only publishable or published normalized articles plus operational logs
 - optimize eligible stories with a cached AI layer before review approval or publication
 - support both `AUTO_PUBLISH` and `REVIEW_REQUIRED` stream modes
@@ -240,7 +240,7 @@ Rules:
 - each provider client must normalize its raw response into the shared `FetchedArticle` contract before any filtering occurs
 - provider-specific request parameters, pagination cursors, rate limits, and response quirks live in the provider integration layer only
 - provider time-boundary capabilities are endpoint specific and explicit: `mediastack` uses direct date bounds, `newsdata` `archive` uses direct date bounds, `newsdata` `latest` uses a relative timeframe, `newsapi` `everything` uses direct datetime bounds, and `newsapi` `top-headlines` relies on local-only window filtering
-- stream settings and manual run dialogs must surface those endpoint-specific capability differences directly, while still pre-filling the normalized default window of the last 24 hours through now
+- stream settings and manual run dialogs must surface those endpoint-specific capability differences directly, while still pre-filling the normalized default window of the previous 24 hours through the next 30 minutes from now
 - provider credentials resolve from env based on the active provider key
 - missing credentials, invalid response shapes, or provider throttling must appear in audit logs and the admin dashboard
 
@@ -262,7 +262,8 @@ Rules:
 - each stream stores locale, category mapping, country and region filters, language rules, include and exclude keywords, publish mode, schedule, timezone, retry policy, duplicate window, and max posts per run
 - each stream may use only one active provider at a time
 - selected stream batches may share one upstream provider request when provider compatibility rules allow NewsPub to widen the request safely without underfetching
-- stream settings and manual run surfaces must show one explicit normalized fetch window, defaulted to the last 24 hours through now, before provider-specific date, datetime, relative-lookback, or local-only mapping is applied
+- stream settings and manual run surfaces must show one explicit normalized fetch window, defaulted to the previous 24 hours through the next 30 minutes from now, before provider-specific date, datetime, relative-lookback, or local-only mapping is applied
+- new website streams default to `AUTO_PUBLISH`, while new Facebook and Instagram streams default to `REVIEW_REQUIRED`
 - `maxPostsPerRun` bounds social destination batch size, while website streams still process every locally eligible article from the fetched pool
 - website, Facebook, and Instagram streams may each point to different templates and schedules
 - destination connection status and recent failures must be visible in the admin workspace
@@ -290,7 +291,7 @@ Optimization rule: when the AI layer is disabled, missing credentials, unavailab
 
 Fetch-window rule: explicit bounded windows may be used for manual runs, batched runs, retries, and diagnostics. Those explicit windows do not advance checkpoints unless `writeCheckpointOnSuccess` is explicitly set to `true`.
 
-Admin UX rule: stream settings plus single-stream and multi-stream manual run controls must prefill the last 24 hours through now, show that default explicitly, and explain whether the chosen provider endpoint supports direct upstream bounds, only a relative lookback, or local-only enforcement.
+Admin UX rule: stream settings plus single-stream and multi-stream manual run controls must prefill the previous 24 hours through the next 30 minutes from now, show that default explicitly, explain that the extra 30-minute forward buffer protects against provider indexing and processing delays, and explain whether the chosen provider endpoint supports direct upstream bounds, only a relative lookback, or local-only enforcement.
 
 The normalized article contract must include at least:
 

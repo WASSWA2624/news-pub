@@ -1018,7 +1018,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Optional lower bound shown in the editor. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start date.",
+          "Optional lower bound shown in the editor. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded start date.",
         input: "date",
         key: "dateFrom",
         label: "Date From",
@@ -1028,7 +1028,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Optional upper bound shown in the editor. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end date.",
+          "Optional upper bound shown in the editor. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded end date.",
         input: "date",
         key: "dateTo",
         label: "Date To",
@@ -1087,7 +1087,7 @@ const providerDefinitionMap = Object.freeze({
     fields: [
       {
         description:
-          "Latest covers the past 48 hours with relative lookback only. Archive is for paid historical access with explicit start and end boundaries.",
+          "Latest covers the past 48 hours with relative lookback only, so NewsPub maps its normalized previous-24-hours-plus-next-30-minutes window to the broadest safe upstream lookback and filters exact bounds locally. Archive is for paid historical access with explicit start and end boundaries.",
         input: "single-select",
         key: "endpoint",
         label: "Endpoint",
@@ -1135,7 +1135,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Archive date lower bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start date.",
+          "Archive date lower bound. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded start date.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1146,7 +1146,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Archive date upper bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end date.",
+          "Archive date upper bound. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded end date.",
         input: "date",
         key: "toDate",
         label: "To Date",
@@ -1498,7 +1498,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Everything lower date bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded start datetime.",
+          "Everything lower date bound. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded start datetime.",
         input: "date",
         key: "fromDate",
         label: "From Date",
@@ -1509,7 +1509,7 @@ const providerDefinitionMap = Object.freeze({
       },
       {
         description:
-          "Everything upper date bound. Automatic runs replace this with the checkpoint window, while explicit manual or batched runs can provide a bounded end datetime.",
+          "Everything upper date bound. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded end datetime.",
         input: "date",
         key: "toDate",
         label: "To Date",

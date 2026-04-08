@@ -29,7 +29,7 @@ NewsPub Release 1 includes:
 - admin authentication with RBAC
 - env-based credential resolution for `mediastack`, `newsdata`, and `newsapi`
 - normalized fetch-window handling for scheduled, manual, batched, and diagnostic stream runs
-- stream settings plus single-stream and batch-run controls that prefill the last 24 hours through now and explain how each provider endpoint maps that normalized window upstream
+- stream settings plus single-stream and batch-run controls that prefill the previous 24 hours through the next 30 minutes from now, explain the forward buffer, and show how each provider endpoint maps that normalized window upstream
 - AI SDK-based optimization for eligible posts with deterministic cache reuse, policy checks, and non-blocking `SKIPPED` or `FALLBACK` outcomes when AI is disabled, misconfigured, or unhealthy
 - provider-aware shared-fetch batching for compatible multi-stream execution requests
 - website, Facebook, and Instagram publishing
@@ -42,7 +42,8 @@ Release 1 is not an open-ended AI content-generation product. AI is used only fo
 
 - compatible stream batches share provider calls only when provider key, endpoint shape, credential source, time-boundary semantics, and restrictive provider filters stay safe to widen; NewsPub then filters the shared candidate pool locally per stream
 - explicit fetch windows override checkpoint windows for manual or diagnostic runs and do not advance checkpoints unless the caller explicitly opts in with `writeCheckpointOnSuccess`
-- manual run surfaces show the normalized default window of the last 24 hours through now, together with endpoint-specific notes for direct, relative, or local-only provider time-boundary support
+- manual run surfaces show the normalized default window of the previous 24 hours through the next 30 minutes from now, together with endpoint-specific notes for direct, relative, or local-only provider time-boundary support
+- new website streams default to `AUTO_PUBLISH`, while new Facebook and Instagram streams default to `REVIEW_REQUIRED`
 - website streams process every locally eligible candidate from the fetched pool; `maxPostsPerRun` remains a social-batch bound instead of a website-publication cap
 - publish diagnostics in jobs and post history flatten Meta pacing or guardrail blocks into one visible reason code and message
 

@@ -381,6 +381,33 @@ describe("stream feature validation", () => {
     );
   });
 
+  it("defaults new website streams to auto publish when no mode is submitted", async () => {
+    const { saveStreamRecord } = await import("./index");
+    const prisma = createPrismaStub();
+
+    await saveStreamRecord(
+      {
+        activeProviderId: "provider_1",
+        destinationId: "destination_1",
+        locale: "en",
+        name: "Website default mode stream",
+      },
+      {},
+      prisma,
+    );
+
+    expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          mode: "AUTO_PUBLISH",
+        }),
+        update: expect.objectContaining({
+          mode: "AUTO_PUBLISH",
+        }),
+      }),
+    );
+  });
+
   it("deletes streams and records the audit event payload", async () => {
     const analytics = await import("@/lib/analytics");
     const { deleteStreamRecord } = await import("./index");

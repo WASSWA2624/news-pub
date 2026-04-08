@@ -26,7 +26,7 @@ Prove that the NewsPub implementation matches `app-write-up.md` end to end and d
    - provider configuration
    - destination and stream configuration
    - manual fetch run
-   - manual single-stream and batch-run default windows showing the last 24 hours through now
+   - manual single-stream and batch-run default windows showing the previous 24 hours through the next 30 minutes from now
    - compatible shared-fetch batching
    - explicit bounded fetch window handling
    - duplicate blocking

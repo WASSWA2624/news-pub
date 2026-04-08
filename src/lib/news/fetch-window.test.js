@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createDefaultFetchWindowPreview,
   isArticleInsideFetchWindow,
   mergeExecutionFetchWindows,
   resolveExecutionFetchWindow,
@@ -8,6 +9,19 @@ import {
 } from "./fetch-window";
 
 describe("fetch window helpers", () => {
+  it("creates the default previous-24-hours-plus-next-30-minutes preview window", () => {
+    const preview = createDefaultFetchWindowPreview({
+      now: new Date("2026-04-07T12:00:00.000Z"),
+    });
+
+    expect(preview).toEqual({
+      defaultWindowForwardMinutes: 30,
+      defaultWindowHours: 24,
+      end: new Date("2026-04-07T12:30:00.000Z"),
+      start: new Date("2026-04-06T12:00:00.000Z"),
+    });
+  });
+
   it("uses explicit boundaries without advancing checkpoints by default", () => {
     const fetchWindow = resolveExecutionFetchWindow({
       checkpoint: {
@@ -36,6 +50,33 @@ describe("fetch window helpers", () => {
     });
   });
 
+  it("uses the forward buffer on automatic default and checkpoint windows", () => {
+    const now = new Date("2026-04-07T12:00:00.000Z");
+
+    expect(
+      resolveExecutionFetchWindow({
+        now,
+      }),
+    ).toMatchObject({
+      end: new Date("2026-04-07T12:30:00.000Z"),
+      source: "default",
+      start: new Date("2026-04-06T12:00:00.000Z"),
+    });
+
+    expect(
+      resolveExecutionFetchWindow({
+        checkpoint: {
+          lastSuccessfulFetchAt: new Date("2026-04-07T09:15:00.000Z"),
+        },
+        now,
+      }),
+    ).toMatchObject({
+      end: new Date("2026-04-07T12:30:00.000Z"),
+      source: "checkpoint",
+      start: new Date("2026-04-07T09:15:00.000Z"),
+    });
+  });
+
   it("widens several stream windows into one shared request envelope", () => {
     const mergedWindow = mergeExecutionFetchWindows([
       resolveExecutionFetchWindow({
@@ -54,7 +95,7 @@ describe("fetch window helpers", () => {
     ]);
 
     expect(mergedWindow).toMatchObject({
-      end: new Date("2026-04-07T12:00:00.000Z"),
+      end: new Date("2026-04-07T12:30:00.000Z"),
       source: "merged_explicit",
       start: new Date("2026-04-05T00:00:00.000Z"),
       usesExplicitBoundaries: true,

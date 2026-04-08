@@ -7,6 +7,7 @@
  */
 
 export const DEFAULT_FETCH_WINDOW_HOURS = 24;
+export const DEFAULT_FETCH_WINDOW_FORWARD_MINUTES = 30;
 
 function normalizeDateBoundary(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -51,23 +52,34 @@ function formatLocalDateBoundary(value, precision = "datetime") {
 
 /**
  * Creates the default operator-visible NewsPub window of the previous
- * 24 hours through the supplied execution time.
+ * 24 hours through the next 30 minutes from the supplied execution time.
+ *
+ * The lookback and the forward buffer both anchor to "now" so the default
+ * window truly spans "previous 24 hours" plus a small future-safe cushion
+ * instead of shrinking the lookback when the end boundary moves forward.
  *
  * @param {object} [options] - Preview window options.
  * @param {number} [options.defaultWindowHours] - Preview lookback horizon.
+ * @param {number} [options.forwardBufferMinutes] - Preview forward buffer.
  * @param {Date|string|number} [options.now] - Current time reference.
  * @returns {object} Preview window boundaries plus the resolved duration.
  */
 export function createDefaultFetchWindowPreview({
   defaultWindowHours = DEFAULT_FETCH_WINDOW_HOURS,
+  forwardBufferMinutes = DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
   now = new Date(),
 } = {}) {
   const resolvedNow = normalizeDateBoundary(now) || new Date();
   const resolvedWindowHours = Math.max(1, Number(defaultWindowHours) || DEFAULT_FETCH_WINDOW_HOURS);
+  const resolvedForwardBufferMinutes = Math.max(
+    0,
+    Number(forwardBufferMinutes) || DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
+  );
 
   return {
+    defaultWindowForwardMinutes: resolvedForwardBufferMinutes,
     defaultWindowHours: resolvedWindowHours,
-    end: resolvedNow,
+    end: new Date(resolvedNow.getTime() + resolvedForwardBufferMinutes * 60 * 1000),
     start: new Date(resolvedNow.getTime() - resolvedWindowHours * 60 * 60 * 1000),
   };
 }
@@ -118,12 +130,15 @@ export function serializeFetchWindow(fetchWindow) {
  * Resolves the normalized NewsPub fetch window for one stream execution.
  *
  * Automatic runs reuse the previous successful checkpoint where possible.
- * Explicit windows keep their boundaries but do not advance the checkpoint
- * unless the caller opts in.
+ * The default end boundary still keeps the extra 30-minute forward buffer so
+ * very recent provider items are less likely to be missed during indexing or
+ * processing delays. Explicit windows keep their boundaries but do not advance
+ * the checkpoint unless the caller opts in.
  *
  * @param {object} [options] - Window resolution inputs.
  * @param {object|null} [options.checkpoint] - Provider checkpoint record.
  * @param {number} [options.defaultWindowHours] - Fallback lookback horizon.
+ * @param {number} [options.forwardBufferMinutes] - Default end-boundary buffer.
  * @param {Date} [options.now] - Current execution time.
  * @param {object|null} [options.requestedWindow] - Optional explicit window.
  * @param {boolean|null} [options.writeCheckpointOnSuccess] - Explicit checkpoint write override.
@@ -132,6 +147,7 @@ export function serializeFetchWindow(fetchWindow) {
 export function resolveExecutionFetchWindow({
   checkpoint = null,
   defaultWindowHours = DEFAULT_FETCH_WINDOW_HOURS,
+  forwardBufferMinutes = DEFAULT_FETCH_WINDOW_FORWARD_MINUTES,
   now = new Date(),
   requestedWindow = null,
   writeCheckpointOnSuccess = null,
@@ -143,8 +159,12 @@ export function resolveExecutionFetchWindow({
   const fallbackStart = new Date(
     resolvedNow.getTime() - Math.max(1, defaultWindowHours) * 60 * 60 * 1000,
   );
+  const defaultEnd = new Date(
+    resolvedNow.getTime()
+      + Math.max(0, Number(forwardBufferMinutes) || DEFAULT_FETCH_WINDOW_FORWARD_MINUTES) * 60 * 1000,
+  );
   const usesExplicitBoundaries = Boolean(explicitStart || explicitEnd);
-  const end = explicitEnd || resolvedNow;
+  const end = explicitEnd || defaultEnd;
   const start = explicitStart || checkpointStart || fallbackStart;
   const usesProviderCheckpoint = !explicitStart && Boolean(checkpointStart);
 
