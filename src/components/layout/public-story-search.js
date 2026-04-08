@@ -5,6 +5,7 @@ import { useState } from "react";
 import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
+import { normalizePublicSearchQuery } from "@/features/public-site/search-utils";
 
 const Form = styled.form`
   align-items: stretch;
@@ -136,6 +137,7 @@ const ButtonText = styled.span`
 export default function PublicStorySearch({
   autoFocus = false,
   condenseSubmit = true,
+  country = "",
   initialQuery = "",
   onSubmitComplete,
   searchCopy = {},
@@ -143,7 +145,7 @@ export default function PublicStorySearch({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(
-    typeof initialQuery === "string" ? initialQuery : ""
+    typeof initialQuery === "string" ? (normalizePublicSearchQuery(initialQuery) || initialQuery.trim()) : ""
   );
 
   function finishSubmit() {
@@ -155,15 +157,27 @@ export default function PublicStorySearch({
   function handleSubmit(event) {
     event.preventDefault();
 
-    const trimmedQuery = query.trim();
+    const normalizedQuery = normalizePublicSearchQuery(query);
+    const normalizedCountry = typeof country === "string" ? country.trim().toLowerCase() : "";
+    const searchParams = new URLSearchParams();
 
-    if (!trimmedQuery) {
+    if (normalizedQuery) {
+      searchParams.set("q", normalizedQuery);
+    }
+
+    if (normalizedCountry) {
+      searchParams.set("country", normalizedCountry);
+    }
+
+    const nextHref = searchParams.toString() ? `${searchHref}?${searchParams.toString()}` : searchHref;
+
+    if (!normalizedQuery && !normalizedCountry) {
       router.push(searchHref);
       finishSubmit();
       return;
     }
 
-    router.push(`${searchHref}?q=${encodeURIComponent(trimmedQuery)}`);
+    router.push(nextHref);
     finishSubmit();
   }
 
@@ -183,6 +197,7 @@ export default function PublicStorySearch({
           autoFocus={autoFocus}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={searchCopy.placeholder || "Search published stories"}
+          type="search"
           value={query}
         />
       </InputWrap>

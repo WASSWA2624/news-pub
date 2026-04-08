@@ -13,7 +13,7 @@ import { siteShellUtils } from "@/components/layout/site-shell.utils";
 import PublicStorySearch from "@/components/layout/public-story-search";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
-const { isNavigationActive, normalizePathname, publicNavigationIcons } = siteShellUtils;
+const { buildFooterSections, isNavigationActive, normalizePathname, publicNavigationIcons } = siteShellUtils;
 
 const Shell = styled.div`
   display: flex;
@@ -809,27 +809,51 @@ const Footer = styled.footer`
 
 const FooterInner = styled.div`
   display: grid;
-  gap: 0.72rem;
+  gap: 1rem;
   margin: 0 auto;
   max-width: var(--theme-shell-max-width);
-  padding: 1.1rem 0.88rem;
+  padding: 1.3rem 0.88rem 1rem;
 
-  @media (min-width: 900px) {
+  @media (min-width: 980px) {
     align-items: start;
-    grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 0.7fr));
+    gap: 1.15rem;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.85fr);
   }
+`;
+
+const FooterBrandPanel = styled.div`
+  display: grid;
+  gap: 0.68rem;
+  padding-right: 0.3rem;
 `;
 
 const FooterCopy = styled.p`
   color: rgba(235, 241, 248, 0.82);
   line-height: 1.55;
   margin: 0;
-  max-width: 28ch;
+  max-width: 34ch;
 `;
 
-const FooterSection = styled.div`
+const FooterSectionsGrid = styled.div`
   display: grid;
-  gap: 0.34rem;
+  gap: 0.72rem;
+
+  @media (min-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+`;
+
+const FooterSection = styled.section`
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--theme-radius-md);
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.82rem;
 `;
 
 const FooterSectionTitle = styled.span`
@@ -842,21 +866,40 @@ const FooterSectionTitle = styled.span`
 
 const FooterLinkList = styled.div`
   display: grid;
-  gap: 0.3rem;
+  gap: 0.42rem;
 `;
 
 const FooterLink = styled(Link)`
   align-items: center;
   color: rgba(255, 255, 255, 0.96);
-  display: inline-flex;
-  gap: 0.38rem;
+  display: flex;
+  gap: 0.5rem;
   font-weight: 700;
+  justify-content: space-between;
+  min-height: 2rem;
+
+  &:hover {
+    color: white;
+  }
 
   svg {
     display: block;
     height: 0.92rem;
     width: 0.92rem;
   }
+`;
+
+const FooterLinkLabel = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.38rem;
+  min-width: 0;
+`;
+
+const FooterLinkMeta = styled.span`
+  color: rgba(235, 241, 248, 0.7);
+  font-size: 0.76rem;
+  font-weight: 800;
 `;
 
 const FooterBottom = styled.div`
@@ -886,6 +929,8 @@ function SiteShellFrame({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const currentYear = new Date().getFullYear();
+  const accessibility = messages.site.accessibility || {};
+  const footerBottomCopy = messages.site.footerBottom || "All rights reserved.";
   const searchBarCopy = messages.site.searchBar || {};
   const headerTagline = typeof messages.site.tagline === "string" ? messages.site.tagline.trim() : "";
   const normalizedSearchQuery =
@@ -920,6 +965,17 @@ function SiteShellFrame({
     searchBarCopy.placeholder ||
     messages.public?.search?.description ||
     "Search published stories";
+  const footerSections = buildFooterSections({
+    aboutHref,
+    categoryLinks,
+    countryLinks,
+    disclaimerHref,
+    homeHref,
+    messages,
+    newsHref,
+    privacyHref,
+    searchHref,
+  });
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -1096,7 +1152,7 @@ function SiteShellFrame({
                 $tone="solid"
                 aria-expanded={isMobileMenuOpen}
                 aria-haspopup="dialog"
-                aria-label="Open menu"
+                aria-label={accessibility.openMenu || "Open menu"}
                 onClick={openMobileMenu}
                 type="button"
               >
@@ -1190,6 +1246,7 @@ function SiteShellFrame({
 
           <SearchWrap>
             <PublicStorySearch
+              country={countryQuery}
               initialQuery={normalizedSearchQuery}
               key={`desktop-search-${normalizedSearchQuery || "empty"}`}
               locale={locale}
@@ -1200,7 +1257,7 @@ function SiteShellFrame({
         </HeaderInner>
 
         <MobileDialog
-          aria-label="Mobile navigation menu"
+          aria-label={accessibility.mobileMenu || "Mobile navigation menu"}
           onClick={(event) => {
             if (event.target === mobileMenuDialogRef.current) {
               closeMobileMenu();
@@ -1216,7 +1273,7 @@ function SiteShellFrame({
                 <MobileDialogTitle>{messages.site.title}</MobileDialogTitle>
               </MobileDialogCopy>
               <MobileDialogCloseButton
-                aria-label="Close menu"
+                aria-label={accessibility.closeMenu || "Close menu"}
                 onClick={closeMobileMenu}
                 type="button"
               >
@@ -1345,7 +1402,7 @@ function SiteShellFrame({
         </MobileDialog>
 
         <MobileDialog
-          aria-label="Search stories"
+          aria-label={accessibility.searchDialog || "Search stories"}
           onClick={(event) => {
             if (event.target === mobileSearchDialogRef.current) {
               closeMobileSearch();
@@ -1362,7 +1419,7 @@ function SiteShellFrame({
                 <MobileDialogDescription>{searchDialogDescription}</MobileDialogDescription>
               </MobileDialogCopy>
               <MobileDialogCloseButton
-                aria-label="Close search"
+                aria-label={accessibility.closeSearch || "Close search"}
                 onClick={closeMobileSearch}
                 type="button"
               >
@@ -1374,6 +1431,7 @@ function SiteShellFrame({
               <PublicStorySearch
                 autoFocus
                 condenseSubmit={false}
+                country={countryQuery}
                 initialQuery={normalizedSearchQuery}
                 key={`mobile-search-${normalizedSearchQuery || "empty"}`}
                 locale={locale}
@@ -1390,65 +1448,36 @@ function SiteShellFrame({
 
       <Footer>
         <FooterInner>
-          <div>
+          <FooterBrandPanel>
             <BrandLink href={homeHref}>
               <NewsPubLogo size={42} />
               <BrandTitle>{messages.site.title}</BrandTitle>
             </BrandLink>
             <FooterCopy>{messages.site.footer}</FooterCopy>
-          </div>
+          </FooterBrandPanel>
 
-          <FooterSection>
-            <FooterSectionTitle>Browse</FooterSectionTitle>
-            <FooterLinkList>
-              <FooterLink href={homeHref}>
-                <AppIcon name="home" size={15} />
-                {messages.site.navigation.home}
-              </FooterLink>
-              <FooterLink href={newsHref}>
-                <AppIcon name="news" size={15} />
-                {messages.site.navigation.news}
-              </FooterLink>
-              <FooterLink href={searchHref}>
-                <AppIcon name="search" size={15} />
-                {messages.site.navigation.search}
-              </FooterLink>
-              {categoryLinks[0] ? (
-                <FooterLink href={categoryLinks[0].path}>
-                  <AppIcon name="tag" size={15} />
-                  {messages.site.navigation.categories || "Categories"}
-                </FooterLink>
-              ) : null}
-              {countryLinks[0] ? (
-                <FooterLink href={countryLinks[0].path}>
-                  <AppIcon name="globe" size={15} />
-                  {messages.site.navigation.countriesRegions || "Countries/Regions"}
-                </FooterLink>
-              ) : null}
-            </FooterLinkList>
-          </FooterSection>
-
-          <FooterSection>
-            <FooterSectionTitle>Company</FooterSectionTitle>
-            <FooterLinkList>
-              <FooterLink href={aboutHref}>
-                <AppIcon name="info" size={15} />
-                {messages.site.navigation.about}
-              </FooterLink>
-              <FooterLink href={disclaimerHref}>
-                <AppIcon name="shield" size={15} />
-                {legalNavigation.disclaimer || "Disclaimer"}
-              </FooterLink>
-              <FooterLink href={privacyHref}>
-                <AppIcon name="lock" size={15} />
-                {legalNavigation.privacy || "Privacy"}
-              </FooterLink>
-            </FooterLinkList>
-          </FooterSection>
+          <FooterSectionsGrid>
+            {footerSections.map((section) => (
+              <FooterSection key={section.key}>
+                <FooterSectionTitle>{section.title}</FooterSectionTitle>
+                <FooterLinkList>
+                  {section.links.map((link) => (
+                    <FooterLink href={link.href} key={link.key}>
+                      <FooterLinkLabel>
+                        <AppIcon name={link.icon} size={15} />
+                        {link.label}
+                      </FooterLinkLabel>
+                      {link.meta ? <FooterLinkMeta>{link.meta}</FooterLinkMeta> : null}
+                    </FooterLink>
+                  ))}
+                </FooterLinkList>
+              </FooterSection>
+            ))}
+          </FooterSectionsGrid>
         </FooterInner>
 
         <FooterBottom>
-          &copy; {currentYear} {messages.site.title}. All rights reserved.
+          &copy; {currentYear} {messages.site.title}. {footerBottomCopy}
         </FooterBottom>
       </Footer>
     </Shell>

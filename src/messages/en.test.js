@@ -42,4 +42,49 @@ describe("English locale messages", () => {
       expect(value.trim()).not.toBe("");
     }
   });
+
+  it("defines the localized search and footer copy used by public discovery surfaces", () => {
+    const siteMessages = messages.site || {};
+    const searchMessages = messages.public?.search || {};
+
+    for (const value of [
+      siteMessages.footer,
+      siteMessages.footerBottom,
+      siteMessages.footerNavigation?.browse,
+      siteMessages.footerNavigation?.company,
+      siteMessages.footerNavigation?.discover,
+      siteMessages.footerNavigation?.legal,
+      siteMessages.accessibility?.closeMenu,
+      siteMessages.accessibility?.closeSearch,
+      siteMessages.accessibility?.mobileMenu,
+      siteMessages.accessibility?.openMenu,
+      siteMessages.accessibility?.searchDialog,
+      searchMessages.formTitle,
+      searchMessages.formDescription,
+      searchMessages.emptyQueryTitle,
+      searchMessages.emptyQueryDescription,
+      searchMessages.filteredTitle,
+      searchMessages.filteredDescription,
+      searchMessages.resultsTitle,
+      searchMessages.resultDescription,
+      searchMessages.noResultsTitle,
+      searchMessages.noResultsDescription,
+      searchMessages.browseCategoriesTitle,
+      searchMessages.browseCountriesTitle,
+      searchMessages.browseLatestAction,
+      searchMessages.clearCountryAction,
+      searchMessages.clearQueryAction,
+      searchMessages.resultCountSingular,
+      searchMessages.resultCountPlural,
+      searchMessages.matchReasons?.body,
+      searchMessages.matchReasons?.category,
+      searchMessages.matchReasons?.slug,
+      searchMessages.matchReasons?.source,
+      searchMessages.matchReasons?.summary,
+      searchMessages.matchReasons?.title,
+    ]) {
+      expect(value).toEqual(expect.any(String));
+      expect(value.trim()).not.toBe("");
+    }
+  });
 });

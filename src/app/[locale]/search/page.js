@@ -1,7 +1,8 @@
 import { PublicCollectionPage } from "@/components/public";
 import { getMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
-import { getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
+import { getPublishedCategoryNavigationData, getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
+import { normalizePublicSearchQuery } from "@/features/public-site/search-utils";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -12,7 +13,7 @@ export async function generateMetadata({ params, searchParams }) {
   const messages = await getMessages(locale);
   const pageContent = messages?.public?.search || {};
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
-  const query = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q.trim() : "";
+  const query = normalizePublicSearchQuery(resolvedSearchParams?.q);
   const country = typeof resolvedSearchParams?.country === "string" ? resolvedSearchParams.country.trim() : "all";
 
   return buildPageMetadata({
@@ -35,14 +36,16 @@ export default async function SearchPage({ params, searchParams }) {
   const page = resolvedSearchParams?.page;
   const query = resolvedSearchParams?.q;
   const country = resolvedSearchParams?.country;
-  const [messages, pageData, filterData] = await Promise.all([
+  const [messages, pageData, filterData, categoryLinks] = await Promise.all([
     getMessages(locale),
     searchPublishedPosts({ country, locale, page, search: query }),
     getPublishedSearchFilterData({ locale }),
+    getPublishedCategoryNavigationData({ locale, limit: 6 }),
   ]);
 
   return (
     <PublicCollectionPage
+      categoryLinks={categoryLinks}
       collectionCountry={pageData.country || "all"}
       collectionView="search"
       locale={locale}

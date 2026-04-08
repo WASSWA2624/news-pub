@@ -345,6 +345,254 @@ describe("public site data", () => {
     );
   });
 
+  it("ranks title, category, and source matches ahead of weaker body-only matches", async () => {
+    const posts = [
+      createPublishedPost({
+        id: "post_body",
+        publishedAt: new Date("2026-04-07T08:00:00.000Z"),
+        slug: "weekly-briefing",
+        sourceName: "Daily Ledger",
+        translations: [
+          {
+            contentMd: "This weekly briefing focuses on climate policy funding and implementation details.",
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: "Editorial roundup",
+            title: "Weekly briefing",
+          },
+        ],
+      }),
+      createPublishedPost({
+        id: "post_source",
+        publishedAt: new Date("2026-04-06T08:00:00.000Z"),
+        slug: "market-wrap",
+        sourceName: "Climate Policy Daily",
+        translations: [
+          {
+            contentMd: "Global markets and regulation roundup.",
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: "Market updates",
+            title: "Market wrap",
+          },
+        ],
+      }),
+      createPublishedPost({
+        categories: [
+          {
+            category: {
+              description: "Climate policy coverage",
+              id: "category_2",
+              name: "Climate Policy",
+              slug: "climate-policy",
+            },
+          },
+        ],
+        id: "post_category",
+        publishedAt: new Date("2026-04-05T08:00:00.000Z"),
+        slug: "global-outlook",
+        sourceName: "World Desk",
+        translations: [
+          {
+            contentMd: "International reporting and analysis.",
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: "Broader context",
+            title: "Global outlook",
+          },
+        ],
+      }),
+      createPublishedPost({
+        id: "post_title",
+        publishedAt: new Date("2026-04-04T08:00:00.000Z"),
+        slug: "climate-policy-briefing",
+        sourceName: "Wire Desk",
+        translations: [
+          {
+            contentMd: "Policy background and timeline.",
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: "The latest climate policy changes",
+            title: "Climate policy briefing",
+          },
+        ],
+      }),
+    ];
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(posts.length),
+        findMany: vi.fn().mockResolvedValue(posts),
+      },
+    };
+    const { searchPublishedPosts } = await import("./index");
+
+    const snapshot = await searchPublishedPosts(
+      {
+        locale: "en",
+        page: "1",
+        search: "  climate   policy  ",
+      },
+      prisma,
+    );
+
+    expect(snapshot.query).toBe("climate policy");
+    expect(snapshot.items.map((item) => item.id)).toEqual([
+      "post_title",
+      "post_category",
+      "post_source",
+      "post_body",
+    ]);
+    expect(snapshot.items[0].searchMeta).toMatchObject({
+      primaryReason: "title",
+    });
+    expect(snapshot.items.at(-1).searchMeta).toMatchObject({
+      primaryReason: "body",
+    });
+  });
+
+  it("keeps ranked search pagination stable across pages", async () => {
+    const titleMatches = Array.from({ length: 12 }, (_value, index) =>
+      createPublishedPost({
+        id: `post_title_${index + 1}`,
+        publishedAt: new Date(`2026-03-${String(20 - index).padStart(2, "0")}T08:00:00.000Z`),
+        slug: `election-brief-${index + 1}`,
+        sourceName: `Desk ${index + 1}`,
+        translations: [
+          {
+            contentMd: `Election body ${index + 1}.`,
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: `Election summary ${index + 1}`,
+            title: `Election brief ${index + 1}`,
+          },
+        ],
+      }),
+    );
+    const posts = [
+      createPublishedPost({
+        id: "post_body_only",
+        publishedAt: new Date("2026-04-08T08:00:00.000Z"),
+        slug: "most-recent-analysis",
+        sourceName: "Metro Desk",
+        translations: [
+          {
+            contentMd: "This long analysis includes election context but not in the title.",
+            locale: "en",
+            seoRecord: null,
+            structuredContentJson: {
+              sections: [],
+            },
+            summary: "Analysis overview",
+            title: "Metro analysis",
+          },
+        ],
+      }),
+      ...titleMatches,
+    ];
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(posts.length),
+        findMany: vi.fn().mockResolvedValue(posts),
+      },
+    };
+    const { searchPublishedPosts } = await import("./index");
+
+    const pageOne = await searchPublishedPosts(
+      {
+        locale: "en",
+        page: "1",
+        search: "election",
+      },
+      prisma,
+    );
+    const pageTwo = await searchPublishedPosts(
+      {
+        locale: "en",
+        page: "2",
+        search: "election",
+      },
+      prisma,
+    );
+
+    expect(pageOne.items).toHaveLength(12);
+    expect(pageOne.items.every((item) => item.searchMeta?.primaryReason === "title")).toBe(true);
+    expect(pageTwo.pagination).toMatchObject({
+      currentPage: 2,
+      totalItems: 13,
+    });
+    expect(pageTwo.items).toHaveLength(1);
+    expect(pageTwo.items[0]).toMatchObject({
+      id: "post_body_only",
+      searchMeta: {
+        primaryReason: "body",
+      },
+    });
+  });
+
+  it("stays stable when optional search card fields are missing", async () => {
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([
+          createPublishedPost({
+            categories: [],
+            excerpt: "",
+            featuredImage: null,
+            sourceArticle: {
+              imageUrl: null,
+            },
+            sourceName: "",
+            translations: [
+              {
+                contentMd: "Health policy coverage without a summary or image still needs a readable fallback.",
+                locale: "en",
+                seoRecord: null,
+                structuredContentJson: {
+                  sections: [],
+                },
+                summary: "",
+                title: "Coverage update",
+              },
+            ],
+          }),
+        ]),
+      },
+    };
+    const { searchPublishedPosts } = await import("./index");
+
+    const snapshot = await searchPublishedPosts(
+      {
+        locale: "en",
+        page: "1",
+        search: "health policy",
+      },
+      prisma,
+    );
+
+    expect(snapshot.items[0]).toMatchObject({
+      categories: [],
+      sourceName: "",
+      title: "Coverage update",
+    });
+    expect(snapshot.items[0].summary).toContain("Health policy coverage without a summary");
+    expect(snapshot.items[0].searchMeta.primaryReason).toBe("summary");
+  });
+
   it("builds published country filter options from available website stories", async () => {
     const prisma = {
       fetchedArticle: {

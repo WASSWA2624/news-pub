@@ -7,11 +7,17 @@ import {
   normalizeCountryCode as normalizeCountry,
 } from "@/lib/countries";
 import { createImagePlaceholderDataUrl, getRenderableImageUrl } from "@/lib/media";
+import { normalizeDisplayText } from "@/lib/normalization";
 import { createPagination, pickTranslation, resolvePrismaClient } from "@/lib/news/shared";
 import { sanitizeExternalUrl, sanitizeMediaUrl } from "@/lib/security";
 import { buildAbsoluteUrl } from "@/lib/seo";
 
 import { publicHomeLatestIncrementCount, publicHomeLatestInitialCount } from "./constants";
+import {
+  buildPublicSearchQueryContext,
+  normalizePublicSearchQuery,
+  normalizePublicSearchRankingText,
+} from "./search-utils";
 
 /**
  * Public-site data mappers for locale-aware NewsPub story discovery pages.
@@ -38,7 +44,7 @@ function normalizePage(value) {
 
 /** Clamps free-text search queries to a safe length for provider-agnostic matching. */
 function normalizeSearch(value) {
-  return trimText(value).slice(0, 191);
+  return normalizePublicSearchQuery(value);
 }
 
 /** Maps category slugs to light-touch editorial emoji used in public navigation chips. */
@@ -480,6 +486,38 @@ function resolveStoryAuthors(seoRecord, sourceAuthor) {
   return seoAuthors.length ? seoAuthors : normalizeSeoStringList([sourceAuthor]);
 }
 
+function createSummaryFallback(value, maxLength = 180) {
+  const collapsed = normalizeDisplayText(
+    `${value || ""}`
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+      .replace(/[`#>*_~-]+/g, " "),
+  );
+
+  if (!collapsed) {
+    return "";
+  }
+
+  if (collapsed.length <= maxLength) {
+    return collapsed;
+  }
+
+  const preview = collapsed.slice(0, maxLength).trim();
+  const safePreview = preview.includes(" ")
+    ? preview.slice(0, preview.lastIndexOf(" "))
+    : preview;
+
+  return `${safePreview || preview}...`;
+}
+
+function buildPostCardSummary(post, translation) {
+  return (
+    trimText(translation?.summary)
+    || trimText(post.excerpt)
+    || createSummaryFallback(translation?.contentMd)
+  );
+}
+
 /**
  * Maps a published post into the compact card model reused across public listings and related-story modules.
  *
@@ -490,7 +528,7 @@ function resolveStoryAuthors(seoRecord, sourceAuthor) {
 function mapPostCard(post, locale = defaultLocale) {
   const translation = pickTranslation(post.translations || [], locale);
   const fallbackAlt = translation?.title || post.slug;
-  const summary = translation?.summary || post.excerpt;
+  const summary = buildPostCardSummary(post, translation);
   const image = mapImage(post.featuredImage, fallbackAlt)
     || mapRemoteImage(post.sourceArticle?.imageUrl, fallbackAlt);
   const media = extractStructuredMedia(translation?.structuredContentJson, fallbackAlt);
@@ -638,6 +676,291 @@ const publicPostSelect = Object.freeze({
   },
   updatedAt: true,
 });
+
+function buildPublicSearchSelect(locale) {
+  return {
+    categories: publicPostSelect.categories,
+    excerpt: true,
+    featuredImage: {
+      select: mediaAssetSelect,
+    },
+    id: true,
+    providerKey: true,
+    publishedAt: true,
+    slug: true,
+    sourceArticle: {
+      select: {
+        imageUrl: true,
+      },
+    },
+    sourceName: true,
+    sourceUrl: true,
+    translations: {
+      orderBy: {
+        locale: "asc",
+      },
+      select: {
+        contentMd: true,
+        locale: true,
+        structuredContentJson: true,
+        summary: true,
+        title: true,
+      },
+      where: {
+        locale: {
+          in: [...new Set([locale, defaultLocale].filter(Boolean))],
+        },
+      },
+    },
+    updatedAt: true,
+  };
+}
+
+const searchFieldWeights = Object.freeze({
+  body: Object.freeze({ allTermsBonus: 24, exact: 32, max: 124, phrase: 18, prefix: 10, term: 24 }),
+  category: Object.freeze({ allTermsBonus: 110, exact: 220, phrase: 90, prefix: 95, term: 115 }),
+  slug: Object.freeze({ allTermsBonus: 125, exact: 260, phrase: 105, prefix: 145, term: 125 }),
+  source: Object.freeze({ allTermsBonus: 90, exact: 185, phrase: 82, prefix: 90, term: 105 }),
+  summary: Object.freeze({ allTermsBonus: 95, exact: 190, phrase: 88, prefix: 110, term: 108 }),
+  title: Object.freeze({ allTermsBonus: 165, exact: 340, phrase: 126, prefix: 176, term: 156 }),
+});
+
+const searchFieldPriority = Object.freeze({
+  body: 1,
+  category: 4,
+  slug: 5,
+  source: 3,
+  summary: 6,
+  title: 7,
+});
+
+function buildSearchFieldFilters(locale, value) {
+  const normalizedValue = normalizeSearch(value);
+  const { slugText } = buildPublicSearchQueryContext(value);
+  const slugNeedle = slugText ? slugText.replace(/\s+/g, "-") : "";
+
+  if (!normalizedValue) {
+    return [];
+  }
+
+  return [
+    {
+      slug: {
+        contains: slugNeedle || normalizedValue,
+      },
+    },
+    {
+      sourceName: {
+        contains: normalizedValue,
+      },
+    },
+    {
+      excerpt: {
+        contains: normalizedValue,
+      },
+    },
+    {
+      translations: {
+        some: {
+          locale,
+          OR: [
+            {
+              title: {
+                contains: normalizedValue,
+              },
+            },
+            {
+              summary: {
+                contains: normalizedValue,
+              },
+            },
+            {
+              contentMd: {
+                contains: normalizedValue,
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
+      categories: {
+        some: {
+          category: {
+            OR: [
+              {
+                name: {
+                  contains: normalizedValue,
+                },
+              },
+              {
+                slug: {
+                  contains: slugNeedle || normalizedValue,
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  ];
+}
+
+function resolveSearchFieldScore(value, queryContext, weights) {
+  const text = normalizePublicSearchRankingText(value, {
+    maxLength: weights === searchFieldWeights.body ? 7000 : 1800,
+  });
+
+  if (!text || !queryContext.terms.length) {
+    return {
+      matchedTerms: 0,
+      score: 0,
+    };
+  }
+
+  const matchedTerms = queryContext.terms.reduce(
+    (count, term) => count + (text.includes(term) ? 1 : 0),
+    0,
+  );
+  const hasPhrase = queryContext.searchText ? text.includes(queryContext.searchText) : false;
+  const isExact = queryContext.searchText ? text === queryContext.searchText : false;
+  const isPrefix = queryContext.searchText ? text.startsWith(queryContext.searchText) : false;
+
+  if (!matchedTerms && !hasPhrase) {
+    return {
+      matchedTerms: 0,
+      score: 0,
+    };
+  }
+
+  let score = matchedTerms * weights.term;
+
+  if (isExact) {
+    score += weights.exact;
+  } else if (isPrefix) {
+    score += weights.prefix;
+  } else if (hasPhrase) {
+    score += weights.phrase;
+  }
+
+  if (matchedTerms === queryContext.terms.length && queryContext.terms.length > 1) {
+    score += weights.allTermsBonus;
+  }
+
+  return {
+    matchedTerms,
+    score: weights.max ? Math.min(score, weights.max) : score,
+  };
+}
+
+function rankPublishedSearchPost(post, locale, queryContext) {
+  const translation = pickTranslation(post.translations || [], locale);
+  const summary = buildPostCardSummary(post, translation);
+  const combinedStrongText = normalizePublicSearchRankingText([
+    translation?.title,
+    summary,
+    post.slug ? post.slug.replace(/-/g, " ") : "",
+    post.sourceName,
+    ...(post.categories || []).flatMap(({ category }) => [category?.name, category?.slug]),
+  ].join(" "));
+  const combinedText = normalizePublicSearchRankingText([
+    combinedStrongText,
+    translation?.contentMd,
+  ].join(" "), {
+    maxLength: 9000,
+  });
+  const fieldScores = [
+    {
+      key: "title",
+      ...resolveSearchFieldScore(translation?.title, queryContext, searchFieldWeights.title),
+    },
+    {
+      key: "summary",
+      ...resolveSearchFieldScore(summary, queryContext, searchFieldWeights.summary),
+    },
+    {
+      key: "slug",
+      ...resolveSearchFieldScore(post.slug ? post.slug.replace(/-/g, " ") : "", queryContext, searchFieldWeights.slug),
+    },
+    {
+      key: "category",
+      ...resolveSearchFieldScore(
+        (post.categories || [])
+          .flatMap(({ category }) => [category?.name, category?.slug])
+          .join(" "),
+        queryContext,
+        searchFieldWeights.category,
+      ),
+    },
+    {
+      key: "source",
+      ...resolveSearchFieldScore(post.sourceName, queryContext, searchFieldWeights.source),
+    },
+    {
+      key: "body",
+      ...resolveSearchFieldScore(translation?.contentMd, queryContext, searchFieldWeights.body),
+    },
+  ]
+    .filter((entry) => entry.score > 0)
+    .sort(
+      (left, right) =>
+        right.score - left.score
+        || right.matchedTerms - left.matchedTerms
+        || searchFieldPriority[right.key] - searchFieldPriority[left.key],
+    );
+  const matchedTerms = queryContext.terms.reduce(
+    (count, term) => count + (combinedText.includes(term) ? 1 : 0),
+    0,
+  );
+  const primaryMatch = fieldScores[0] || {
+    key: "body",
+    matchedTerms: 0,
+    score: 0,
+  };
+  const secondaryScore = fieldScores.slice(1).reduce(
+    (sum, entry) => sum + Math.min(entry.key === "body" ? 12 : 34, Math.round(entry.score * 0.18)),
+    0,
+  );
+  let score = primaryMatch.score + secondaryScore + matchedTerms * 28;
+
+  if (matchedTerms === queryContext.terms.length && queryContext.terms.length > 1) {
+    score += 78;
+  }
+
+  if (queryContext.searchText && combinedStrongText.includes(queryContext.searchText)) {
+    score += 38;
+  }
+
+  return {
+    matchedTerms,
+    primaryReason: primaryMatch.key,
+    score,
+  };
+}
+
+function resolveSortableDateValue(value) {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "string" && value) {
+    const parsedValue = Date.parse(value);
+
+    return Number.isFinite(parsedValue) ? parsedValue : 0;
+  }
+
+  return 0;
+}
+
+function compareRankedSearchPosts(left, right) {
+  return (
+    right.ranking.score - left.ranking.score
+    || right.ranking.matchedTerms - left.ranking.matchedTerms
+    || resolveSortableDateValue(right.post.publishedAt) - resolveSortableDateValue(left.post.publishedAt)
+    || resolveSortableDateValue(right.post.updatedAt) - resolveSortableDateValue(left.post.updatedAt)
+    || `${left.post.slug || ""}`.localeCompare(`${right.post.slug || ""}`)
+  );
+}
 
 async function getPublishedCategoryCounts(db) {
   const categories = await db.category.findMany({
@@ -917,7 +1240,7 @@ export async function getPublishedCategoryPageData({ locale = defaultLocale, pag
 }
 
 function buildSearchWhere(locale, search, country) {
-  const normalizedSearch = normalizeSearch(search);
+  const queryContext = buildPublicSearchQueryContext(search);
   const normalizedCountry = normalizeCountry(country);
   const filters = [
     {
@@ -941,71 +1264,14 @@ function buildSearchWhere(locale, search, country) {
     });
   }
 
-  if (!normalizedSearch) {
+  if (!queryContext.query) {
     return buildPublishedWebsiteWhere(filters.length === 1 ? filters[0] : { AND: filters });
   }
 
   filters.push({
     OR: [
-      {
-        slug: {
-          contains: normalizedSearch,
-        },
-      },
-      {
-        sourceName: {
-          contains: normalizedSearch,
-        },
-      },
-      {
-        excerpt: {
-          contains: normalizedSearch,
-        },
-      },
-      {
-        translations: {
-          some: {
-            locale,
-            OR: [
-              {
-                title: {
-                  contains: normalizedSearch,
-                },
-              },
-              {
-                summary: {
-                  contains: normalizedSearch,
-                },
-              },
-              {
-                contentMd: {
-                  contains: normalizedSearch,
-                },
-              },
-            ],
-          },
-        },
-      },
-      {
-        categories: {
-          some: {
-            category: {
-              OR: [
-                {
-                  name: {
-                    contains: normalizedSearch,
-                  },
-                },
-                {
-                  slug: {
-                    contains: normalizedSearch,
-                  },
-                },
-              ],
-            },
-          },
-        },
-      },
+      ...buildSearchFieldFilters(locale, queryContext.query),
+      ...queryContext.terms.flatMap((term) => buildSearchFieldFilters(locale, term)),
     ],
   });
 
@@ -1028,22 +1294,53 @@ export async function searchPublishedStories(
   const db = await resolvePrismaClient(prisma);
   const requestedPage = normalizePage(page);
   const normalizedCountry = normalizeCountry(country);
+  const queryContext = buildPublicSearchQueryContext(search);
   const where = buildSearchWhere(locale, search, normalizedCountry);
   const totalItems = await db.post.count({ where });
   const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-  const posts = await db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    select: publicPostSelect,
-    skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-    take: pagination.pageSize,
-    where,
-  });
+  let items = [];
+
+  if (queryContext.query) {
+    const rankedPosts = (
+      await db.post.findMany({
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: buildPublicSearchSelect(locale),
+        where,
+      })
+    )
+      .map((post) => ({
+        post,
+        ranking: rankPublishedSearchPost(post, locale, queryContext),
+      }))
+      .sort(compareRankedSearchPosts);
+    const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
+    const endIndex = startIndex + pagination.pageSize;
+
+    items = rankedPosts.slice(startIndex, endIndex).map(({ post, ranking }) => ({
+      ...mapPostCard(post, locale),
+      searchMeta: {
+        matchedTerms: ranking.matchedTerms,
+        primaryReason: ranking.primaryReason,
+      },
+    }));
+  } else {
+    const posts = await db.post.findMany({
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      select: publicPostSelect,
+      skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
+      take: pagination.pageSize,
+      where,
+    });
+
+    items = posts.map((post) => mapPostCard(post, locale));
+  }
 
   return {
     country: normalizedCountry,
-    items: posts.map((post) => mapPostCard(post, locale)),
+    countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+    items,
     pagination,
-    query: normalizeSearch(search),
+    query: queryContext.query,
   };
 }
 

@@ -57,6 +57,25 @@ function resolveCompactStoryMedia(item) {
   return null;
 }
 
+const defaultSearchMatchCopy = Object.freeze({
+  body: "Content match",
+  category: "Category match",
+  slug: "Slug match",
+  source: "Source match",
+  summary: "Summary match",
+  title: "Title match",
+});
+
+function resolveSearchMatchLabel(item, searchMatchCopy = {}) {
+  const reason = item?.searchMeta?.primaryReason;
+
+  if (!reason) {
+    return "";
+  }
+
+  return searchMatchCopy[reason] || defaultSearchMatchCopy[reason] || "";
+}
+
 const EmptyState = styled.p`
   color: rgba(72, 85, 110, 0.9);
   line-height: 1.6;
@@ -115,6 +134,32 @@ const CompactStoryBody = styled.div`
   min-width: 0;
 `;
 
+const CompactStoryContextRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+`;
+
+const CompactStoryPill = styled.span`
+  align-items: center;
+  background: ${({ $tone }) => ($tone === "match" ? "rgba(18, 79, 101, 0.08)" : "rgba(15, 110, 141, 0.08)")};
+  border: 1px solid ${({ $tone }) => ($tone === "match" ? "rgba(18, 79, 101, 0.14)" : "rgba(15, 110, 141, 0.16)")};
+  border-radius: 999px;
+  color: ${({ $tone }) => ($tone === "match" ? "#124f65" : "#0d556d")};
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  gap: 0.28rem;
+  min-height: 1.7rem;
+  padding: 0 0.62rem;
+
+  svg {
+    display: block;
+    height: 0.76rem;
+    width: 0.76rem;
+  }
+`;
+
 const CompactStoryTitleLink = styled(Link)`
   color: #152744;
   font-size: clamp(0.98rem, 1.5vw, 1.08rem);
@@ -155,10 +200,10 @@ const CompactStoryExcerpt = styled.p`
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: ${({ $expanded }) => ($expanded ? 3 : 2)};
 
   @media (min-width: 760px) {
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: ${({ $expanded }) => ($expanded ? 2 : 1)};
   }
 `;
 
@@ -234,21 +279,32 @@ const HomeListError = styled.p`
  * Renders the compact story list used across home and collection pagination surfaces.
  *
  * @param {object} props - Component props.
+ * @param {React.ReactNode} [props.emptyContent] - Optional rich empty-state content.
  * @param {string} props.emptyLabel - Empty-state copy.
  * @param {Array<object>} [props.items] - Story cards to render.
  * @param {string} props.locale - Active locale code.
  * @param {string} [props.readMoreLabel="Read more"] - CTA label for each story card.
  * @returns {JSX.Element} The rendered list or empty state.
  */
-function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read more" }) {
+function HomeStoryList({
+  emptyContent = null,
+  emptyLabel,
+  items = [],
+  locale,
+  readMoreLabel = "Read more",
+  searchMatchCopy = {},
+  showSearchContext = false,
+}) {
   if (!items.length) {
-    return <EmptyState>{emptyLabel}</EmptyState>;
+    return emptyContent || <EmptyState>{emptyLabel}</EmptyState>;
   }
 
   return (
     <CompactStoryList>
       {items.map((item) => {
         const media = resolveCompactStoryMedia(item);
+        const primaryCategory = Array.isArray(item.categories) ? item.categories[0] : null;
+        const searchMatchLabel = showSearchContext ? resolveSearchMatchLabel(item, searchMatchCopy) : "";
         const metaItems = [
           item.publishedAt
             ? {
@@ -279,6 +335,22 @@ function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read m
               </CompactStoryMediaLink>
             ) : null}
             <CompactStoryBody>
+              {primaryCategory || searchMatchLabel ? (
+                <CompactStoryContextRow>
+                  {primaryCategory ? (
+                    <CompactStoryPill $tone="category">
+                      <AppIcon name="tag" size={12} />
+                      {primaryCategory.name}
+                    </CompactStoryPill>
+                  ) : null}
+                  {searchMatchLabel ? (
+                    <CompactStoryPill $tone="match">
+                      <AppIcon name="search" size={12} />
+                      {searchMatchLabel}
+                    </CompactStoryPill>
+                  ) : null}
+                </CompactStoryContextRow>
+              ) : null}
               <CompactStoryTitleLink href={item.path}>{item.title}</CompactStoryTitleLink>
               {metaItems.length ? (
                 <CompactStoryMeta>
@@ -290,7 +362,7 @@ function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read m
                   ))}
                 </CompactStoryMeta>
               ) : null}
-              {item.summary ? <CompactStoryExcerpt>{item.summary}</CompactStoryExcerpt> : null}
+              {item.summary ? <CompactStoryExcerpt $expanded={showSearchContext}>{item.summary}</CompactStoryExcerpt> : null}
               <CompactStoryReadMore href={item.path}>
                 {readMoreLabel}
                 <AppIcon name="arrow-right" size={13} />
@@ -316,6 +388,7 @@ export default function HomeLatestStories({
   collectionCountry = "all",
   collectionSlug = "all",
   collectionView = "",
+  emptyContent = null,
   emptyLabel,
   initialHasMore = false,
   initialItems = [],
@@ -327,6 +400,8 @@ export default function HomeLatestStories({
   query = "",
   readMoreLabel = "Read more",
   requestErrorLabel = "Could not load more stories right now.",
+  searchMatchCopy = {},
+  showSearchContext = false,
   viewMoreLabel = "View more",
 }) {
   const [items, setItems] = useState(initialItems);
@@ -389,7 +464,15 @@ export default function HomeLatestStories({
       <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
         {isLoading ? loadingLiveLabel : ""}
       </span>
-      <HomeStoryList emptyLabel={emptyLabel} items={items} locale={locale} readMoreLabel={readMoreLabel} />
+      <HomeStoryList
+        emptyContent={emptyContent}
+        emptyLabel={emptyLabel}
+        items={items}
+        locale={locale}
+        readMoreLabel={readMoreLabel}
+        searchMatchCopy={searchMatchCopy}
+        showSearchContext={showSearchContext}
+      />
       {error ? (
         <HomeListError role="status">
           <AppIcon name="warning" size={14} />

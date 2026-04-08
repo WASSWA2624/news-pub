@@ -6,6 +6,7 @@ import ResponsiveImage from "@/components/common/responsive-image";
 import SearchableSelect from "@/components/common/searchable-select";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
+import { buildPublicSearchPageModel } from "@/components/public/public-search-page-utils";
 import { publicPageUtils } from "@/components/public/public-page-utils";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 
@@ -510,9 +511,10 @@ const PaginationLink = styled(Link)`
 
 const SearchForm = styled.form`
   display: grid;
-  gap: 0.56rem;
+  gap: 0.72rem;
 
-  @media (min-width: 620px) {
+  @media (min-width: 760px) {
+    align-items: end;
     grid-template-columns: minmax(0, 1fr) minmax(180px, 220px) auto;
   }
 `;
@@ -524,7 +526,7 @@ const SearchField = styled.label`
   border-radius: 0;
   display: flex;
   gap: 0.46rem;
-  min-height: 42px;
+  min-height: 48px;
   padding: 0 0.76rem;
 
   &:focus-within {
@@ -562,7 +564,7 @@ const SearchSelect = styled(SearchableSelect)`
 
   button {
     border-radius: 0;
-    min-height: 42px;
+    min-height: 48px;
     padding: 0.52rem 0.7rem;
   }
 `;
@@ -578,7 +580,7 @@ const ActionButton = styled.button`
   font-weight: 800;
   gap: 0.38rem;
   justify-content: center;
-  min-height: 42px;
+  min-height: 48px;
   padding: 0.6rem 0.88rem;
 
   svg {
@@ -586,6 +588,215 @@ const ActionButton = styled.button`
     height: 0.9rem;
     width: 0.9rem;
   }
+`;
+
+const SearchSurface = styled.div`
+  display: grid;
+  gap: 0.9rem;
+`;
+
+const SearchFormPanel = styled.div`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(var(--theme-surface-rgb), 0.96)),
+    radial-gradient(circle at top right, rgba(var(--theme-accent-rgb), 0.12), transparent 42%);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.7);
+  border-radius: var(--theme-radius-md);
+  box-shadow: 0 14px 32px rgba(var(--theme-primary-rgb), 0.08);
+  display: grid;
+  gap: 0.78rem;
+  padding: clamp(0.8rem, 1.8vw, 1rem);
+`;
+
+const SearchFormHeader = styled.div`
+  display: grid;
+  gap: 0.24rem;
+`;
+
+const SearchFormTitle = styled.h2`
+  color: #152744;
+  font-size: clamp(1.02rem, 1.8vw, 1.18rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+`;
+
+const SearchFormDescription = styled.p`
+  color: rgba(72, 85, 110, 0.92);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 72ch;
+`;
+
+const SearchSummaryPanel = styled.div`
+  background:
+    linear-gradient(180deg, rgba(var(--theme-surface-rgb), 0.98), rgba(255, 255, 255, 0.94)),
+    radial-gradient(circle at top left, rgba(var(--theme-story-accent-rgb), 0.1), transparent 32%);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.68);
+  border-left: 3px solid rgba(var(--theme-story-accent-rgb), 0.88);
+  border-radius: var(--theme-radius-md);
+  box-shadow: 0 10px 24px rgba(var(--theme-primary-rgb), 0.06);
+  display: grid;
+  gap: 0.72rem;
+  padding: clamp(0.8rem, 1.9vw, 1rem);
+`;
+
+const SearchSummaryHeader = styled.div`
+  display: grid;
+  gap: 0.26rem;
+`;
+
+const SearchSummaryTitle = styled.h2`
+  color: #152744;
+  font-size: clamp(1rem, 1.9vw, 1.16rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
+`;
+
+const SearchSummaryText = styled.p`
+  color: rgba(72, 85, 110, 0.92);
+  line-height: 1.58;
+  margin: 0;
+`;
+
+const SearchMetaRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+`;
+
+const SearchMetaBadge = styled.span`
+  align-items: center;
+  background: rgba(var(--theme-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.72);
+  border-radius: 999px;
+  color: #124f65;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 0.28rem;
+  min-height: 2rem;
+  padding: 0 0.76rem;
+
+  svg {
+    display: block;
+    height: 0.78rem;
+    width: 0.78rem;
+  }
+`;
+
+const SearchFilterBadge = styled(Link)`
+  align-items: center;
+  background: rgba(var(--theme-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--theme-accent-rgb), 0.18);
+  border-radius: 999px;
+  color: #0d556d;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 0.32rem;
+  min-height: 2rem;
+  padding: 0 0.76rem;
+
+  svg {
+    display: block;
+    height: 0.78rem;
+    width: 0.78rem;
+  }
+`;
+
+const SearchActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+`;
+
+const SearchActionLink = styled(Link)`
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.72);
+  border-radius: 999px;
+  color: #152744;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 0.34rem;
+  min-height: 2.1rem;
+  padding: 0 0.82rem;
+
+  svg {
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
+`;
+
+const SearchDiscoveryGrid = styled.div`
+  display: grid;
+  gap: 0.8rem;
+
+  @media (min-width: 840px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const SearchDiscoverySection = styled.section`
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.62);
+  border-radius: var(--theme-radius-md);
+  display: grid;
+  gap: 0.64rem;
+  padding: 0.82rem;
+`;
+
+const SearchDiscoveryTitle = styled.h3`
+  color: #152744;
+  font-size: 0.94rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+`;
+
+const SearchDiscoveryLinks = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.46rem;
+`;
+
+const SearchDiscoveryLink = styled(Link)`
+  align-items: center;
+  background: rgba(var(--theme-surface-rgb), 0.96);
+  border: 1px solid rgba(var(--theme-border-rgb), 0.72);
+  border-radius: 999px;
+  color: #152744;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 0.34rem;
+  min-height: 2.1rem;
+  padding: 0 0.76rem;
+
+  svg {
+    color: #0f6e8d;
+    display: block;
+    height: 0.82rem;
+    width: 0.82rem;
+  }
+`;
+
+const SearchDiscoveryMeta = styled.span`
+  color: rgba(72, 85, 110, 0.82);
+  font-size: 0.74rem;
+  font-weight: 700;
+`;
+
+const SearchEmptyState = styled.div`
+  background: rgba(var(--theme-surface-rgb), 0.84);
+  border: 1px dashed rgba(var(--theme-border-rgb), 0.78);
+  border-radius: var(--theme-radius-md);
+  display: grid;
+  gap: 0.68rem;
+  padding: 0.92rem;
 `;
 
 const StoryHero = styled(Hero)`
@@ -1356,6 +1567,7 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
  * @returns {JSX.Element} The public collection page.
  */
 export function PublicCollectionPage({
+  categoryLinks = [],
   collectionCountry = "all",
   collectionSlug = "all",
   collectionView = "",
@@ -1378,6 +1590,38 @@ export function PublicCollectionPage({
     },
     ...countryOptions,
   ];
+  const searchPageModel = showSearch
+    ? buildPublicSearchPageModel({
+        categoryLinks,
+        collectionCountry,
+        locale,
+        pageContent,
+        pageData,
+        searchFilters,
+      })
+    : null;
+  const hasCollectionItems = Array.isArray(pageData?.items) && pageData.items.length > 0;
+  const showSearchDiscovery = Boolean(
+    showSearch
+      && searchPageModel?.discoverySections?.length
+      && (searchPageModel.showDiscoveryLead || !hasCollectionItems),
+  );
+  const searchEmptyContent = showSearch && !hasCollectionItems && searchPageModel ? (
+    <SearchEmptyState>
+      <SearchSummaryText>{searchPageModel.stateDescription}</SearchSummaryText>
+      {searchPageModel.stateTip ? <SearchSummaryText>{searchPageModel.stateTip}</SearchSummaryText> : null}
+      {searchPageModel.quickActions.length ? (
+        <SearchActionRow>
+          {searchPageModel.quickActions.map((action) => (
+            <SearchActionLink href={action.href} key={action.key}>
+              <AppIcon name={action.icon} size={13} />
+              {action.label}
+            </SearchActionLink>
+          ))}
+        </SearchActionRow>
+      ) : null}
+    </SearchEmptyState>
+  ) : null;
 
   return (
     <PageMain>
@@ -1401,51 +1645,124 @@ export function PublicCollectionPage({
       </Hero>
 
       <Panel>
-        {showSearch ? (
-          <SearchForm action={searchPath} method="get">
-            <SearchField>
-              <SearchFieldIcon aria-hidden="true">
-                <AppIcon name="search" size={14} />
-              </SearchFieldIcon>
-              <SearchInput
-                defaultValue={query}
-                name="q"
-                placeholder={common.searchPlaceholder || "Search published stories"}
-              />
-            </SearchField>
-            <SearchSelect
-              aria-label={common.countryFilterLabel || "Filter by country"}
-              defaultValue={collectionCountry}
-              key={`country-filter-${collectionCountry}`}
-              name="country"
-              options={countryFilterOptions}
-              placeholder={common.countryFilterLabel || "Filter by country"}
-              searchPlaceholder={common.countryFilterLabel || "Filter by country"}
-            />
-            <ActionButton type="submit">
-              <AppIcon name="search" size={14} />
-              {common.searchAction || "Search"}
-            </ActionButton>
-          </SearchForm>
-        ) : null}
+        <SearchSurface>
+          {showSearch ? (
+            <>
+              <SearchFormPanel>
+                <SearchFormHeader>
+                  <SearchFormTitle>{pageContent.formTitle || pageContent.title}</SearchFormTitle>
+                  <SearchFormDescription>
+                    {pageContent.formDescription || pageContent.description}
+                  </SearchFormDescription>
+                </SearchFormHeader>
+                <SearchForm action={searchPath} method="get">
+                  <SearchField>
+                    <SearchFieldIcon aria-hidden="true">
+                      <AppIcon name="search" size={14} />
+                    </SearchFieldIcon>
+                    <SearchInput
+                      defaultValue={query}
+                      enterKeyHint="search"
+                      name="q"
+                      placeholder={common.searchPlaceholder || "Search published stories"}
+                      type="search"
+                    />
+                  </SearchField>
+                  <SearchSelect
+                    aria-label={common.countryFilterLabel || "Filter by country"}
+                    defaultValue={collectionCountry}
+                    key={`country-filter-${collectionCountry}`}
+                    name="country"
+                    options={countryFilterOptions}
+                    placeholder={common.countryFilterLabel || "Filter by country"}
+                    searchPlaceholder={common.countryFilterLabel || "Filter by country"}
+                  />
+                  <ActionButton type="submit">
+                    <AppIcon name="search" size={14} />
+                    {common.searchAction || "Search"}
+                  </ActionButton>
+                </SearchForm>
+              </SearchFormPanel>
 
-        <HomeLatestStories
-          collectionCountry={collectionCountry}
-          collectionSlug={collectionSlug}
-          collectionView={collectionView}
-          emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
-          initialHasMore={Boolean(pageData?.pagination?.hasNextPage)}
-          initialItems={pageData.items}
-          initialPage={pageData?.pagination?.currentPage || 1}
-          loadingLabel={common.loadingAction || "Loading..."}
-          loadingLiveLabel={common.loadingMoreStatus || "Loading more stories"}
-          locale={locale}
-          mode="collection"
-          query={query}
-          readMoreLabel={common.readMoreAction || "Read more"}
-          requestErrorLabel={common.viewMoreError || "Could not load more stories right now."}
-          viewMoreLabel={common.viewMoreAction || "View more"}
-        />
+              {searchPageModel ? (
+                <SearchSummaryPanel>
+                  <SearchSummaryHeader>
+                    <SearchSummaryTitle>{searchPageModel.stateTitle}</SearchSummaryTitle>
+                    <SearchSummaryText>{searchPageModel.stateDescription}</SearchSummaryText>
+                    {searchPageModel.stateTip ? (
+                      <SearchSummaryText>{searchPageModel.stateTip}</SearchSummaryText>
+                    ) : null}
+                  </SearchSummaryHeader>
+
+                  <SearchMetaRow>
+                    <SearchMetaBadge>
+                      <AppIcon name="news" size={13} />
+                      {searchPageModel.resultCountLabel}
+                    </SearchMetaBadge>
+                    {searchPageModel.activeFilters.map((filter) => (
+                      <SearchFilterBadge href={filter.href} key={filter.key}>
+                        <AppIcon name={filter.key === "country" ? "globe" : "search"} size={13} />
+                        {filter.label}
+                        <AppIcon name="x" size={12} />
+                      </SearchFilterBadge>
+                    ))}
+                  </SearchMetaRow>
+
+                  {searchPageModel.quickActions.length ? (
+                    <SearchActionRow>
+                      {searchPageModel.quickActions.map((action) => (
+                        <SearchActionLink href={action.href} key={action.key}>
+                          <AppIcon name={action.icon} size={13} />
+                          {action.label}
+                        </SearchActionLink>
+                      ))}
+                    </SearchActionRow>
+                  ) : null}
+                </SearchSummaryPanel>
+              ) : null}
+
+              {showSearchDiscovery ? (
+                <SearchDiscoveryGrid>
+                  {searchPageModel.discoverySections.map((section) => (
+                    <SearchDiscoverySection key={section.key}>
+                      <SearchDiscoveryTitle>{section.title}</SearchDiscoveryTitle>
+                      <SearchDiscoveryLinks>
+                        {section.links.map((link) => (
+                          <SearchDiscoveryLink href={link.href} key={link.key}>
+                            <AppIcon name={link.icon} size={13} />
+                            {link.label}
+                            {link.meta ? <SearchDiscoveryMeta>{link.meta}</SearchDiscoveryMeta> : null}
+                          </SearchDiscoveryLink>
+                        ))}
+                      </SearchDiscoveryLinks>
+                    </SearchDiscoverySection>
+                  ))}
+                </SearchDiscoveryGrid>
+              ) : null}
+            </>
+          ) : null}
+
+          <HomeLatestStories
+            collectionCountry={collectionCountry}
+            collectionSlug={collectionSlug}
+            collectionView={collectionView}
+            emptyContent={searchEmptyContent}
+            emptyLabel={common.emptyStateDescription || "Published stories will appear here soon."}
+            initialHasMore={Boolean(pageData?.pagination?.hasNextPage)}
+            initialItems={pageData.items}
+            initialPage={pageData?.pagination?.currentPage || 1}
+            loadingLabel={common.loadingAction || "Loading..."}
+            loadingLiveLabel={common.loadingMoreStatus || "Loading more stories"}
+            locale={locale}
+            mode="collection"
+            query={query}
+            readMoreLabel={common.readMoreAction || "Read more"}
+            requestErrorLabel={common.viewMoreError || "Could not load more stories right now."}
+            searchMatchCopy={pageContent.matchReasons || {}}
+            showSearchContext={showSearch}
+            viewMoreLabel={common.viewMoreAction || "View more"}
+          />
+        </SearchSurface>
       </Panel>
     </PageMain>
   );
