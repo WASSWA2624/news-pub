@@ -12,6 +12,7 @@
     "dev:next": "node scripts/dev-next.js",
     "prestart": "next build",
     "build": "next build",
+    "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",
     "start": "next start",
     "lint": "eslint .",
     "repo:check": "node scripts/check-repo-hygiene.js",
