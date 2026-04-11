@@ -2,7 +2,6 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { loadEnvConfig } = require("@next/env");
 
 const rootDir = path.resolve(__dirname, "..");
 const buildDir = path.join(rootDir, ".next");
@@ -37,6 +36,41 @@ function refreshStandaloneDirectory(sourcePath, targetPath, { required = false }
   fs.cpSync(sourcePath, targetPath, { force: true, recursive: true });
 }
 
+function parseEnvValue(value) {
+  const trimmed = (value || "").trim();
+  const quote = trimmed[0];
+
+  if ((quote === '"' || quote === "'") && trimmed.endsWith(quote)) {
+    const unquoted = trimmed.slice(1, -1);
+
+    return quote === '"' ? unquoted.replace(/\\n/g, "\n").replace(/\\r/g, "\r") : unquoted;
+  }
+
+  return trimmed.replace(/\s+#.*$/, "");
+}
+
+function loadEnvFile(fileName) {
+  const envPath = path.join(rootDir, fileName);
+
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)?\s*$/);
+
+    if (!match || Object.prototype.hasOwnProperty.call(process.env, match[1])) {
+      continue;
+    }
+
+    process.env[match[1]] = parseEnvValue(match[2]);
+  }
+}
+
+function loadLocalStandaloneEnv() {
+  [".env.development.local", ".env.local", ".env"].forEach(loadEnvFile);
+}
+
 if (!fs.existsSync(standaloneServerPath)) {
   console.error(
     "Missing Next standalone build output. Run `npm run build` before starting the standalone server.",
@@ -62,5 +96,5 @@ function clearStandalonePidFile() {
   });
 });
 
-loadEnvConfig(rootDir, false);
+loadLocalStandaloneEnv();
 require(standaloneServerPath);

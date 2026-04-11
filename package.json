@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "node scripts/bootstrap-dev-db.js && nodemon --config nodemon.json",
     "prebuild": "node scripts/prepare-next-build.js && prisma generate",
-    "prestart": "npm run build",
     "build": "next build",
     "start": "node scripts/start-standalone.js",
     "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",

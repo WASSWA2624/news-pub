@@ -97,7 +97,7 @@ function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
     throw new Error(
       [
         "DATABASE_URL is missing.",
-        "Copy .env.example to .env.local and point DATABASE_URL at a reachable local MySQL or MariaDB database before running database-backed workflows.",
+        "Copy .env.example to .env.development.local and point DATABASE_URL at a reachable local MySQL or MariaDB database before running database-backed workflows.",
       ].join("\n"),
     );
   }
@@ -108,7 +108,7 @@ function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
     throw new Error(
       [
         "DATABASE_URL is not a valid database URL.",
-        "Update .env.local so DATABASE_URL uses a local MySQL or MariaDB connection string such as mysql://user:password@localhost:3306/news_pub.",
+        "Update .env.development.local so DATABASE_URL uses a local MySQL or MariaDB connection string such as mysql://user:password@localhost:3306/news_pub.",
       ].join("\n"),
     );
   }
@@ -142,7 +142,7 @@ function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
   if ([username, password, database].some(looksLikePlaceholderEnvValue)) {
     throw new Error(
       [
-        "DATABASE_URL in .env.local still contains placeholder credentials.",
+        "DATABASE_URL in .env.development.local still contains placeholder credentials.",
         `Current target: ${describeDatabaseTarget(normalizedUrl)}.`,
         "Replace it with a real local MySQL or MariaDB connection string before running npm run dev.",
       ].join("\n"),
@@ -151,7 +151,8 @@ function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
 }
 
 function loadRuntimeEnv() {
-  loadEnv({ path: ".env.local", override: true });
+  loadEnv({ path: ".env.development.local", override: true });
+  loadEnv({ path: ".env.local" });
   loadEnv();
 }
 
