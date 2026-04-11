@@ -8,6 +8,7 @@ const rootDir = path.resolve(__dirname, "..");
 const buildDir = path.join(rootDir, ".next");
 const standaloneDir = path.join(buildDir, "standalone");
 const standaloneServerPath = path.join(standaloneDir, "server.js");
+const standalonePidPath = path.join(standaloneDir, ".news-pub-standalone.pid");
 const staticSourcePath = path.join(buildDir, "static");
 const staticTargetPath = path.join(standaloneDir, ".next", "static");
 const publicSourcePath = path.join(rootDir, "public");
@@ -45,6 +46,21 @@ if (!fs.existsSync(standaloneServerPath)) {
 
 refreshStandaloneDirectory(staticSourcePath, staticTargetPath, { required: true });
 refreshStandaloneDirectory(publicSourcePath, publicTargetPath);
+fs.writeFileSync(standalonePidPath, `${process.pid}`, "utf8");
+
+function clearStandalonePidFile() {
+  fs.rmSync(standalonePidPath, { force: true });
+}
+
+["exit", "SIGINT", "SIGTERM", "SIGBREAK"].forEach((eventName) => {
+  process.on(eventName, () => {
+    clearStandalonePidFile();
+
+    if (eventName !== "exit") {
+      process.exit(0);
+    }
+  });
+});
 
 loadEnvConfig(rootDir, false);
 require(standaloneServerPath);

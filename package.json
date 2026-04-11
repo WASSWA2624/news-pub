@@ -10,7 +10,7 @@
     "db:reset": "node scripts/reset-db.js",
     "dev": "npm run db:bootstrap && nodemon --config nodemon.json",
     "dev:next": "node scripts/dev-next.js",
-    "prebuild": "prisma generate",
+    "prebuild": "node scripts/prepare-next-build.js && prisma generate",
     "prestart": "npm run build",
     "build": "next build",
     "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",
