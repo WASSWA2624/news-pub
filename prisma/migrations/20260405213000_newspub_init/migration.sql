@@ -8,7 +8,7 @@ CREATE TABLE `Locale` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`code`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `User` (
@@ -23,7 +23,7 @@ CREATE TABLE `User` (
 
     UNIQUE INDEX `User_email_key`(`email`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `AdminSession` (
@@ -40,7 +40,7 @@ CREATE TABLE `AdminSession` (
     INDEX `AdminSession_expiresAt_idx`(`expiresAt`),
     INDEX `AdminSession_userId_expiresAt_idx`(`userId`, `expiresAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `NewsProviderConfig` (
@@ -59,7 +59,7 @@ CREATE TABLE `NewsProviderConfig` (
     UNIQUE INDEX `NewsProviderConfig_providerKey_key`(`providerKey`),
     INDEX `NewsProviderConfig_isEnabled_isDefault_idx`(`isEnabled`, `isDefault`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Destination` (
@@ -85,7 +85,7 @@ CREATE TABLE `Destination` (
     UNIQUE INDEX `Destination_slug_key`(`slug`),
     INDEX `Destination_platform_connectionStatus_idx`(`platform`, `connectionStatus`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Category` (
@@ -99,7 +99,7 @@ CREATE TABLE `Category` (
     UNIQUE INDEX `Category_name_key`(`name`),
     UNIQUE INDEX `Category_slug_key`(`slug`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `MediaAsset` (
@@ -125,7 +125,7 @@ CREATE TABLE `MediaAsset` (
 
     INDEX `MediaAsset_sourceDomain_idx`(`sourceDomain`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `MediaVariant` (
@@ -146,7 +146,7 @@ CREATE TABLE `MediaVariant` (
     INDEX `MediaVariant_mediaAssetId_idx`(`mediaAssetId`),
     INDEX `MediaVariant_mediaAssetId_variantKey_idx`(`mediaAssetId`, `variantKey`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `FetchedArticle` (
@@ -181,7 +181,7 @@ CREATE TABLE `FetchedArticle` (
     INDEX `FetchedArticle_normalizedTitleHash_publishedAt_idx`(`normalizedTitleHash`, `publishedAt`),
     UNIQUE INDEX `FetchedArticle_providerConfigId_providerArticleId_key`(`providerConfigId`, `providerArticleId`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `Post` (
@@ -206,7 +206,7 @@ CREATE TABLE `Post` (
     INDEX `Post_status_publishedAt_idx`(`status`, `publishedAt`),
     INDEX `Post_status_scheduledPublishAt_idx`(`status`, `scheduledPublishAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `PostTranslation` (
@@ -225,7 +225,7 @@ CREATE TABLE `PostTranslation` (
     INDEX `PostTranslation_locale_postId_idx`(`locale`, `postId`),
     UNIQUE INDEX `PostTranslation_postId_locale_key`(`postId`, `locale`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `ProviderFetchCheckpoint` (
@@ -239,7 +239,7 @@ CREATE TABLE `ProviderFetchCheckpoint` (
 
     UNIQUE INDEX `ProviderFetchCheckpoint_streamId_providerConfigId_key`(`streamId`, `providerConfigId`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `PublishingStream` (
@@ -278,7 +278,7 @@ CREATE TABLE `PublishingStream` (
     INDEX `PublishingStream_destinationId_mode_status_idx`(`destinationId`, `mode`, `status`),
     INDEX `PublishingStream_activeProviderId_status_idx`(`activeProviderId`, `status`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `ArticleMatch` (
@@ -304,7 +304,7 @@ CREATE TABLE `ArticleMatch` (
     INDEX `ArticleMatch_canonicalPostId_idx`(`canonicalPostId`),
     UNIQUE INDEX `ArticleMatch_fetchedArticleId_streamId_key`(`fetchedArticleId`, `streamId`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `DestinationTemplate` (
@@ -325,7 +325,7 @@ CREATE TABLE `DestinationTemplate` (
     INDEX `DestinationTemplate_platform_categoryId_idx`(`platform`, `categoryId`),
     UNIQUE INDEX `DestinationTemplate_name_platform_locale_key`(`name`, `platform`, `locale`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `SEORecord` (
@@ -347,7 +347,7 @@ CREATE TABLE `SEORecord` (
 
     UNIQUE INDEX `SEORecord_postTranslationId_key`(`postTranslationId`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `ViewEvent` (
@@ -364,7 +364,7 @@ CREATE TABLE `ViewEvent` (
     INDEX `ViewEvent_eventType_createdAt_idx`(`eventType`, `createdAt`),
     INDEX `ViewEvent_postId_createdAt_idx`(`postId`, `createdAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `AuditEvent` (
@@ -377,7 +377,7 @@ CREATE TABLE `AuditEvent` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `PostCategory` (
@@ -386,7 +386,7 @@ CREATE TABLE `PostCategory` (
 
     INDEX `PostCategory_categoryId_idx`(`categoryId`),
     PRIMARY KEY (`postId`, `categoryId`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `StreamCategory` (
@@ -395,7 +395,7 @@ CREATE TABLE `StreamCategory` (
 
     INDEX `StreamCategory_categoryId_idx`(`categoryId`),
     PRIMARY KEY (`streamId`, `categoryId`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `PublishAttempt` (
@@ -425,7 +425,7 @@ CREATE TABLE `PublishAttempt` (
     INDEX `PublishAttempt_streamId_status_createdAt_idx`(`streamId`, `status`, `createdAt`),
     INDEX `PublishAttempt_postId_createdAt_idx`(`postId`, `createdAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `FetchRun` (
@@ -456,7 +456,7 @@ CREATE TABLE `FetchRun` (
     INDEX `FetchRun_streamId_startedAt_idx`(`streamId`, `startedAt`),
     INDEX `FetchRun_status_startedAt_idx`(`status`, `startedAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
 ALTER TABLE `AdminSession` ADD CONSTRAINT `AdminSession_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

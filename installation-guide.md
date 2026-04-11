@@ -151,6 +151,7 @@ Verify:
 ## Quick troubleshooting
 
 - Database error: check cPanel database name, username, password, host, port, and password URL encoding.
+- Failed migration retry: use a new database or drop the partially created tables first. Emptying tables is not enough.
 - Missing `DATABASE_URL`: add it to cPanel env vars or `.env.production.local`.
 - Missing `mariadb` dependency: run cPanel **NPM Install**, then rerun database deploy.
 - Startup failure: confirm Node.js 20 or 22, startup file `app.js`, and upload source `dist/cpanel`.

@@ -39,7 +39,7 @@ CREATE TABLE `OptimizationCache` (
     INDEX `OptimizationCache_platform_destinationKind_locale_idx`(`platform`, `destinationKind`, `locale`),
     INDEX `OptimizationCache_status_updatedAt_idx`(`status`, `updatedAt`),
     PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ALTER TABLE `PublishAttempt`
     ADD COLUMN `diagnosticsJson` JSON NULL,
