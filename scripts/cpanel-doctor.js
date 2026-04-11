@@ -64,7 +64,7 @@ function loadEnvFile(fileName) {
 }
 
 function loadRuntimeEnv() {
-  [".env.production.local", ".env.local", ".env.production", ".env"].forEach(loadEnvFile);
+  [".env.production.local", ".env.production", ".env"].forEach(loadEnvFile);
 }
 
 function getEnvValue(name) {

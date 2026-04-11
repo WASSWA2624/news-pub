@@ -117,7 +117,7 @@ scripts/
 tmp/
 ```
 
-Do not upload local secret files such as `.env.development.local` or `.env.local`.
+Do not upload local secret files such as `.env.development.local`.
 
 ## 5. Deploy the database
 

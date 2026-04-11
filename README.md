@@ -117,7 +117,7 @@ Implementation is complete only when step 24 proves full traceability to the cur
 
 Copy [`.env.example`](./.env.example) to `.env.development.local` for local development, then replace the placeholder values before you run the app. Use `.env.production.local` only for production or cPanel values.
 
-- `.env.development.local`, `.env.local`, and `.env.production.local` must stay untracked and must never be committed.
+- `.env.development.local` and `.env.production.local` must stay untracked and must never be committed.
 - Any credential that was previously committed or shared from this repo must be rotated before it is used again.
 - `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run migrations, seeding, or the live dev server.
 - `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are local bootstrap credentials only and must be replaced before any shared, staging, or production deployment.
@@ -138,7 +138,7 @@ npm run build
 npm run prisma:validate
 ```
 
-Use [`prisma/seed.js`](./prisma/seed.js) together with [`scripts/bootstrap-dev-db.js`](./scripts/bootstrap-dev-db.js) when you need a local Release 1 baseline. Keep local secret files such as `.env.development.local`, `.env.local`, and `.env.production.local` out of source control; the committed env contract is [`.env.example`](./.env.example).
+Use [`prisma/seed.js`](./prisma/seed.js) together with [`scripts/bootstrap-dev-db.js`](./scripts/bootstrap-dev-db.js) when you need a local Release 1 baseline. Keep local secret files such as `.env.development.local` and `.env.production.local` out of source control; the committed env contract is [`.env.example`](./.env.example).
 
 ## Dev Plan Sequence
 

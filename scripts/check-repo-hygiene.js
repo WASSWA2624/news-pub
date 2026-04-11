@@ -89,11 +89,11 @@ function assertForbiddenTrackedEnvFiles(trackedFiles) {
   const forbiddenFiles = trackedFiles.filter((file) => {
     const normalized = normalizePath(file);
 
-    if (normalized === ".env" || normalized === ".env.local") {
+    if (normalized === ".env") {
       return true;
     }
 
-    return /^\.env\.[^.]+\.local$/i.test(normalized);
+    return /^\.env(?:\.[^.]+)?\.local$/i.test(normalized);
   });
 
   for (const file of forbiddenFiles) {

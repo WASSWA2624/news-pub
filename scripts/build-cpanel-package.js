@@ -66,7 +66,7 @@ function loadEnvFile(fileName) {
   }
 }
 
-[".env.production.local", ".env.local", ".env.production", ".env"].forEach(loadEnvFile);
+[".env.production.local", ".env.production", ".env"].forEach(loadEnvFile);
 require("./server.js");
 `;
 

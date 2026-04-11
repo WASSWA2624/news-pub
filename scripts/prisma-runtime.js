@@ -152,7 +152,6 @@ function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
 
 function loadRuntimeEnv() {
   loadEnv({ path: ".env.development.local", override: true });
-  loadEnv({ path: ".env.local" });
   loadEnv();
 }
 

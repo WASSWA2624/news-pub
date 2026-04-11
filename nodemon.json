@@ -1,8 +1,7 @@
 {
   "watch": [
-    ".env.local",
-    ".env",
     ".env.development.local",
+    ".env",
     "jsconfig.json",
     "next.config.mjs",
     "package.json",

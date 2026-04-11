@@ -1,7 +1,10 @@
 import { config as loadEnv } from "dotenv";
 import { defineConfig, env } from "prisma/config";
 
-loadEnv({ path: ".env.local", override: true });
+const localEnvPath =
+  process.env.NODE_ENV === "production" ? ".env.production.local" : ".env.development.local";
+
+loadEnv({ path: localEnvPath, override: true });
 loadEnv();
 
 export default defineConfig({
