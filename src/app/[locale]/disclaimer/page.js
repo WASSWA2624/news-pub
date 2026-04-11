@@ -3,7 +3,7 @@
  */
 
 import { PublicStaticPage } from "@/components/public";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -12,7 +12,7 @@ import { buildPageMetadata } from "@/lib/seo";
  */
 export async function generateMetadata({ params }) {
   const { locale } = await params;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
   const pageContent = messages?.public?.pages?.disclaimer || {};
 
   return buildPageMetadata({
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }) {
 
 export default async function DisclaimerPage({ params }) {
   const { locale } = await params;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
 
   return <PublicStaticPage locale={locale} pageContent={messages.public?.pages?.disclaimer || {}} />;
 }

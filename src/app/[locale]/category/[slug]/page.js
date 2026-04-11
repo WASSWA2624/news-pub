@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 
 import { StructuredDataBundle } from "@/components/seo";
 import { PublicCollectionPage } from "@/components/public";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedCategoryPageData } from "@/features/public-site";
 import { buildBreadcrumbJsonLd, buildPageMetadata } from "@/lib/seo";
@@ -19,7 +19,7 @@ export const revalidate = 300;
 export async function generateMetadata({ params, searchParams }) {
   const { locale, slug } = await params;
   const resolvedSearchParams = await searchParams;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
   const pageData = await getPublishedCategoryPageData({ locale, slug });
   const title = pageData?.entity?.name
     ? `${pageData.entity.name} stories`
@@ -43,7 +43,7 @@ export default async function CategoryPage({ params, searchParams }) {
   const resolvedSearchParams = await searchParams;
   const page = resolvedSearchParams?.page;
   const [messages, pageData] = await Promise.all([
-    getMessages(locale),
+    getRequiredMessages(locale),
     getPublishedCategoryPageData({ locale, page, slug }),
   ]);
 

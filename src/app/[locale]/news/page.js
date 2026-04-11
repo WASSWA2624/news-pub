@@ -3,7 +3,7 @@
  */
 
 import { PublicCollectionPage } from "@/components/public";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedNewsIndexData, publicListingPageSize } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
@@ -16,7 +16,7 @@ export const revalidate = 300;
 export async function generateMetadata({ params, searchParams }) {
   const { locale } = await params;
   const resolvedSearchParams = await searchParams;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
   const pageContent = messages.public?.news || {};
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
 
@@ -37,7 +37,7 @@ export default async function NewsIndexPage({ params, searchParams }) {
   const resolvedSearchParams = await searchParams;
   const page = resolvedSearchParams?.page;
   const [messages, pageData] = await Promise.all([
-    getMessages(locale),
+    getRequiredMessages(locale),
     getPublishedNewsIndexData({
       locale,
       page,

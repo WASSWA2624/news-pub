@@ -3,7 +3,7 @@
  */
 
 import { PublicHomePage } from "@/components/public";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedHomePageData } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export async function generateMetadata({ params }) {
   const { locale } = await params;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
   const pageContent = messages?.public?.home || {};
 
   return buildPageMetadata({
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }) {
 export default async function LocaleHomePage({ params }) {
   const { locale } = await params;
   const [messages, pageData] = await Promise.all([
-    getMessages(locale),
+    getRequiredMessages(locale),
     getPublishedHomePageData({ locale }),
   ]);
 

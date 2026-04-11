@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { StructuredDataBundle } from "@/components/seo";
 import SiteShell from "@/components/layout/site-shell";
 import { isSupportedLocale, supportedLocales } from "@/features/i18n/config";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
 import { getPublishedCategoryNavigationData, getPublishedSearchFilterData } from "@/features/public-site";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }) {
     return {};
   }
 
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
 
   return {
     title: messages.site.title,
@@ -53,7 +53,7 @@ export default async function LocaleLayout({ children, params }) {
   }
 
   const [messages, categoryLinks, searchFilters] = await Promise.all([
-    getMessages(locale),
+    getRequiredMessages(locale),
     getPublishedCategoryNavigationData({ locale, limit: 8 }),
     getPublishedSearchFilterData({ locale }),
   ]);

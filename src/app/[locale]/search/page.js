@@ -3,7 +3,7 @@
  */
 
 import { PublicCollectionPage } from "@/components/public";
-import { getMessages } from "@/features/i18n/get-messages";
+import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedCategoryNavigationData, getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
 import { normalizePublicSearchQuery } from "@/features/public-site/search-utils";
@@ -17,7 +17,7 @@ export const revalidate = 300;
 export async function generateMetadata({ params, searchParams }) {
   const { locale } = await params;
   const resolvedSearchParams = await searchParams;
-  const messages = await getMessages(locale);
+  const messages = await getRequiredMessages(locale);
   const pageContent = messages?.public?.search || {};
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
   const query = normalizePublicSearchQuery(resolvedSearchParams?.q);
@@ -47,7 +47,7 @@ export default async function SearchPage({ params, searchParams }) {
   const query = resolvedSearchParams?.q;
   const country = resolvedSearchParams?.country;
   const [messages, pageData, filterData, categoryLinks] = await Promise.all([
-    getMessages(locale),
+    getRequiredMessages(locale),
     searchPublishedPosts({ country, locale, page, search: query }),
     getPublishedSearchFilterData({ locale }),
     getPublishedCategoryNavigationData({ locale, limit: 6 }),
