@@ -36,14 +36,18 @@ import {
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
-import DestinationFormCard from "@/components/admin/destination-form-card";
 import AppIcon from "@/components/common/app-icon";
 import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { getMetaDestinationFormConfig } from "@/features/destinations/meta-config";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import dynamic from "next/dynamic";
 import styled from "styled-components";
 import { deleteDestinationAction, saveDestinationAction } from "../actions";
+
+const DestinationFormCard = dynamic(() => import("@/components/admin/destination-form-card"), {
+  loading: () => <SmallText>Loading destination editor...</SmallText>,
+});
 
 const DestinationRecord = styled(RecordCard)`
   gap: 0.85rem;

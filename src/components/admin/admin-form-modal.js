@@ -55,22 +55,15 @@ const Dialog = styled.dialog`
   ${({ $size }) => modalSizeStyles[$size] || modalSizeStyles.wide}
 
   &::backdrop {
-    backdrop-filter: blur(8px);
-    background:
-      linear-gradient(180deg, rgba(11, 17, 28, 0.54), rgba(11, 17, 28, 0.64)),
-      radial-gradient(circle at top, rgba(15, 111, 141, 0.12), transparent 42%);
+    background: rgba(11, 17, 28, 0.56);
   }
 `;
 
 const Surface = styled.section`
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.996), rgba(246, 250, 255, 0.99)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 34%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.998), rgba(247, 250, 254, 0.99));
   border: 1px solid rgba(var(--theme-text-rgb), 0.14);
   border-radius: var(--theme-radius-lg, 2px);
-  box-shadow:
-    0 32px 72px rgba(11, 18, 30, 0.24),
-    0 12px 28px rgba(16, 32, 51, 0.1);
+  box-shadow: 0 22px 48px rgba(11, 18, 30, 0.2);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   max-height: calc(100dvh - 0.75rem);
@@ -85,9 +78,7 @@ const Surface = styled.section`
 
 const Header = styled.div`
   align-items: start;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 48%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94));
   border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.14);
   display: grid;
   gap: 0.55rem;
@@ -167,9 +158,7 @@ const Body = styled.div`
 `;
 
 const Footer = styled.div`
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.98)),
-    radial-gradient(circle at top left, rgba(15, 111, 141, 0.06), transparent 42%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.99));
   border-top: 1px solid rgba(var(--theme-text-rgb), 0.14);
   padding: clamp(0.68rem, 1.7vw, 0.86rem) clamp(0.75rem, 1.7vw, 0.95rem);
 `;

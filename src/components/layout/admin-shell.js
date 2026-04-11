@@ -42,9 +42,8 @@ const {
 
 const Shell = styled.div`
   background:
-    radial-gradient(circle at top left, rgba(130, 166, 198, 0.18), transparent 26%),
-    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.78), transparent 24%),
-    linear-gradient(180deg, #f7f9fc 0%, #f0f4fa 54%, #edf2f9 100%);
+    linear-gradient(180deg, #f7f9fc 0%, #eef3f8 52%, #edf2f7 100%),
+    radial-gradient(circle at top left, rgba(130, 166, 198, 0.1), transparent 28%);
   color: var(--theme-text, #152844);
   display: flex;
   flex-direction: column;
@@ -59,30 +58,12 @@ const Header = styled.header`
 
 const HeaderSurface = styled.div`
   background:
-    radial-gradient(circle at top right, rgba(38, 138, 164, 0.3), transparent 24%),
-    radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.07), transparent 20%),
-    linear-gradient(135deg, #102438 0%, #163248 46%, #0f5d73 100%);
-  backdrop-filter: blur(16px);
+    linear-gradient(135deg, #102438 0%, #17364d 100%),
+    radial-gradient(circle at top right, rgba(64, 162, 188, 0.12), transparent 28%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 18px 36px rgba(16, 32, 51, 0.12);
+  box-shadow: 0 10px 24px rgba(16, 32, 51, 0.12);
   overflow: visible;
   position: relative;
-
-  &::before {
-    background:
-      radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0, transparent 56%),
-      repeating-linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.02) 0,
-        rgba(255, 255, 255, 0.02) 1px,
-        transparent 1px,
-        transparent 7px
-      );
-    content: "";
-    inset: 0;
-    pointer-events: none;
-    position: absolute;
-  }
 `;
 
 const HeaderInner = styled.div`
@@ -138,15 +119,10 @@ const TopRow = styled.div`
 
 const BrandLink = styled(Link)`
   align-items: center;
-  backdrop-filter: blur(14px);
-  background:
-    linear-gradient(135deg, rgba(21, 58, 88, 0.86), rgba(17, 90, 116, 0.72)),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 48%);
-  border: 1px solid rgba(129, 212, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(129, 212, 255, 0.16);
   border-radius: calc(var(--theme-radius-lg, 2px) + 1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 10px 20px rgba(7, 18, 31, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: white;
   display: inline-flex;
   gap: 0.5rem;
@@ -159,7 +135,7 @@ const BrandLink = styled(Link)`
     box-shadow 160ms ease;
 
   &::after {
-    background: linear-gradient(90deg, rgba(255, 214, 120, 0.92), rgba(123, 234, 255, 0.72));
+    background: linear-gradient(90deg, rgba(255, 214, 120, 0.72), rgba(123, 234, 255, 0.56));
     border-radius: 999px;
     content: "";
     height: 1.5px;
@@ -171,11 +147,7 @@ const BrandLink = styled(Link)`
   }
 
   &:hover {
-    border-color: rgba(145, 222, 255, 0.34);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      0 16px 32px rgba(7, 18, 31, 0.22);
-    transform: translateY(-1px);
+    border-color: rgba(145, 222, 255, 0.28);
   }
 
   &:focus-visible {
@@ -233,15 +205,10 @@ const BrandMeta = styled.span`
 const headerActionButtonCss = css`
   --header-action-size: 2.15rem;
   align-items: center;
-  backdrop-filter: blur(14px);
-  background:
-    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.2), transparent 44%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--theme-radius-lg, 2px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 10px 18px rgba(4, 14, 24, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: white;
   cursor: pointer;
   display: inline-grid;
@@ -258,11 +225,8 @@ const headerActionButtonCss = css`
   }
 
   &:hover {
-    background:
-      radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.24), transparent 46%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.22);
-    transform: translateY(-1px);
   }
 `;
 
@@ -293,13 +257,10 @@ const ProfileInitials = styled.span`
 `;
 
 const ProfileMenu = styled.div`
-  backdrop-filter: blur(20px);
   ${elevatedSurfaceCss}
   border: 1px solid rgba(16, 32, 51, 0.07);
   border-radius: var(--theme-radius-lg, 2px);
-  box-shadow:
-    0 14px 28px rgba(16, 32, 51, 0.12),
-    0 3px 8px rgba(16, 32, 51, 0.05);
+  box-shadow: 0 12px 24px rgba(16, 32, 51, 0.12);
   display: ${({ $open }) => ($open ? "grid" : "none")};
   gap: 0;
   min-width: min(calc(100vw - 1.2rem), 300px);
@@ -562,13 +523,10 @@ const MeasureNavItem = styled.span`
 `;
 
 const OverflowMenu = styled.div`
-  backdrop-filter: blur(20px);
   ${elevatedSurfaceCss}
   border: 1px solid rgba(16, 32, 51, 0.08);
   border-radius: var(--theme-radius-lg, 2px);
-  box-shadow:
-    0 16px 34px rgba(16, 32, 51, 0.14),
-    0 6px 14px rgba(16, 32, 51, 0.08);
+  box-shadow: 0 14px 28px rgba(16, 32, 51, 0.14);
   display: ${({ $open }) => ($open ? "grid" : "none")};
   gap: 0.14rem;
   min-width: min(calc(100vw - 1.2rem), 280px);

@@ -11,6 +11,7 @@ const {
 } = require("./cpanel-db-utils");
 
 const rootDir = process.cwd();
+const generatedClientEntryRelativePath = path.join("node_modules", ".prisma", "client", "default.js");
 
 function parseEnvValue(value) {
   const trimmed = (value || "").trim();
@@ -57,6 +58,14 @@ function requiredEnv(name) {
   return value;
 }
 
+function assertRuntimeFile(relativePath, failureMessage) {
+  const absolutePath = path.join(rootDir, relativePath);
+
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(failureMessage);
+  }
+}
+
 function parseDatabaseUrl() {
   const databaseUrl = requiredEnv("DATABASE_URL");
   const parsedUrl = new URL(databaseUrl);
@@ -86,6 +95,15 @@ function ensureRequiredSeedEnv() {
 }
 
 function ensureRootGeneratedPrismaClient() {
+  assertRuntimeFile(
+    path.join("prisma", "seed.js"),
+    "prisma/seed.js is missing from this cPanel package. Rebuild with npm run build:cpanel and upload the full dist/cpanel folder.",
+  );
+  assertRuntimeFile(
+    path.join("scripts", "cpanel-db-utils.js"),
+    "scripts/cpanel-db-utils.js is missing from this cPanel package. Rebuild with npm run build:cpanel and upload the full dist/cpanel folder.",
+  );
+
   const rootGeneratedClient = path.join(rootDir, "node_modules", ".prisma");
   const rootGeneratedClientEntry = path.join(rootGeneratedClient, "client", "default.js");
   const bundledGeneratedClient = path.join(rootDir, ".next", "node_modules", ".prisma");
@@ -100,7 +118,10 @@ function ensureRootGeneratedPrismaClient() {
 
   if (!fs.existsSync(rootGeneratedClientEntry)) {
     throw new Error(
-      "Generated Prisma client was not found. Rebuild and upload the latest cPanel package, then run NPM Install again.",
+      [
+        `Generated Prisma client was not found at ${generatedClientEntryRelativePath}.`,
+        "Run cPanel NPM Install again or rebuild and upload the latest cPanel package before seeding.",
+      ].join(" "),
     );
   }
 }
@@ -119,7 +140,9 @@ function runSeed() {
   }
 
   if (result.status !== 0) {
-    throw new Error(`Prisma seed failed with exit code ${result.status || 1}.`);
+    throw new Error(
+      `Prisma seed failed with exit code ${result.status || 1}. Review the seed output above, fix the reported issue, then rerun npm run cpanel:db:seed.`,
+    );
   }
 }
 

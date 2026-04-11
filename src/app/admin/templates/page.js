@@ -31,12 +31,16 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
-import TemplateFormCard from "@/components/admin/template-form-card";
 import { getTemplateManagementSnapshot } from "@/features/templates";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import dynamic from "next/dynamic";
 import styled from "styled-components";
 import { saveTemplateAction } from "../actions";
+
+const TemplateFormCard = dynamic(() => import("@/components/admin/template-form-card"), {
+  loading: () => <SmallText>Loading template editor...</SmallText>,
+});
 
 const HeroLayout = styled.div`
   display: grid;

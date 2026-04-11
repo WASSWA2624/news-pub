@@ -11,8 +11,16 @@ const staticDir = path.join(rootDir, ".next", "static");
 const publicDir = path.join(rootDir, "public");
 const prismaDir = path.join(rootDir, "prisma");
 const scriptsDir = path.join(rootDir, "scripts");
+const packageLockPath = path.join(rootDir, "package-lock.json");
 const generatedPrismaDir = path.join(rootDir, "node_modules", ".prisma");
 const outputDir = path.join(rootDir, "dist", "cpanel");
+const runtimeScriptFileNames = [
+  "cpanel-db-deploy.js",
+  "cpanel-db-seed.js",
+  "cpanel-db-utils.js",
+  "cpanel-doctor.js",
+  "prisma-runtime.js",
+];
 
 function assertExists(targetPath, label) {
   if (!fs.existsSync(targetPath)) {
@@ -36,6 +44,26 @@ process.env.NODE_ENV = process.env.NODE_ENV || "production";
 // Next standalone may reuse HOSTNAME for internal self-fetches. 0.0.0.0 is
 // valid for binding but not as a connect target, so default to loopback.
 process.env.HOSTNAME = process.env.HOSTNAME || "127.0.0.1";
+
+function assertRequiredRuntimeFiles() {
+  const missingPaths = [
+    "server.js",
+    "package.json",
+    "prisma/seed.js",
+    "scripts/cpanel-db-deploy.js",
+    "scripts/cpanel-db-seed.js",
+    "scripts/cpanel-db-utils.js",
+    "scripts/cpanel-doctor.js",
+  ].filter((relativePath) => !fs.existsSync(path.join(__dirname, relativePath)));
+
+  if (missingPaths.length > 0) {
+    throw new Error(
+      "The uploaded cPanel package is incomplete. Missing: "
+      + missingPaths.join(", ")
+      + ". Rebuild with \\"npm run build:cpanel\\" and upload the full dist/cpanel directory.",
+    );
+  }
+}
 
 function parseEnvValue(value) {
   const trimmed = (value || "").trim();
@@ -69,6 +97,7 @@ function loadEnvFile(fileName) {
 }
 
 [".env.production", ".env"].forEach(loadEnvFile);
+assertRequiredRuntimeFiles();
 require("./server.js");
 `;
 
@@ -89,9 +118,14 @@ function copyDatabaseDeploymentFiles() {
 
   fs.mkdirSync(outputScriptsDir, { recursive: true });
 
-  for (const scriptName of ["cpanel-db-deploy.js", "cpanel-db-seed.js", "cpanel-doctor.js", "prisma-runtime.js"]) {
+  for (const scriptName of runtimeScriptFileNames) {
     fs.copyFileSync(path.join(scriptsDir, scriptName), path.join(outputScriptsDir, scriptName));
   }
+}
+
+function copyPackageLockFile() {
+  assertExists(packageLockPath, "package-lock.json");
+  fs.copyFileSync(packageLockPath, path.join(outputDir, "package-lock.json"));
 }
 
 function updatePackageManifest() {
@@ -112,12 +146,112 @@ function updatePackageManifest() {
     ...outputPackage.dependencies,
     "@prisma/adapter-mariadb": sourcePackage.dependencies["@prisma/adapter-mariadb"],
     "@prisma/client": sourcePackage.dependencies["@prisma/client"],
-    mariadb: "3.4.5",
+    mariadb: sourcePackage.dependencies.mariadb,
   };
+  outputPackage.engines = sourcePackage.engines;
+  outputPackage.packageManager = sourcePackage.packageManager;
   delete outputPackage.devDependencies;
   delete outputPackage.optionalDependencies;
 
   fs.writeFileSync(packagePath, `${JSON.stringify(outputPackage, null, 2)}\n`, "utf8");
+}
+
+function resolveLocalRuntimeDependency(fromFilePath, requestPath) {
+  const absoluteBasePath = path.resolve(path.dirname(fromFilePath), requestPath);
+  const candidatePaths = [
+    absoluteBasePath,
+    `${absoluteBasePath}.js`,
+    `${absoluteBasePath}.cjs`,
+    `${absoluteBasePath}.mjs`,
+    `${absoluteBasePath}.json`,
+    path.join(absoluteBasePath, "index.js"),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return absoluteBasePath;
+}
+
+function collectLocalRuntimeDependencies(entryFilePaths) {
+  const pendingPaths = [...entryFilePaths];
+  const discoveredPaths = new Set();
+  const localRequirePattern = /require\((["'])(\.[^"']+)\1\)/g;
+
+  while (pendingPaths.length > 0) {
+    const currentPath = pendingPaths.pop();
+
+    if (discoveredPaths.has(currentPath)) {
+      continue;
+    }
+
+    discoveredPaths.add(currentPath);
+
+    if (!fs.existsSync(currentPath) || !fs.statSync(currentPath).isFile()) {
+      continue;
+    }
+
+    const fileContents = fs.readFileSync(currentPath, "utf8");
+
+    for (const match of fileContents.matchAll(localRequirePattern)) {
+      const dependencyPath = resolveLocalRuntimeDependency(currentPath, match[2]);
+
+      if (!discoveredPaths.has(dependencyPath)) {
+        pendingPaths.push(dependencyPath);
+      }
+    }
+  }
+
+  return discoveredPaths;
+}
+
+function assertRuntimeArtifactIntegrity() {
+  const requiredRelativePaths = [
+    "app.js",
+    "package-lock.json",
+    "package.json",
+    "prisma/defaults.js",
+    "prisma/seed.js",
+    "scripts/cpanel-db-deploy.js",
+    "scripts/cpanel-db-seed.js",
+    "scripts/cpanel-db-utils.js",
+    "scripts/cpanel-doctor.js",
+    "scripts/prisma-runtime.js",
+    "server.js",
+    "node_modules/.prisma/client/default.js",
+  ];
+  const missingRequiredPaths = requiredRelativePaths.filter(
+    (relativePath) => !fs.existsSync(path.join(outputDir, relativePath)),
+  );
+
+  if (missingRequiredPaths.length > 0) {
+    throw new Error(
+      `The cPanel package is missing required runtime files: ${missingRequiredPaths.join(", ")}.`,
+    );
+  }
+
+  const runtimeEntryPoints = [
+    ...runtimeScriptFileNames.map((scriptName) => path.join(outputDir, "scripts", scriptName)),
+    path.join(outputDir, "prisma", "seed.js"),
+  ];
+  const discoveredRuntimeFiles = collectLocalRuntimeDependencies(runtimeEntryPoints);
+  const missingDependencyPaths = [...discoveredRuntimeFiles]
+    .filter((filePath) => !fs.existsSync(filePath))
+    .map((filePath) => path.relative(outputDir, filePath).split(path.sep).join("/"))
+    .sort((left, right) => left.localeCompare(right));
+
+  if (missingDependencyPaths.length > 0) {
+    throw new Error(
+      [
+        "The cPanel package is missing local runtime dependencies required by its deploy scripts.",
+        `Missing: ${missingDependencyPaths.join(", ")}.`,
+        "Rebuild the package before upload.",
+      ].join(" "),
+    );
+  }
 }
 
 function assertNoForbiddenLocalEnvFiles() {
@@ -192,9 +326,10 @@ function writeDeploymentNotes() {
     "Database setup:",
     "- To diagnose login failures after upload, run: npm run cpanel:doctor",
     "- After the files are uploaded and cPanel has run NPM Install, run this once from the app root: npm run cpanel:db:deploy",
-    "- If the schema already exists and you only need default data, run: npm run cpanel:db:seed",
+    "- cpanel:db:deploy applies the checked-in Prisma migrations only. It does not seed by default.",
+    "- Run npm run cpanel:db:seed when you want to upsert the baseline admin user, locale, categories, providers, destinations, templates, and streams.",
+    "- Set RUN_DB_SEED_ON_DEPLOY=1 only when you intentionally want deploy to seed immediately after migrations. SKIP_DB_SEED_ON_DEPLOY=1 always wins.",
     "- If cPanel only lets you run a JavaScript file, run scripts/cpanel-db-deploy.js.",
-    "- cpanel:db:deploy applies the checked-in Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams.",
     "- cpanel:db:seed does not create or alter tables; it only runs the baseline data upserts.",
     "- Both setup commands are safe to rerun; already-applied migrations are skipped and seed records are upserted.",
     "",
@@ -273,6 +408,7 @@ function main() {
   copyGeneratedPrismaClient();
   copyDatabaseDeploymentFiles();
   updatePackageManifest();
+  copyPackageLockFile();
 
   if (fs.existsSync(publicDir)) {
     copyDirectory(publicDir, path.join(outputDir, "public"));
@@ -283,6 +419,7 @@ function main() {
   writeRestartHelper();
   writeDeploymentNotes();
   assertNoForbiddenLocalEnvFiles();
+  assertRuntimeArtifactIntegrity();
 
   console.log(`cPanel package created at ${outputDir}`);
 }

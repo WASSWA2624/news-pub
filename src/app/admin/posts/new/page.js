@@ -23,11 +23,15 @@ import {
   SmallText,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import ManualPostForm from "@/components/admin/manual-post-form";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { getManualPostCreationSnapshot } from "@/features/posts";
+import dynamic from "next/dynamic";
 import { createManualPostAction } from "../../actions";
+
+const ManualPostForm = dynamic(() => import("@/components/admin/manual-post-form"), {
+  loading: () => <SmallText>Loading manual story form...</SmallText>,
+});
 
 /**
  * Renders the manual story creation page for the admin editorial workspace.

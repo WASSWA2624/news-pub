@@ -12,12 +12,8 @@ const {
   getDefaultCategories,
 } = require("./defaults");
 
-const prisma = new PrismaClient({
-  adapter: createAdapterFromDatabaseUrl(requiredEnv("DATABASE_URL")),
-});
-
 const PASSWORD_HASH_KEY_LENGTH = 64;
-const PASSWORD_HASH_COST = 32768;
+const DEFAULT_PASSWORD_HASH_COST = 32768;
 const PASSWORD_HASH_BLOCK_SIZE = 8;
 const PASSWORD_HASH_PARALLELIZATION = 1;
 const PASSWORD_HASH_MAX_MEMORY = 128 * 1024 * 1024;
@@ -32,28 +28,75 @@ function requiredEnv(name) {
   return value;
 }
 
+function parsePositiveIntegerEnv(name, fallbackValue) {
+  const rawValue = `${process.env[name] || ""}`.trim();
+
+  if (!rawValue) {
+    return fallbackValue;
+  }
+
+  const parsedValue = Number.parseInt(rawValue, 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    throw new Error(`${name} must be a positive integer when provided.`);
+  }
+
+  return parsedValue;
+}
+
+function getPasswordHashConfig() {
+  return {
+    blockSize: PASSWORD_HASH_BLOCK_SIZE,
+    cost: parsePositiveIntegerEnv("ADMIN_PASSWORD_HASH_COST", DEFAULT_PASSWORD_HASH_COST),
+    maxMemory: parsePositiveIntegerEnv("ADMIN_PASSWORD_HASH_MAX_MEMORY_BYTES", PASSWORD_HASH_MAX_MEMORY),
+    parallelization: PASSWORD_HASH_PARALLELIZATION,
+  };
+}
+
 function createPasswordHash(password) {
+  const passwordHashConfig = getPasswordHashConfig();
   const salt = crypto.randomBytes(16);
   const derivedKey = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH, {
-    maxmem: PASSWORD_HASH_MAX_MEMORY,
-    N: PASSWORD_HASH_COST,
-    p: PASSWORD_HASH_PARALLELIZATION,
-    r: PASSWORD_HASH_BLOCK_SIZE,
+    maxmem: passwordHashConfig.maxMemory,
+    N: passwordHashConfig.cost,
+    p: passwordHashConfig.parallelization,
+    r: passwordHashConfig.blockSize,
   });
 
   return [
     "scrypt",
-    PASSWORD_HASH_COST,
-    PASSWORD_HASH_BLOCK_SIZE,
-    PASSWORD_HASH_PARALLELIZATION,
+    passwordHashConfig.cost,
+    passwordHashConfig.blockSize,
+    passwordHashConfig.parallelization,
     salt.toString("base64url"),
     derivedKey.toString("base64url"),
   ].join("$");
 }
 
-async function seedLocales(tx) {
+function createSeedPrismaClient() {
+  try {
+    return new PrismaClient({
+      adapter: createAdapterFromDatabaseUrl(requiredEnv("DATABASE_URL")),
+    });
+  } catch (error) {
+    throw new Error(
+      [
+        "Unable to initialize Prisma for the NewsPub seed.",
+        error instanceof Error ? error.message : `${error}`,
+        "Confirm DATABASE_URL is valid, Prisma Client is generated, and the uploaded package includes the full prisma/ and scripts/ directories.",
+      ].join(" "),
+    );
+  }
+}
+
+async function runSeedPhase(label, task) {
+  console.log(`- ${label}`);
+  await task();
+}
+
+async function seedLocales(db) {
   for (const locale of DEFAULT_LOCALES) {
-    await tx.locale.upsert({
+    await db.locale.upsert({
       where: { code: locale.code },
       update: {
         isActive: true,
@@ -65,11 +108,11 @@ async function seedLocales(tx) {
   }
 }
 
-async function seedAdminUser(tx) {
+async function seedAdminUser(db) {
   const email = requiredEnv("ADMIN_SEED_EMAIL").toLowerCase();
   const passwordHash = createPasswordHash(requiredEnv("ADMIN_SEED_PASSWORD"));
 
-  const user = await tx.user.upsert({
+  const user = await db.user.upsert({
     where: { email },
     update: {
       isActive: true,
@@ -86,7 +129,7 @@ async function seedAdminUser(tx) {
     },
   });
 
-  await tx.adminSession.updateMany({
+  await db.adminSession.updateMany({
     data: {
       invalidatedAt: new Date(),
     },
@@ -97,9 +140,9 @@ async function seedAdminUser(tx) {
   });
 }
 
-async function seedCategories(tx, categories) {
+async function seedCategories(db, categories) {
   for (const category of categories) {
-    await tx.category.upsert({
+    await db.category.upsert({
       where: { slug: category.slug },
       update: category,
       create: category,
@@ -107,9 +150,9 @@ async function seedCategories(tx, categories) {
   }
 }
 
-async function seedProviders(tx) {
+async function seedProviders(db) {
   for (const provider of DEFAULT_PROVIDERS) {
-    await tx.newsProviderConfig.upsert({
+    await db.newsProviderConfig.upsert({
       where: { providerKey: provider.providerKey },
       update: provider,
       create: provider,
@@ -117,9 +160,9 @@ async function seedProviders(tx) {
   }
 }
 
-async function seedDestinations(tx) {
+async function seedDestinations(db) {
   for (const destination of DEFAULT_DESTINATIONS) {
-    await tx.destination.upsert({
+    await db.destination.upsert({
       where: { slug: destination.slug },
       update: destination,
       create: destination,
@@ -127,9 +170,9 @@ async function seedDestinations(tx) {
   }
 }
 
-async function seedTemplates(tx) {
+async function seedTemplates(db) {
   for (const template of DEFAULT_TEMPLATES) {
-    await tx.destinationTemplate.upsert({
+    await db.destinationTemplate.upsert({
       where: {
         name_platform_locale: {
           locale: template.locale,
@@ -143,139 +186,154 @@ async function seedTemplates(tx) {
   }
 }
 
-async function seedStreams(tx) {
+async function loadSeedRelationMaps(db) {
   const [providers, destinations, templates, categories] = await Promise.all([
-    tx.newsProviderConfig.findMany({
+    db.newsProviderConfig.findMany({
       select: { id: true, providerKey: true },
     }),
-    tx.destination.findMany({
+    db.destination.findMany({
       select: { id: true, slug: true },
     }),
-    tx.destinationTemplate.findMany({
+    db.destinationTemplate.findMany({
       select: { id: true, name: true },
     }),
-    tx.category.findMany({
+    db.category.findMany({
       select: { id: true, slug: true },
     }),
   ]);
 
-  const providerByKey = new Map(providers.map((provider) => [provider.providerKey, provider]));
-  const destinationBySlug = new Map(destinations.map((destination) => [destination.slug, destination]));
-  const templateByName = new Map(templates.map((template) => [template.name, template]));
-  const categoryBySlug = new Map(categories.map((category) => [category.slug, category]));
+  return {
+    categoryBySlug: new Map(categories.map((category) => [category.slug, category])),
+    destinationBySlug: new Map(destinations.map((destination) => [destination.slug, destination])),
+    providerByKey: new Map(providers.map((provider) => [provider.providerKey, provider])),
+    templateByName: new Map(templates.map((template) => [template.name, template])),
+  };
+}
+
+async function seedStreams(db) {
+  const relationMaps = await loadSeedRelationMaps(db);
 
   for (const stream of DEFAULT_STREAMS) {
-    const provider = providerByKey.get(stream.providerKey);
-    const destination = destinationBySlug.get(stream.destinationSlug);
-    const template = templateByName.get(stream.defaultTemplateName);
+    const provider = relationMaps.providerByKey.get(stream.providerKey);
+    const destination = relationMaps.destinationBySlug.get(stream.destinationSlug);
+    const template = relationMaps.templateByName.get(stream.defaultTemplateName);
 
     if (!provider || !destination || !template) {
       throw new Error(`Unable to resolve relations for stream "${stream.slug}".`);
     }
 
-    const seededStream = await tx.publishingStream.upsert({
-      where: { slug: stream.slug },
-      update: {
-        activeProviderId: provider.id,
-        countryAllowlistJson: stream.countryAllowlistJson || [],
-        defaultTemplateId: template.id,
-        destinationId: destination.id,
-        duplicateWindowHours: stream.duplicateWindowHours,
-        includeKeywordsJson: stream.includeKeywordsJson,
-        languageAllowlistJson: stream.languageAllowlistJson || [],
-        locale: stream.locale,
-        maxPostsPerRun: stream.maxPostsPerRun,
-        mode: stream.mode,
-        name: stream.name,
-        retryBackoffMinutes: stream.retryBackoffMinutes,
-        retryLimit: stream.retryLimit,
-        scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
-        settingsJson: stream.settingsJson || {},
-        status: stream.status,
-        timezone: stream.timezone,
-      },
-      create: {
-        activeProviderId: provider.id,
-        countryAllowlistJson: stream.countryAllowlistJson || [],
-        defaultTemplateId: template.id,
-        destinationId: destination.id,
-        duplicateWindowHours: stream.duplicateWindowHours,
-        includeKeywordsJson: stream.includeKeywordsJson,
-        languageAllowlistJson: stream.languageAllowlistJson || [],
-        locale: stream.locale,
-        maxPostsPerRun: stream.maxPostsPerRun,
-        mode: stream.mode,
-        name: stream.name,
-        retryBackoffMinutes: stream.retryBackoffMinutes,
-        retryLimit: stream.retryLimit,
-        scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
-        settingsJson: stream.settingsJson || {},
-        slug: stream.slug,
-        status: stream.status,
-        timezone: stream.timezone,
-      },
-    });
+    const categoryIds = stream.categorySlugs
+      .map((slug) => relationMaps.categoryBySlug.get(slug)?.id || null)
+      .filter(Boolean);
 
-    await tx.streamCategory.deleteMany({
-      where: {
-        streamId: seededStream.id,
-      },
-    });
+    await db.$transaction(async (tx) => {
+      const seededStream = await tx.publishingStream.upsert({
+        where: { slug: stream.slug },
+        update: {
+          activeProviderId: provider.id,
+          countryAllowlistJson: stream.countryAllowlistJson || [],
+          defaultTemplateId: template.id,
+          destinationId: destination.id,
+          duplicateWindowHours: stream.duplicateWindowHours,
+          includeKeywordsJson: stream.includeKeywordsJson,
+          languageAllowlistJson: stream.languageAllowlistJson || [],
+          locale: stream.locale,
+          maxPostsPerRun: stream.maxPostsPerRun,
+          mode: stream.mode,
+          name: stream.name,
+          retryBackoffMinutes: stream.retryBackoffMinutes,
+          retryLimit: stream.retryLimit,
+          scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
+          settingsJson: stream.settingsJson || {},
+          status: stream.status,
+          timezone: stream.timezone,
+        },
+        create: {
+          activeProviderId: provider.id,
+          countryAllowlistJson: stream.countryAllowlistJson || [],
+          defaultTemplateId: template.id,
+          destinationId: destination.id,
+          duplicateWindowHours: stream.duplicateWindowHours,
+          includeKeywordsJson: stream.includeKeywordsJson,
+          languageAllowlistJson: stream.languageAllowlistJson || [],
+          locale: stream.locale,
+          maxPostsPerRun: stream.maxPostsPerRun,
+          mode: stream.mode,
+          name: stream.name,
+          retryBackoffMinutes: stream.retryBackoffMinutes,
+          retryLimit: stream.retryLimit,
+          scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
+          settingsJson: stream.settingsJson || {},
+          slug: stream.slug,
+          status: stream.status,
+          timezone: stream.timezone,
+        },
+      });
 
-    for (const slug of stream.categorySlugs) {
-      const category = categoryBySlug.get(slug);
-
-      if (!category) {
-        continue;
-      }
-
-      await tx.streamCategory.create({
-        data: {
-          categoryId: category.id,
+      await tx.streamCategory.deleteMany({
+        where: {
           streamId: seededStream.id,
         },
       });
-    }
 
-    await tx.providerFetchCheckpoint.upsert({
-      where: {
-        streamId_providerConfigId: {
+      if (categoryIds.length > 0) {
+        await tx.streamCategory.createMany({
+          data: categoryIds.map((categoryId) => ({
+            categoryId,
+            streamId: seededStream.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      await tx.providerFetchCheckpoint.upsert({
+        where: {
+          streamId_providerConfigId: {
+            providerConfigId: provider.id,
+            streamId: seededStream.id,
+          },
+        },
+        update: {},
+        create: {
           providerConfigId: provider.id,
           streamId: seededStream.id,
         },
-      },
-      update: {},
-      create: {
-        providerConfigId: provider.id,
-        streamId: seededStream.id,
-      },
+      });
     });
   }
 }
 
 async function main() {
-  console.log("Seeding NewsPub baseline data...");
-  const defaultCategories = await getDefaultCategories();
+  const prisma = createSeedPrismaClient();
 
-  await prisma.$transaction(async (tx) => {
-    await seedLocales(tx);
-    await seedAdminUser(tx);
-    await seedCategories(tx, defaultCategories);
-    await seedProviders(tx);
-    await seedDestinations(tx);
-    await seedTemplates(tx);
-    await seedStreams(tx);
-  });
+  try {
+    console.log("Seeding NewsPub baseline data...");
+    const defaultCategories = await getDefaultCategories();
 
-  console.log("NewsPub seed complete.");
+    await runSeedPhase("Seeding locales and admin access", async () => {
+      await seedLocales(prisma);
+      await seedAdminUser(prisma);
+    });
+    await runSeedPhase("Seeding taxonomy and provider defaults", async () => {
+      await seedCategories(prisma, defaultCategories);
+      await seedProviders(prisma);
+    });
+    await runSeedPhase("Seeding destinations and templates", async () => {
+      await seedDestinations(prisma);
+      await seedTemplates(prisma);
+    });
+    await runSeedPhase("Seeding publishing streams", async () => {
+      await seedStreams(prisma);
+    });
+
+    console.log("NewsPub seed complete.");
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-main()
-  .catch((error) => {
-    console.error("Prisma seed failed.");
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => {
+  console.error("Prisma seed failed.");
+  console.error(error instanceof Error && error.stack ? error.stack : error);
+  process.exitCode = 1;
+});

@@ -14,6 +14,7 @@ const {
 
 const rootDir = process.cwd();
 const migrationsDir = path.join(rootDir, "prisma", "migrations");
+const supportedNodeMajors = new Set([20, 22]);
 
 const requiredEnvNames = [
   "DATABASE_URL",
@@ -165,6 +166,25 @@ function hasGeneratedPrismaClient() {
   ].some((clientEntryPath) => fs.existsSync(clientEntryPath));
 }
 
+function hasRuntimeFile(relativePath) {
+  return fs.existsSync(path.join(rootDir, relativePath));
+}
+
+function hasSupportedNodeMajorVersion() {
+  const major = Number.parseInt(process.versions.node.split(".")[0] || "", 10);
+
+  return Number.isInteger(major) && supportedNodeMajors.has(major);
+}
+
+function hasSharpRuntime() {
+  try {
+    require.resolve("sharp");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function checkRuntimePackage(failures, warnings) {
   const isStandalonePackage = fs.existsSync(path.join(rootDir, "server.js")) && fs.existsSync(path.join(rootDir, ".next"));
 
@@ -183,12 +203,41 @@ function checkRuntimePackage(failures, warnings) {
     if (packageJson.scripts?.start !== "node app.js") {
       failures.push("package.json start script must be \"node app.js\" in the cPanel package. Rebuild and upload the latest package.");
     }
+
+    if (packageJson.engines?.node !== "20.x || 22.x") {
+      warnings.push("package.json engines.node should be \"20.x || 22.x\" in the cPanel package.");
+    }
   } catch {
     failures.push("package.json could not be read from the cPanel app root.");
   }
 
   if (!hasGeneratedPrismaClient()) {
     failures.push("Generated Prisma client is missing. Run cPanel NPM Install or rebuild and upload the latest package.");
+  }
+
+  for (const relativePath of [
+    "package-lock.json",
+    "prisma/seed.js",
+    "scripts/cpanel-db-deploy.js",
+    "scripts/cpanel-db-seed.js",
+    "scripts/cpanel-db-utils.js",
+    "scripts/cpanel-doctor.js",
+  ]) {
+    if (!hasRuntimeFile(relativePath)) {
+      failures.push(`${relativePath} is missing from the uploaded package. Rebuild and upload the full dist/cpanel folder.`);
+    }
+  }
+
+  if (!hasSupportedNodeMajorVersion()) {
+    warnings.push(`This app is running on Node.js ${process.versions.node}. NewsPub cPanel packages are validated for Node.js 20 or 22.`);
+  }
+}
+
+function checkNativeDependencies(failures) {
+  if (!hasSharpRuntime()) {
+    failures.push(
+      "The sharp runtime dependency is missing. Run cPanel NPM Install again or rebuild and upload the latest cPanel package with the Linux sharp runtime.",
+    );
   }
 }
 
@@ -312,6 +361,8 @@ async function main() {
       }
     }
   }
+
+  checkNativeDependencies(failures);
 
   if (!failures.some((failure) => failure.includes("DATABASE_URL is missing"))) {
     let databaseConfig;

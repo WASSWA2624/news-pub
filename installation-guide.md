@@ -57,6 +57,9 @@ SESSION_SECRET="replace-with-a-long-random-production-secret"
 SESSION_MAX_AGE_SECONDS="28800"
 ADMIN_SEED_EMAIL="replace-me-production-admin@example.test"
 ADMIN_SEED_PASSWORD="replace-with-a-strong-initial-admin-password"
+# Optional only for constrained cPanel hosts. Leave unset to keep the stronger default.
+# ADMIN_PASSWORD_HASH_COST="16384"
+# ADMIN_PASSWORD_HASH_MAX_MEMORY_BYTES="134217728"
 DESTINATION_TOKEN_ENCRYPTION_KEY="replace-with-a-long-random-production-encryption-key"
 REVALIDATE_SECRET="replace-with-a-long-random-production-revalidate-secret"
 CRON_SECRET="replace-with-a-long-random-production-cron-secret"
@@ -73,6 +76,11 @@ INITIAL_BACKFILL_HOURS="24"
 SHARP_CONCURRENCY="1"
 OUTBOUND_FETCH_TIMEOUT_MS="10000"
 OUTBOUND_FETCH_RETRY_COUNT="2"
+# Optional: keep deploy and seed separate by default. Set RUN_DB_SEED_ON_DEPLOY=1 only when
+# you intentionally want one-step migration plus seed during deploy. SKIP_DB_SEED_ON_DEPLOY=1
+# always wins and prevents deploy-time seeding.
+# RUN_DB_SEED_ON_DEPLOY="0"
+# SKIP_DB_SEED_ON_DEPLOY="1"
 ```
 
 Set these only when the related integrations are used:
@@ -139,8 +147,10 @@ If cPanel only lets you run a JavaScript file:
 node scripts/cpanel-db-deploy.js
 ```
 
-This applies Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams. It is safe to rerun; applied migrations are skipped and seed records are upserted.
+This applies Prisma migrations only. It is safe to rerun; applied migrations are skipped.
 The latest package uses lowercase Prisma table names by default and normalizes legacy mixed-case tables from older uploads before seeding.
+
+If you intentionally want one-step migration plus seed, set `RUN_DB_SEED_ON_DEPLOY=1` before you run the deploy command. `SKIP_DB_SEED_ON_DEPLOY=1` always prevents deploy-time seeding.
 
 If the database tables already exist and you only want to seed default data:
 
@@ -154,7 +164,7 @@ If cPanel only lets you run a JavaScript file:
 node scripts/cpanel-db-seed.js
 ```
 
-This does not create or alter tables. It only runs the baseline data upserts.
+This does not create or alter tables. It only runs the baseline data upserts in smaller phases so cPanel hosts are less likely to hit memory pressure.
 
 ## 6. Start and verify
 

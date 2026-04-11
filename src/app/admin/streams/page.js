@@ -10,15 +10,20 @@ import {
   AdminPage,
   NoticeBanner,
   NoticeTitle,
+  SmallText,
   SummaryGrid,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
-import StreamManagementScreen from "@/components/admin/stream-management-screen";
 import { getStreamManagementSnapshot } from "@/features/streams";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { getProviderDefinition } from "@/lib/news/provider-definitions";
+import dynamic from "next/dynamic";
 import { deleteStreamAction, saveStreamAction } from "../actions";
+
+const StreamManagementScreen = dynamic(() => import("@/components/admin/stream-management-screen"), {
+  loading: () => <SmallText>Loading stream workspace...</SmallText>,
+});
 
 const modeValues = ["AUTO_PUBLISH", "REVIEW_REQUIRED"];
 const statusValues = ["ACTIVE", "PAUSED"];

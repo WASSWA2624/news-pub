@@ -3,6 +3,7 @@
  */
 
 import AdminAccessDeniedPage from "@/components/admin/admin-access-denied";
+import AdminProviders from "@/components/admin/admin-providers";
 import AdminShell from "@/components/layout/admin-shell";
 import { getOptionalAdminSession, normalizeAdminRedirectTarget, requireAdminPageSession } from "@/lib/auth";
 import {
@@ -49,7 +50,7 @@ export default async function AdminLayout({ children }) {
   if (routeKind !== "protected") {
     return (
       <LocaleMessagesProvider locale={defaultLocale} messages={messages}>
-        {children}
+        <AdminProviders>{children}</AdminProviders>
       </LocaleMessagesProvider>
     );
   }
@@ -60,17 +61,19 @@ export default async function AdminLayout({ children }) {
 
   return (
     <LocaleMessagesProvider locale={defaultLocale} messages={messages}>
-      <AdminShell messages={messages} user={authState.user}>
-        {isAuthorizedForPage ? (
-          children
-        ) : (
-          <AdminAccessDeniedPage
-            pathname={pageAccess.pathname}
-            permission={pageAccess.permission}
-            user={authState.user}
-          />
-        )}
-      </AdminShell>
+      <AdminProviders>
+        <AdminShell messages={messages} user={authState.user}>
+          {isAuthorizedForPage ? (
+            children
+          ) : (
+            <AdminAccessDeniedPage
+              pathname={pageAccess.pathname}
+              permission={pageAccess.permission}
+              user={authState.user}
+            />
+          )}
+        </AdminShell>
+      </AdminProviders>
     </LocaleMessagesProvider>
   );
 }

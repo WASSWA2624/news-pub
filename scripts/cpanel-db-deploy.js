@@ -13,6 +13,7 @@ const {
 
 const rootDir = process.cwd();
 const migrationsDir = path.join(rootDir, "prisma", "migrations");
+const generatedClientEntryRelativePath = path.join("node_modules", ".prisma", "client", "default.js");
 
 function parseEnvValue(value) {
   const trimmed = (value || "").trim();
@@ -57,6 +58,26 @@ function requiredEnv(name) {
   }
 
   return value;
+}
+
+function isTruthyEnvValue(value) {
+  return ["1", "true", "yes", "on"].includes(`${value || ""}`.trim().toLowerCase());
+}
+
+function shouldRunSeedAfterDeploy() {
+  if (isTruthyEnvValue(process.env.SKIP_DB_SEED_ON_DEPLOY)) {
+    return false;
+  }
+
+  return isTruthyEnvValue(process.env.RUN_DB_SEED_ON_DEPLOY);
+}
+
+function assertRuntimeFile(relativePath, failureMessage) {
+  const absolutePath = path.join(rootDir, relativePath);
+
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(failureMessage);
+  }
 }
 
 function parseDatabaseUrl() {
@@ -175,6 +196,11 @@ function splitSqlStatements(sql) {
 }
 
 function getMigrationNames() {
+  assertRuntimeFile(
+    path.join("scripts", "cpanel-db-utils.js"),
+    "scripts/cpanel-db-utils.js is missing from this cPanel package. Rebuild with npm run build:cpanel and upload the full dist/cpanel folder.",
+  );
+
   if (!fs.existsSync(migrationsDir)) {
     throw new Error(`Prisma migrations were not found at ${migrationsDir}. Rebuild the cPanel package.`);
   }
@@ -278,6 +304,11 @@ async function applyMigrations() {
 }
 
 function ensureRootGeneratedPrismaClient() {
+  assertRuntimeFile(
+    path.join("prisma", "seed.js"),
+    "prisma/seed.js is missing from this cPanel package. Rebuild with npm run build:cpanel and upload the full dist/cpanel folder.",
+  );
+
   const rootGeneratedClient = path.join(rootDir, "node_modules", ".prisma");
   const rootGeneratedClientEntry = path.join(rootGeneratedClient, "client", "default.js");
   const bundledGeneratedClient = path.join(rootDir, ".next", "node_modules", ".prisma");
@@ -292,7 +323,10 @@ function ensureRootGeneratedPrismaClient() {
 
   if (!fs.existsSync(rootGeneratedClientEntry)) {
     throw new Error(
-      "Generated Prisma client was not found. Rebuild and upload the latest cPanel package, then run NPM Install again.",
+      [
+        `Generated Prisma client was not found at ${generatedClientEntryRelativePath}.`,
+        "Run cPanel NPM Install again or rebuild and upload the latest cPanel package before seeding.",
+      ].join(" "),
     );
   }
 }
@@ -311,16 +345,28 @@ function runSeed() {
   }
 
   if (result.status !== 0) {
-    throw new Error(`Prisma seed failed with exit code ${result.status || 1}.`);
+    throw new Error(
+      `Prisma seed failed with exit code ${result.status || 1}. Review the seed output above, fix the reported issue, then rerun npm run cpanel:db:seed.`,
+    );
   }
 }
 
 async function main() {
   loadRuntimeEnv();
   await applyMigrations();
-  ensureRootGeneratedPrismaClient();
-  runSeed();
-  console.log("cPanel database setup complete.");
+  console.log("Prisma migrations are up to date.");
+
+  if (shouldRunSeedAfterDeploy()) {
+    console.log("RUN_DB_SEED_ON_DEPLOY=1 detected. Seeding baseline NewsPub records...");
+    ensureRootGeneratedPrismaClient();
+    runSeed();
+    console.log("cPanel database deploy and seed complete.");
+    return;
+  }
+
+  console.log(
+    "cPanel database deploy complete. Baseline seed was skipped. Run npm run cpanel:db:seed when you want to upsert the default data set.",
+  );
 }
 
 main().catch((error) => {

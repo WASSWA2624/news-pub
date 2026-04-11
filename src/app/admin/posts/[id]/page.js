@@ -32,13 +32,17 @@ import {
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
-import PostEditorModalForm from "@/components/admin/post-editor-modal-form";
 import { getPostEditorSnapshot } from "@/features/posts";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
 import { NewsPubError } from "@/lib/news/shared";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { repostPostAction, retryPublishAttemptAction, updatePostEditorAction } from "../../actions";
+
+const PostEditorModalForm = dynamic(() => import("@/components/admin/post-editor-modal-form"), {
+  loading: () => <SmallText>Loading canonical story editor...</SmallText>,
+});
 
 function getTone(status) {
   if (["PUBLISHED", "SUCCEEDED", "APPROVED", "PASS", "OPTIMIZED", "COMPLETED"].includes(status)) {

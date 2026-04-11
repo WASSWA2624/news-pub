@@ -19,10 +19,36 @@ import { getPrismaClient } from "@/lib/prisma";
 
 const PASSWORD_HASH_ALGORITHM = "scrypt";
 const PASSWORD_HASH_KEY_LENGTH = 64;
-const PASSWORD_HASH_COST = 32768;
+const DEFAULT_PASSWORD_HASH_COST = 32768;
 const PASSWORD_HASH_BLOCK_SIZE = 8;
 const PASSWORD_HASH_PARALLELIZATION = 1;
-const PASSWORD_HASH_MAX_MEMORY = 128 * 1024 * 1024;
+const DEFAULT_PASSWORD_HASH_MAX_MEMORY = 128 * 1024 * 1024;
+
+function parsePositiveIntegerEnv(name, fallbackValue) {
+  const rawValue = `${process.env[name] || ""}`.trim();
+
+  if (!rawValue) {
+    return fallbackValue;
+  }
+
+  const parsedValue = Number.parseInt(rawValue, 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    throw new Error(`${name} must be a positive integer when provided.`);
+  }
+
+  return parsedValue;
+}
+
+function getPasswordHashConfig() {
+  return {
+    blockSize: PASSWORD_HASH_BLOCK_SIZE,
+    cost: parsePositiveIntegerEnv("ADMIN_PASSWORD_HASH_COST", DEFAULT_PASSWORD_HASH_COST),
+    maxMemory: parsePositiveIntegerEnv("ADMIN_PASSWORD_HASH_MAX_MEMORY_BYTES", DEFAULT_PASSWORD_HASH_MAX_MEMORY),
+    parallelization: PASSWORD_HASH_PARALLELIZATION,
+  };
+}
+
 function getPasswordHashParameters(passwordHash) {
   const [algorithm, cost, blockSize, parallelization, salt, derivedKey] = passwordHash.split("$");
 
@@ -200,19 +226,20 @@ export function normalizeEmail(email) {
  * Creates the scrypt password-hash format used for NewsPub admin credentials.
  */
 export function createPasswordHash(password) {
+  const passwordHashConfig = getPasswordHashConfig();
   const salt = crypto.randomBytes(16);
   const derivedKey = crypto.scryptSync(password, salt, PASSWORD_HASH_KEY_LENGTH, {
-    maxmem: PASSWORD_HASH_MAX_MEMORY,
-    N: PASSWORD_HASH_COST,
-    p: PASSWORD_HASH_PARALLELIZATION,
-    r: PASSWORD_HASH_BLOCK_SIZE,
+    maxmem: passwordHashConfig.maxMemory,
+    N: passwordHashConfig.cost,
+    p: passwordHashConfig.parallelization,
+    r: passwordHashConfig.blockSize,
   });
 
   return [
     PASSWORD_HASH_ALGORITHM,
-    PASSWORD_HASH_COST,
-    PASSWORD_HASH_BLOCK_SIZE,
-    PASSWORD_HASH_PARALLELIZATION,
+    passwordHashConfig.cost,
+    passwordHashConfig.blockSize,
+    passwordHashConfig.parallelization,
     salt.toString("base64url"),
     derivedKey.toString("base64url"),
   ].join("$");
@@ -234,7 +261,7 @@ export function verifyPassword(password, passwordHash) {
     Buffer.from(params.salt, "base64url"),
     expectedKey.length,
     {
-      maxmem: PASSWORD_HASH_MAX_MEMORY,
+      maxmem: DEFAULT_PASSWORD_HASH_MAX_MEMORY,
       N: params.cost,
       p: params.parallelization,
       r: params.blockSize,

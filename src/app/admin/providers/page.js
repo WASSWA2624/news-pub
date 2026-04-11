@@ -29,11 +29,15 @@ import {
   SummaryValue,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
-import ProviderFormCard from "@/components/admin/provider-form-card";
 import { getProviderManagementSnapshot } from "@/features/providers";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
+import dynamic from "next/dynamic";
 import { saveProviderAction } from "../actions";
+
+const ProviderFormCard = dynamic(() => import("@/components/admin/provider-form-card"), {
+  loading: () => <SmallText>Loading provider editor...</SmallText>,
+});
 
 /**
  * Renders the provider management route with shared record cards and the
