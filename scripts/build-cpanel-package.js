@@ -26,9 +26,12 @@ function copyDirectory(sourceDir, targetDir) {
 
 function writeRuntimeEntryPoint() {
   const appEntryPath = path.join(outputDir, "app.js");
-  const appEntryContents = `process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  const appEntryContents = `const { loadEnvConfig } = require("@next/env");
+
+process.env.NODE_ENV = process.env.NODE_ENV || "production";
 process.env.HOSTNAME = process.env.HOSTNAME || "0.0.0.0";
 
+loadEnvConfig(__dirname, false);
 require("./server.js");
 `;
 
