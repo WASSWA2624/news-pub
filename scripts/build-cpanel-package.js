@@ -9,6 +9,7 @@ const rootDir = process.cwd();
 const standaloneDir = path.join(rootDir, ".next", "standalone");
 const staticDir = path.join(rootDir, ".next", "static");
 const publicDir = path.join(rootDir, "public");
+const generatedPrismaDir = path.join(rootDir, "node_modules", ".prisma");
 const outputDir = path.join(rootDir, "dist", "cpanel");
 
 function assertExists(targetPath, label) {
@@ -26,16 +27,54 @@ function copyDirectory(sourceDir, targetDir) {
 
 function writeRuntimeEntryPoint() {
   const appEntryPath = path.join(outputDir, "app.js");
-  const appEntryContents = `const { loadEnvConfig } = require("@next/env");
+  const appEntryContents = `const fs = require("node:fs");
+const path = require("node:path");
 
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 process.env.HOSTNAME = process.env.HOSTNAME || "0.0.0.0";
 
-loadEnvConfig(__dirname, false);
+function parseEnvValue(value) {
+  const trimmed = (value || "").trim();
+  const quote = trimmed[0];
+
+  if ((quote === '"' || quote === "'") && trimmed.endsWith(quote)) {
+    const unquoted = trimmed.slice(1, -1);
+
+    return quote === '"' ? unquoted.replace(/\\\\n/g, "\\n").replace(/\\\\r/g, "\\r") : unquoted;
+  }
+
+  return trimmed.replace(/\\s+#.*$/, "");
+}
+
+function loadEnvFile(fileName) {
+  const envPath = path.join(__dirname, fileName);
+
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\\r?\\n/)) {
+    const match = line.match(/^\\s*(?:export\\s+)?([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(.*)?\\s*$/);
+
+    if (!match || Object.prototype.hasOwnProperty.call(process.env, match[1])) {
+      continue;
+    }
+
+    process.env[match[1]] = parseEnvValue(match[2]);
+  }
+}
+
+[".env.production.local", ".env.local", ".env.production", ".env"].forEach(loadEnvFile);
 require("./server.js");
 `;
 
   fs.writeFileSync(appEntryPath, appEntryContents, "utf8");
+}
+
+function copyGeneratedPrismaClient() {
+  assertExists(generatedPrismaDir, "Generated Prisma client");
+  copyDirectory(generatedPrismaDir, path.join(outputDir, "node_modules", ".prisma"));
+  copyDirectory(generatedPrismaDir, path.join(outputDir, ".next", "node_modules", ".prisma"));
 }
 
 function writeRestartHelper() {
@@ -145,6 +184,7 @@ function main() {
 
   copyDirectory(standaloneDir, outputDir);
   copyDirectory(staticDir, path.join(outputDir, ".next", "static"));
+  copyGeneratedPrismaClient();
 
   if (fs.existsSync(publicDir)) {
     copyDirectory(publicDir, path.join(outputDir, "public"));
