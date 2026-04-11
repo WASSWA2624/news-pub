@@ -21,6 +21,11 @@ const responsiveVariantDefinitions = Object.freeze([
   { key: "md", width: 800 },
   { key: "sm", width: 480 },
 ]);
+const mediaLibrarySnapshotLimit = 100;
+const remoteMediaRequestTimeoutMs = 10000;
+const sharpConcurrency = Math.max(1, Number.parseInt(process.env.SHARP_CONCURRENCY || "1", 10) || 1);
+
+sharp.concurrency(sharpConcurrency);
 
 function guessFileExtension(mimeType) {
   if (mimeType === "image/jpeg") {
@@ -58,14 +63,16 @@ async function createMediaVariants(storageAdapter, buffer, mimeType, storageKeyB
       continue;
     }
 
-    const nextBuffer = await sharp(buffer)
+    const { data: nextBuffer, info: nextInfo } = await image
+      .clone()
       .resize({
         fit: "inside",
         width: definition.width,
         withoutEnlargement: true,
       })
-      .toBuffer();
-    const nextMetadata = await sharp(nextBuffer).metadata();
+      .toBuffer({
+        resolveWithObject: true,
+      });
     const nextStorageKey = storageKeyBase.replace(/\.[^.]+$/, `-${definition.key}.${guessFileExtension(mimeType)}`);
     const storedVariant = await storageAdapter.writeObject({
       body: nextBuffer,
@@ -75,15 +82,15 @@ async function createMediaVariants(storageAdapter, buffer, mimeType, storageKeyB
 
     variants.push({
       fileSizeBytes: nextBuffer.length,
-      format: nextMetadata.format || guessFileExtension(mimeType),
-      height: nextMetadata.height || height || definition.width,
+      format: nextInfo.format || guessFileExtension(mimeType),
+      height: nextInfo.height || height || definition.width,
       localPath: storedVariant.localPath,
       mediaAssetId: assetId,
       mimeType,
       publicUrl: storedVariant.publicUrl,
       storageKey: storedVariant.storageKey,
       variantKey: definition.key,
-      width: nextMetadata.width || definition.width,
+      width: nextInfo.width || definition.width,
     });
   }
 
@@ -193,6 +200,63 @@ function ensureSafeMediaSize(byteLength) {
     );
   }
 }
+
+function createTimeoutSignal(timeoutMs) {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+
+  return undefined;
+}
+
+function parseContentLength(response) {
+  const contentLength = Number.parseInt(response.headers.get("content-length") || "", 10);
+
+  return Number.isFinite(contentLength) && contentLength >= 0 ? contentLength : null;
+}
+
+async function readResponseBodyWithLimit(response, maxBytes) {
+  const contentLength = parseContentLength(response);
+
+  if (contentLength !== null) {
+    ensureSafeMediaSize(contentLength);
+  }
+
+  if (!response.body?.getReader) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    ensureSafeMediaSize(buffer.length);
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let receivedBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      const chunk = Buffer.from(value);
+      receivedBytes += chunk.length;
+
+      if (receivedBytes > maxBytes) {
+        await reader.cancel();
+        ensureSafeMediaSize(receivedBytes);
+      }
+
+      chunks.push(chunk);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return Buffer.concat(chunks, receivedBytes);
+}
 /**
  * Ingests a remote media asset into the NewsPub media library.
  */
@@ -207,14 +271,29 @@ export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
     });
   }
 
-  const response = await fetch(safeUrl, {
-    headers: {
-      accept: env.media.uploadAllowedMimeTypes.join(","),
-    },
-    next: {
-      revalidate: 0,
-    },
-  });
+  let response;
+
+  try {
+    response = await fetch(safeUrl, {
+      headers: {
+        accept: env.media.uploadAllowedMimeTypes.join(","),
+      },
+      next: {
+        revalidate: 0,
+      },
+      signal: createTimeoutSignal(remoteMediaRequestTimeoutMs),
+    });
+  } catch (error) {
+    throw new NewsPubError(
+      error?.name === "TimeoutError" || error?.name === "AbortError"
+        ? "Remote media request timed out."
+        : "Remote media request failed before the file could be inspected.",
+      {
+        status: "media_download_failed",
+        statusCode: 502,
+      },
+    );
+  }
 
   if (!response.ok) {
     throw new NewsPubError(`Remote media request failed with status ${response.status}.`, {
@@ -225,9 +304,7 @@ export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
 
   const mimeType = trimText(response.headers.get("content-type") || "").split(";")[0];
   ensureAllowedMimeType(mimeType);
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  ensureSafeMediaSize(buffer.length);
+  const buffer = await readResponseBodyWithLimit(response, env.media.maxRemoteFileBytes);
 
   return storeMediaAssetRecord(
     {
@@ -272,22 +349,50 @@ export async function uploadMediaAsset(input, options = {}, prisma) {
 /** Returns the current media-library inventory with variants included. */
 export async function getMediaLibrarySnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
-  const assets = await db.mediaAsset.findMany({
-    include: {
-      variants: {
-        orderBy: {
-          width: "desc",
+  const [assets, totalCount, variantCount] = await Promise.all([
+    db.mediaAsset.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      select: {
+        _count: {
+          select: {
+            variants: true,
+          },
         },
+        alt: true,
+        caption: true,
+        createdAt: true,
+        fileName: true,
+        fileSizeBytes: true,
+        id: true,
+        mimeType: true,
+        publicUrl: true,
+        sourceDomain: true,
+        sourceUrl: true,
+        storageDriver: true,
+        storageKey: true,
+        updatedAt: true,
       },
-    },
-    orderBy: [{ createdAt: "desc" }],
+      take: mediaLibrarySnapshotLimit,
+    }),
+    db.mediaAsset.count(),
+    db.mediaVariant.count(),
+  ]);
+
+  const mappedAssets = assets.map((asset) => {
+    const { _count, ...assetFields } = asset;
+
+    return {
+      ...assetFields,
+      variantCount: _count.variants,
+    };
   });
 
   return {
-    assets,
+    assets: mappedAssets,
     summary: {
-      totalCount: assets.length,
-      variantCount: assets.reduce((total, asset) => total + asset.variants.length, 0),
+      returnedCount: mappedAssets.length,
+      totalCount,
+      variantCount,
     },
   };
 }

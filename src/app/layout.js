@@ -1,25 +1,10 @@
 /**
- * Root application layout for NewsPub metadata, fonts, providers, and styled-components rendering.
+ * Root application layout for NewsPub metadata, providers, and styled-components rendering.
  */
 
-import { Manrope, Newsreader } from "next/font/google";
-
 import AppProviders from "@/components/common/app-providers";
-import { env } from "@/lib/env/server";
-import { buildAbsoluteUrl } from "@/lib/seo";
+import { sharedEnv } from "@/lib/env/shared";
 import StyledRegistry from "@/styles/styled-registry";
-
-const uiFont = Manrope({
-  display: "swap",
-  subsets: ["latin"],
-  variable: "--font-ui",
-});
-
-const editorialFont = Newsreader({
-  display: "swap",
-  subsets: ["latin"],
-  variable: "--font-editorial",
-});
 
 export const metadata = {
   applicationName: "NewsPub",
@@ -34,20 +19,20 @@ export const metadata = {
     icon: [{ type: "image/svg+xml", url: "/favicon.svg" }],
     shortcut: ["/favicon.svg"],
   },
-  metadataBase: new URL(env.app.url),
+  metadataBase: new URL(sharedEnv.app.url),
   openGraph: {
     description:
       "News ingestion, review, scheduling, and publishing for website and social destinations.",
     images: [
       {
         alt: "NewsPub",
-        url: buildAbsoluteUrl("/opengraph-image"),
+        url: "/opengraph-image",
       },
     ],
     siteName: "NewsPub",
     title: "NewsPub",
     type: "website",
-    url: env.app.url,
+    url: sharedEnv.app.url,
   },
   robots: {
     follow: true,
@@ -57,7 +42,7 @@ export const metadata = {
     card: "summary_large_image",
     description:
       "News ingestion, review, scheduling, and publishing for website and social destinations.",
-    images: [buildAbsoluteUrl("/twitter-image")],
+    images: ["/twitter-image"],
     title: "NewsPub",
   },
 };
@@ -72,7 +57,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${uiFont.variable} ${editorialFont.variable}`}>
+      <body>
         <StyledRegistry>
           <AppProviders>{children}</AppProviders>
         </StyledRegistry>

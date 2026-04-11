@@ -31,7 +31,7 @@ const {
 
 const editorialHeadingStyles = css`
   color: var(--theme-story-ink);
-  font-family: var(--font-editorial), Georgia, serif;
+  font-family: var(--font-editorial, Georgia), Georgia, serif;
   letter-spacing: -0.04em;
 `;
 
@@ -294,7 +294,7 @@ const StoryEmbed = styled.iframe`
 
 const StoryMediaCaption = styled.p`
   color: rgba(92, 71, 43, 0.82);
-  font-family: var(--font-ui), "Segoe UI", sans-serif;
+  font-family: var(--font-ui, "Segoe UI"), "Segoe UI", sans-serif;
   font-size: 0.8rem;
   line-height: 1.55;
   margin: 0;
@@ -934,7 +934,7 @@ const StoryTitle = styled.h1`
 
 const StoryLead = styled.p`
   color: rgba(var(--theme-story-muted-rgb), 0.96);
-  font-family: var(--font-editorial), Georgia, serif;
+  font-family: var(--font-editorial, Georgia), Georgia, serif;
   font-size: clamp(1.16rem, 1.95vw, 1.45rem);
   font-style: italic;
   line-height: 1.6;
@@ -1137,7 +1137,7 @@ const StoryMediaGallery = styled.div`
 
 const StoryContent = styled.div`
   color: rgba(var(--theme-story-ink-rgb), 0.96);
-  font-family: var(--font-editorial), Georgia, serif;
+  font-family: var(--font-editorial, Georgia), Georgia, serif;
   font-size: clamp(1.12rem, 1.7vw, 1.28rem);
   line-height: 1.92;
   margin: 0;
@@ -1181,7 +1181,7 @@ const StoryContent = styled.div`
 
   figcaption {
     color: rgba(var(--theme-story-muted-rgb), 0.82);
-    font-family: var(--font-ui), "Segoe UI", sans-serif;
+    font-family: var(--font-ui, "Segoe UI"), "Segoe UI", sans-serif;
     font-size: 0.86rem;
     line-height: 1.55;
     margin-top: 0.6rem;

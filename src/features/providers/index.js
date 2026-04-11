@@ -10,12 +10,23 @@ import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
  * Returns the admin snapshot used by the NewsPub provider management screen.
  */
 
+const providerSnapshotLimit = 200;
+
 export async function getProviderManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const catalog = listNewsProviders();
-  const configs = await db.newsProviderConfig.findMany({
-    orderBy: [{ isDefault: "desc" }, { label: "asc" }],
-  });
+  const [configs, totalCount, enabledCount] = await Promise.all([
+    db.newsProviderConfig.findMany({
+      orderBy: [{ isDefault: "desc" }, { label: "asc" }],
+      take: providerSnapshotLimit,
+    }),
+    db.newsProviderConfig.count(),
+    db.newsProviderConfig.count({
+      where: {
+        isEnabled: true,
+      },
+    }),
+  ]);
 
   return {
     configs: configs.map((config) => ({
@@ -26,8 +37,9 @@ export async function getProviderManagementSnapshot(prisma) {
     summary: {
       configuredCredentialCount: catalog.filter((provider) => getProviderCredentialState(provider.key) === "configured")
         .length,
-      enabledCount: configs.filter((config) => config.isEnabled).length,
-      totalCount: configs.length,
+      enabledCount,
+      returnedCount: configs.length,
+      totalCount,
     },
     supportedProviders: catalog,
   };

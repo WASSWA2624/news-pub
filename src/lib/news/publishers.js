@@ -9,6 +9,7 @@ import {
   refreshFacebookPublishCredential,
   resolveFacebookPublishCredential,
 } from "@/lib/news/meta-credentials";
+import { fetchWithTimeoutAndRetry } from "@/lib/news/outbound-fetch";
 import { NewsPubError, trimText } from "@/lib/news/shared";
 import { getDestinationValidationIssues } from "@/lib/validation/configuration";
 
@@ -308,12 +309,29 @@ async function getGraphJson(runtimeConnection, path, values) {
     url.searchParams.set(key, `${value}`);
   });
 
-  const response = await fetch(url, {
-    headers: {
-      accept: "application/json",
-    },
-    method: "GET",
-  });
+  let response;
+
+  try {
+    response = await fetchWithTimeoutAndRetry(url, {
+      headers: {
+        accept: "application/json",
+      },
+      method: "GET",
+    });
+  } catch (error) {
+    throw new DestinationPublishError(
+      `Destination publish request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
+      {
+        responseJson: {
+          error: "destination_publish_network_failed",
+        },
+        retryable: true,
+        status: "destination_publish_network_failed",
+        statusCode: 502,
+      },
+    );
+  }
+
   const payload = await parseJsonResponse(response);
 
   if (!response.ok || payload?.error) {
@@ -343,14 +361,31 @@ async function postGraphForm(runtimeConnection, path, values) {
     body.set(key, `${value}`);
   });
 
-  const response = await fetch(new URL(path.replace(/^\/+/, ""), baseUrl), {
-    body,
-    headers: {
-      accept: "application/json",
-      "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-    },
-    method: "POST",
-  });
+  let response;
+
+  try {
+    response = await fetchWithTimeoutAndRetry(new URL(path.replace(/^\/+/, ""), baseUrl), {
+      body,
+      headers: {
+        accept: "application/json",
+        "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      method: "POST",
+    });
+  } catch (error) {
+    throw new DestinationPublishError(
+      `Destination publish request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
+      {
+        responseJson: {
+          error: "destination_publish_network_failed",
+        },
+        retryable: true,
+        status: "destination_publish_network_failed",
+        statusCode: 502,
+      },
+    );
+  }
+
   const payload = await parseJsonResponse(response);
 
   if (!response.ok || payload?.error) {

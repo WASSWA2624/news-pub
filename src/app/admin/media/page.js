@@ -100,7 +100,7 @@ export default async function MediaPage() {
                     </td>
                     <td data-label="Source">{asset.sourceDomain || asset.storageDriver}</td>
                     <td data-label="Size">{asset.fileSizeBytes || 0} bytes</td>
-                    <td data-label="Variants">{asset.variants.length}</td>
+                    <td data-label="Variants">{asset.variantCount}</td>
                   </tr>
                 ))}
                 </tbody>

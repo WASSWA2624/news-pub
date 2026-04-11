@@ -4,6 +4,7 @@
  */
 
 import { env } from "@/lib/env/server";
+import { fetchWithTimeoutAndRetry } from "@/lib/news/outbound-fetch";
 import {
   getProviderTimeBoundarySupport,
   listProviderDefinitions,
@@ -574,6 +575,20 @@ function createProviderResponseError(providerLabel, payload, fallbackMessage) {
   });
 }
 
+async function fetchProviderResponse(providerLabel, url, init) {
+  try {
+    return await fetchWithTimeoutAndRetry(url, init);
+  } catch (error) {
+    throw new NewsPubError(
+      `${providerLabel} request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
+      {
+        status: "provider_request_failed",
+        statusCode: 502,
+      },
+    );
+  }
+}
+
 function getFetchRequestInit(extraHeaders = {}) {
   return {
     headers: {
@@ -688,7 +703,7 @@ export async function fetchProviderArticles({
       requestValues,
       stream,
     });
-    const response = await fetch(request.url, getFetchRequestInit());
+    const response = await fetchProviderResponse("Mediastack", request.url, getFetchRequestInit());
     const payload = await readJsonResponse(response);
 
     if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
@@ -710,7 +725,7 @@ export async function fetchProviderArticles({
       requestValues,
       stream,
     });
-    const response = await fetch(request.url, getFetchRequestInit());
+    const response = await fetchProviderResponse("NewsData", request.url, getFetchRequestInit());
     const payload = await readJsonResponse(response);
 
     if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
@@ -731,7 +746,7 @@ export async function fetchProviderArticles({
       requestValues,
       stream,
     });
-    const response = await fetch(request.url, getFetchRequestInit(request.headers));
+    const response = await fetchProviderResponse("NewsAPI", request.url, getFetchRequestInit(request.headers));
     const payload = await readJsonResponse(response);
 
     if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {

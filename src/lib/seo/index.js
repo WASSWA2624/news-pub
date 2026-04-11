@@ -4,7 +4,7 @@
 
 import { defaultLocale } from "@/features/i18n/config";
 import { buildAlternateLanguageLinks, buildCanonicalPath, buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
-import { env } from "@/lib/env/server";
+import { sharedEnv } from "@/lib/env/shared";
 
 /**
  * Shared NewsPub metadata and structured-data builders for public routes.
@@ -196,7 +196,7 @@ export function buildAbsoluteUrl(pathOrUrl = "/") {
 
   const pathname = normalizedValue.startsWith("/") ? normalizedValue : `/${normalizedValue}`;
 
-  return new URL(pathname, env.app.url).toString();
+  return new URL(pathname, sharedEnv.app.url).toString();
 }
 
 /** Builds Next.js metadata for locale-aware NewsPub pages. */

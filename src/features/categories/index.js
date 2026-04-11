@@ -10,6 +10,8 @@ import {
 } from "@/lib/news/category-presets";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 
+const categorySnapshotLimit = 200;
+
 async function ensureSupportedCategoryPresets(db) {
   const existingCategories = await db.category.findMany({
     select: {
@@ -71,27 +73,43 @@ async function createUniqueCategorySlug(db, rawSlug, currentCategoryId = null) {
 export async function getCategoryManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   await ensureSupportedCategoryPresets(db);
-  const categories = await db.category.findMany({
-    include: {
-      posts: true,
-      streamAssignments: true,
-    },
-    orderBy: [{ name: "asc" }],
-  });
+  const [categories, totalCount, totalAssignments, totalStreamAssignments] = await Promise.all([
+    db.category.findMany({
+      orderBy: [{ name: "asc" }],
+      select: {
+        _count: {
+          select: {
+            posts: true,
+            streamAssignments: true,
+          },
+        },
+        description: true,
+        id: true,
+        name: true,
+        slug: true,
+      },
+      take: categorySnapshotLimit,
+    }),
+    db.category.count(),
+    db.postCategory.count(),
+    db.streamCategory.count(),
+  ]);
 
   return {
-    categories: categories.map((category) => ({
-      ...category,
-      postCount: category.posts.length,
-      streamCount: category.streamAssignments.length,
-    })),
+    categories: categories.map((category) => {
+      const { _count, ...categoryFields } = category;
+
+      return {
+        ...categoryFields,
+        postCount: _count.posts,
+        streamCount: _count.streamAssignments,
+      };
+    }),
     summary: {
-      totalAssignments: categories.reduce((total, category) => total + category.posts.length, 0),
-      totalCount: categories.length,
-      totalStreamAssignments: categories.reduce(
-        (total, category) => total + category.streamAssignments.length,
-        0,
-      ),
+      returnedCount: categories.length,
+      totalAssignments,
+      totalCount,
+      totalStreamAssignments,
     },
   };
 }

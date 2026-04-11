@@ -9,11 +9,25 @@ import { getTemplateValidationIssues } from "@/lib/validation/configuration";
  * Returns the admin snapshot used by the NewsPub template management screen.
  */
 
+const templateSnapshotLimit = 200;
+
 export async function getTemplateManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
-  const [templates, categories] = await Promise.all([
+  const [
+    templates,
+    categories,
+    totalCount,
+    defaultCount,
+    categoryOverrideCount,
+    localeOverrideCount,
+  ] = await Promise.all([
     db.destinationTemplate.findMany({
       include: {
+        _count: {
+          select: {
+            streams: true,
+          },
+        },
         category: {
           select: {
             id: true,
@@ -33,9 +47,14 @@ export async function getTemplateManagementSnapshot(prisma) {
               },
             },
           },
+          orderBy: {
+            name: "asc",
+          },
+          take: 25,
         },
       },
       orderBy: [{ platform: "asc" }, { name: "asc" }],
+      take: templateSnapshotLimit,
     }),
     db.category.findMany({
       orderBy: [{ name: "asc" }],
@@ -45,17 +64,45 @@ export async function getTemplateManagementSnapshot(prisma) {
         name: true,
       },
     }),
+    db.destinationTemplate.count(),
+    db.destinationTemplate.count({
+      where: {
+        isDefault: true,
+      },
+    }),
+    db.destinationTemplate.count({
+      where: {
+        categoryId: {
+          not: null,
+        },
+      },
+    }),
+    db.destinationTemplate.count({
+      where: {
+        locale: {
+          not: null,
+        },
+      },
+    }),
   ]);
 
   return {
     categories,
-    templates: templates.map((template) => ({
-      ...template,
-      validationIssues: getTemplateValidationIssues(template),
-    })),
+    templates: templates.map((template) => {
+      const { _count, ...templateFields } = template;
+
+      return {
+        ...templateFields,
+        streamCount: _count.streams,
+        validationIssues: getTemplateValidationIssues(templateFields),
+      };
+    }),
     summary: {
-      defaultCount: templates.filter((template) => template.isDefault).length,
-      totalCount: templates.length,
+      categoryOverrideCount,
+      defaultCount,
+      localeOverrideCount,
+      returnedCount: templates.length,
+      totalCount,
     },
   };
 }

@@ -62,6 +62,7 @@ export default async function StreamsPage({ searchParams }) {
     label: destination.name,
     platform: destination.platform,
     slug: destination.slug,
+    streamCount: destination.streamCount,
     value: destination.id,
   }));
   const providerOptions = snapshot.providers.map((provider) => ({

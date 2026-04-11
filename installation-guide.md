@@ -44,12 +44,13 @@ node -e "console.log(encodeURIComponent(process.argv[1]))" "raw-password"
 
 ## 3. Set production environment variables
 
-Set these in the cPanel Node.js app environment panel, or in `.env.production.local` in the uploaded app root:
+Set these in the cPanel Node.js app environment panel, or in `.env.production` in the uploaded app root when the host cannot manage variables in the panel. Existing cPanel/process environment variables win over `.env.production`, and `.env` is only a final fallback.
 
 ```text
 NODE_ENV="production"
 DATABASE_URL="mysql://cpaneluser_news_pub_user:encoded_password@localhost:3306/cpaneluser_news_pub?connection_limit=5"
 NEXT_PUBLIC_APP_URL="https://your-domain.example"
+NEXT_IMAGE_REMOTE_HOSTS="cdn.your-domain.example"
 DEFAULT_LOCALE="en"
 SUPPORTED_LOCALES="en"
 SESSION_SECRET="replace-with-a-long-random-production-secret"
@@ -59,13 +60,19 @@ ADMIN_SEED_PASSWORD="replace-with-a-strong-initial-admin-password"
 DESTINATION_TOKEN_ENCRYPTION_KEY="replace-with-a-long-random-production-encryption-key"
 REVALIDATE_SECRET="replace-with-a-long-random-production-revalidate-secret"
 CRON_SECRET="replace-with-a-long-random-production-cron-secret"
-MEDIA_DRIVER="local"
-LOCAL_MEDIA_BASE_PATH="public/uploads"
-LOCAL_MEDIA_BASE_URL="/uploads"
+MEDIA_DRIVER="s3"
+S3_MEDIA_BUCKET="your-production-bucket"
+S3_MEDIA_REGION="your-region"
+S3_MEDIA_BASE_URL="https://cdn.your-domain.example"
+S3_ACCESS_KEY_ID="replace-with-production-s3-access-key"
+S3_SECRET_ACCESS_KEY="replace-with-production-s3-secret-key"
 ENABLE_ANALYTICS="true"
 ENABLE_METRICS="true"
 DEFAULT_SCHEDULE_TIMEZONE="UTC"
 INITIAL_BACKFILL_HOURS="24"
+SHARP_CONCURRENCY="1"
+OUTBOUND_FETCH_TIMEOUT_MS="10000"
+OUTBOUND_FETCH_RETRY_COUNT="2"
 ```
 
 Set these only when the related integrations are used:
@@ -79,14 +86,13 @@ META_SYSTEM_USER_ACCESS_TOKEN=""
 META_APP_ID=""
 META_APP_SECRET=""
 META_USER_ACCESS_TOKEN=""
-S3_MEDIA_BUCKET=""
-S3_MEDIA_REGION=""
-S3_MEDIA_BASE_URL=""
-S3_ACCESS_KEY_ID=""
-S3_SECRET_ACCESS_KEY=""
+LOCAL_MEDIA_BASE_PATH=""
+LOCAL_MEDIA_BASE_URL=""
 ```
 
 Keep `DESTINATION_TOKEN_ENCRYPTION_KEY` stable after launch so stored destination tokens remain decryptable.
+
+Use `MEDIA_DRIVER=s3` for production whenever possible so uploaded originals and generated variants survive redeploys. `MEDIA_DRIVER=local` is supported only when `LOCAL_MEDIA_BASE_PATH` points to a persistent directory outside files that cPanel overwrites on redeploy, and the corresponding public URL is protected from listing and script execution by the host.
 
 ## 4. Configure the cPanel Node.js app
 
@@ -117,7 +123,7 @@ scripts/
 tmp/
 ```
 
-Do not upload local secret files such as `.env.development.local`.
+Do not upload `.env*.local` files. The package build and `npm run repo:check` both fail when local env files are found in the source root or cPanel release bundle.
 
 ## 5. Deploy the database
 
@@ -176,7 +182,7 @@ It checks that the package starts through `app.js`, the required environment var
 
 - Database error: check cPanel database name, username, password, host, port, and password URL encoding.
 - Failed migration retry: use a new database or drop the partially created tables first. Emptying tables is not enough.
-- Missing `DATABASE_URL`: add it to cPanel env vars or `.env.production.local`.
+- Missing `DATABASE_URL`: add it to cPanel env vars, `.env.production`, or `.env`.
 - Login reports database not ready: run `npm run cpanel:db:deploy`, restart the app, then retry `npm run cpanel:doctor`.
 - Seeded admin password mismatch: run `npm run cpanel:db:seed`, restart the app, then sign in with `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`.
 - Missing `mariadb` dependency: run cPanel **NPM Install**, then rerun database deploy.

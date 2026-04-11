@@ -4,6 +4,7 @@
 
 import { notFound } from "next/navigation";
 
+import NoticePage from "@/components/common/notice-page";
 import { PublicStoryPage } from "@/components/public";
 import { StructuredDataBundle } from "@/components/seo";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
@@ -44,6 +45,21 @@ export default async function StoryPage({ params }) {
 
   if (!pageData) {
     notFound();
+  }
+
+  if (pageData.databaseUnavailable) {
+    return (
+      <NoticePage
+        description="NewsPub could not reach the database for this story request. The route is still available and will recover when the database connection is healthy."
+        eyebrow={messages.site.title}
+        icon="warning"
+        notes={[
+          "Check the database connection and migration state.",
+          "Refresh this story after the database is available.",
+        ]}
+        title="Story temporarily unavailable"
+      />
+    );
   }
 
   return (

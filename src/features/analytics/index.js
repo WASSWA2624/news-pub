@@ -42,24 +42,48 @@ function createDateBuckets(dayCount, now = new Date()) {
   return buckets;
 }
 
-function countIntoBuckets(items, dayCount, now = new Date()) {
-  const buckets = createDateBuckets(dayCount, now);
-  const bucketIndex = new Map(buckets.map((bucket) => [bucket.date, bucket]));
-
-  for (const item of items) {
-    const date = item.createdAt instanceof Date ? item.createdAt.toISOString().slice(0, 10) : null;
-    const bucket = date ? bucketIndex.get(date) : null;
-
-    if (bucket) {
-      bucket.total += 1;
-    }
-  }
-
-  return buckets;
-}
-
 function sumCounts(items, key) {
   return items.reduce((total, item) => total + (item?.[key] || 0), 0);
+}
+
+function createUtcDayRange(date) {
+  const start = new Date(`${date}T00:00:00.000Z`);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+
+  return { end, start };
+}
+
+async function countViewEventsIntoBuckets(db, dayCount, now = new Date()) {
+  const buckets = createDateBuckets(dayCount, now);
+  const totals = await Promise.all(
+    buckets.map((bucket) => {
+      const range = createUtcDayRange(bucket.date);
+
+      return db.viewEvent.count({
+        where: {
+          createdAt: {
+            gte: range.start,
+            lt: range.end,
+          },
+        },
+      });
+    }),
+  );
+
+  return buckets.map((bucket, index) => ({
+    ...bucket,
+    total: totals[index] || 0,
+  }));
+}
+
+function getGroupedCount(rows, key, value) {
+  const row = (rows || []).find((entry) => entry?.[key] === value);
+
+  return row?._count?._all || 0;
+}
+
+function getAuditActionCount(rows, action) {
+  return getGroupedCount(rows, "action", action);
 }
 
 function getFetchRunExecutionDetails(run) {
@@ -164,7 +188,7 @@ function mapPublishAttempt(attempt) {
 
 function mapProviderStatus(config) {
   return {
-    activeStreamCount: config.streams?.length || 0,
+    activeStreamCount: config._count?.streams ?? config.streams?.length ?? 0,
     credentialState: getProviderCredentialState(config.providerKey),
     id: config.id,
     isDefault: Boolean(config.isDefault),
@@ -229,38 +253,42 @@ export async function getAdminDashboardSnapshot(user, prisma) {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [
     providers,
-    destinations,
-    streams,
+    destinationStatusCounts,
+    streamStatusCounts,
     fetchRuns,
     publishAttempts,
     latestStories,
     recentAuditEvents,
     aiOptimizationAuditEvents,
-    viewEvents,
+    trafficTrend,
   ] = await Promise.all([
     db.newsProviderConfig.findMany({
-      include: {
-        streams: {
-          select: {
-            id: true,
-          },
-        },
-      },
       orderBy: [{ isDefault: "desc" }, { label: "asc" }],
-    }),
-    db.destination.findMany({
-      orderBy: [{ platform: "asc" }, { name: "asc" }],
-    }),
-    db.publishingStream.findMany({
-      include: {
-        destination: {
+      select: {
+        _count: {
           select: {
-            name: true,
-            platform: true,
+            streams: true,
           },
         },
+        id: true,
+        isDefault: true,
+        isEnabled: true,
+        isSelectable: true,
+        label: true,
+        providerKey: true,
       },
-      orderBy: [{ status: "asc" }, { name: "asc" }],
+    }),
+    db.destination.groupBy({
+      by: ["connectionStatus"],
+      _count: {
+        _all: true,
+      },
+    }),
+    db.publishingStream.groupBy({
+      by: ["status"],
+      _count: {
+        _all: true,
+      },
     }),
     db.fetchRun.findMany({
       include: {
@@ -319,6 +347,15 @@ export async function getAdminDashboardSnapshot(user, prisma) {
     }),
     db.post.findMany({
       include: {
+        ...(canViewAnalytics
+          ? {
+              _count: {
+                select: {
+                  viewEvents: true,
+                },
+              },
+            }
+          : {}),
         translations: {
           orderBy: {
             locale: "asc",
@@ -328,13 +365,6 @@ export async function getAdminDashboardSnapshot(user, prisma) {
             title: true,
           },
         },
-        viewEvents: canViewAnalytics
-          ? {
-              select: {
-                id: true,
-              },
-            }
-          : false,
       },
       orderBy: [{ publishedAt: "desc" }],
       take: 5,
@@ -346,8 +376,11 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       orderBy: [{ createdAt: "desc" }],
       take: 12,
     }),
-    db.auditEvent.findMany({
-      orderBy: [{ createdAt: "desc" }],
+    db.auditEvent.groupBy({
+      by: ["action"],
+      _count: {
+        _all: true,
+      },
       where: {
         action: {
           in: ["AI_OPTIMIZATION_FALLBACK_USED", "AI_OPTIMIZATION_SKIPPED"],
@@ -358,21 +391,18 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       },
     }),
     canViewAnalytics
-      ? db.viewEvent.findMany({
-          orderBy: [{ createdAt: "desc" }],
-          select: {
-            createdAt: true,
-            eventType: true,
-            postId: true,
-          },
-          where: {
-            createdAt: {
-              gte: since,
-            },
-          },
-        })
+      ? countViewEventsIntoBuckets(db, 7)
       : Promise.resolve([]),
   ]);
+  const totalDestinationCount = destinationStatusCounts.reduce(
+    (total, row) => total + (row._count?._all || 0),
+    0,
+  );
+  const totalStreamCount = streamStatusCounts.reduce(
+    (total, row) => total + (row._count?._all || 0),
+    0,
+  );
+  const totalViews7d = trafficTrend.reduce((total, bucket) => total + (bucket.total || 0), 0);
   const recentFailures = [
     ...fetchRuns
       .filter((run) => run.status === "FAILED")
@@ -405,10 +435,10 @@ export async function getAdminDashboardSnapshot(user, prisma) {
   return {
     canViewAnalytics,
     destinationStatus: {
-      connected: destinations.filter((destination) => destination.connectionStatus === "CONNECTED").length,
-      disconnected: destinations.filter((destination) => destination.connectionStatus === "DISCONNECTED").length,
-      error: destinations.filter((destination) => destination.connectionStatus === "ERROR").length,
-      total: destinations.length,
+      connected: getGroupedCount(destinationStatusCounts, "connectionStatus", "CONNECTED"),
+      disconnected: getGroupedCount(destinationStatusCounts, "connectionStatus", "DISCONNECTED"),
+      error: getGroupedCount(destinationStatusCounts, "connectionStatus", "ERROR"),
+      total: totalDestinationCount,
     },
     providerStatus: {
       configured: providers.length,
@@ -423,21 +453,21 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       publishedAt: serializeDate(story.publishedAt),
       slug: story.slug,
       title: story.translations[0]?.title || story.slug,
-      viewCount: canViewAnalytics ? story.viewEvents.length : null,
+      viewCount: canViewAnalytics ? story._count?.viewEvents || 0 : null,
     })),
     recentAuditEvents: recentAuditEvents.map(mapAuditEvent),
     recentFailures,
     recentFetchRuns: fetchRuns.slice(0, 6).map(mapFetchRun),
     recentPublishAttempts: publishAttempts.slice(0, 6).map(mapPublishAttempt),
     streamStatus: {
-      active: streams.filter((stream) => stream.status === "ACTIVE").length,
-      paused: streams.filter((stream) => stream.status === "PAUSED").length,
-      total: streams.length,
+      active: getGroupedCount(streamStatusCounts, "status", "ACTIVE"),
+      paused: getGroupedCount(streamStatusCounts, "status", "PAUSED"),
+      total: totalStreamCount,
     },
     summary: {
       aiCacheHitCount7d: sumCounts(fetchRuns, "aiCacheHitCount"),
-      aiFallbackCount7d: countAuditActions(aiOptimizationAuditEvents, "AI_OPTIMIZATION_FALLBACK_USED"),
-      aiSkippedCount7d: countAuditActions(aiOptimizationAuditEvents, "AI_OPTIMIZATION_SKIPPED"),
+      aiFallbackCount7d: getAuditActionCount(aiOptimizationAuditEvents, "AI_OPTIMIZATION_FALLBACK_USED"),
+      aiSkippedCount7d: getAuditActionCount(aiOptimizationAuditEvents, "AI_OPTIMIZATION_SKIPPED"),
       blockedBeforePublish7d: sumCounts(fetchRuns, "blockedCount"),
       duplicateCount7d: sumCounts(fetchRuns, "duplicateCount"),
       failedFetchRuns7d: fetchRuns.filter((run) => run.status === "FAILED").length,
@@ -450,9 +480,9 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       retryCount7d: publishAttempts.reduce((total, attempt) => total + (attempt.retryCount || 0), 0),
       sharedFetchRunCount7d: countSharedFetchRuns(fetchRuns),
       sharedUpstreamCalls7d: countSharedFetchUpstreamCalls(fetchRuns),
-      totalViews7d: canViewAnalytics ? viewEvents.length : null,
+      totalViews7d: canViewAnalytics ? totalViews7d : null,
     },
-    trafficTrend: canViewAnalytics ? countIntoBuckets(viewEvents, 7) : [],
+    trafficTrend: canViewAnalytics ? trafficTrend : [],
   };
 }
 

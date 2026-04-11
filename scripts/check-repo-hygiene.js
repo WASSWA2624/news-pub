@@ -53,6 +53,10 @@ function addFinding(message) {
   findings.push(message);
 }
 
+function isForbiddenLocalEnvFile(fileName) {
+  return /^\.env(?:\.[^.]+)?\.local$/i.test(fileName);
+}
+
 function getTrackedFiles() {
   const output = execFileSync("git", ["ls-files"], {
     cwd: rootDir,
@@ -93,12 +97,47 @@ function assertForbiddenTrackedEnvFiles(trackedFiles) {
       return true;
     }
 
-    return /^\.env(?:\.[^.]+)?\.local$/i.test(normalized);
+    return isForbiddenLocalEnvFile(path.posix.basename(normalized));
   });
 
   for (const file of forbiddenFiles) {
     addFinding(`Forbidden env file is tracked: ${file}. Keep local secrets only in untracked files.`);
   }
+}
+
+function assertNoWorkspaceLocalEnvFiles() {
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    if (entry.isFile() && isForbiddenLocalEnvFile(entry.name)) {
+      addFinding(`Forbidden local env file is present in the repository root: ${entry.name}. Use .env.development, .env.production, or process environment variables instead.`);
+    }
+  }
+}
+
+function assertNoReleaseBundleLocalEnvFiles() {
+  const releaseDir = path.join(rootDir, "dist", "cpanel");
+
+  if (!fs.existsSync(releaseDir)) {
+    return;
+  }
+
+  function walk(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolutePath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(absolutePath);
+        continue;
+      }
+
+      if (isForbiddenLocalEnvFile(entry.name)) {
+        addFinding(
+          `Forbidden local env file is present in the cPanel release bundle: ${normalizePath(path.relative(rootDir, absolutePath))}.`,
+        );
+      }
+    }
+  }
+
+  walk(releaseDir);
 }
 
 function assertNoTrackedSecrets(trackedFiles) {
@@ -141,6 +180,8 @@ function main() {
   const trackedFiles = getTrackedFiles();
 
   assertForbiddenTrackedEnvFiles(trackedFiles);
+  assertNoWorkspaceLocalEnvFiles();
+  assertNoReleaseBundleLocalEnvFiles();
   assertNoTrackedSecrets(trackedFiles);
   assertLockfileSync();
 

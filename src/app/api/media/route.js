@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { getMediaLibrarySnapshot, uploadMediaAsset } from "@/features/media";
 import { requireAdminApiPermission } from "@/lib/auth/api";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
+import { env } from "@/lib/env/server";
 
 function getFormDataText(formData, key) {
   const value = formData.get(key);
@@ -56,6 +57,17 @@ export async function POST(request) {
       {
         message: "A media file is required.",
         status: "invalid_payload",
+        success: false,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (Number.isFinite(file.size) && file.size > env.media.maxRemoteFileBytes) {
+    return NextResponse.json(
+      {
+        message: `Media asset exceeds the ${env.media.maxRemoteFileBytes} byte limit.`,
+        status: "media_too_large",
         success: false,
       },
       { status: 400 },

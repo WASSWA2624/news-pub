@@ -1001,7 +1001,7 @@ export default function StreamManagementScreen({
         });
       }
 
-      const streamCount = streamCountsByDestination.get(destination.value) || 0;
+      const streamCount = destination.streamCount ?? streamCountsByDestination.get(destination.value) ?? 0;
 
       groupMap.get(platform).destinations.push({
         ...destination,

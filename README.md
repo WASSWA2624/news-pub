@@ -115,13 +115,16 @@ Implementation is complete only when step 24 proves full traceability to the cur
 
 ## Environment And Repo Hygiene
 
-Copy [`.env.example`](./.env.example) to `.env.development.local` for local development, then replace the placeholder values before you run the app. Use `.env.production.local` only for production or cPanel values.
+Copy [`.env.example`](./.env.example) to `.env.development` for local development, then replace the placeholder values before you run the app. For cPanel, prefer the Node.js app environment panel; if the host cannot set variables there, copy the template to `.env.production` in the uploaded app root.
 
-- `.env.development.local` and `.env.production.local` must stay untracked and must never be committed.
+- `.env*.local` files are not used and must not exist in the repository root or cPanel release bundle.
+- Runtime precedence is deterministic: already-set process environment variables win, then `.env.production` or `.env.development` depending on the script, then `.env`.
 - Any credential that was previously committed or shared from this repo must be rotated before it is used again.
 - `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run migrations, seeding, or the live dev server.
-- `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are local bootstrap credentials only and must be replaced before any shared, staging, or production deployment.
-- Run `npm run repo:check` before opening a PR to catch tracked env files, obvious secrets, and lockfile drift.
+- `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are bootstrap credentials only and must be strong, unique values before any shared, staging, or production deployment.
+- Set `NEXT_IMAGE_REMOTE_HOSTS` to any extra trusted image/CDN hostnames. The app also allows `flagcdn.com`, `NEXT_PUBLIC_APP_URL`, and `S3_MEDIA_BASE_URL`.
+- For production media, prefer `MEDIA_DRIVER=s3` with a durable bucket/CDN URL. `MEDIA_DRIVER=local` should point at a persistent directory that is not deleted during redeploys.
+- Run `npm run repo:check` before opening a PR to catch local env files, release-bundle env leaks, obvious secrets, and lockfile drift.
 - If you change `package.json`, update `package-lock.json` in the same change so `npm ci` keeps working from a fresh checkout.
 
 ## Verification
@@ -138,7 +141,7 @@ npm run build
 npm run prisma:validate
 ```
 
-Use [`prisma/seed.js`](./prisma/seed.js) together with [`scripts/bootstrap-dev-db.js`](./scripts/bootstrap-dev-db.js) when you need a local Release 1 baseline. Keep local secret files such as `.env.development.local` and `.env.production.local` out of source control; the committed env contract is [`.env.example`](./.env.example).
+Use [`prisma/seed.js`](./prisma/seed.js) together with [`scripts/bootstrap-dev-db.js`](./scripts/bootstrap-dev-db.js) when you need a local Release 1 baseline. Keep local secret files out of source control; the committed env contract is [`.env.example`](./.env.example).
 
 ## Dev Plan Sequence
 

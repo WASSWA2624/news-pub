@@ -27,6 +27,7 @@ const managedMetaCredentialSettingKeys = Object.freeze([
   "metaTokenExpiresAt",
   "metaTokenLastValidatedAt",
 ]);
+const destinationSnapshotLimit = 200;
 
 function createTokenHint(value) {
   const normalizedValue = trimText(value);
@@ -64,35 +65,38 @@ function pickManagedMetaCredentialSettings(...settingsValues) {
  */
 export async function getDestinationManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
-  const destinations = await db.destination.findMany({
-    include: {
-      articleMatches: {
-        select: {
-          id: true,
+  const [destinations, totalCount] = await Promise.all([
+    db.destination.findMany({
+      include: {
+        _count: {
+          select: {
+            articleMatches: true,
+            publishAttempts: true,
+            streams: true,
+          },
+        },
+        streams: {
+          orderBy: {
+            name: "asc",
+          },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+          take: 25,
         },
       },
-      publishAttempts: {
-        select: {
-          id: true,
-        },
-      },
-      streams: {
-        orderBy: {
-          name: "asc",
-        },
-        select: {
-          id: true,
-          name: true,
-          status: true,
-        },
-      },
-    },
-    orderBy: [{ platform: "asc" }, { name: "asc" }],
-  });
+      orderBy: [{ platform: "asc" }, { name: "asc" }],
+      take: destinationSnapshotLimit,
+    }),
+    db.destination.count(),
+  ]);
   const snapshotDestinations = destinations.map((destination) => {
-    const runtimeConnection = resolveDestinationRuntimeConnection(destination);
+    const { _count, ...destinationFields } = destination;
+    const runtimeConnection = resolveDestinationRuntimeConnection(destinationFields);
     const validationIssues = [
-      ...getDestinationValidationIssues(destination),
+      ...getDestinationValidationIssues(destinationFields),
       ...(runtimeConnection.credentialError
         ? [
             {
@@ -104,25 +108,25 @@ export async function getDestinationManagementSnapshot(prisma) {
         : []),
     ];
     const connectionErrors = [
-      trimText(destination.connectionError),
+      trimText(destinationFields.connectionError),
       trimText(runtimeConnection.credentialError),
     ].filter(Boolean);
 
     return {
-      ...destination,
+      ...destinationFields,
       connectionError: connectionErrors.length ? [...new Set(connectionErrors)].join(" ") : null,
-      effectiveSocialGuardrails: getDestinationSocialGuardrails(destination),
+      effectiveSocialGuardrails: getDestinationSocialGuardrails(destinationFields),
       effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
       hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
-      socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
-      hasStoredToken: Boolean(destination.encryptedTokenCiphertext),
-      articleMatchCount: destination.articleMatches.length,
-      publishAttemptCount: destination.publishAttempts.length,
-      streamCount: destination.streams.length,
-      usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destination),
+      socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destinationFields),
+      hasStoredToken: Boolean(destinationFields.encryptedTokenCiphertext),
+      articleMatchCount: _count.articleMatches,
+      publishAttemptCount: _count.publishAttempts,
+      streamCount: _count.streams,
+      usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destinationFields),
       usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
       validationIssues,
-      storedTokenPreview: Boolean(destination.encryptedTokenCiphertext),
+      storedTokenPreview: Boolean(destinationFields.encryptedTokenCiphertext),
     };
   });
 
@@ -131,7 +135,8 @@ export async function getDestinationManagementSnapshot(prisma) {
     summary: {
       connectedCount: snapshotDestinations.filter((destination) => destination.effectiveConnectionStatus === "CONNECTED").length,
       errorCount: snapshotDestinations.filter((destination) => destination.effectiveConnectionStatus === "ERROR").length,
-      totalCount: snapshotDestinations.length,
+      returnedCount: snapshotDestinations.length,
+      totalCount,
     },
   };
 }

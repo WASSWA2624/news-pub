@@ -165,8 +165,8 @@ export default async function TemplatesPage() {
     getTemplateManagementSnapshot(),
   ]);
   const copy = messages.admin.templates;
-  const localeOverrideCount = snapshot.templates.filter((template) => Boolean(template.locale)).length;
-  const categoryOverrideCount = snapshot.templates.filter((template) => Boolean(template.categoryId)).length;
+  const localeOverrideCount = snapshot.summary.localeOverrideCount;
+  const categoryOverrideCount = snapshot.summary.categoryOverrideCount;
   const categoryOptions = [
     {
       description: "Use the platform and locale defaults without a category-specific override.",

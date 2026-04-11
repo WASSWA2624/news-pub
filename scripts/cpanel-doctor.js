@@ -64,7 +64,7 @@ function loadEnvFile(fileName) {
 }
 
 function loadRuntimeEnv() {
-  [".env.production.local", ".env.production", ".env"].forEach(loadEnvFile);
+  [".env.production", ".env"].forEach(loadEnvFile);
 }
 
 function getEnvValue(name) {
@@ -275,7 +275,7 @@ async function main() {
 
   for (const name of requiredEnvNames) {
     if (!getEnvValue(name)) {
-      failures.push(`${name} is missing. Add it to cPanel environment variables or .env.production.local.`);
+      failures.push(`${name} is missing. Add it to cPanel environment variables, .env.production, or .env.`);
     }
   }
 

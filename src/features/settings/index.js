@@ -6,6 +6,8 @@ import { resolvePrismaClient } from "@/lib/news/shared";
 import { env } from "@/lib/env/server";
 import { getConfigurationIssues } from "@/lib/validation/configuration";
 
+const settingsSnapshotLimit = 200;
+
 /**
  * Resolves the current assistive-AI runtime state for the admin settings
  * snapshot without making AI a hard prerequisite for NewsPub workflows.
@@ -60,11 +62,23 @@ function getAiRuntimeSnapshot() {
  */
 export async function getSettingsSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
-  const [locales, providerCount, destinations, streams, templates] = await Promise.all([
+  const [
+    locales,
+    providerCount,
+    destinationCount,
+    streamCount,
+    templateCount,
+    destinations,
+    streams,
+    templates,
+  ] = await Promise.all([
     db.locale.findMany({
       orderBy: [{ isDefault: "desc" }, { code: "asc" }],
     }),
     db.newsProviderConfig.count(),
+    db.destination.count(),
+    db.publishingStream.count(),
+    db.destinationTemplate.count(),
     db.destination.findMany({
       orderBy: [{ platform: "asc" }, { name: "asc" }],
       select: {
@@ -74,9 +88,20 @@ export async function getSettingsSnapshot(prisma) {
         platform: true,
         slug: true,
       },
+      take: settingsSnapshotLimit,
     }),
     db.publishingStream.findMany({
-      include: {
+      orderBy: [{ status: "asc" }, { name: "asc" }],
+      select: {
+        activeProvider: {
+          select: {
+            id: true,
+            providerKey: true,
+            requestDefaultsJson: true,
+          },
+        },
+        countryAllowlistJson: true,
+        defaultTemplateId: true,
         defaultTemplate: {
           select: {
             id: true,
@@ -84,6 +109,7 @@ export async function getSettingsSnapshot(prisma) {
             platform: true,
           },
         },
+        destinationId: true,
         destination: {
           select: {
             id: true,
@@ -93,32 +119,48 @@ export async function getSettingsSnapshot(prisma) {
             slug: true,
           },
         },
+        id: true,
+        languageAllowlistJson: true,
+        locale: true,
+        maxPostsPerRun: true,
+        mode: true,
+        name: true,
+        settingsJson: true,
+        slug: true,
       },
-      orderBy: [{ name: "asc" }],
+      take: settingsSnapshotLimit,
     }),
     db.destinationTemplate.findMany({
-      include: {
-        streams: {
-          include: {
-            destination: {
-              select: {
-                id: true,
-                kind: true,
-                name: true,
-                platform: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: [{ platform: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        isDefault: true,
+        name: true,
+        platform: true,
+      },
+      take: settingsSnapshotLimit,
     }),
   ]);
+  const streamsByTemplateId = streams.reduce((result, stream) => {
+    if (!stream.defaultTemplateId) {
+      return result;
+    }
+
+    const templateStreams = result.get(stream.defaultTemplateId) || [];
+
+    templateStreams.push(stream);
+    result.set(stream.defaultTemplateId, templateStreams);
+
+    return result;
+  }, new Map());
+  const templatesForValidation = templates.map((template) => ({
+    ...template,
+    streams: streamsByTemplateId.get(template.id) || [],
+  }));
   const configurationIssues = getConfigurationIssues({
     destinations,
     streams,
-    templates,
+    templates: templatesForValidation,
   });
 
   return {
@@ -133,9 +175,10 @@ export async function getSettingsSnapshot(prisma) {
     },
     summary: {
       configurationIssueCount: configurationIssues.length,
-      destinationCount: destinations.length,
+      destinationCount,
       providerCount,
-      streamCount: streams.length,
+      streamCount,
+      templateCount,
     },
     toggles: env.observability,
   };

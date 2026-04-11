@@ -7,9 +7,11 @@ const originalEnv = process.env;
 function createSettingsPrisma() {
   return {
     destination: {
+      count: vi.fn().mockResolvedValue(0),
       findMany: vi.fn().mockResolvedValue([]),
     },
     destinationTemplate: {
+      count: vi.fn().mockResolvedValue(0),
       findMany: vi.fn().mockResolvedValue([]),
     },
     locale: {
@@ -19,6 +21,7 @@ function createSettingsPrisma() {
       count: vi.fn().mockResolvedValue(0),
     },
     publishingStream: {
+      count: vi.fn().mockResolvedValue(0),
       findMany: vi.fn().mockResolvedValue([]),
     },
   };

@@ -136,7 +136,9 @@ function createMockPrisma() {
           title: "Breaking story",
         },
       ],
-      viewEvents: [{ id: "view_1" }, { id: "view_2" }],
+      _count: {
+        viewEvents: 2,
+      },
     },
   ];
   const auditEvents = [
@@ -178,12 +180,12 @@ function createMockPrisma() {
   ];
   const viewEvents = [
     {
-      createdAt: new Date("2026-04-03T08:00:00.000Z"),
+      createdAt: new Date(),
       eventType: "POST_VIEW",
       postId: "post_1",
     },
     {
-      createdAt: new Date("2026-04-02T08:00:00.000Z"),
+      createdAt: new Date(),
       eventType: "WEBSITE_VIEW",
       postId: null,
     },
@@ -192,11 +194,35 @@ function createMockPrisma() {
   return {
     auditEvent: {
       findMany: vi.fn(async () => auditEvents),
+      groupBy: vi.fn(async () => [
+        {
+          action: "AI_OPTIMIZATION_FALLBACK_USED",
+          _count: {
+            _all: 1,
+          },
+        },
+        {
+          action: "AI_OPTIMIZATION_SKIPPED",
+          _count: {
+            _all: 1,
+          },
+        },
+      ]),
     },
     destination: {
-      findMany: vi.fn(async () => [
-        { connectionStatus: "CONNECTED" },
-        { connectionStatus: "ERROR" },
+      groupBy: vi.fn(async () => [
+        {
+          connectionStatus: "CONNECTED",
+          _count: {
+            _all: 1,
+          },
+        },
+        {
+          connectionStatus: "ERROR",
+          _count: {
+            _all: 1,
+          },
+        },
       ]),
     },
     newsProviderConfig: {
@@ -208,7 +234,9 @@ function createMockPrisma() {
           isSelectable: true,
           label: "Mediastack",
           providerKey: "mediastack",
-          streams: [{ id: "stream_1" }, { id: "stream_2" }],
+          _count: {
+            streams: 2,
+          },
         },
         {
           id: "provider_2",
@@ -217,7 +245,9 @@ function createMockPrisma() {
           isSelectable: true,
           label: "NewsAPI",
           providerKey: "newsapi",
-          streams: [],
+          _count: {
+            streams: 0,
+          },
         },
       ]),
     },
@@ -235,13 +265,30 @@ function createMockPrisma() {
       ),
     },
     publishingStream: {
-      findMany: vi.fn(async () => [
-        { status: "ACTIVE" },
-        { status: "PAUSED" },
+      groupBy: vi.fn(async () => [
+        {
+          status: "ACTIVE",
+          _count: {
+            _all: 1,
+          },
+        },
+        {
+          status: "PAUSED",
+          _count: {
+            _all: 1,
+          },
+        },
       ]),
     },
     viewEvent: {
-      findMany: vi.fn(async () => viewEvents),
+      count: vi.fn(async ({ where } = {}) =>
+        viewEvents.filter((event) => {
+          const gte = where?.createdAt?.gte;
+          const lt = where?.createdAt?.lt;
+
+          return (!gte || event.createdAt >= gte) && (!lt || event.createdAt < lt);
+        }).length,
+      ),
     },
   };
 }

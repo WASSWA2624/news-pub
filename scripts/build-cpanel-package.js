@@ -66,7 +66,7 @@ function loadEnvFile(fileName) {
   }
 }
 
-[".env.production.local", ".env.production", ".env"].forEach(loadEnvFile);
+[".env.production", ".env"].forEach(loadEnvFile);
 require("./server.js");
 `;
 
@@ -112,8 +112,37 @@ function updatePackageManifest() {
     "@prisma/client": sourcePackage.dependencies["@prisma/client"],
     mariadb: "3.4.5",
   };
+  delete outputPackage.devDependencies;
+  delete outputPackage.optionalDependencies;
 
   fs.writeFileSync(packagePath, `${JSON.stringify(outputPackage, null, 2)}\n`, "utf8");
+}
+
+function assertNoForbiddenLocalEnvFiles() {
+  const forbiddenFiles = [];
+
+  function walk(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolutePath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(absolutePath);
+        continue;
+      }
+
+      if (/^\.env(?:\.[^.]+)?\.local$/i.test(entry.name)) {
+        forbiddenFiles.push(path.relative(outputDir, absolutePath).split(path.sep).join("/"));
+      }
+    }
+  }
+
+  walk(outputDir);
+
+  if (forbiddenFiles.length) {
+    throw new Error(
+      `Forbidden local env files were copied into the cPanel package: ${forbiddenFiles.join(", ")}.`,
+    );
+  }
 }
 
 function writeRestartHelper() {
@@ -149,8 +178,14 @@ function writeDeploymentNotes() {
     "- Node.js: 20 or 22",
     "",
     "Environment variables:",
-    "- Add the same production env keys your app uses locally, especially DATABASE_URL, SESSION_SECRET, DESTINATION_TOKEN_ENCRYPTION_KEY, REVALIDATE_SECRET, and CRON_SECRET.",
-    "- Also set NEXT_PUBLIC_APP_URL to your live domain and configure any provider, Meta, OpenAI, and storage credentials you use.",
+    "- Add production env keys in the cPanel environment panel whenever possible. Existing process env wins over .env.production, and .env is only a final fallback.",
+    "- Required keys include DATABASE_URL, SESSION_SECRET, DESTINATION_TOKEN_ENCRYPTION_KEY, REVALIDATE_SECRET, and CRON_SECRET.",
+    "- Also set NEXT_PUBLIC_APP_URL to your live domain, NEXT_IMAGE_REMOTE_HOSTS for trusted CDN/image hosts, and configure any provider, Meta, OpenAI, and storage credentials you use.",
+    "- Do not upload .env*.local files; they are intentionally ignored and package checks fail if they appear.",
+    "",
+    "Media storage:",
+    "- Prefer MEDIA_DRIVER=s3 for production so uploaded media survives cPanel redeploys.",
+    "- Use MEDIA_DRIVER=local only with a persistent directory that redeploys do not overwrite, and protect that public directory from listing or script execution.",
     "",
     "Database setup:",
     "- To diagnose login failures after upload, run: npm run cpanel:doctor",
@@ -245,6 +280,7 @@ function main() {
   writeRuntimeEntryPoint();
   writeRestartHelper();
   writeDeploymentNotes();
+  assertNoForbiddenLocalEnvFiles();
 
   console.log(`cPanel package created at ${outputDir}`);
 }

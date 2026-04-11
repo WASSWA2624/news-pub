@@ -4,6 +4,7 @@
 
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { Prisma } from "@prisma/client";
 import {
   formatCountryFlagEmoji as formatCountryFlag,
   formatCountryFlagImageUrl,
@@ -29,6 +30,8 @@ import {
  */
 export const publicDataRevalidateSeconds = 300;
 export const publicListingPageSize = 12;
+const publicSearchRankingCandidateLimit = 240;
+const publicSearchRankingCandidateFloor = 60;
 
 async function withPublicSiteDatabaseFallback(load, fallback) {
   try {
@@ -44,6 +47,14 @@ async function withPublicSiteDatabaseFallback(load, fallback) {
 
 function createEmptyPagination(page) {
   return createPagination(0, normalizePage(page), publicListingPageSize);
+}
+
+function formatSlugLabel(slug) {
+  return trimText(slug)
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 /** Serializes persisted dates so public page models stay JSON-friendly. */
@@ -126,7 +137,7 @@ function mapImage(asset, fallbackAlt = "Story image") {
   }
 
   const alt = asset.alt || asset.caption || fallbackAlt;
-  const url = getRenderableImageUrl(asset.sourceUrl || asset.publicUrl || "", {
+  const url = getRenderableImageUrl(asset.publicUrl || asset.sourceUrl || "", {
     alt,
     caption: asset.caption || null,
     height: asset.height,
@@ -755,7 +766,7 @@ const searchFieldPriority = Object.freeze({
   title: 7,
 });
 
-function buildSearchFieldFilters(locale, value) {
+function buildSearchFieldFilters(locale, value, { includeBody = true } = {}) {
   const normalizedValue = normalizeSearch(value);
   const { slugText } = buildPublicSearchQueryContext(value);
   const slugNeedle = slugText ? slugText.replace(/\s+/g, "-") : "";
@@ -795,11 +806,15 @@ function buildSearchFieldFilters(locale, value) {
                 contains: normalizedValue,
               },
             },
-            {
-              contentMd: {
-                contains: normalizedValue,
-              },
-            },
+            ...(includeBody
+              ? [
+                  {
+                    contentMd: {
+                      contains: normalizedValue,
+                    },
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -983,42 +998,80 @@ function compareRankedSearchPosts(left, right) {
   );
 }
 
+function dedupeSearchCandidates(posts = []) {
+  const seenPostIds = new Set();
+  const candidates = [];
+
+  for (const post of posts) {
+    const key = post?.id || post?.slug;
+
+    if (!key || seenPostIds.has(key)) {
+      continue;
+    }
+
+    seenPostIds.add(key);
+    candidates.push(post);
+  }
+
+  return candidates;
+}
+
+function rankSearchCandidates(posts, locale, queryContext) {
+  return posts
+    .map((post) => ({
+      post,
+      ranking: rankPublishedSearchPost(post, locale, queryContext),
+    }))
+    .sort(compareRankedSearchPosts);
+}
+
+function mapRankedSearchResult({ post, ranking }, locale) {
+  return {
+    ...mapPostCard(post, locale),
+    searchMeta: {
+      matchedTerms: ranking.matchedTerms,
+      primaryReason: ranking.primaryReason,
+    },
+  };
+}
+
+function getSearchCandidateLimit(pagination) {
+  const endIndex = ((pagination.currentPage - 1) * pagination.pageSize) + pagination.pageSize;
+  const requestedWindow = Math.max(endIndex * 2, publicSearchRankingCandidateFloor);
+
+  return Math.min(requestedWindow, publicSearchRankingCandidateLimit);
+}
+
 async function getPublishedCategoryCounts(db) {
-  const categories = await db.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-    select: {
-      description: true,
-      id: true,
-      name: true,
-      posts: {
-        select: {
-          post: {
-            select: {
-              status: true,
-              publishAttempts: {
-                select: {
-                  id: true,
-                },
-                where: {
-                  platform: "WEBSITE",
-                  status: "SUCCEEDED",
-                },
-              },
-            },
-          },
-        },
+  const [categories, categoryPostCounts] = await Promise.all([
+    db.category.findMany({
+      orderBy: {
+        name: "asc",
       },
-      slug: true,
-    },
-  });
+      select: {
+        description: true,
+        id: true,
+        name: true,
+        slug: true,
+      },
+    }),
+    db.postCategory.groupBy({
+      by: ["categoryId"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        post: buildPublishedWebsiteWhere(),
+      },
+    }),
+  ]);
+  const countByCategoryId = new Map(
+    categoryPostCounts.map((entry) => [entry.categoryId, entry._count?._all || 0]),
+  );
 
   return categories
     .map((category) => ({
-      count: category.posts.filter(
-        ({ post }) => post.status === "PUBLISHED" && (post.publishAttempts || []).length,
-      ).length,
+      count: countByCategoryId.get(category.id) || 0,
       ...category,
     }))
     .filter((category) => category.count > 0)
@@ -1026,6 +1079,52 @@ async function getPublishedCategoryCounts(db) {
 }
 
 async function getPublishedCountryCounts(db, locale) {
+  if (typeof db.$queryRaw === "function") {
+    try {
+      const countryRows = await db.$queryRaw(Prisma.sql`
+        SELECT LOWER(country_codes.country_code) AS value, COUNT(*) AS count
+        FROM \`FetchedArticle\` AS article
+        INNER JOIN \`Post\` AS post ON post.\`sourceArticleId\` = article.\`id\`
+        INNER JOIN \`PostTranslation\` AS translation
+          ON translation.\`postId\` = post.\`id\`
+          AND translation.\`locale\` = ${locale}
+        INNER JOIN JSON_TABLE(
+          article.\`providerCountriesJson\`,
+          '$[*]' COLUMNS (country_code VARCHAR(8) PATH '$')
+        ) AS country_codes
+        WHERE post.\`status\` = 'PUBLISHED'
+          AND EXISTS (
+            SELECT 1
+            FROM \`PublishAttempt\` AS publish_attempt
+            WHERE publish_attempt.\`postId\` = post.\`id\`
+              AND publish_attempt.\`platform\` = 'WEBSITE'
+              AND publish_attempt.\`status\` = 'SUCCEEDED'
+          )
+        GROUP BY LOWER(country_codes.country_code)
+        ORDER BY count DESC
+      `);
+
+      return countryRows
+        .map((row) => {
+          const value = normalizeCountry(row.value);
+
+          return {
+            count: Number(row.count || 0),
+            flagEmoji: formatCountryFlag(value),
+            flagImageUrl: formatCountryFlagImageUrl(value),
+            label: formatCountryLabel(value, locale),
+            value,
+          };
+        })
+        .filter((country) => country.value && country.count > 0)
+        .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+    } catch (error) {
+      if (isPrismaConnectionError(error)) {
+        throw error;
+      }
+    }
+  }
+
   const publishedArticles = await db.fetchedArticle.findMany({
     select: {
       providerCountriesJson: true,
@@ -1260,50 +1359,71 @@ export async function getPublishedNewsIndexData({ locale = defaultLocale, page =
 
 /** Returns a category landing page backed by published website stories. */
 export async function getPublishedCategoryPageData({ locale = defaultLocale, page = 1, slug } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
-  const category = await db.category.findUnique({
-    where: {
-      slug,
-    },
-  });
-
-  if (!category) {
-    return null;
-  }
-
-  const requestedPage = normalizePage(page);
-  const where = buildPublishedWebsiteWhere({
-    categories: {
-      some: {
-        category: {
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const category = await db.category.findUnique({
+        where: {
           slug,
         },
-      },
-    },
-    translations: {
-      some: {
-        locale,
-      },
-    },
-  });
-  const totalItems = await db.post.count({ where });
-  const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-  const posts = await db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    select: publicPostSelect,
-    skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-    take: pagination.pageSize,
-    where,
-  });
+      });
 
-  return {
-    entity: mapCategory(category, locale),
-    items: posts.map((post) => mapPostCard(post, locale)),
-    pagination,
-  };
+      if (!category) {
+        return null;
+      }
+
+      const requestedPage = normalizePage(page);
+      const where = buildPublishedWebsiteWhere({
+        categories: {
+          some: {
+            category: {
+              slug,
+            },
+          },
+        },
+        translations: {
+          some: {
+            locale,
+          },
+        },
+      });
+      const totalItems = await db.post.count({ where });
+      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+      const posts = await db.post.findMany({
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: publicPostSelect,
+        skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
+        take: pagination.pageSize,
+        where,
+      });
+
+      return {
+        entity: mapCategory(category, locale),
+        items: posts.map((post) => mapPostCard(post, locale)),
+        pagination,
+      };
+    },
+    () => {
+      const categoryName = formatSlugLabel(slug) || "Category";
+
+      return {
+        databaseUnavailable: true,
+        entity: {
+          description: "Published stories for this category are temporarily unavailable.",
+          id: null,
+          logoEmoji: "ðŸ“°",
+          name: categoryName,
+          path: buildLocalizedPath(locale, publicRouteSegments.category(slug || "")),
+          slug: slug || "",
+        },
+        items: [],
+        pagination: createEmptyPagination(page),
+      };
+    },
+  );
 }
 
-function buildSearchWhere(locale, search, country) {
+function buildSearchWhere(locale, search, country, { includeBody = true } = {}) {
   const queryContext = buildPublicSearchQueryContext(search);
   const normalizedCountry = normalizeCountry(country);
   const filters = [
@@ -1334,8 +1454,8 @@ function buildSearchWhere(locale, search, country) {
 
   filters.push({
     OR: [
-      ...buildSearchFieldFilters(locale, queryContext.query),
-      ...queryContext.terms.flatMap((term) => buildSearchFieldFilters(locale, term)),
+      ...buildSearchFieldFilters(locale, queryContext.query, { includeBody }),
+      ...queryContext.terms.flatMap((term) => buildSearchFieldFilters(locale, term, { includeBody })),
     ],
   });
 
@@ -1367,28 +1487,50 @@ export async function searchPublishedStories(
       let items = [];
 
       if (queryContext.query) {
-        const rankedPosts = (
-          await db.post.findMany({
-            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-            select: buildPublicSearchSelect(locale),
-            where,
-          })
-        )
-          .map((post) => ({
-            post,
-            ranking: rankPublishedSearchPost(post, locale, queryContext),
-          }))
-          .sort(compareRankedSearchPosts);
         const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
         const endIndex = startIndex + pagination.pageSize;
+        const candidateLimit = getSearchCandidateLimit(pagination);
+        const strongWhere = buildSearchWhere(locale, search, normalizedCountry, {
+          includeBody: false,
+        });
+        const strongCandidatePosts = await db.post.findMany({
+          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+          select: buildPublicSearchSelect(locale),
+          take: candidateLimit,
+          where: strongWhere,
+        });
+        let candidatePosts = strongCandidatePosts;
 
-        items = rankedPosts.slice(startIndex, endIndex).map(({ post, ranking }) => ({
-          ...mapPostCard(post, locale),
-          searchMeta: {
-            matchedTerms: ranking.matchedTerms,
-            primaryReason: ranking.primaryReason,
-          },
-        }));
+        if (strongCandidatePosts.length < Math.min(totalItems, endIndex, candidateLimit)) {
+          const fallbackCandidatePosts = await db.post.findMany({
+            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+            select: buildPublicSearchSelect(locale),
+            take: candidateLimit,
+            where,
+          });
+
+          candidatePosts = dedupeSearchCandidates([...strongCandidatePosts, ...fallbackCandidatePosts]);
+        }
+
+        const rankedPosts = rankSearchCandidates(candidatePosts, locale, queryContext);
+
+        if (rankedPosts.length >= endIndex || rankedPosts.length >= totalItems || candidateLimit >= totalItems) {
+          items = rankedPosts.slice(startIndex, endIndex).map((rankedPost) =>
+            mapRankedSearchResult(rankedPost, locale),
+          );
+        } else {
+          const pagePosts = await db.post.findMany({
+            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+            select: buildPublicSearchSelect(locale),
+            skip: startIndex,
+            take: pagination.pageSize,
+            where,
+          });
+
+          items = rankSearchCandidates(pagePosts, locale, queryContext).map((rankedPost) =>
+            mapRankedSearchResult(rankedPost, locale),
+          );
+        }
       } else {
         const posts = await db.post.findMany({
           orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
@@ -1426,115 +1568,160 @@ export async function searchPublishedStories(
 
 /** Returns the published story page model plus lightweight related-story cards. */
 export async function getPublishedStoryPageData({ locale = defaultLocale, slug } = {}, prisma) {
-  const db = await resolvePrismaClient(prisma);
-  const post = await db.post.findFirst({
-    select: publicPostSelect,
-    where: buildPublishedWebsiteWhere({
-      slug,
-    }),
-  });
+  return withPublicSiteDatabaseFallback(
+    async () => {
+      const db = await resolvePrismaClient(prisma);
+      const post = await db.post.findFirst({
+        select: publicPostSelect,
+        where: buildPublishedWebsiteWhere({
+          slug,
+        }),
+      });
 
-  if (!post) {
-    return null;
-  }
+      if (!post) {
+        return null;
+      }
 
-  const translation = pickTranslation(post.translations || [], locale);
+      const translation = pickTranslation(post.translations || [], locale);
 
-  if (!translation) {
-    return null;
-  }
+      if (!translation) {
+        return null;
+      }
 
-  const relatedPosts = await db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    select: publicPostSelect,
-    take: 4,
-    where: buildPublishedWebsiteWhere({
-      id: {
-        not: post.id,
-      },
-      OR: [
-        {
-          categories: {
-            some: {
-              categoryId: {
-                in: post.categories.map(({ categoryId }) => categoryId),
+      const relatedPosts = await db.post.findMany({
+        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        select: publicPostSelect,
+        take: 4,
+        where: buildPublishedWebsiteWhere({
+          id: {
+            not: post.id,
+          },
+          OR: [
+            {
+              categories: {
+                some: {
+                  categoryId: {
+                    in: post.categories.map(({ categoryId }) => categoryId),
+                  },
+                },
               },
             },
-          },
-        },
-        {
-          sourceName: post.sourceName,
-        },
-      ],
-    }),
-  });
-  const seoKeywords = normalizeSeoStringList(translation.seoRecord?.keywordsJson);
-  const storyAuthors = resolveStoryAuthors(translation.seoRecord, post.sourceArticle?.author);
-  const image = mapImage(post.featuredImage, translation.title)
-    || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
-  const seoImage = mapImage(translation.seoRecord?.ogImage, translation.title)
-    || image;
-  const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
-  const primaryMedia = media[0]
-    || (image
-      ? { ...image, kind: "image", sourceUrl: image.url }
-      : createFallbackPrimaryMedia({
-          fallbackAlt: translation.title,
-          sourceName: post.sourceName,
-          sourceUrl: post.sourceUrl,
-          summary: translation.summary,
-        }));
-  const article = {
-    canonicalUrl:
-      translation.seoRecord?.canonicalUrl ||
-      buildAbsoluteUrl(buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug))),
-    categories: (post.categories || []).map(({ category }) => mapCategory(category, translation.locale)),
-    contentHtml: translation.contentHtml,
-    contentMd: translation.contentMd,
-    id: post.id,
-    image,
-    media,
-    authors: storyAuthors,
-    keywords: seoKeywords,
-    locale: translation.locale,
-    metaDescription: translation.seoRecord?.metaDescription || translation.summary,
-    metaTitle: translation.seoRecord?.metaTitle || translation.title,
-    noindex: Boolean(translation.seoRecord?.noindex),
-    openGraphDescription:
-      translation.seoRecord?.ogDescription ||
-      translation.seoRecord?.metaDescription ||
-      translation.summary,
-    openGraphTitle:
-      translation.seoRecord?.ogTitle ||
-      translation.seoRecord?.metaTitle ||
-      translation.title,
-    path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
-    primaryMedia,
-    providerKey: post.providerKey,
-    publishedAt: serializeDate(post.publishedAt),
-    seoImage,
-    slug: post.slug,
-    sourceAttribution: translation.sourceAttribution,
-    sourceName: post.sourceName,
-    sourceUrl: post.sourceUrl,
-    structuredContentJson: translation.structuredContentJson,
-    summary: translation.summary,
-    title: translation.title,
-    twitterDescription:
-      translation.seoRecord?.twitterDescription ||
-      translation.seoRecord?.metaDescription ||
-      translation.summary,
-    twitterTitle:
-      translation.seoRecord?.twitterTitle ||
-      translation.seoRecord?.metaTitle ||
-      translation.title,
-    updatedAt: serializeDate(post.updatedAt),
-  };
+            {
+              sourceName: post.sourceName,
+            },
+          ],
+        }),
+      });
+      const seoKeywords = normalizeSeoStringList(translation.seoRecord?.keywordsJson);
+      const storyAuthors = resolveStoryAuthors(translation.seoRecord, post.sourceArticle?.author);
+      const image = mapImage(post.featuredImage, translation.title)
+        || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
+      const seoImage = mapImage(translation.seoRecord?.ogImage, translation.title)
+        || image;
+      const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
+      const primaryMedia = media[0]
+        || (image
+          ? { ...image, kind: "image", sourceUrl: image.url }
+          : createFallbackPrimaryMedia({
+              fallbackAlt: translation.title,
+              sourceName: post.sourceName,
+              sourceUrl: post.sourceUrl,
+              summary: translation.summary,
+            }));
+      const article = {
+        canonicalUrl:
+          translation.seoRecord?.canonicalUrl ||
+          buildAbsoluteUrl(buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug))),
+        categories: (post.categories || []).map(({ category }) => mapCategory(category, translation.locale)),
+        contentHtml: translation.contentHtml,
+        contentMd: translation.contentMd,
+        id: post.id,
+        image,
+        media,
+        authors: storyAuthors,
+        keywords: seoKeywords,
+        locale: translation.locale,
+        metaDescription: translation.seoRecord?.metaDescription || translation.summary,
+        metaTitle: translation.seoRecord?.metaTitle || translation.title,
+        noindex: Boolean(translation.seoRecord?.noindex),
+        openGraphDescription:
+          translation.seoRecord?.ogDescription ||
+          translation.seoRecord?.metaDescription ||
+          translation.summary,
+        openGraphTitle:
+          translation.seoRecord?.ogTitle ||
+          translation.seoRecord?.metaTitle ||
+          translation.title,
+        path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
+        primaryMedia,
+        providerKey: post.providerKey,
+        publishedAt: serializeDate(post.publishedAt),
+        seoImage,
+        slug: post.slug,
+        sourceAttribution: translation.sourceAttribution,
+        sourceName: post.sourceName,
+        sourceUrl: post.sourceUrl,
+        structuredContentJson: translation.structuredContentJson,
+        summary: translation.summary,
+        title: translation.title,
+        twitterDescription:
+          translation.seoRecord?.twitterDescription ||
+          translation.seoRecord?.metaDescription ||
+          translation.summary,
+        twitterTitle:
+          translation.seoRecord?.twitterTitle ||
+          translation.seoRecord?.metaTitle ||
+          translation.title,
+        updatedAt: serializeDate(post.updatedAt),
+      };
 
-  return {
-    article,
-    relatedStories: relatedPosts.map((relatedPost) => mapPostCard(relatedPost, translation.locale)),
-  };
+      return {
+        article,
+        relatedStories: relatedPosts.map((relatedPost) => mapPostCard(relatedPost, translation.locale)),
+      };
+    },
+    () => {
+      const title = formatSlugLabel(slug) || "Story";
+      const path = buildLocalizedPath(locale, publicRouteSegments.newsPost(slug || ""));
+
+      return {
+        databaseUnavailable: true,
+        article: {
+          authors: [],
+          canonicalUrl: buildAbsoluteUrl(path),
+          categories: [],
+          contentHtml: "",
+          contentMd: "",
+          id: null,
+          image: null,
+          keywords: [],
+          locale,
+          media: [],
+          metaDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          metaTitle: `${title} temporarily unavailable`,
+          noindex: true,
+          openGraphDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          openGraphTitle: `${title} temporarily unavailable`,
+          path,
+          primaryMedia: null,
+          providerKey: null,
+          publishedAt: null,
+          seoImage: null,
+          slug: slug || "",
+          sourceAttribution: "",
+          sourceName: "",
+          sourceUrl: "",
+          structuredContentJson: null,
+          summary: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          title: `${title} temporarily unavailable`,
+          twitterDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          twitterTitle: `${title} temporarily unavailable`,
+          updatedAt: null,
+        },
+        relatedStories: [],
+      };
+    },
+  );
 }
 
 /** Alias kept for route-level readability when category pages are used as landing pages. */

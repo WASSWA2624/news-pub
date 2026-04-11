@@ -40,14 +40,14 @@ function loadEnvFile(fileName) {
 }
 
 function loadRuntimeEnv() {
-  [".env.production.local", ".env.production", ".env"].forEach(loadEnvFile);
+  [".env.production", ".env"].forEach(loadEnvFile);
 }
 
 function requiredEnv(name) {
   const value = `${process.env[name] || ""}`.trim();
 
   if (!value) {
-    throw new Error(`${name} is required. Add it to cPanel environment variables or .env.production.local.`);
+    throw new Error(`${name} is required. Add it to cPanel environment variables, .env.production, or .env.`);
   }
 
   return value;

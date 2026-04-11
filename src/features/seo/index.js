@@ -4,7 +4,7 @@
 
 import { defaultLocale, supportedLocales } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments, publicStaticRoutes } from "@/features/i18n/routing";
-import { env } from "@/lib/env/server";
+import { sharedEnv } from "@/lib/env/shared";
 import { resolvePrismaClient } from "@/lib/news/shared";
 import { isPrismaConnectionError } from "@/lib/prisma";
 import { buildAbsoluteUrl } from "@/lib/seo";
@@ -13,6 +13,19 @@ import { buildAbsoluteUrl } from "@/lib/seo";
  * NewsPub SEO helpers for robots, sitemap, and admin-facing SEO reporting.
  */
 export const seoRobotsDisallowPaths = Object.freeze(["/admin", "/api"]);
+
+function buildPublishedWebsiteWhere(extraWhere = {}) {
+  return {
+    publishAttempts: {
+      some: {
+        platform: "WEBSITE",
+        status: "SUCCEEDED",
+      },
+    },
+    status: "PUBLISHED",
+    ...extraWhere,
+  };
+}
 
 async function withSeoDatabaseFallback(load, fallback) {
   try {
@@ -52,7 +65,7 @@ function getStaticSitemapEntries() {
 
 export function getRobotsConfiguration() {
   return {
-    host: env.app.url,
+    host: sharedEnv.app.url,
     rules: [
       {
         allow: "/",
@@ -60,7 +73,7 @@ export function getRobotsConfiguration() {
         userAgent: "*",
       },
     ],
-    sitemap: `${env.app.url.replace(/\/+$/, "")}/sitemap.xml`,
+    sitemap: `${sharedEnv.app.url.replace(/\/+$/, "")}/sitemap.xml`,
   };
 }
 
@@ -71,7 +84,9 @@ export async function getSitemapEntries(prisma) {
       const db = await resolvePrismaClient(prisma);
       const [posts, categories] = await Promise.all([
         db.post.findMany({
-          include: {
+          select: {
+            publishedAt: true,
+            slug: true,
             translations: {
               orderBy: {
                 locale: "asc",
@@ -80,36 +95,24 @@ export async function getSitemapEntries(prisma) {
                 locale: true,
               },
             },
+            updatedAt: true,
           },
           orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-          where: {
-            publishAttempts: {
-              some: {
-                platform: "WEBSITE",
-                status: "SUCCEEDED",
-              },
-            },
-            status: "PUBLISHED",
-          },
+          where: buildPublishedWebsiteWhere(),
         }),
         db.category.findMany({
-          include: {
+          orderBy: [{ name: "asc" }],
+          select: {
+            slug: true,
+            updatedAt: true,
+          },
+          where: {
             posts: {
-              include: {
-                post: {
-                  include: {
-                    publishAttempts: {
-                      where: {
-                        platform: "WEBSITE",
-                        status: "SUCCEEDED",
-                      },
-                    },
-                  },
-                },
+              some: {
+                post: buildPublishedWebsiteWhere(),
               },
             },
           },
-          orderBy: [{ name: "asc" }],
         }),
       ]);
       const staticEntries = getStaticSitemapEntries();
@@ -123,22 +126,14 @@ export async function getSitemapEntries(prisma) {
             url: buildAbsoluteUrl(buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug))),
           })),
       );
-      const categoryEntries = categories.flatMap((category) => {
-        const hasPublishedWebsitePosts = category.posts.some(
-          ({ post }) => post.status === "PUBLISHED" && (post.publishAttempts || []).length,
-        );
-
-        if (!hasPublishedWebsitePosts) {
-          return [];
-        }
-
-        return supportedLocales.map((locale) => ({
+      const categoryEntries = categories.flatMap((category) =>
+        supportedLocales.map((locale) => ({
           changeFrequency: "daily",
           lastModified: category.updatedAt || new Date(),
           priority: 0.65,
           url: buildAbsoluteUrl(buildLocalizedPath(locale, publicRouteSegments.category(category.slug))),
-        }));
-      });
+        })),
+      );
 
       return [...staticEntries, ...postEntries, ...categoryEntries];
     },
@@ -151,15 +146,12 @@ export async function getSeoManagementSnapshot(prisma) {
   return withSeoDatabaseFallback(
     async () => {
       const db = await resolvePrismaClient(prisma);
-      const [posts, categories] = await Promise.all([
+      const [posts, categoryPageCount, publishedStoryCount, storyLocalesCount] = await Promise.all([
         db.post.findMany({
-          include: {
-            publishAttempts: {
-              where: {
-                platform: "WEBSITE",
-                status: "SUCCEEDED",
-              },
-            },
+          select: {
+            excerpt: true,
+            publishedAt: true,
+            slug: true,
             translations: {
               include: {
                 seoRecord: true,
@@ -168,38 +160,33 @@ export async function getSeoManagementSnapshot(prisma) {
                 locale: "asc",
               },
             },
+            updatedAt: true,
           },
           orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
           take: 25,
-          where: {
-            status: "PUBLISHED",
-          },
+          where: buildPublishedWebsiteWhere(),
         }),
-        db.category.findMany({
-          include: {
+        db.category.count({
+          where: {
             posts: {
-              include: {
-                post: {
-                  include: {
-                    publishAttempts: {
-                      where: {
-                        platform: "WEBSITE",
-                        status: "SUCCEEDED",
-                      },
-                    },
-                  },
-                },
+              some: {
+                post: buildPublishedWebsiteWhere(),
               },
             },
           },
-          orderBy: [{ name: "asc" }],
+        }),
+        db.post.count({
+          where: buildPublishedWebsiteWhere(),
+        }),
+        db.postTranslation.count({
+          where: {
+            post: buildPublishedWebsiteWhere(),
+          },
         }),
       ]);
 
-      const publishedWebsiteStories = posts.filter((post) => post.publishAttempts.length);
-
       return {
-        stories: publishedWebsiteStories.map((post) => ({
+        stories: posts.map((post) => ({
           canonicalUrl:
             post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.canonicalUrl ||
             buildAbsoluteUrl(buildLocalizedPath(defaultLocale, publicRouteSegments.newsPost(post.slug))),
@@ -217,15 +204,10 @@ export async function getSeoManagementSnapshot(prisma) {
           updatedAt: serializeDate(post.updatedAt),
         })),
         summary: {
-          categoryPageCount: categories.filter((category) =>
-            category.posts.some(({ post }) => post.status === "PUBLISHED" && (post.publishAttempts || []).length),
-          ).length,
-          publishedStoryCount: publishedWebsiteStories.length,
+          categoryPageCount,
+          publishedStoryCount,
           searchRouteIndexed: false,
-          storyLocalesCount: publishedWebsiteStories.reduce(
-            (total, post) => total + post.translations.length,
-            0,
-          ),
+          storyLocalesCount,
         },
       };
     },

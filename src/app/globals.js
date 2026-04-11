@@ -116,7 +116,7 @@ const GlobalStyles = createGlobalStyle`
         rgba(var(--theme-bg-rgb), 0.97) 100%
       );
     color: ${({ theme }) => theme?.colors?.text || "#152844"};
-    font-family: var(--font-ui), "Segoe UI", sans-serif;
+    font-family: var(--font-ui, "Segoe UI"), "Segoe UI", sans-serif;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;

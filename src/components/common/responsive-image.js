@@ -7,6 +7,16 @@ import Image from "next/image";
 const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 675;
 
+function isAbsoluteHttpUrl(value) {
+  try {
+    const parsedUrl = new URL(value);
+
+    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Renders a Next.js-optimized image with safe fallback dimensions for editorial media.
  *
@@ -34,6 +44,25 @@ export default function ResponsiveImage({
 }) {
   if (!src) {
     return null;
+  }
+
+  if (isAbsoluteHttpUrl(src)) {
+    const { decoding, fetchPriority, loading, style, ...imgRest } = rest;
+
+    return (
+      <img
+        alt={alt}
+        className={className}
+        decoding={decoding || "async"}
+        fetchPriority={priority ? "high" : fetchPriority}
+        height={fill ? undefined : height || DEFAULT_HEIGHT}
+        loading={priority ? "eager" : loading || "lazy"}
+        src={src}
+        style={fill ? { ...style, height: "100%", width: "100%" } : style}
+        width={fill ? undefined : width || DEFAULT_WIDTH}
+        {...imgRest}
+      />
+    );
   }
 
   return (

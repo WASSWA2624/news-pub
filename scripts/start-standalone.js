@@ -68,7 +68,7 @@ function loadEnvFile(fileName) {
 }
 
 function loadLocalStandaloneEnv() {
-  [".env.development.local", ".env"].forEach(loadEnvFile);
+  [".env.development", ".env"].forEach(loadEnvFile);
 }
 
 if (!fs.existsSync(standaloneServerPath)) {

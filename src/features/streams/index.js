@@ -13,6 +13,8 @@ import {
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
+const streamSnapshotLimit = 200;
+
 function normalizeKeywordList(value) {
   if (Array.isArray(value)) {
     return value.map((entry) => normalizeDisplayText(entry)).filter(Boolean);
@@ -65,6 +67,12 @@ function getDefaultStreamModeForDestination(destination = {}) {
   return destination?.platform === "WEBSITE" ? "AUTO_PUBLISH" : "REVIEW_REQUIRED";
 }
 
+function getStatusCount(rows, status) {
+  return rows
+    .filter((row) => row.status === status)
+    .reduce((total, row) => total + (row._count?._all || 0), 0);
+}
+
 /**
  * Returns the stream-management snapshot used by the admin workspace,
  * including related destination, provider, template, and validation data.
@@ -74,7 +82,7 @@ function getDefaultStreamModeForDestination(destination = {}) {
  */
 export async function getStreamManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
-  const [streams, destinations, providers, templates, categories] = await Promise.all([
+  const [streams, totalCount, statusCounts, rawDestinations, providers, templates, categories] = await Promise.all([
     db.publishingStream.findMany({
       include: {
         activeProvider: {
@@ -114,10 +122,23 @@ export async function getStreamManagementSnapshot(prisma) {
         },
       },
       orderBy: [{ status: "asc" }, { name: "asc" }],
+      take: streamSnapshotLimit,
+    }),
+    db.publishingStream.count(),
+    db.publishingStream.groupBy({
+      by: ["status"],
+      _count: {
+        _all: true,
+      },
     }),
     db.destination.findMany({
       orderBy: [{ name: "asc" }],
       select: {
+        _count: {
+          select: {
+            streams: true,
+          },
+        },
         id: true,
         kind: true,
         name: true,
@@ -153,6 +174,10 @@ export async function getStreamManagementSnapshot(prisma) {
       },
     }),
   ]);
+  const destinations = rawDestinations.map(({ _count, ...destination }) => ({
+    ...destination,
+    streamCount: _count.streams,
+  }));
 
   return {
     categories,
@@ -177,9 +202,10 @@ export async function getStreamManagementSnapshot(prisma) {
       }),
     })),
     summary: {
-      activeCount: streams.filter((stream) => stream.status === "ACTIVE").length,
-      pausedCount: streams.filter((stream) => stream.status === "PAUSED").length,
-      totalCount: streams.length,
+      activeCount: getStatusCount(statusCounts, "ACTIVE"),
+      pausedCount: getStatusCount(statusCounts, "PAUSED"),
+      returnedCount: streams.length,
+      totalCount,
     },
     templates,
   };
