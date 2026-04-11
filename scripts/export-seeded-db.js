@@ -20,12 +20,13 @@ const defaultOutputPath = path.join(rootDir, "dist", "db", "news-pub-seeded.sql"
 function printHelp() {
   console.log(`Usage: node scripts/export-seeded-db.js [options]
 
-Seeds the local NewsPub database and exports a SQL dump.
+Resets the local NewsPub database to seeded defaults and exports a SQL dump.
 
 Options:
   --out <path>          Output SQL file. Default: dist/db/news-pub-seeded.sql
   --data-only           Export data only, without CREATE TABLE statements.
-  --reset-to-defaults   Clear runtime data first, then reseed defaults before export.
+  --keep-existing-data  Upsert seed data without clearing existing local rows.
+  --reset-to-defaults   Clear runtime data first, then reseed defaults before export. This is the default.
   --allow-remote        Allow exporting a non-local DATABASE_URL target.
   --help                Show this help text.
 
@@ -39,7 +40,7 @@ function parseArgs(argv) {
     allowRemote: false,
     dataOnly: false,
     out: defaultOutputPath,
-    resetToDefaults: false,
+    resetToDefaults: true,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -57,6 +58,11 @@ function parseArgs(argv) {
 
     if (arg === "--reset-to-defaults") {
       options.resetToDefaults = true;
+      continue;
+    }
+
+    if (arg === "--keep-existing-data") {
+      options.resetToDefaults = false;
       continue;
     }
 

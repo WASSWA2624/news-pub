@@ -26,7 +26,7 @@ Optional local seeded database export:
 npm run db:export:seeded
 ```
 
-This seeds the local `.env.local` database, then writes `dist/db/news-pub-seeded.sql`. Add `-- --data-only` to export INSERT data without table creation statements.
+This resets the local `.env.local` database to seeded defaults, then writes `dist/db/news-pub-seeded.sql`. Add `-- --data-only` to export INSERT data without table creation statements. Add `-- --keep-existing-data` only if you intentionally want to export existing local posts and media too.
 
 ## 2. Create the cPanel database
 
