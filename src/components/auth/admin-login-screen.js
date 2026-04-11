@@ -12,138 +12,41 @@ import AppIcon from "@/components/common/app-icon";
 
 const Shell = styled.main`
   align-items: center;
-  display: grid;
-  min-height: 100vh;
-  padding: clamp(0.72rem, 3vw, ${({ theme }) => theme.spacing.xl});
-`;
-
-const Panel = styled.section`
-  background:
-    radial-gradient(circle at top left, rgba(201, 123, 42, 0.22), transparent 36%),
-    linear-gradient(135deg, rgba(0, 95, 115, 0.96), rgba(16, 32, 51, 0.98));
-  border-radius: var(--theme-radius-lg, 2px);
-  box-shadow: 0 30px 90px rgba(16, 32, 51, 0.22);
-  color: white;
-  display: grid;
-  margin: 0 auto;
-  max-width: 980px;
-  overflow: hidden;
-  width: 100%;
-
-  @media (min-width: 900px) {
-    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 460px);
-  }
-`;
-
-const Narrative = styled.div`
-  display: grid;
-  gap: ${({ theme }) => theme.spacing.lg};
-  order: 2;
-  padding: clamp(1.4rem, 3vw, 2.4rem);
-
-  @media (min-width: 900px) {
-    order: 1;
-  }
-`;
-
-const NarrativeHero = styled.div`
-  display: grid;
-  gap: 0.9rem;
-`;
-
-const NarrativeIconBadge = styled.span`
-  align-items: center;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--theme-radius-lg, 2px);
-  display: inline-flex;
-  height: 3.3rem;
-  justify-content: center;
-  width: 3.3rem;
-
-  svg {
-    display: block;
-    height: 1.5rem;
-    width: 1.5rem;
-  }
-`;
-
-const Eyebrow = styled.p`
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  margin: 0;
-  text-transform: uppercase;
-`;
-
-const Title = styled.h1`
-  font-size: clamp(1.95rem, 7vw, 4rem);
-  line-height: 0.98;
-  margin: 0;
-  max-width: 10ch;
-`;
-
-const Description = styled.p`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.96rem;
-  line-height: 1.7;
-  margin: 0;
-  max-width: 54ch;
-`;
-
-const InsightGrid = styled.div`
-  display: grid;
-  gap: ${({ theme }) => theme.spacing.md};
-
-  @media (min-width: 600px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-`;
-
-const InsightCard = styled.article`
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--theme-radius-md, 1px);
-  display: grid;
-  gap: 0.28rem;
-  padding: clamp(0.68rem, 1.7vw, ${({ theme }) => theme.spacing.lg});
-`;
-
-const InsightTitleRow = styled.div`
-  align-items: center;
-  display: flex;
-  gap: 0.42rem;
-
-  svg {
-    display: block;
-    height: 1rem;
-    width: 1rem;
-  }
-`;
-
-const InsightTitle = styled.h2`
-  font-size: 1rem;
-  margin: 0;
-`;
-
-const InsightBody = styled.p`
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.6;
-  margin: 0;
-`;
-
-const FormCard = styled.div`
-  background: rgba(249, 251, 253, 0.98);
+  background: #f6f8fb;
   color: var(--theme-text, #152844);
   display: grid;
-  gap: ${({ theme }) => theme.spacing.lg};
-  order: 1;
-  padding: clamp(1.15rem, 2.3vw, 1.8rem);
+  min-height: 100vh;
+  padding: ${({ theme }) => theme.spacing.xl};
+`;
 
-  @media (min-width: 900px) {
-    order: 2;
+const FormCard = styled.section`
+  background: white;
+  border: 1px solid var(--theme-border, #d7dee8);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(16, 32, 51, 0.08);
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin: 0 auto;
+  max-width: 420px;
+  padding: 1.5rem;
+  width: 100%;
+`;
+
+const BrandMark = styled.span`
+  align-items: center;
+  background: rgba(0, 95, 115, 0.08);
+  border: 1px solid rgba(0, 95, 115, 0.14);
+  border-radius: 8px;
+  color: var(--theme-primary, #1b4f93);
+  display: inline-flex;
+  height: 2.4rem;
+  justify-content: center;
+  width: 2.4rem;
+
+  svg {
+    display: block;
+    height: 1.1rem;
+    width: 1.1rem;
   }
 `;
 
@@ -153,7 +56,8 @@ const FormHeader = styled.div`
 `;
 
 const FormTitle = styled.h2`
-  font-size: 1.45rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
   margin: 0;
 `;
 
@@ -180,29 +84,16 @@ const FieldLabel = styled.span`
 
 const FieldControl = styled.div`
   align-items: center;
-  background: white;
+  background: #fbfcfe;
   border: 1px solid var(--theme-border, #b8c8de);
-  border-radius: var(--theme-radius-sm, 0px);
+  border-radius: 6px;
   display: flex;
-  gap: 0.46rem;
-  min-height: 42px;
-  padding: 0 0.76rem;
+  min-height: 44px;
+  padding: 0 0.8rem;
 
   &:focus-within {
     border-color: var(--theme-primary, #1b4f93);
     box-shadow: 0 0 0 4px rgba(0, 95, 115, 0.12);
-  }
-`;
-
-const FieldIcon = styled.span`
-  color: var(--theme-primary, #1b4f93);
-  display: inline-flex;
-  flex: 0 0 auto;
-
-  svg {
-    display: block;
-    height: 0.94rem;
-    width: 0.94rem;
   }
 `;
 
@@ -250,7 +141,7 @@ const PasswordToggle = styled.button`
 const ErrorNotice = styled.p`
   background: rgba(180, 35, 24, 0.08);
   border: 1px solid rgba(180, 35, 24, 0.2);
-  border-radius: var(--theme-radius-sm, 0px);
+  border-radius: 6px;
   color: var(--theme-danger, #b42318);
   margin: 0;
   padding: 0.66rem 0.76rem;
@@ -260,7 +151,7 @@ const SubmitButton = styled.button`
   align-items: center;
   background: var(--theme-primary, #1b4f93);
   border: none;
-  border-radius: var(--theme-radius-lg, 2px);
+  border-radius: 6px;
   color: white;
   cursor: pointer;
   display: inline-flex;
@@ -285,13 +176,6 @@ const SubmitButton = styled.button`
     height: 0.92rem;
     width: 0.92rem;
   }
-`;
-
-const FinePrint = styled.p`
-  color: var(--theme-muted, #54657f);
-  font-size: 0.92rem;
-  line-height: 1.6;
-  margin: 0;
 `;
 
 /**
@@ -343,124 +227,60 @@ export default function AdminLoginScreen({ nextPath }) {
 
   return (
     <Shell>
-      <Panel>
-        <Narrative>
-          <NarrativeHero>
-            <NarrativeIconBadge aria-hidden="true">
-              <AppIcon name="shield" size={24} />
-            </NarrativeIconBadge>
-            <div>
-              <Eyebrow>Admin Access</Eyebrow>
-              <Title>Source-grounded publishing starts here.</Title>
-            </div>
-          </NarrativeHero>
-          <Description>
-            Release 1 keeps the public site open while the editorial workspace stays behind
-            authenticated admin sessions. Sign in with the seeded admin account to continue.
-          </Description>
-          <InsightGrid>
-            <InsightCard>
-              <InsightTitleRow>
-                <AppIcon name="lock" size={16} />
-                <InsightTitle>Email and password</InsightTitle>
-              </InsightTitleRow>
-              <InsightBody>
-                The admin workflow uses credential auth first, matching the Release 1 access rules.
-              </InsightBody>
-            </InsightCard>
-            <InsightCard>
-              <InsightTitleRow>
-                <AppIcon name="shield" size={16} />
-                <InsightTitle>Protected sessions</InsightTitle>
-              </InsightTitleRow>
-              <InsightBody>
-                Session cookies are validated server-side so expired or tampered access is rejected.
-              </InsightBody>
-            </InsightCard>
-            <InsightCard>
-              <InsightTitleRow>
-                <AppIcon name="file-text" size={16} />
-                <InsightTitle>Audit trail ready</InsightTitle>
-              </InsightTitleRow>
-              <InsightBody>
-                Login and logout events are recorded to support future editorial accountability work.
-              </InsightBody>
-            </InsightCard>
-            <InsightCard>
-              <InsightTitleRow>
-                <AppIcon name="settings" size={16} />
-                <InsightTitle>RBAC next</InsightTitle>
-              </InsightTitleRow>
-              <InsightBody>
-                This step secures the admin surface now and leaves room for role-based controls next.
-              </InsightBody>
-            </InsightCard>
-          </InsightGrid>
-        </Narrative>
-        <FormCard>
-          <FormHeader>
-            <FormTitle>Sign in to the admin workspace</FormTitle>
-            <FormDescription>
-              Use the seeded admin credentials from your environment and Prisma seed setup.
-            </FormDescription>
-          </FormHeader>
-          <Form onSubmit={handleSubmit}>
-            <Field>
-              <FieldLabel>Email address</FieldLabel>
+      <FormCard>
+        <BrandMark aria-hidden="true">
+          <AppIcon name="shield" size={18} />
+        </BrandMark>
+        <FormHeader>
+          <FormTitle>Admin sign in</FormTitle>
+          <FormDescription>Use your seeded admin account.</FormDescription>
+        </FormHeader>
+        <Form onSubmit={handleSubmit}>
+          <Field>
+            <FieldLabel>Email address</FieldLabel>
+            <FieldControl>
+              <Input
+                autoComplete="email"
+                name="email"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="admin@example.com"
+                required
+                type="email"
+                value={email}
+              />
+            </FieldControl>
+          </Field>
+          <Field>
+            <FieldLabel>Password</FieldLabel>
+            <PasswordField>
               <FieldControl>
-                <FieldIcon aria-hidden="true">
-                  <AppIcon name="user" size={15} />
-                </FieldIcon>
-                <Input
-                  autoComplete="email"
-                  name="email"
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="admin@example.com"
+                <PasswordInput
+                  autoComplete="current-password"
+                  name="password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
                   required
-                  type="email"
-                  value={email}
+                  type={isPasswordVisible ? "text" : "password"}
+                  value={password}
                 />
+                <PasswordToggle
+                  aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  aria-pressed={isPasswordVisible}
+                  onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                  type="button"
+                >
+                  <AppIcon name={isPasswordVisible ? "eye-off" : "eye"} size={15} />
+                </PasswordToggle>
               </FieldControl>
-            </Field>
-            <Field>
-              <FieldLabel>Password</FieldLabel>
-              <PasswordField>
-                <FieldControl>
-                  <FieldIcon aria-hidden="true">
-                    <AppIcon name="lock" size={15} />
-                  </FieldIcon>
-                  <PasswordInput
-                    autoComplete="current-password"
-                    name="password"
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    type={isPasswordVisible ? "text" : "password"}
-                    value={password}
-                  />
-                  <PasswordToggle
-                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                    aria-pressed={isPasswordVisible}
-                    onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                    type="button"
-                  >
-                    <AppIcon name={isPasswordVisible ? "eye-off" : "eye"} size={15} />
-                  </PasswordToggle>
-                </FieldControl>
-              </PasswordField>
-            </Field>
-            {error ? <ErrorNotice aria-live="polite">{error}</ErrorNotice> : null}
-            <SubmitButton disabled={isSubmitting || isNavigating} type="submit">
-              <AppIcon name="log-in" size={15} />
-              {isSubmitting || isNavigating ? "Signing in..." : "Sign in"}
-            </SubmitButton>
-          </Form>
-          <FinePrint>
-            Successful sign-in returns you to the requested admin route and creates a protected session
-            cookie.
-          </FinePrint>
-        </FormCard>
-      </Panel>
+            </PasswordField>
+          </Field>
+          {error ? <ErrorNotice aria-live="polite">{error}</ErrorNotice> : null}
+          <SubmitButton disabled={isSubmitting || isNavigating} type="submit">
+            <AppIcon name="log-in" size={15} />
+            {isSubmitting || isNavigating ? "Signing in..." : "Sign in"}
+          </SubmitButton>
+        </Form>
+      </FormCard>
     </Shell>
   );
 }
