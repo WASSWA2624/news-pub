@@ -190,3 +190,4 @@ It checks that the package starts through `app.js`, the required environment var
 - Seeded admin password mismatch: run `npm run cpanel:db:seed`, restart the app, then sign in with `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`.
 - Missing `mariadb` dependency: run cPanel **NPM Install**, then rerun database deploy.
 - Startup failure: confirm Node.js 20 or 22, startup file `app.js`, and upload source `dist/cpanel`.
+- Redirect fetch errors to `0.0.0.0:3000`: rebuild and upload the latest cPanel package so `app.js` defaults `HOSTNAME` to `127.0.0.1` for Next internal self-fetches, then restart the app.

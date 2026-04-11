@@ -33,7 +33,9 @@ function writeRuntimeEntryPoint() {
 const path = require("node:path");
 
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
-process.env.HOSTNAME = process.env.HOSTNAME || "0.0.0.0";
+// Next standalone may reuse HOSTNAME for internal self-fetches. 0.0.0.0 is
+// valid for binding but not as a connect target, so default to loopback.
+process.env.HOSTNAME = process.env.HOSTNAME || "127.0.0.1";
 
 function parseEnvValue(value) {
   const trimmed = (value || "").trim();
