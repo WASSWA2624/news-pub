@@ -4,6 +4,14 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const {
+  buildPrismaTableCaseNormalizationPlan,
+  formatDatabaseConnectionFailure,
+  formatPrismaTableCaseConflicts,
+  formatPrismaTableCaseNormalizationPlan,
+  listSchemaTableNames,
+} = require("./cpanel-db-utils");
+
 const rootDir = process.cwd();
 const migrationsDir = path.join(rootDir, "prisma", "migrations");
 
@@ -184,20 +192,38 @@ function checkRuntimePackage(failures, warnings) {
   }
 }
 
-async function hasTable(connection, database, tableName) {
-  const rows = await connection.query(
-    "SELECT `TABLE_NAME` FROM `information_schema`.`TABLES` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ? LIMIT 1",
-    [database, tableName],
-  );
-
-  return rows.length > 0;
-}
-
 async function checkDatabase(connection, databaseConfig, failures) {
+  const tableNames = await listSchemaTableNames(connection, databaseConfig.database);
+  const tableNameSet = new Set(tableNames);
+  const normalizationPlan = buildPrismaTableCaseNormalizationPlan(tableNames);
   const requiredTables = ["_prisma_migrations", "User", "AdminSession", "AuditEvent"];
 
+  if (normalizationPlan.conflicts.length > 0) {
+    failures.push(
+      [
+        "Conflicting Prisma table name variants were found:",
+        formatPrismaTableCaseConflicts(normalizationPlan.conflicts),
+        "Keep only one copy of each Prisma table, then rerun npm run cpanel:db:deploy in the cPanel app root.",
+      ].join(" "),
+    );
+
+    return;
+  }
+
+  if (normalizationPlan.renames.length > 0) {
+    failures.push(
+      [
+        "Lowercase imported Prisma tables were found:",
+        formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames),
+        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them for Prisma on Linux, then restart the app.",
+      ].join(" "),
+    );
+
+    return;
+  }
+
   for (const tableName of requiredTables) {
-    if (!(await hasTable(connection, databaseConfig.database, tableName))) {
+    if (!tableNameSet.has(tableName)) {
       failures.push(`Database table ${tableName} is missing. Run npm run cpanel:db:deploy in the cPanel app root.`);
     }
   }
@@ -314,11 +340,16 @@ async function main() {
 
         try {
           connection = await mariadb.createConnection(databaseConfig);
-          await checkDatabase(connection, databaseConfig, failures);
         } catch (error) {
-          failures.push(`Database check failed: ${error instanceof Error ? error.message : error}`);
-        } finally {
-          if (connection) {
+          failures.push(formatDatabaseConnectionFailure(error));
+        }
+
+        if (connection) {
+          try {
+            await checkDatabase(connection, databaseConfig, failures);
+          } catch (error) {
+            failures.push(`Database check failed: ${error instanceof Error ? error.message : error}`);
+          } finally {
             await connection.end();
           }
         }

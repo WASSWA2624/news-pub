@@ -4,6 +4,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
+const {
+  formatDatabaseConnectionFailure,
+  formatPrismaTableCaseNormalizationPlan,
+  normalizePrismaTableCase,
+} = require("./cpanel-db-utils");
+
 const rootDir = process.cwd();
 
 function parseEnvValue(value) {
@@ -51,6 +57,28 @@ function requiredEnv(name) {
   return value;
 }
 
+function parseDatabaseUrl() {
+  const databaseUrl = requiredEnv("DATABASE_URL");
+  const parsedUrl = new URL(databaseUrl);
+  const database = parsedUrl.pathname.replace(/^\//, "");
+
+  if (!["mysql:", "mariadb:"].includes(parsedUrl.protocol)) {
+    throw new Error("DATABASE_URL must use mysql:// or mariadb://.");
+  }
+
+  if (!database || !parsedUrl.username) {
+    throw new Error("DATABASE_URL must include a database name and username.");
+  }
+
+  return {
+    database,
+    host: parsedUrl.hostname || "localhost",
+    password: decodeURIComponent(parsedUrl.password || ""),
+    port: parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306,
+    user: decodeURIComponent(parsedUrl.username),
+  };
+}
+
 function ensureRequiredSeedEnv() {
   requiredEnv("DATABASE_URL");
   requiredEnv("ADMIN_SEED_EMAIL");
@@ -95,18 +123,52 @@ function runSeed() {
   }
 }
 
-function main() {
+async function normalizeImportedPrismaTables() {
+  const databaseConfig = parseDatabaseUrl();
+  let mariadb;
+
+  try {
+    mariadb = require("mariadb");
+  } catch (error) {
+    if (error?.code === "MODULE_NOT_FOUND") {
+      throw new Error("The mariadb dependency is missing. Run cPanel NPM Install before running the data seed.");
+    }
+
+    throw error;
+  }
+
+  let connection;
+
+  try {
+    connection = await mariadb.createConnection(databaseConfig);
+  } catch (error) {
+    throw new Error(formatDatabaseConnectionFailure(error));
+  }
+
+  try {
+    const normalizationPlan = await normalizePrismaTableCase(connection, databaseConfig.database);
+
+    if (normalizationPlan.renames.length > 0) {
+      console.log(
+        `Normalized imported Prisma table names for cPanel: ${formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames)}.`,
+      );
+    }
+  } finally {
+    await connection.end();
+  }
+}
+
+async function main() {
   loadRuntimeEnv();
   ensureRequiredSeedEnv();
+  await normalizeImportedPrismaTables();
   ensureRootGeneratedPrismaClient();
   runSeed();
   console.log("cPanel data seed complete.");
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error("cPanel data seed failed.");
   console.error(error);
   process.exitCode = 1;
-}
+});

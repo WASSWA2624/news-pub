@@ -5,6 +5,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
+const {
+  formatDatabaseConnectionFailure,
+  formatPrismaTableCaseNormalizationPlan,
+  normalizePrismaTableCase,
+} = require("./cpanel-db-utils");
+
 const rootDir = process.cwd();
 const migrationsDir = path.join(rootDir, "prisma", "migrations");
 
@@ -239,9 +245,23 @@ async function applyMigrations() {
     throw error;
   }
 
-  const connection = await mariadb.createConnection(databaseConfig);
+  let connection;
 
   try {
+    connection = await mariadb.createConnection(databaseConfig);
+  } catch (error) {
+    throw new Error(formatDatabaseConnectionFailure(error));
+  }
+
+  try {
+    const normalizationPlan = await normalizePrismaTableCase(connection, databaseConfig.database);
+
+    if (normalizationPlan.renames.length > 0) {
+      console.log(
+        `Normalized imported Prisma table names for cPanel: ${formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames)}.`,
+      );
+    }
+
     await ensureMigrationTable(connection);
 
     for (const migrationName of getMigrationNames()) {
