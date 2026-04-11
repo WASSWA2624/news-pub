@@ -14,7 +14,7 @@
     "prestart": "npm run build",
     "build": "next build",
     "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",
-    "start": "node .next/standalone/server.js",
+    "start": "node scripts/start-standalone.js",
     "lint": "eslint .",
     "repo:check": "node scripts/check-repo-hygiene.js",
     "test": "vitest run",
