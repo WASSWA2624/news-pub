@@ -1,2 +1,2 @@
-ALTER TABLE `FetchRun`
+ALTER TABLE `fetchrun`
     ADD COLUMN `executionDetailsJson` JSON NULL;

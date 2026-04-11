@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE `Locale` (
+CREATE TABLE `locale` (
     `code` VARCHAR(16) NOT NULL,
     `name` VARCHAR(64) NOT NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
@@ -11,7 +11,7 @@ CREATE TABLE `Locale` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `User` (
+CREATE TABLE `user` (
     `id` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE `User` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `AdminSession` (
+CREATE TABLE `adminsession` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `tokenHash` VARCHAR(64) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE `AdminSession` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `NewsProviderConfig` (
+CREATE TABLE `newsproviderconfig` (
     `id` VARCHAR(191) NOT NULL,
     `providerKey` VARCHAR(64) NOT NULL,
     `label` VARCHAR(191) NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE `NewsProviderConfig` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Destination` (
+CREATE TABLE `destination` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE `Destination` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Category` (
+CREATE TABLE `category` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE `Category` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `MediaAsset` (
+CREATE TABLE `mediaasset` (
     `id` VARCHAR(191) NOT NULL,
     `fileName` VARCHAR(255) NULL,
     `fileSizeBytes` INTEGER NULL,
@@ -128,7 +128,7 @@ CREATE TABLE `MediaAsset` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `MediaVariant` (
+CREATE TABLE `mediavariant` (
     `id` VARCHAR(191) NOT NULL,
     `mediaAssetId` VARCHAR(191) NOT NULL,
     `variantKey` VARCHAR(64) NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE `MediaVariant` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `FetchedArticle` (
+CREATE TABLE `fetchedarticle` (
     `id` VARCHAR(191) NOT NULL,
     `providerConfigId` VARCHAR(191) NOT NULL,
     `featuredMediaId` VARCHAR(191) NULL,
@@ -184,7 +184,7 @@ CREATE TABLE `FetchedArticle` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Post` (
+CREATE TABLE `post` (
     `id` VARCHAR(191) NOT NULL,
     `sourceArticleId` VARCHAR(191) NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -209,7 +209,7 @@ CREATE TABLE `Post` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `PostTranslation` (
+CREATE TABLE `posttranslation` (
     `id` VARCHAR(191) NOT NULL,
     `postId` VARCHAR(191) NOT NULL,
     `locale` VARCHAR(16) NOT NULL,
@@ -228,7 +228,7 @@ CREATE TABLE `PostTranslation` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ProviderFetchCheckpoint` (
+CREATE TABLE `providerfetchcheckpoint` (
     `id` VARCHAR(191) NOT NULL,
     `streamId` VARCHAR(191) NOT NULL,
     `providerConfigId` VARCHAR(191) NOT NULL,
@@ -242,7 +242,7 @@ CREATE TABLE `ProviderFetchCheckpoint` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `PublishingStream` (
+CREATE TABLE `publishingstream` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -281,7 +281,7 @@ CREATE TABLE `PublishingStream` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ArticleMatch` (
+CREATE TABLE `articlematch` (
     `id` VARCHAR(191) NOT NULL,
     `fetchedArticleId` VARCHAR(191) NOT NULL,
     `streamId` VARCHAR(191) NOT NULL,
@@ -307,7 +307,7 @@ CREATE TABLE `ArticleMatch` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `DestinationTemplate` (
+CREATE TABLE `destinationtemplate` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `platform` ENUM('WEBSITE', 'FACEBOOK', 'INSTAGRAM') NOT NULL,
@@ -328,7 +328,7 @@ CREATE TABLE `DestinationTemplate` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `SEORecord` (
+CREATE TABLE `seorecord` (
     `id` VARCHAR(191) NOT NULL,
     `postTranslationId` VARCHAR(191) NOT NULL,
     `canonicalUrl` VARCHAR(2048) NOT NULL,
@@ -350,7 +350,7 @@ CREATE TABLE `SEORecord` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ViewEvent` (
+CREATE TABLE `viewevent` (
     `id` VARCHAR(191) NOT NULL,
     `postId` VARCHAR(191) NULL,
     `path` VARCHAR(2048) NOT NULL,
@@ -367,7 +367,7 @@ CREATE TABLE `ViewEvent` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `AuditEvent` (
+CREATE TABLE `auditevent` (
     `id` VARCHAR(191) NOT NULL,
     `actorId` VARCHAR(191) NULL,
     `entityType` VARCHAR(64) NOT NULL,
@@ -380,7 +380,7 @@ CREATE TABLE `AuditEvent` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `PostCategory` (
+CREATE TABLE `postcategory` (
     `postId` VARCHAR(191) NOT NULL,
     `categoryId` VARCHAR(191) NOT NULL,
 
@@ -389,7 +389,7 @@ CREATE TABLE `PostCategory` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `StreamCategory` (
+CREATE TABLE `streamcategory` (
     `streamId` VARCHAR(191) NOT NULL,
     `categoryId` VARCHAR(191) NOT NULL,
 
@@ -398,7 +398,7 @@ CREATE TABLE `StreamCategory` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `PublishAttempt` (
+CREATE TABLE `publishattempt` (
     `id` VARCHAR(191) NOT NULL,
     `articleMatchId` VARCHAR(191) NOT NULL,
     `streamId` VARCHAR(191) NOT NULL,
@@ -428,7 +428,7 @@ CREATE TABLE `PublishAttempt` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `FetchRun` (
+CREATE TABLE `fetchrun` (
     `id` VARCHAR(191) NOT NULL,
     `streamId` VARCHAR(191) NOT NULL,
     `providerConfigId` VARCHAR(191) NOT NULL,
@@ -459,115 +459,115 @@ CREATE TABLE `FetchRun` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `AdminSession` ADD CONSTRAINT `AdminSession_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `adminsession` ADD CONSTRAINT `AdminSession_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `MediaVariant` ADD CONSTRAINT `MediaVariant_mediaAssetId_fkey` FOREIGN KEY (`mediaAssetId`) REFERENCES `MediaAsset`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `mediavariant` ADD CONSTRAINT `MediaVariant_mediaAssetId_fkey` FOREIGN KEY (`mediaAssetId`) REFERENCES `mediaasset`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FetchedArticle` ADD CONSTRAINT `FetchedArticle_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `NewsProviderConfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `fetchedarticle` ADD CONSTRAINT `FetchedArticle_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `newsproviderconfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FetchedArticle` ADD CONSTRAINT `FetchedArticle_featuredMediaId_fkey` FOREIGN KEY (`featuredMediaId`) REFERENCES `MediaAsset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `fetchedarticle` ADD CONSTRAINT `FetchedArticle_featuredMediaId_fkey` FOREIGN KEY (`featuredMediaId`) REFERENCES `mediaasset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Post` ADD CONSTRAINT `Post_sourceArticleId_fkey` FOREIGN KEY (`sourceArticleId`) REFERENCES `FetchedArticle`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `post` ADD CONSTRAINT `Post_sourceArticleId_fkey` FOREIGN KEY (`sourceArticleId`) REFERENCES `fetchedarticle`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Post` ADD CONSTRAINT `Post_featuredImageId_fkey` FOREIGN KEY (`featuredImageId`) REFERENCES `MediaAsset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `post` ADD CONSTRAINT `Post_featuredImageId_fkey` FOREIGN KEY (`featuredImageId`) REFERENCES `mediaasset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Post` ADD CONSTRAINT `Post_authorId_fkey` FOREIGN KEY (`authorId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `post` ADD CONSTRAINT `Post_authorId_fkey` FOREIGN KEY (`authorId`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PostTranslation` ADD CONSTRAINT `PostTranslation_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `Post`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `posttranslation` ADD CONSTRAINT `PostTranslation_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `post`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PostTranslation` ADD CONSTRAINT `PostTranslation_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `Locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `posttranslation` ADD CONSTRAINT `PostTranslation_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProviderFetchCheckpoint` ADD CONSTRAINT `ProviderFetchCheckpoint_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `PublishingStream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `providerfetchcheckpoint` ADD CONSTRAINT `ProviderFetchCheckpoint_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `publishingstream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProviderFetchCheckpoint` ADD CONSTRAINT `ProviderFetchCheckpoint_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `NewsProviderConfig`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `providerfetchcheckpoint` ADD CONSTRAINT `ProviderFetchCheckpoint_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `newsproviderconfig`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishingStream` ADD CONSTRAINT `PublishingStream_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `Destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `publishingstream` ADD CONSTRAINT `PublishingStream_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishingStream` ADD CONSTRAINT `PublishingStream_activeProviderId_fkey` FOREIGN KEY (`activeProviderId`) REFERENCES `NewsProviderConfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `publishingstream` ADD CONSTRAINT `PublishingStream_activeProviderId_fkey` FOREIGN KEY (`activeProviderId`) REFERENCES `newsproviderconfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishingStream` ADD CONSTRAINT `PublishingStream_defaultTemplateId_fkey` FOREIGN KEY (`defaultTemplateId`) REFERENCES `DestinationTemplate`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `publishingstream` ADD CONSTRAINT `PublishingStream_defaultTemplateId_fkey` FOREIGN KEY (`defaultTemplateId`) REFERENCES `destinationtemplate`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishingStream` ADD CONSTRAINT `PublishingStream_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `Locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `publishingstream` ADD CONSTRAINT `PublishingStream_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ArticleMatch` ADD CONSTRAINT `ArticleMatch_fetchedArticleId_fkey` FOREIGN KEY (`fetchedArticleId`) REFERENCES `FetchedArticle`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `articlematch` ADD CONSTRAINT `ArticleMatch_fetchedArticleId_fkey` FOREIGN KEY (`fetchedArticleId`) REFERENCES `fetchedarticle`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ArticleMatch` ADD CONSTRAINT `ArticleMatch_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `PublishingStream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `articlematch` ADD CONSTRAINT `ArticleMatch_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `publishingstream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ArticleMatch` ADD CONSTRAINT `ArticleMatch_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `Destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `articlematch` ADD CONSTRAINT `ArticleMatch_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ArticleMatch` ADD CONSTRAINT `ArticleMatch_canonicalPostId_fkey` FOREIGN KEY (`canonicalPostId`) REFERENCES `Post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `articlematch` ADD CONSTRAINT `ArticleMatch_canonicalPostId_fkey` FOREIGN KEY (`canonicalPostId`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ArticleMatch` ADD CONSTRAINT `ArticleMatch_duplicateOfMatchId_fkey` FOREIGN KEY (`duplicateOfMatchId`) REFERENCES `ArticleMatch`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `articlematch` ADD CONSTRAINT `ArticleMatch_duplicateOfMatchId_fkey` FOREIGN KEY (`duplicateOfMatchId`) REFERENCES `articlematch`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `DestinationTemplate` ADD CONSTRAINT `DestinationTemplate_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `Locale`(`code`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `destinationtemplate` ADD CONSTRAINT `DestinationTemplate_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `locale`(`code`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `DestinationTemplate` ADD CONSTRAINT `DestinationTemplate_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `destinationtemplate` ADD CONSTRAINT `DestinationTemplate_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `SEORecord` ADD CONSTRAINT `SEORecord_postTranslationId_fkey` FOREIGN KEY (`postTranslationId`) REFERENCES `PostTranslation`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `seorecord` ADD CONSTRAINT `SEORecord_postTranslationId_fkey` FOREIGN KEY (`postTranslationId`) REFERENCES `posttranslation`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `SEORecord` ADD CONSTRAINT `SEORecord_ogImageId_fkey` FOREIGN KEY (`ogImageId`) REFERENCES `MediaAsset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `seorecord` ADD CONSTRAINT `SEORecord_ogImageId_fkey` FOREIGN KEY (`ogImageId`) REFERENCES `mediaasset`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ViewEvent` ADD CONSTRAINT `ViewEvent_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `Post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `viewevent` ADD CONSTRAINT `ViewEvent_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ViewEvent` ADD CONSTRAINT `ViewEvent_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `Locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `viewevent` ADD CONSTRAINT `ViewEvent_locale_fkey` FOREIGN KEY (`locale`) REFERENCES `locale`(`code`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `AuditEvent` ADD CONSTRAINT `AuditEvent_actorId_fkey` FOREIGN KEY (`actorId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `auditevent` ADD CONSTRAINT `AuditEvent_actorId_fkey` FOREIGN KEY (`actorId`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PostCategory` ADD CONSTRAINT `PostCategory_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `Post`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `postcategory` ADD CONSTRAINT `PostCategory_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `post`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PostCategory` ADD CONSTRAINT `PostCategory_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `postcategory` ADD CONSTRAINT `PostCategory_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `StreamCategory` ADD CONSTRAINT `StreamCategory_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `PublishingStream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `streamcategory` ADD CONSTRAINT `StreamCategory_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `publishingstream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `StreamCategory` ADD CONSTRAINT `StreamCategory_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `streamcategory` ADD CONSTRAINT `StreamCategory_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `category`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishAttempt` ADD CONSTRAINT `PublishAttempt_articleMatchId_fkey` FOREIGN KEY (`articleMatchId`) REFERENCES `ArticleMatch`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `publishattempt` ADD CONSTRAINT `PublishAttempt_articleMatchId_fkey` FOREIGN KEY (`articleMatchId`) REFERENCES `articlematch`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishAttempt` ADD CONSTRAINT `PublishAttempt_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `PublishingStream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `publishattempt` ADD CONSTRAINT `PublishAttempt_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `publishingstream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishAttempt` ADD CONSTRAINT `PublishAttempt_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `Destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `publishattempt` ADD CONSTRAINT `PublishAttempt_destinationId_fkey` FOREIGN KEY (`destinationId`) REFERENCES `destination`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PublishAttempt` ADD CONSTRAINT `PublishAttempt_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `Post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `publishattempt` ADD CONSTRAINT `PublishAttempt_postId_fkey` FOREIGN KEY (`postId`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FetchRun` ADD CONSTRAINT `FetchRun_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `PublishingStream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `fetchrun` ADD CONSTRAINT `FetchRun_streamId_fkey` FOREIGN KEY (`streamId`) REFERENCES `publishingstream`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FetchRun` ADD CONSTRAINT `FetchRun_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `NewsProviderConfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `fetchrun` ADD CONSTRAINT `FetchRun_providerConfigId_fkey` FOREIGN KEY (`providerConfigId`) REFERENCES `newsproviderconfig`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `FetchRun` ADD CONSTRAINT `FetchRun_requestedById_fkey` FOREIGN KEY (`requestedById`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `fetchrun` ADD CONSTRAINT `FetchRun_requestedById_fkey` FOREIGN KEY (`requestedById`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

@@ -126,6 +126,8 @@ model Locale {
   optimizationCaches   OptimizationCache[]
   publishingStreams    PublishingStream[]
   viewEvents           ViewEvent[]
+
+  @@map("locale")
 }
 
 model User {
@@ -141,6 +143,8 @@ model User {
   authoredPosts Post[]         @relation("PostAuthor")
   auditEvents   AuditEvent[]
   fetchRuns     FetchRun[]     @relation("FetchRunRequester")
+
+  @@map("user")
 }
 
 model AdminSession {
@@ -156,6 +160,7 @@ model AdminSession {
 
   @@index([expiresAt])
   @@index([userId, expiresAt])
+  @@map("adminsession")
 }
 
 model NewsProviderConfig {
@@ -176,6 +181,7 @@ model NewsProviderConfig {
   fetchRuns           FetchRun[]
 
   @@index([isEnabled, isDefault])
+  @@map("newsproviderconfig")
 }
 
 model Destination {
@@ -202,6 +208,7 @@ model Destination {
   publishAttempts          PublishAttempt[]
 
   @@index([platform, connectionStatus])
+  @@map("destination")
 }
 
 model Category {
@@ -214,6 +221,8 @@ model Category {
   posts                PostCategory[]
   streamAssignments    StreamCategory[]
   destinationTemplates DestinationTemplate[]
+
+  @@map("category")
 }
 
 model MediaAsset {
@@ -242,6 +251,7 @@ model MediaAsset {
   seoOgRecords    SEORecord[]     @relation("SeoOgImage")
 
   @@index([sourceDomain])
+  @@map("mediaasset")
 }
 
 model MediaVariant {
@@ -262,6 +272,7 @@ model MediaVariant {
 
   @@index([mediaAssetId])
   @@index([mediaAssetId, variantKey])
+  @@map("mediavariant")
 }
 
 model FetchedArticle {
@@ -298,6 +309,7 @@ model FetchedArticle {
   @@index([providerConfigId, publishedAt])
   @@index([sourceUrlHash, publishedAt])
   @@index([normalizedTitleHash, publishedAt])
+  @@map("fetchedarticle")
 }
 
 model Post {
@@ -328,6 +340,7 @@ model Post {
 
   @@index([status, publishedAt])
   @@index([status, scheduledPublishAt])
+  @@map("post")
 }
 
 model PostTranslation {
@@ -348,6 +361,7 @@ model PostTranslation {
 
   @@unique([postId, locale])
   @@index([locale, postId])
+  @@map("posttranslation")
 }
 
 model ProviderFetchCheckpoint {
@@ -362,6 +376,7 @@ model ProviderFetchCheckpoint {
   providerConfig        NewsProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
 
   @@unique([streamId, providerConfigId])
+  @@map("providerfetchcheckpoint")
 }
 
 model PublishingStream {
@@ -407,6 +422,7 @@ model PublishingStream {
   @@index([status, destinationId])
   @@index([destinationId, mode, status])
   @@index([activeProviderId, status])
+  @@map("publishingstream")
 }
 
 model ArticleMatch {
@@ -453,6 +469,7 @@ model ArticleMatch {
   @@index([destinationId, status])
   @@index([destinationId, policyStatus])
   @@index([canonicalPostId])
+  @@map("articlematch")
 }
 
 model OptimizationCache {
@@ -480,6 +497,7 @@ model OptimizationCache {
 
   @@index([platform, destinationKind, locale])
   @@index([status, updatedAt])
+  @@map("optimizationcache")
 }
 
 model DestinationTemplate {
@@ -502,6 +520,7 @@ model DestinationTemplate {
   @@unique([name, platform, locale])
   @@index([platform, locale, isDefault])
   @@index([platform, categoryId])
+  @@map("destinationtemplate")
 }
 
 model SEORecord {
@@ -522,6 +541,8 @@ model SEORecord {
   updatedAt          DateTime        @updatedAt
   postTranslation    PostTranslation @relation(fields: [postTranslationId], references: [id], onDelete: Cascade)
   ogImage            MediaAsset?     @relation("SeoOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+
+  @@map("seorecord")
 }
 
 model ViewEvent {
@@ -539,6 +560,7 @@ model ViewEvent {
 
   @@index([eventType, createdAt])
   @@index([postId, createdAt])
+  @@map("viewevent")
 }
 
 model AuditEvent {
@@ -550,6 +572,8 @@ model AuditEvent {
   payloadJson Json?
   createdAt   DateTime @default(now())
   actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@map("auditevent")
 }
 
 model PostCategory {
@@ -560,6 +584,7 @@ model PostCategory {
 
   @@id([postId, categoryId])
   @@index([categoryId])
+  @@map("postcategory")
 }
 
 model StreamCategory {
@@ -570,6 +595,7 @@ model StreamCategory {
 
   @@id([streamId, categoryId])
   @@index([categoryId])
+  @@map("streamcategory")
 }
 
 model PublishAttempt {
@@ -604,6 +630,7 @@ model PublishAttempt {
   @@index([destinationId, status, createdAt])
   @@index([streamId, status, createdAt])
   @@index([postId, createdAt])
+  @@map("publishattempt")
 }
 
 model FetchRun {
@@ -640,4 +667,5 @@ model FetchRun {
 
   @@index([streamId, startedAt])
   @@index([status, startedAt])
+  @@map("fetchrun")
 }

@@ -1,27 +1,29 @@
+const crypto = require("node:crypto");
+
 const PRISMA_CANONICAL_TABLE_NAMES = Object.freeze([
-  "Locale",
-  "User",
-  "AdminSession",
-  "NewsProviderConfig",
-  "Destination",
-  "Category",
-  "MediaAsset",
-  "MediaVariant",
-  "FetchedArticle",
-  "Post",
-  "PostTranslation",
-  "ProviderFetchCheckpoint",
-  "PublishingStream",
-  "ArticleMatch",
-  "OptimizationCache",
-  "DestinationTemplate",
-  "SEORecord",
-  "ViewEvent",
-  "AuditEvent",
-  "PostCategory",
-  "StreamCategory",
-  "PublishAttempt",
-  "FetchRun",
+  "locale",
+  "user",
+  "adminsession",
+  "newsproviderconfig",
+  "destination",
+  "category",
+  "mediaasset",
+  "mediavariant",
+  "fetchedarticle",
+  "post",
+  "posttranslation",
+  "providerfetchcheckpoint",
+  "publishingstream",
+  "articlematch",
+  "optimizationcache",
+  "destinationtemplate",
+  "seorecord",
+  "viewevent",
+  "auditevent",
+  "postcategory",
+  "streamcategory",
+  "publishattempt",
+  "fetchrun",
 ]);
 
 function escapeIdentifier(identifier) {
@@ -123,11 +125,34 @@ async function normalizePrismaTableCase(connection, database) {
     return plan;
   }
 
-  const renameClauses = plan.renames.map(
-    ({ from, to }) => `${escapeIdentifier(from)} TO ${escapeIdentifier(to)}`,
+  const knownTableNames = new Set(tableNames);
+  const temporaryRenames = plan.renames.map(({ from, to }, index) => {
+    let temporaryName;
+
+    do {
+      temporaryName = `__np_tmp_${index}_${crypto.randomUUID().replace(/-/g, "")}`;
+    } while (knownTableNames.has(temporaryName));
+
+    knownTableNames.add(temporaryName);
+
+    return {
+      from,
+      temporaryName,
+      to,
+    };
+  });
+
+  await connection.query(
+    `RENAME TABLE ${temporaryRenames
+      .map(({ from, temporaryName }) => `${escapeIdentifier(from)} TO ${escapeIdentifier(temporaryName)}`)
+      .join(", ")}`,
   );
 
-  await connection.query(`RENAME TABLE ${renameClauses.join(", ")}`);
+  await connection.query(
+    `RENAME TABLE ${temporaryRenames
+      .map(({ temporaryName, to }) => `${escapeIdentifier(temporaryName)} TO ${escapeIdentifier(to)}`)
+      .join(", ")}`,
+  );
 
   return plan;
 }

@@ -150,7 +150,7 @@ async function normalizeImportedPrismaTables() {
 
     if (normalizationPlan.renames.length > 0) {
       console.log(
-        `Normalized imported Prisma table names for cPanel: ${formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames)}.`,
+        `Normalized legacy Prisma table names for cPanel: ${formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames)}.`,
       );
     }
   } finally {

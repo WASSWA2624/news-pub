@@ -196,7 +196,7 @@ async function checkDatabase(connection, databaseConfig, failures) {
   const tableNames = await listSchemaTableNames(connection, databaseConfig.database);
   const tableNameSet = new Set(tableNames);
   const normalizationPlan = buildPrismaTableCaseNormalizationPlan(tableNames);
-  const requiredTables = ["_prisma_migrations", "User", "AdminSession", "AuditEvent"];
+  const requiredTables = ["_prisma_migrations", "user", "adminsession", "auditevent"];
 
   if (normalizationPlan.conflicts.length > 0) {
     failures.push(
@@ -213,9 +213,9 @@ async function checkDatabase(connection, databaseConfig, failures) {
   if (normalizationPlan.renames.length > 0) {
     failures.push(
       [
-        "Lowercase imported Prisma tables were found:",
+        "Legacy mixed-case Prisma tables were found:",
         formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames),
-        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them for Prisma on Linux, then restart the app.",
+        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them to the lowercase Prisma table convention, then restart the app.",
       ].join(" "),
     );
 
@@ -252,7 +252,7 @@ async function checkDatabase(connection, databaseConfig, failures) {
   const adminEmail = getEnvValue("ADMIN_SEED_EMAIL").toLowerCase();
   const adminPassword = getEnvValue("ADMIN_SEED_PASSWORD");
   const users = await connection.query(
-    "SELECT `email`, `isActive`, `passwordHash`, `role` FROM `User` WHERE `email` = ? LIMIT 1",
+    "SELECT `email`, `isActive`, `passwordHash`, `role` FROM `user` WHERE `email` = ? LIMIT 1",
     [adminEmail],
   );
   const adminUser = users[0];

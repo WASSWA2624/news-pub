@@ -140,7 +140,7 @@ node scripts/cpanel-db-deploy.js
 ```
 
 This applies Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams. It is safe to rerun; applied migrations are skipped and seed records are upserted.
-The latest package also normalizes phpMyAdmin-style lowercase Prisma table names such as `user` and `adminsession` to the canonical Prisma names required by Linux cPanel hosts.
+The latest package uses lowercase Prisma table names by default and normalizes legacy mixed-case tables from older uploads before seeding.
 
 If the database tables already exist and you only want to seed default data:
 
@@ -186,7 +186,7 @@ It checks that the package starts through `app.js`, the required environment var
 - Failed migration retry: use a new database or drop the partially created tables first. Emptying tables is not enough.
 - Missing `DATABASE_URL`: add it to cPanel env vars, `.env.production`, or `.env`.
 - Login reports database not ready: run `npm run cpanel:db:deploy`, restart the app, then retry `npm run cpanel:doctor`.
-- Imported SQL dump created lowercase Prisma tables: rerun `npm run cpanel:db:deploy` with the latest package to normalize the table names for Prisma on Linux.
+- Older database uses mixed-case Prisma tables: rerun `npm run cpanel:db:deploy` with the latest package to normalize them to the lowercase table convention.
 - Seeded admin password mismatch: run `npm run cpanel:db:seed`, restart the app, then sign in with `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`.
 - Missing `mariadb` dependency: run cPanel **NPM Install**, then rerun database deploy.
 - Startup failure: confirm Node.js 20 or 22, startup file `app.js`, and upload source `dist/cpanel`.

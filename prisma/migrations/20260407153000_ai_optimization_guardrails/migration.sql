@@ -1,7 +1,7 @@
-ALTER TABLE `Post`
+ALTER TABLE `post`
     ADD COLUMN `canonicalContentHash` VARCHAR(64) NULL;
 
-ALTER TABLE `ArticleMatch`
+ALTER TABLE `articlematch`
     ADD COLUMN `optimizationCacheId` VARCHAR(191) NULL,
     ADD COLUMN `workflowStage` ENUM('INGESTED', 'OPTIMIZED', 'HELD', 'REVIEW_REQUIRED', 'APPROVED', 'SCHEDULED', 'PUBLISHED', 'FAILED') NOT NULL DEFAULT 'INGESTED',
     ADD COLUMN `optimizationStatus` ENUM('NOT_REQUESTED', 'PENDING', 'COMPLETED', 'FALLBACK', 'SKIPPED', 'FAILED') NOT NULL DEFAULT 'NOT_REQUESTED',
@@ -15,7 +15,7 @@ ALTER TABLE `ArticleMatch`
     ADD COLUMN `lastPolicyCheckedAt` DATETIME(3) NULL,
     ADD COLUMN `reviewNotes` LONGTEXT NULL;
 
-CREATE TABLE `OptimizationCache` (
+CREATE TABLE `optimizationcache` (
     `id` VARCHAR(191) NOT NULL,
     `cacheKey` VARCHAR(191) NOT NULL,
     `contentHash` VARCHAR(64) NOT NULL,
@@ -41,23 +41,23 @@ CREATE TABLE `OptimizationCache` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-ALTER TABLE `PublishAttempt`
+ALTER TABLE `publishattempt`
     ADD COLUMN `diagnosticsJson` JSON NULL,
     ADD COLUMN `errorCode` VARCHAR(128) NULL,
     ADD COLUMN `retryable` BOOLEAN NOT NULL DEFAULT false;
 
-ALTER TABLE `FetchRun`
+ALTER TABLE `fetchrun`
     ADD COLUMN `optimizedCount` INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN `blockedCount` INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN `aiCacheHitCount` INTEGER NOT NULL DEFAULT 0;
 
-CREATE INDEX `ArticleMatch_streamId_workflowStage_idx` ON `ArticleMatch`(`streamId`, `workflowStage`);
-CREATE INDEX `ArticleMatch_destinationId_policyStatus_idx` ON `ArticleMatch`(`destinationId`, `policyStatus`);
+CREATE INDEX `ArticleMatch_streamId_workflowStage_idx` ON `articlematch`(`streamId`, `workflowStage`);
+CREATE INDEX `ArticleMatch_destinationId_policyStatus_idx` ON `articlematch`(`destinationId`, `policyStatus`);
 
-ALTER TABLE `OptimizationCache`
+ALTER TABLE `optimizationcache`
     ADD CONSTRAINT `OptimizationCache_locale_fkey`
-    FOREIGN KEY (`locale`) REFERENCES `Locale`(`code`) ON DELETE SET NULL ON UPDATE CASCADE;
+    FOREIGN KEY (`locale`) REFERENCES `locale`(`code`) ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE `ArticleMatch`
+ALTER TABLE `articlematch`
     ADD CONSTRAINT `ArticleMatch_optimizationCacheId_fkey`
-    FOREIGN KEY (`optimizationCacheId`) REFERENCES `OptimizationCache`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+    FOREIGN KEY (`optimizationCacheId`) REFERENCES `optimizationcache`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
