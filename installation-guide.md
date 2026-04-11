@@ -20,6 +20,14 @@ npm run build:cpanel
 
 Upload the contents of `dist/cpanel` to your cPanel app folder.
 
+Optional local seeded database export:
+
+```bash
+npm run db:export:seeded
+```
+
+This seeds the local `.env.local` database, then writes `dist/db/news-pub-seeded.sql`. Add `-- --data-only` to export INSERT data without table creation statements.
+
 ## 2. Create the cPanel database
 
 In cPanel **MySQL Databases**:
