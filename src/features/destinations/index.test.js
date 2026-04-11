@@ -161,9 +161,14 @@ describe("destination feature validation", () => {
 
     const snapshot = await getDestinationManagementSnapshot({
       destination: {
+        count: vi.fn().mockResolvedValue(1),
         findMany: vi.fn().mockResolvedValue([
           {
-            articleMatches: [],
+            _count: {
+              articleMatches: 0,
+              publishAttempts: 0,
+              streams: 0,
+            },
             connectionError: null,
             connectionStatus: "CONNECTED",
             encryptedTokenCiphertext: encryptedToken.ciphertext,
@@ -174,7 +179,6 @@ describe("destination feature validation", () => {
             kind: "FACEBOOK_PAGE",
             name: "Legacy Facebook Page",
             platform: "FACEBOOK",
-            publishAttempts: [],
             settingsJson: {
               pageId: "page_1",
             },

@@ -5,10 +5,10 @@
 import { PublicHomePage } from "@/components/public";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
-import { getPublishedHomePageData, publicDataRevalidateSeconds } from "@/features/public-site";
+import { getPublishedHomePageData } from "@/features/public-site";
 import { buildPageMetadata } from "@/lib/seo";
 
-export const revalidate = publicDataRevalidateSeconds;
+export const revalidate = 300;
 
 /**
  * Builds metadata for the locale-aware NewsPub homepage.

@@ -50,6 +50,7 @@ export default function ResponsiveImage({
     const { decoding, fetchPriority, loading, style, ...imgRest } = rest;
 
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- arbitrary remote hosts must not enter Next image optimization.
       <img
         alt={alt}
         className={className}

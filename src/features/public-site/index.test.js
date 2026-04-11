@@ -120,15 +120,8 @@ describe("public site data", () => {
         findMany: vi.fn().mockResolvedValue([
           {
             description: "Technology news",
+            id: "category_1",
             name: "Technology",
-            posts: [
-              {
-                post: posts[0],
-              },
-              {
-                post: posts[1],
-              },
-            ],
             slug: "technology",
           },
         ]),
@@ -136,6 +129,16 @@ describe("public site data", () => {
       post: {
         count: vi.fn().mockResolvedValue(2),
         findMany: vi.fn().mockResolvedValue(posts),
+      },
+      postCategory: {
+        groupBy: vi.fn().mockResolvedValue([
+          {
+            categoryId: "category_1",
+            _count: {
+              _all: 2,
+            },
+          },
+        ]),
       },
     };
     const { getPublishedHomePageData } = await import("./index");
@@ -157,11 +160,9 @@ describe("public site data", () => {
       path: "/en/category/technology",
       slug: "technology",
     });
-    expect(prisma.category.findMany).toHaveBeenCalledWith(
+    expect(prisma.postCategory.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: expect.objectContaining({
-          posts: expect.any(Object),
-        }),
+        by: ["categoryId"],
       }),
     );
     expect(prisma.category.findMany).toHaveBeenCalledWith(
@@ -200,6 +201,9 @@ describe("public site data", () => {
       post: {
         count: vi.fn().mockResolvedValue(12),
         findMany: vi.fn().mockResolvedValue(posts),
+      },
+      postCategory: {
+        groupBy: vi.fn().mockResolvedValue([]),
       },
     };
     const { getPublishedHomePageData } = await import("./index");
@@ -643,6 +647,9 @@ describe("public site data", () => {
         count: vi.fn().mockRejectedValue(databaseError),
         findMany: vi.fn().mockRejectedValue(databaseError),
       },
+      postCategory: {
+        groupBy: vi.fn().mockRejectedValue(databaseError),
+      },
     };
     const {
       getPublishedCategoryNavigationData,
@@ -686,6 +693,9 @@ describe("public site data", () => {
       post: {
         count: vi.fn().mockRejectedValue(schemaError),
         findMany: vi.fn().mockRejectedValue(schemaError),
+      },
+      postCategory: {
+        groupBy: vi.fn().mockRejectedValue(schemaError),
       },
     };
     const {

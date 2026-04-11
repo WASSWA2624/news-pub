@@ -62,6 +62,7 @@ describe("seo feature inventory", () => {
   it("builds sitemap entries for static, story, and category pages", async () => {
     const prisma = {
       category: {
+        count: vi.fn().mockResolvedValue(1),
         findMany: vi.fn().mockResolvedValue([
           {
             name: "Technology",
@@ -84,7 +85,11 @@ describe("seo feature inventory", () => {
         ]),
       },
       post: {
+        count: vi.fn().mockResolvedValue(1),
         findMany: vi.fn().mockResolvedValue([createPublishedPost()]),
+      },
+      postTranslation: {
+        count: vi.fn().mockResolvedValue(1),
       },
     };
     const { getSitemapEntries } = await import("./index");
@@ -131,6 +136,7 @@ describe("seo feature inventory", () => {
   it("builds an admin seo snapshot from published website metadata", async () => {
     const prisma = {
       category: {
+        count: vi.fn().mockResolvedValue(1),
         findMany: vi.fn().mockResolvedValue([
           {
             name: "Technology",
@@ -151,7 +157,11 @@ describe("seo feature inventory", () => {
         ]),
       },
       post: {
+        count: vi.fn().mockResolvedValue(1),
         findMany: vi.fn().mockResolvedValue([createPublishedPost()]),
+      },
+      postTranslation: {
+        count: vi.fn().mockResolvedValue(1),
       },
     };
     const { getSeoManagementSnapshot } = await import("./index");

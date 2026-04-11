@@ -12,6 +12,7 @@ function createMockPrisma() {
       create: vi.fn().mockResolvedValue({}),
     },
     mediaAsset: {
+      count: vi.fn().mockResolvedValue(1),
       create: vi.fn(async ({ data }) => ({
         ...data,
         createdAt: new Date("2026-04-03T10:00:00.000Z"),
@@ -34,7 +35,9 @@ function createMockPrisma() {
           storageDriver: "local",
           storageKey: "media/story.png",
           updatedAt: new Date("2026-04-03T10:00:00.000Z"),
-          variants: storedVariants,
+          _count: {
+            variants: storedVariants.length,
+          },
           width: 1600,
         },
       ]),
@@ -59,6 +62,7 @@ function createMockPrisma() {
       })),
     },
     mediaVariant: {
+      count: vi.fn().mockResolvedValue(storedVariants.length),
       createMany: vi.fn(async ({ data }) => {
         storedVariants.push(...data);
         return {
