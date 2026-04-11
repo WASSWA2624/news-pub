@@ -50,4 +50,34 @@ describe("auth api helpers", () => {
     });
     expect(response.status).toBe(401);
   });
+
+  it("returns an actionable deployment error when the auth database is unavailable", async () => {
+    vi.doMock("./index", () => ({
+      authenticateAdminCredentials: vi.fn(async () => {
+        throw new Error("TableDoesNotExist: User");
+      }),
+      buildLoginSuccessPayload: vi.fn(),
+      buildLogoutSuccessPayload: vi.fn(),
+      invalidateAdminSession: vi.fn(),
+      validateRequestAdminSession: vi.fn(),
+    }));
+    vi.doMock("@/lib/prisma", () => ({
+      isPrismaConnectionError: vi.fn(() => true),
+    }));
+
+    const { createLoginResponse } = await import("./api");
+    const response = await createLoginResponse({
+      email: "admin@example.com",
+      password: "strong-password",
+      userAgent: "Vitest Browser",
+    });
+
+    await expect(response.json()).resolves.toEqual({
+      message:
+        "The production database is not ready for admin login. Run npm run cpanel:db:deploy in the cPanel app root, then restart the app.",
+      status: "database_unavailable",
+      success: false,
+    });
+    expect(response.status).toBe(503);
+  });
 });

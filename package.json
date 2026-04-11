@@ -16,6 +16,7 @@
     "build": "next build",
     "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",
     "cpanel:db:seed": "node scripts/cpanel-db-seed.js",
+    "cpanel:doctor": "node scripts/cpanel-doctor.js",
     "start": "node scripts/start-standalone.js",
     "lint": "eslint .",
     "repo:check": "node scripts/check-repo-hygiene.js",

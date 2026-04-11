@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/config";
 import { getAdminAuthorizationFailure, hasAdminPermission } from "@/lib/auth/rbac";
 import { env } from "@/lib/env/server";
+import { isPrismaConnectionError } from "@/lib/prisma";
 
 import {
   authenticateAdminCredentials,
@@ -126,7 +127,25 @@ export async function requireAdminApiPermission(request, permission) {
  * Authenticates admin credentials, creates the session cookie, and returns the standard NewsPub login payload.
  */
 export async function createLoginResponse({ email, password, userAgent }) {
-  const result = await authenticateAdminCredentials({ email, password, userAgent });
+  let result;
+
+  try {
+    result = await authenticateAdminCredentials({ email, password, userAgent });
+  } catch (error) {
+    if (!isPrismaConnectionError(error)) {
+      throw error;
+    }
+
+    return NextResponse.json(
+      {
+        message:
+          "The production database is not ready for admin login. Run npm run cpanel:db:deploy in the cPanel app root, then restart the app.",
+        status: "database_unavailable",
+        success: false,
+      },
+      { status: 503 },
+    );
+  }
 
   if (!result.success) {
     return NextResponse.json(

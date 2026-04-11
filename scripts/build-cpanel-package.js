@@ -87,7 +87,7 @@ function copyDatabaseDeploymentFiles() {
 
   fs.mkdirSync(outputScriptsDir, { recursive: true });
 
-  for (const scriptName of ["cpanel-db-deploy.js", "cpanel-db-seed.js", "prisma-runtime.js"]) {
+  for (const scriptName of ["cpanel-db-deploy.js", "cpanel-db-seed.js", "cpanel-doctor.js", "prisma-runtime.js"]) {
     fs.copyFileSync(path.join(scriptsDir, scriptName), path.join(outputScriptsDir, scriptName));
   }
 }
@@ -101,9 +101,10 @@ function updatePackageManifest() {
     seed: "node prisma/seed.js",
   };
   outputPackage.scripts = {
-    ...outputPackage.scripts,
+    start: "node app.js",
     "cpanel:db:deploy": "node scripts/cpanel-db-deploy.js",
     "cpanel:db:seed": "node scripts/cpanel-db-seed.js",
+    "cpanel:doctor": "node scripts/cpanel-doctor.js",
   };
   outputPackage.dependencies = {
     ...outputPackage.dependencies,
@@ -152,6 +153,7 @@ function writeDeploymentNotes() {
     "- Also set NEXT_PUBLIC_APP_URL to your live domain and configure any provider, Meta, OpenAI, and storage credentials you use.",
     "",
     "Database setup:",
+    "- To diagnose login failures after upload, run: npm run cpanel:doctor",
     "- After the files are uploaded and cPanel has run NPM Install, run this once from the app root: npm run cpanel:db:deploy",
     "- If the schema already exists and you only need default data, run: npm run cpanel:db:seed",
     "- If cPanel only lets you run a JavaScript file, run scripts/cpanel-db-deploy.js.",
@@ -161,6 +163,7 @@ function writeDeploymentNotes() {
     "",
     "Notes:",
     "- public/ and .next/static/ are already bundled here.",
+    "- npm start runs app.js in this package. Do not run next build on the cPanel server.",
     "- Linux sharp binaries were added for the media pipeline used by admin uploads and remote image ingestion.",
     "- If you redeploy over the same folder, restart the app from cPanel or touch tmp/restart.txt.",
     "",

@@ -110,6 +110,8 @@ Application startup file: app.js
 
 Then run **NPM Install** from the cPanel Node.js app screen.
 
+The packaged `npm start` command runs `node app.js`. Do not run `next build` from the uploaded cPanel package; the package already contains the standalone Next server and static assets.
+
 The uploaded app root should include:
 
 ```text
@@ -170,10 +172,20 @@ Verify:
 - cPanel logs show no missing env var, database, migration, or startup errors.
 - Enabled provider, OpenAI, Meta, S3, and media settings use production credentials.
 
+If admin login fails, run this from the uploaded cPanel app root:
+
+```bash
+npm run cpanel:doctor
+```
+
+It checks that the package starts through `app.js`, the required environment variables are present, the database is reachable, migrations are applied, and the seeded admin email/password match the database record.
+
 ## Quick troubleshooting
 
 - Database error: check cPanel database name, username, password, host, port, and password URL encoding.
 - Failed migration retry: use a new database or drop the partially created tables first. Emptying tables is not enough.
 - Missing `DATABASE_URL`: add it to cPanel env vars or `.env.production.local`.
+- Login reports database not ready: run `npm run cpanel:db:deploy`, restart the app, then retry `npm run cpanel:doctor`.
+- Seeded admin password mismatch: run `npm run cpanel:db:seed`, restart the app, then sign in with `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`.
 - Missing `mariadb` dependency: run cPanel **NPM Install**, then rerun database deploy.
 - Startup failure: confirm Node.js 20 or 22, startup file `app.js`, and upload source `dist/cpanel`.
