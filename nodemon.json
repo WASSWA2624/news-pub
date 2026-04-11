@@ -17,5 +17,5 @@
   ],
   "ext": "js,json,mjs,prisma",
   "delay": "300",
-  "exec": "npm run dev:next"
+  "exec": "node scripts/dev-next.js"
 }
