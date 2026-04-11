@@ -83,6 +83,17 @@ async function createAuditEvent(db, { action, actorId = null, entityId, entityTy
   });
 }
 
+async function recordLoginFailure(db, normalizedEmail, reason) {
+  await createAuditEvent(db, {
+    action: "AUTH_LOGIN_FAILED",
+    entityId: normalizedEmail,
+    entityType: "auth_identity",
+    payloadJson: {
+      reason,
+    },
+  });
+}
+
 async function invalidateStoredSession(db, session, reason) {
   if (session.invalidatedAt) {
     return session;
@@ -252,24 +263,34 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
     },
   });
 
-  if (!user || !isAllowedAdminUser(user) || !verifyPassword(password, user.passwordHash)) {
-    await createAuditEvent(prisma, {
-      action: "AUTH_LOGIN_FAILED",
-      entityId: normalizedEmail,
-      entityType: "auth_identity",
-      payloadJson: {
-        reason: !user
-          ? "user_not_found"
-            : !user.isActive
-              ? "user_inactive"
-            : !isAdminRole(user.role)
-              ? "role_not_allowed"
-              : "invalid_password",
-      },
-    });
-
+  if (!user) {
+    await recordLoginFailure(prisma, normalizedEmail, "user_not_found");
     return {
-      status: "invalid_credentials",
+      status: "user_not_found",
+      success: false,
+    };
+  }
+
+  if (!user.isActive) {
+    await recordLoginFailure(prisma, normalizedEmail, "user_inactive");
+    return {
+      status: "user_inactive",
+      success: false,
+    };
+  }
+
+  if (!isAdminRole(user.role)) {
+    await recordLoginFailure(prisma, normalizedEmail, "role_not_allowed");
+    return {
+      status: "role_not_allowed",
+      success: false,
+    };
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    await recordLoginFailure(prisma, normalizedEmail, "invalid_password");
+    return {
+      status: "invalid_password",
       success: false,
     };
   }

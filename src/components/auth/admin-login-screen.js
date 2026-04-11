@@ -326,7 +326,7 @@ export default function AdminLoginScreen({ nextPath }) {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(payload?.message || "Sign-in failed. Please verify your credentials.");
+        setError(payload?.message || "The email or password is incorrect.");
         return;
       }
 

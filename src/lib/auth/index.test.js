@@ -15,6 +15,8 @@ describe("auth helpers", () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    vi.restoreAllMocks();
+    vi.resetModules();
   });
 
   it("creates scrypt password hashes that verify correctly", async () => {
@@ -33,5 +35,95 @@ describe("auth helpers", () => {
     expect(normalizeEmail(" Admin@Example.com ")).toBe("admin@example.com");
     expect(hashSessionToken("session-token")).toBe(hashSessionToken("session-token"));
     expect(hashSessionToken("session-token")).not.toBe(hashSessionToken("other-token"));
+  });
+
+  it("returns a user_not_found login status before password validation", async () => {
+    const prisma = {
+      auditEvent: {
+        create: vi.fn(async () => ({})),
+      },
+      user: {
+        findUnique: vi.fn(async () => null),
+      },
+    };
+
+    vi.doMock("@/lib/prisma", () => ({
+      getPrismaClient: () => prisma,
+    }));
+
+    const { authenticateAdminCredentials } = await import("./index");
+
+    await expect(
+      authenticateAdminCredentials({
+        email: " Missing@Example.com ",
+        password: "any-password",
+      }),
+    ).resolves.toEqual({
+      status: "user_not_found",
+      success: false,
+    });
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: {
+        email: "missing@example.com",
+      },
+    });
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        action: "AUTH_LOGIN_FAILED",
+        actorId: null,
+        entityId: "missing@example.com",
+        entityType: "auth_identity",
+        payloadJson: {
+          reason: "user_not_found",
+        },
+      },
+    });
+  });
+
+  it("returns an invalid_password login status when the admin email exists", async () => {
+    const prisma = {
+      auditEvent: {
+        create: vi.fn(async () => ({})),
+      },
+      user: {
+        findUnique: vi.fn(async () => ({
+          email: "admin@example.com",
+          id: "user_1",
+          isActive: true,
+          name: "NewsPub Admin",
+          passwordHash: "invalid-format",
+          role: "SUPER_ADMIN",
+        })),
+      },
+    };
+
+    vi.doMock("@/lib/prisma", () => ({
+      getPrismaClient: () => prisma,
+    }));
+
+    const { authenticateAdminCredentials } = await import("./index");
+
+    await expect(
+      authenticateAdminCredentials({
+        email: "admin@example.com",
+        password: "wrong-password",
+      }),
+    ).resolves.toEqual({
+      status: "invalid_password",
+      success: false,
+    });
+
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        action: "AUTH_LOGIN_FAILED",
+        actorId: null,
+        entityId: "admin@example.com",
+        entityType: "auth_identity",
+        payloadJson: {
+          reason: "invalid_password",
+        },
+      },
+    });
   });
 });

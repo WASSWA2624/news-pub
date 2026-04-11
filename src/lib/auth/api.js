@@ -16,6 +16,18 @@ import {
   validateRequestAdminSession,
 } from "./index";
 
+const LOGIN_FAILURE_MESSAGES = Object.freeze({
+  invalid_credentials: "The email or password is incorrect.",
+  invalid_password: "The password is incorrect.",
+  role_not_allowed: "This account does not have admin access.",
+  user_inactive: "This admin account is inactive.",
+  user_not_found: "No admin account exists for that email address.",
+});
+
+function getLoginFailureMessage(status) {
+  return LOGIN_FAILURE_MESSAGES[status] || LOGIN_FAILURE_MESSAGES.invalid_credentials;
+}
+
 function getSessionCookieSettings(expiresAt) {
   return {
     expires: expiresAt,
@@ -119,7 +131,7 @@ export async function createLoginResponse({ email, password, userAgent }) {
   if (!result.success) {
     return NextResponse.json(
       {
-        message: "The email or password is incorrect.",
+        message: getLoginFailureMessage(result.status),
         status: result.status,
         success: false,
       },
