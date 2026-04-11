@@ -663,6 +663,61 @@ describe("public site data", () => {
     });
   });
 
+  it("returns empty public data when the deployed database schema has not been initialized", async () => {
+    const schemaError = {
+      code: "P2021",
+      message: "The table `Category` does not exist in the current database.",
+      meta: {
+        driverAdapterError: {
+          name: "DriverAdapterError",
+          message: "TableDoesNotExist",
+        },
+        modelName: "Category",
+      },
+      name: "PrismaClientKnownRequestError",
+    };
+    const prisma = {
+      category: {
+        findMany: vi.fn().mockRejectedValue(schemaError),
+      },
+      fetchedArticle: {
+        findMany: vi.fn().mockRejectedValue(schemaError),
+      },
+      post: {
+        count: vi.fn().mockRejectedValue(schemaError),
+        findMany: vi.fn().mockRejectedValue(schemaError),
+      },
+    };
+    const {
+      getPublishedCategoryNavigationData,
+      getPublishedHomePageData,
+      getPublishedNewsIndexData,
+      getPublishedSearchFilterData,
+    } = await import("./index");
+
+    await expect(getPublishedHomePageData({ locale: "en" }, prisma)).resolves.toMatchObject({
+      featuredStory: null,
+      latestStories: [],
+      summary: {
+        categoryCount: 0,
+        latestStoryCount: 0,
+        publishedStoryCount: 0,
+      },
+      topCategories: [],
+    });
+    await expect(getPublishedCategoryNavigationData({ locale: "en" }, prisma)).resolves.toEqual([]);
+    await expect(getPublishedSearchFilterData({ locale: "en" }, prisma)).resolves.toEqual({
+      countries: [],
+    });
+    await expect(getPublishedNewsIndexData({ locale: "en", page: "2" }, prisma)).resolves.toMatchObject({
+      items: [],
+      pagination: {
+        currentPage: 1,
+        totalItems: 0,
+      },
+    });
+  });
+
   it("builds a story page with source attribution and related stories", async () => {
     const prisma = {
       post: {

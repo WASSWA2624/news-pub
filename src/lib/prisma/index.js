@@ -137,7 +137,7 @@ function refreshPrismaClient() {
 export function isPrismaConnectionError(error) {
   const details = collectErrorMessages(error).join("\n");
 
-  return /DriverAdapterError|PrismaClientInitializationError|P1000|P1001|P2024|pool timeout|Can't reach database server|Access denied|ECONNREFUSED/i.test(
+  return /DriverAdapterError|PrismaClientInitializationError|P1000|P1001|P2021|P2024|TableDoesNotExist|table .*does not exist|pool timeout|Can't reach database server|Access denied|ECONNREFUSED/i.test(
     details,
   );
 }

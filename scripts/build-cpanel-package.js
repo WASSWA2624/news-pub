@@ -9,6 +9,8 @@ const rootDir = process.cwd();
 const standaloneDir = path.join(rootDir, ".next", "standalone");
 const staticDir = path.join(rootDir, ".next", "static");
 const publicDir = path.join(rootDir, "public");
+const prismaDir = path.join(rootDir, "prisma");
+const scriptsDir = path.join(rootDir, "scripts");
 const generatedPrismaDir = path.join(rootDir, "node_modules", ".prisma");
 const outputDir = path.join(rootDir, "dist", "cpanel");
 
@@ -77,6 +79,41 @@ function copyGeneratedPrismaClient() {
   copyDirectory(generatedPrismaDir, path.join(outputDir, ".next", "node_modules", ".prisma"));
 }
 
+function copyDatabaseDeploymentFiles() {
+  assertExists(prismaDir, "Prisma project directory");
+  copyDirectory(prismaDir, path.join(outputDir, "prisma"));
+
+  const outputScriptsDir = path.join(outputDir, "scripts");
+
+  fs.mkdirSync(outputScriptsDir, { recursive: true });
+
+  for (const scriptName of ["cpanel-db-deploy.js", "prisma-runtime.js"]) {
+    fs.copyFileSync(path.join(scriptsDir, scriptName), path.join(outputScriptsDir, scriptName));
+  }
+}
+
+function updatePackageManifest() {
+  const sourcePackage = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
+  const packagePath = path.join(outputDir, "package.json");
+  const outputPackage = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+
+  outputPackage.prisma = {
+    seed: "node prisma/seed.js",
+  };
+  outputPackage.scripts = {
+    ...outputPackage.scripts,
+    "cpanel:db:deploy": "node scripts/cpanel-db-deploy.js",
+  };
+  outputPackage.dependencies = {
+    ...outputPackage.dependencies,
+    "@prisma/adapter-mariadb": sourcePackage.dependencies["@prisma/adapter-mariadb"],
+    "@prisma/client": sourcePackage.dependencies["@prisma/client"],
+    mariadb: "3.4.5",
+  };
+
+  fs.writeFileSync(packagePath, `${JSON.stringify(outputPackage, null, 2)}\n`, "utf8");
+}
+
 function writeRestartHelper() {
   const tmpDir = path.join(outputDir, "tmp");
 
@@ -112,6 +149,12 @@ function writeDeploymentNotes() {
     "Environment variables:",
     "- Add the same production env keys your app uses locally, especially DATABASE_URL, SESSION_SECRET, DESTINATION_TOKEN_ENCRYPTION_KEY, REVALIDATE_SECRET, and CRON_SECRET.",
     "- Also set NEXT_PUBLIC_APP_URL to your live domain and configure any provider, Meta, OpenAI, and storage credentials you use.",
+    "",
+    "Database setup:",
+    "- After the files are uploaded and cPanel has run NPM Install, run this once from the app root: npm run cpanel:db:deploy",
+    "- If cPanel only lets you run a JavaScript file, run scripts/cpanel-db-deploy.js.",
+    "- This applies the checked-in Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams.",
+    "- The setup is safe to rerun; already-applied migrations are skipped and seed records are upserted.",
     "",
     "Notes:",
     "- public/ and .next/static/ are already bundled here.",
@@ -185,6 +228,8 @@ function main() {
   copyDirectory(standaloneDir, outputDir);
   copyDirectory(staticDir, path.join(outputDir, ".next", "static"));
   copyGeneratedPrismaClient();
+  copyDatabaseDeploymentFiles();
+  updatePackageManifest();
 
   if (fs.existsSync(publicDir)) {
     copyDirectory(publicDir, path.join(outputDir, "public"));

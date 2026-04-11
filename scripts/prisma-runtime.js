@@ -1,12 +1,57 @@
 const { spawnSync } = require("node:child_process");
-const { readdirSync } = require("node:fs");
+const { existsSync, readFileSync, readdirSync } = require("node:fs");
 const path = require("node:path");
-
-const { config: loadEnv } = require("dotenv");
 
 const { PrismaMariaDb } = require("@prisma/adapter-mariadb");
 
 const NPX_COMMAND = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "npx";
+
+function parseEnvValue(value) {
+  const trimmed = (value || "").trim();
+  const quote = trimmed[0];
+
+  if ((quote === '"' || quote === "'") && trimmed.endsWith(quote)) {
+    const unquoted = trimmed.slice(1, -1);
+
+    return quote === '"' ? unquoted.replace(/\\n/g, "\n").replace(/\\r/g, "\r") : unquoted;
+  }
+
+  return trimmed.replace(/\s+#.*$/, "");
+}
+
+function loadEnvFallback({ path: envPath = ".env", override = false } = {}) {
+  const absoluteEnvPath = path.resolve(process.cwd(), envPath);
+
+  if (!existsSync(absoluteEnvPath)) {
+    return { parsed: {} };
+  }
+
+  const parsed = {};
+
+  for (const line of readFileSync(absoluteEnvPath, "utf8").split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)?\s*$/);
+
+    if (!match) {
+      continue;
+    }
+
+    parsed[match[1]] = parseEnvValue(match[2]);
+
+    if (override || !Object.prototype.hasOwnProperty.call(process.env, match[1])) {
+      process.env[match[1]] = parsed[match[1]];
+    }
+  }
+
+  return { parsed };
+}
+
+let loadEnv = loadEnvFallback;
+
+try {
+  ({ config: loadEnv } = require("dotenv"));
+} catch {
+  loadEnv = loadEnvFallback;
+}
 
 function trimEnvValue(value) {
   return `${value || ""}`.trim();
