@@ -133,6 +133,20 @@ node scripts/cpanel-db-deploy.js
 
 This applies Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams. It is safe to rerun; applied migrations are skipped and seed records are upserted.
 
+If the database tables already exist and you only want to seed default data:
+
+```bash
+npm run cpanel:db:seed
+```
+
+If cPanel only lets you run a JavaScript file:
+
+```bash
+node scripts/cpanel-db-seed.js
+```
+
+This does not create or alter tables. It only runs the baseline data upserts.
+
 ## 6. Start and verify
 
 Start or restart the app in cPanel. For Passenger-style restarts, update:

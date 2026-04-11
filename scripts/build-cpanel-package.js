@@ -87,7 +87,7 @@ function copyDatabaseDeploymentFiles() {
 
   fs.mkdirSync(outputScriptsDir, { recursive: true });
 
-  for (const scriptName of ["cpanel-db-deploy.js", "prisma-runtime.js"]) {
+  for (const scriptName of ["cpanel-db-deploy.js", "cpanel-db-seed.js", "prisma-runtime.js"]) {
     fs.copyFileSync(path.join(scriptsDir, scriptName), path.join(outputScriptsDir, scriptName));
   }
 }
@@ -103,6 +103,7 @@ function updatePackageManifest() {
   outputPackage.scripts = {
     ...outputPackage.scripts,
     "cpanel:db:deploy": "node scripts/cpanel-db-deploy.js",
+    "cpanel:db:seed": "node scripts/cpanel-db-seed.js",
   };
   outputPackage.dependencies = {
     ...outputPackage.dependencies,
@@ -152,9 +153,11 @@ function writeDeploymentNotes() {
     "",
     "Database setup:",
     "- After the files are uploaded and cPanel has run NPM Install, run this once from the app root: npm run cpanel:db:deploy",
+    "- If the schema already exists and you only need default data, run: npm run cpanel:db:seed",
     "- If cPanel only lets you run a JavaScript file, run scripts/cpanel-db-deploy.js.",
-    "- This applies the checked-in Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams.",
-    "- The setup is safe to rerun; already-applied migrations are skipped and seed records are upserted.",
+    "- cpanel:db:deploy applies the checked-in Prisma migrations and seeds the baseline admin user, locale, categories, providers, destinations, templates, and streams.",
+    "- cpanel:db:seed does not create or alter tables; it only runs the baseline data upserts.",
+    "- Both setup commands are safe to rerun; already-applied migrations are skipped and seed records are upserted.",
     "",
     "Notes:",
     "- public/ and .next/static/ are already bundled here.",
