@@ -23,12 +23,7 @@ import {
   MetaPill,
   PillRow,
   PrimaryButton,
-  RecordCard,
-  RecordHeader,
-  RecordMeta,
   RecordStack,
-  RecordTitle,
-  RecordTitleBlock,
   SectionGrid,
   SecondaryButton,
   SmallText,
@@ -39,6 +34,10 @@ import {
   formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
+import {
+  AdminDisclosureGroup,
+  AdminDisclosureSection,
+} from "@/components/admin/admin-form-primitives";
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import FetchWindowControls from "@/components/admin/fetch-window-controls";
@@ -632,17 +631,6 @@ const NoteText = styled.p`
   margin: 0;
 `;
 
-const StreamRecord = styled(RecordCard)`
-  gap: 0.72rem;
-`;
-
-const StreamIdentityHeader = styled.div`
-  align-items: center;
-  display: flex;
-  gap: 0.65rem;
-  min-width: 0;
-`;
-
 const StreamPlatformBadge = styled(AdminIconBadge)`
   height: 2.35rem;
   width: 2.35rem;
@@ -654,10 +642,30 @@ const StreamPlatformBadge = styled(AdminIconBadge)`
   }
 `;
 
-const StreamIdentityCopy = styled.div`
-  display: grid;
-  gap: 0.16rem;
+const StreamAccordionTitle = styled.span`
+  align-items: center;
+  display: inline-flex;
+  gap: 0.65rem;
   min-width: 0;
+`;
+
+const StreamAccordionTitleText = styled.span`
+  color: inherit;
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+`;
+
+const StreamBodyStack = styled.div`
+  display: grid;
+  gap: 0.9rem;
 `;
 
 const StreamInlineMeta = styled(InlineMetaText)``;
@@ -687,78 +695,6 @@ const StreamDetailTitle = styled.strong`
 `;
 
 const StreamDetailPills = styled(PillRow)``;
-
-const StreamDisclosure = styled.details`
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(247, 250, 254, 0.95)),
-    linear-gradient(90deg, rgba(16, 32, 51, 0.02), transparent 20%);
-  border: 1px solid rgba(16, 32, 51, 0.08);
-  box-shadow: 0 8px 18px rgba(18, 34, 58, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.74);
-  overflow: hidden;
-  padding: 0.72rem 0.82rem 0.72rem 1rem;
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
-
-  &::before {
-    background: linear-gradient(180deg, rgba(36, 75, 115, 0.2), rgba(36, 75, 115, 0.04));
-    content: "";
-    inset: 0 auto 0 0;
-    opacity: 0.58;
-    position: absolute;
-    transition:
-      opacity 180ms ease,
-      background 180ms ease,
-      width 180ms ease;
-    width: 3px;
-  }
-
-  &[open] {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(237, 246, 255, 0.96)),
-      linear-gradient(90deg, rgba(15, 111, 141, 0.05), transparent 20%),
-      radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 46%);
-    border-color: rgba(15, 111, 141, 0.24);
-    box-shadow: 0 14px 28px rgba(15, 96, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  }
-
-  &[open]::before {
-    background: linear-gradient(180deg, rgba(15, 111, 141, 0.96), rgba(224, 165, 58, 0.92));
-    opacity: 1;
-    width: 5px;
-  }
-`;
-
-const StreamDisclosureSummary = styled.summary`
-  color: #162744;
-  cursor: pointer;
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  list-style: none;
-  text-transform: uppercase;
-  transition: color 180ms ease;
-
-  &::-webkit-details-marker {
-    display: none;
-  }
-
-  ${StreamDisclosure}[open] & {
-    color: #0d5f79;
-  }
-`;
-
-const StreamDisclosureBody = styled.div`
-  display: grid;
-  gap: 0.62rem;
-  margin-top: 0.72rem;
-  padding-top: 0.72rem;
-  border-top: 1px solid rgba(15, 111, 141, 0.12);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(240, 247, 255, 0.22));
-`;
 
 const RunHistoryList = styled.div`
   display: grid;
@@ -1234,10 +1170,8 @@ export default function StreamManagementScreen({
   const [selectedDestinationIds, setSelectedDestinationIds] = useState(() =>
     destinationOptions.map((destination) => destination.value).filter(Boolean),
   );
-  const [openWorkspaceDisclosure, setOpenWorkspaceDisclosure] = useState(null);
   const [runState, setRunState] = useState(null);
   const [runConfiguration, setRunConfiguration] = useState(null);
-  const [openStreamDisclosureById, setOpenStreamDisclosureById] = useState({});
   const streamCountsByDestination = useMemo(() => {
     const counts = new Map();
 
@@ -1357,17 +1291,6 @@ export default function StreamManagementScreen({
 
       return validIds.filter((destinationId) => !destinationIdSet.has(destinationId));
     });
-  }
-
-  function toggleStreamDisclosure(streamId, disclosureKey) {
-    setOpenStreamDisclosureById((currentState) => ({
-      ...currentState,
-      [streamId]: currentState[streamId] === disclosureKey ? null : disclosureKey,
-    }));
-  }
-
-  function toggleWorkspaceDisclosure(disclosureKey) {
-    setOpenWorkspaceDisclosure((currentKey) => (currentKey === disclosureKey ? null : disclosureKey));
   }
 
   const filteredDestinationOptions = useMemo(() => {
@@ -1668,16 +1591,25 @@ export default function StreamManagementScreen({
                 </PrimaryActionButton>
               </ScopeActions>
             </ActionRow>
-            <StreamDisclosure open={openWorkspaceDisclosure === "scope-controls"}>
-              <StreamDisclosureSummary
-                onClick={(event) => {
-                  event.preventDefault();
-                  toggleWorkspaceDisclosure("scope-controls");
-                }}
+            <AdminDisclosureGroup>
+              <AdminDisclosureSection
+                description="Choose which destinations the workspace should show and which streams the Run selected action should include."
+                meta={[
+                  {
+                    label: `${selectedDestinationCount} selected`,
+                    tone: selectedDestinationCount ? "accent" : "warning",
+                  },
+                  {
+                    label: `${destinationGroups.length} group${destinationGroups.length === 1 ? "" : "s"}`,
+                  },
+                  {
+                    label: `${runnableStreams.length} runnable`,
+                    tone: runnableStreams.length ? "success" : "warning",
+                  },
+                ]}
+                summary={activeScopeText}
+                title="Destination scope controls"
               >
-                Destination scope controls
-              </StreamDisclosureSummary>
-              <StreamDisclosureBody>
                 <ScopeHeader>
                   <ScopeActionsBar>
                     <ScopeActions>
@@ -1782,8 +1714,8 @@ export default function StreamManagementScreen({
                     </SmallText>
                   )}
                 </ScopeHeader>
-              </StreamDisclosureBody>
-            </StreamDisclosure>
+              </AdminDisclosureSection>
+            </AdminDisclosureGroup>
           </TargetingCopy>
 
           <TargetingNotes>
@@ -1813,276 +1745,229 @@ export default function StreamManagementScreen({
           </CardHeader>
           <RecordStack>
             {filteredStreams.length ? (
-              filteredStreams.map((stream) => {
-                const currentRequestEntries = getRequestEntries(stream.effectiveFilters?.providerRequestValues);
-                const latestRunRequestEntries = getRequestEntries(
-                  stream.latestRun?.executionDetails?.sharedRequest?.requestValues,
-                );
-                const recentRuns = stream.recentRuns || [];
+              <AdminDisclosureGroup>
+                {filteredStreams.map((stream) => {
+                  const currentRequestEntries = getRequestEntries(stream.effectiveFilters?.providerRequestValues);
+                  const latestRunRequestEntries = getRequestEntries(
+                    stream.latestRun?.executionDetails?.sharedRequest?.requestValues,
+                  );
+                  const recentRuns = stream.recentRuns || [];
 
-                return (
-                <StreamRecord key={stream.id}>
-                  <RecordHeader>
-                    <RecordTitleBlock>
-                      <StreamIdentityHeader>
-                        <StreamPlatformBadge $tone={getDestinationPlatformTone(stream.destination?.platform || "WEBSITE")}>
-                          <AppIcon
-                            name={getDestinationPlatformIcon(stream.destination?.platform || "WEBSITE")}
-                            size={16}
-                          />
-                        </StreamPlatformBadge>
-                        <StreamIdentityCopy>
-                          <RecordTitle>{stream.name}</RecordTitle>
-                          <StreamInlineMeta>
+                  return (
+                    <AdminDisclosureSection
+                      id={`stream-${stream.id}`}
+                      key={stream.id}
+                      description={`Template ${stream.defaultTemplate?.name || "No explicit template"} | Locale ${stream.locale} | ${stream.timezone}`}
+                      meta={[
+                        {
+                          label: formatEnumLabel(stream.destination?.platform || "UNKNOWN"),
+                        },
+                        {
+                          label: stream.activeProvider?.label || "Provider",
+                        },
+                        {
+                          label: formatEnumLabel(stream.mode),
+                        },
+                        {
+                          label: stream.status,
+                          tone: getTone(stream.status),
+                        },
+                        stream.schedule?.isRunning
+                          ? {
+                              label: "Running now",
+                              tone: "accent",
+                            }
+                          : null,
+                        stream.schedule?.isDue && !stream.schedule?.isRunning
+                          ? {
+                              label: stream.schedule?.isOverdue
+                                ? `Overdue ${stream.schedule.overdueMinutes}m`
+                                : "Due now",
+                              tone: "warning",
+                            }
+                          : null,
+                      ].filter(Boolean)}
+                      summary={`${stream.destination?.name || "Unknown destination"} via ${stream.activeProvider?.label || "Unknown provider"}. ${describeScheduleStatus(stream, scheduler)}`}
+                      title={
+                        <StreamAccordionTitle>
+                          <StreamPlatformBadge $tone={getDestinationPlatformTone(stream.destination?.platform || "WEBSITE")}>
                             <AppIcon
                               name={getDestinationPlatformIcon(stream.destination?.platform || "WEBSITE")}
-                              size={12}
+                              size={16}
                             />
-                            {stream.destination?.name || "Unknown destination"}
-                            <AppIcon name="server" size={12} />
-                            {stream.activeProvider?.label || "Unknown provider"}
-                          </StreamInlineMeta>
-                        </StreamIdentityCopy>
-                      </StreamIdentityHeader>
-                    </RecordTitleBlock>
-                    <RecordMeta>
-                      <MetaPill>
-                        <AppIcon
-                          name={getDestinationPlatformIcon(stream.destination?.platform || "UNKNOWN")}
-                          size={11}
-                        />{" "}
-                        {formatEnumLabel(stream.destination?.platform || "UNKNOWN")}
-                      </MetaPill>
-                      <MetaPill>
-                        <AppIcon name="server" size={11} /> {stream.activeProvider?.label || "Provider"}
-                      </MetaPill>
-                      <MetaPill>{formatEnumLabel(stream.mode)}</MetaPill>
-                      <StatusBadge $tone={getTone(stream.status)}>{stream.status}</StatusBadge>
-                    </RecordMeta>
-                  </RecordHeader>
-                  <StreamInlineMeta>
-                    <AppIcon name="layout" size={12} />
-                    Template: {stream.defaultTemplate?.name || "No explicit template"}
-                    <AppIcon name="clock" size={12} />
-                    Locale {stream.locale} | {stream.timezone}
-                  </StreamInlineMeta>
-                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "automation-status"}>
-                    <StreamDisclosureSummary
-                      onClick={(event) => {
-                        event.preventDefault();
-                        toggleStreamDisclosure(stream.id, "automation-status");
-                      }}
+                          </StreamPlatformBadge>
+                          <StreamAccordionTitleText>{stream.name}</StreamAccordionTitleText>
+                        </StreamAccordionTitle>
+                      }
                     >
-                      Automation status
-                    </StreamDisclosureSummary>
-                    <StreamDisclosureBody>
-                      <StreamDetailCard>
-                        <StreamDetailTitle>Automation status</StreamDetailTitle>
-                        <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
-                        <StreamDetailPills>
-                          <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
-                            <AppIcon name="clock" size={11} />
-                            {formatIntervalLabel(stream.schedule?.intervalMinutes)}
-                          </MetaPill>
-                          {stream.schedule?.isRunning ? (
-                            <MetaPill $tone="accent">Running now</MetaPill>
-                          ) : null}
-                          {stream.schedule?.isDue && !stream.schedule?.isRunning ? (
-                            <MetaPill $tone="warning">
-                              {stream.schedule?.isOverdue
-                                ? `Overdue ${stream.schedule.overdueMinutes}m`
-                                : "Due now"}
-                            </MetaPill>
-                          ) : null}
-                          {stream.schedule?.nextRunAt ? (
-                            <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
-                          ) : null}
-                          {stream.schedule?.latestTriggerType ? (
-                            <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
-                          ) : null}
-                          {stream.checkpoint?.lastSuccessfulFetchAt ? (
-                            <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
-                          ) : null}
-                        </StreamDetailPills>
-                        <SmallText>{describeLatestRun(stream)}</SmallText>
-                      </StreamDetailCard>
-                    </StreamDisclosureBody>
-                  </StreamDisclosure>
-
-                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "filters-in-effect"}>
-                    <StreamDisclosureSummary
-                      onClick={(event) => {
-                        event.preventDefault();
-                        toggleStreamDisclosure(stream.id, "filters-in-effect");
-                      }}
-                    >
-                      Filters in effect
-                    </StreamDisclosureSummary>
-                    <StreamDisclosureBody>
-                      <StreamDetailCard>
-                        <StreamDetailTitle>Filters in effect</StreamDetailTitle>
-                        <SmallText>
-                          {stream.effectiveFilters?.timeBoundarySupport?.summary
-                            || "Provider defaults and this stream's overrides are merged before each run."}
-                        </SmallText>
-                        <StreamDetailPills>
-                          {stream.effectiveFilters?.categories?.length ? (
-                            stream.effectiveFilters.categories.map((category) => (
-                              <MetaPill key={`category-${stream.id}-${category.id}`}>
-                                Category: {category.name}
+                      <StreamBodyStack>
+                        <StreamDetailGrid>
+                          <StreamDetailCard>
+                            <StreamDetailTitle>Automation status</StreamDetailTitle>
+                            <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
+                            <StreamDetailPills>
+                              <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
+                                <AppIcon name="clock" size={11} />
+                                {formatIntervalLabel(stream.schedule?.intervalMinutes)}
                               </MetaPill>
-                            ))
-                          ) : (
-                            <MetaPill>Categories: Any</MetaPill>
-                          )}
-                          <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
-                          <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
-                          <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
-                          {(stream.includeKeywordsJson || []).length ? (
-                            stream.includeKeywordsJson.map((keyword) => (
-                              <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
-                            ))
-                          ) : (
-                            <MetaPill>Include keywords: Any</MetaPill>
-                          )}
-                          {(stream.excludeKeywordsJson || []).length ? (
-                            stream.excludeKeywordsJson.map((keyword) => (
-                              <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
-                                Exclude: {keyword}
-                              </MetaPill>
-                            ))
-                          ) : (
-                            <MetaPill>Exclude keywords: None</MetaPill>
-                          )}
-                          <MetaPill>Endpoint: {formatCompactKey(stream.effectiveFilters?.providerEndpoint || "default")}</MetaPill>
-                        </StreamDetailPills>
-                      </StreamDetailCard>
-                    </StreamDisclosureBody>
-                  </StreamDisclosure>
-
-                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "provider-request"}>
-                    <StreamDisclosureSummary
-                      onClick={(event) => {
-                        event.preventDefault();
-                        toggleStreamDisclosure(stream.id, "provider-request");
-                      }}
-                    >
-                      Current provider request
-                    </StreamDisclosureSummary>
-                    <StreamDisclosureBody>
-                      <StreamDetailGrid>
-                        <StreamDetailCard>
-                          <StreamDetailTitle>Merged request values</StreamDetailTitle>
-                          <SmallText>
-                            These are the provider-facing filters NewsPub will use if this stream runs now.
-                          </SmallText>
-                          <StreamDetailPills>
-                            {currentRequestEntries.length ? (
-                              currentRequestEntries.map((entry) => (
-                                <MetaPill key={`request-${stream.id}-${entry.key}`}>
-                                  {entry.label}: {entry.value}
-                                </MetaPill>
-                              ))
-                            ) : (
-                              <MetaPill>No provider overrides</MetaPill>
-                            )}
-                          </StreamDetailPills>
-                        </StreamDetailCard>
-                        <StreamDetailCard>
-                          <StreamDetailTitle>Last executed request</StreamDetailTitle>
-                          <SmallText>
-                            Shared-batch runs can widen safe provider filters upstream and then apply stream-level rules locally.
-                          </SmallText>
-                          <StreamDetailPills>
-                            {latestRunRequestEntries.length ? (
-                              latestRunRequestEntries.map((entry) => (
-                                <MetaPill key={`last-request-${stream.id}-${entry.key}`}>
-                                  {entry.label}: {entry.value}
-                                </MetaPill>
-                              ))
-                            ) : (
-                              <MetaPill>Not recorded yet</MetaPill>
-                            )}
-                          </StreamDetailPills>
-                        </StreamDetailCard>
-                      </StreamDetailGrid>
-                    </StreamDisclosureBody>
-                  </StreamDisclosure>
-
-                  {recentRuns.length ? (
-                    <StreamDisclosure open={openStreamDisclosureById[stream.id] === "recent-runs"}>
-                      <StreamDisclosureSummary
-                        onClick={(event) => {
-                          event.preventDefault();
-                          toggleStreamDisclosure(stream.id, "recent-runs");
-                        }}
-                      >
-                        Recent runs
-                      </StreamDisclosureSummary>
-                      <StreamDisclosureBody>
-                        <RunHistoryList>
-                          {recentRuns.map((run) => (
-                            <RunHistoryItem key={run.id}>
-                              <RunHistoryHeader>
-                                <SmallText>{getRecentRunLabel(run)}</SmallText>
-                                <StatusBadge $tone={getRunStatusTone(run.status)}>{run.status}</StatusBadge>
-                              </RunHistoryHeader>
-                              <SmallText>{describeCompletedRun(run)}</SmallText>
-                              {run.executionDetails?.streamFetchWindow?.start && run.executionDetails?.streamFetchWindow?.end ? (
-                                <SmallText>
-                                  Window: {formatDateTime(run.executionDetails.streamFetchWindow.start)}
-                                  {" | "}
-                                  {formatDateTime(run.executionDetails.streamFetchWindow.end)}
-                                </SmallText>
+                              {stream.schedule?.nextRunAt ? (
+                                <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
                               ) : null}
-                              {run.errorMessage ? <SmallText>{run.errorMessage}</SmallText> : null}
-                            </RunHistoryItem>
-                          ))}
-                        </RunHistoryList>
-                      </StreamDisclosureBody>
-                    </StreamDisclosure>
-                  ) : null}
+                              {stream.schedule?.latestTriggerType ? (
+                                <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
+                              ) : null}
+                              {stream.checkpoint?.lastSuccessfulFetchAt ? (
+                                <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
+                              ) : null}
+                            </StreamDetailPills>
+                            <SmallText>{describeLatestRun(stream)}</SmallText>
+                          </StreamDetailCard>
 
-                  <SmallText>
-                    Scheduling, targeting rules, provider filters, and template selection are still editable in the full-workspace modal.
-                  </SmallText>
-                  <ButtonRow>
-                    <AdminFormModal
-                      description="Edit stream cadence, destination targeting, provider filters, and publish mode in a scrollable full-size workspace."
-                      size="full"
-                      title={`Edit ${stream.name}`}
-                      triggerIcon="edit"
-                      triggerLabel="Edit stream"
-                    >
-                      <StreamFormCard
-                        action={saveStreamAction}
-                        categoryOptions={categoryOptions}
-                        destinationOptions={filteredDestinationOptions}
-                        modeOptions={modeOptions}
-                        onRunNow={handleRunNow}
-                        providerOptions={providerOptions}
-                        runInProgress={isRunInProgress}
-                        statusOptions={statusOptions}
-                        stream={stream}
-                        submitLabel="Save stream"
-                        templateOptions={visibleTemplateOptions}
-                        uiNowIso={uiNowIso}
-                      />
-                    </AdminFormModal>
-                    <form action={deleteStreamAction}>
-                      <input name="id" type="hidden" value={stream.id} />
-                      <ConfirmSubmitButton
-                        confirmLabel="Delete stream"
-                        description={getStreamDeleteDescription(stream)}
-                        title="Delete this stream?"
-                      >
-                        Delete
-                      </ConfirmSubmitButton>
-                    </form>
-                  </ButtonRow>
-                </StreamRecord>
-                );
-              })
+                          <StreamDetailCard>
+                            <StreamDetailTitle>Filters in effect</StreamDetailTitle>
+                            <SmallText>
+                              {stream.effectiveFilters?.timeBoundarySupport?.summary
+                                || "Provider defaults and this stream's overrides are merged before each run."}
+                            </SmallText>
+                            <StreamDetailPills>
+                              {stream.effectiveFilters?.categories?.length ? (
+                                stream.effectiveFilters.categories.map((category) => (
+                                  <MetaPill key={`category-${stream.id}-${category.id}`}>
+                                    Category: {category.name}
+                                  </MetaPill>
+                                ))
+                              ) : (
+                                <MetaPill>Categories: Any</MetaPill>
+                              )}
+                              <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
+                              <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
+                              <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
+                              {(stream.includeKeywordsJson || []).length ? (
+                                stream.includeKeywordsJson.map((keyword) => (
+                                  <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
+                                ))
+                              ) : (
+                                <MetaPill>Include keywords: Any</MetaPill>
+                              )}
+                              {(stream.excludeKeywordsJson || []).length ? (
+                                stream.excludeKeywordsJson.map((keyword) => (
+                                  <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
+                                    Exclude: {keyword}
+                                  </MetaPill>
+                                ))
+                              ) : (
+                                <MetaPill>Exclude keywords: None</MetaPill>
+                              )}
+                              <MetaPill>Endpoint: {formatCompactKey(stream.effectiveFilters?.providerEndpoint || "default")}</MetaPill>
+                            </StreamDetailPills>
+                          </StreamDetailCard>
+                        </StreamDetailGrid>
+
+                        <StreamDetailGrid>
+                          <StreamDetailCard>
+                            <StreamDetailTitle>Merged request values</StreamDetailTitle>
+                            <SmallText>
+                              These are the provider-facing filters NewsPub will use if this stream runs now.
+                            </SmallText>
+                            <StreamDetailPills>
+                              {currentRequestEntries.length ? (
+                                currentRequestEntries.map((entry) => (
+                                  <MetaPill key={`request-${stream.id}-${entry.key}`}>
+                                    {entry.label}: {entry.value}
+                                  </MetaPill>
+                                ))
+                              ) : (
+                                <MetaPill>No provider overrides</MetaPill>
+                              )}
+                            </StreamDetailPills>
+                          </StreamDetailCard>
+
+                          <StreamDetailCard>
+                            <StreamDetailTitle>Last executed request</StreamDetailTitle>
+                            <SmallText>
+                              Shared-batch runs can widen safe provider filters upstream and then apply stream-level rules locally.
+                            </SmallText>
+                            <StreamDetailPills>
+                              {latestRunRequestEntries.length ? (
+                                latestRunRequestEntries.map((entry) => (
+                                  <MetaPill key={`last-request-${stream.id}-${entry.key}`}>
+                                    {entry.label}: {entry.value}
+                                  </MetaPill>
+                                ))
+                              ) : (
+                                <MetaPill>Not recorded yet</MetaPill>
+                              )}
+                            </StreamDetailPills>
+                          </StreamDetailCard>
+                        </StreamDetailGrid>
+
+                        {recentRuns.length ? (
+                          <StreamDetailCard as="section">
+                            <StreamDetailTitle>Recent runs</StreamDetailTitle>
+                            <RunHistoryList>
+                              {recentRuns.map((run) => (
+                                <RunHistoryItem key={run.id}>
+                                  <RunHistoryHeader>
+                                    <SmallText>{getRecentRunLabel(run)}</SmallText>
+                                    <StatusBadge $tone={getRunStatusTone(run.status)}>{run.status}</StatusBadge>
+                                  </RunHistoryHeader>
+                                  <SmallText>{describeCompletedRun(run)}</SmallText>
+                                  {run.executionDetails?.streamFetchWindow?.start && run.executionDetails?.streamFetchWindow?.end ? (
+                                    <SmallText>
+                                      Window: {formatDateTime(run.executionDetails.streamFetchWindow.start)}
+                                      {" | "}
+                                      {formatDateTime(run.executionDetails.streamFetchWindow.end)}
+                                    </SmallText>
+                                  ) : null}
+                                  {run.errorMessage ? <SmallText>{run.errorMessage}</SmallText> : null}
+                                </RunHistoryItem>
+                              ))}
+                            </RunHistoryList>
+                          </StreamDetailCard>
+                        ) : null}
+
+                        <StreamInlineMeta>
+                          Scheduling, targeting rules, provider filters, and template selection are still editable in the full-workspace modal.
+                        </StreamInlineMeta>
+                        <ButtonRow>
+                          <AdminFormModal
+                            description="Edit stream cadence, destination targeting, provider filters, and publish mode in a scrollable full-size workspace."
+                            size="full"
+                            title={`Edit ${stream.name}`}
+                            triggerIcon="edit"
+                            triggerLabel="Edit stream"
+                          >
+                            <StreamFormCard
+                              action={saveStreamAction}
+                              categoryOptions={categoryOptions}
+                              destinationOptions={filteredDestinationOptions}
+                              modeOptions={modeOptions}
+                              onRunNow={handleRunNow}
+                              providerOptions={providerOptions}
+                              runInProgress={isRunInProgress}
+                              statusOptions={statusOptions}
+                              stream={stream}
+                              submitLabel="Save stream"
+                              templateOptions={visibleTemplateOptions}
+                              uiNowIso={uiNowIso}
+                            />
+                          </AdminFormModal>
+                          <form action={deleteStreamAction}>
+                            <input name="id" type="hidden" value={stream.id} />
+                            <ConfirmSubmitButton
+                              confirmLabel="Delete stream"
+                              description={getStreamDeleteDescription(stream)}
+                              title="Delete this stream?"
+                            >
+                              Delete
+                            </ConfirmSubmitButton>
+                          </form>
+                        </ButtonRow>
+                      </StreamBodyStack>
+                    </AdminDisclosureSection>
+                  );
+                })}
+              </AdminDisclosureGroup>
             ) : selectedDestinationCount ? (
               <SmallText>
                 No streams are configured for the selected destinations yet. Tick another destination or create one from the panel on the right.
