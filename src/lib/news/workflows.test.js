@@ -714,7 +714,7 @@ describe("stream selection and scheduling helpers", () => {
     ).toBe(true);
   });
 
-  it("reconciles stale publish attempts, recovers stranded auto-publish matches, and queues due scheduled runs", async () => {
+  it("reconciles stale publish attempts, recovers stranded auto-publish matches, and preserves scheduled queue cadence", async () => {
     const { runScheduledStreams } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
     const prisma = {
@@ -839,6 +839,14 @@ describe("stream selection and scheduling helpers", () => {
         }),
       }),
     );
+    expect(prisma.publishingStream.update).toHaveBeenCalledWith({
+      data: {
+        nextRunAt: new Date("2026-04-05T12:30:00.000Z"),
+      },
+      where: {
+        id: "stream_1",
+      },
+    });
     expect(summary).toMatchObject({
       dueStreamCount: 1,
       processedPublishAttempts: 0,
@@ -913,7 +921,7 @@ describe("stream selection and scheduling helpers", () => {
     });
   });
 
-  it("claims publish attempts idempotently and updates the owning stream once", async () => {
+  it("claims publish attempts idempotently without mutating fetch scheduler state", async () => {
     const { claimPublishAttemptById } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
     let attemptRecord = {
@@ -985,14 +993,7 @@ describe("stream selection and scheduling helpers", () => {
       streamId: "stream_1",
     });
     expect(secondClaim.record).toBeNull();
-    expect(db.publishingStream.update).toHaveBeenCalledWith({
-      data: {
-        lastRunStartedAt: now,
-      },
-      where: {
-        id: "stream_1",
-      },
-    });
+    expect(db.publishingStream.update).not.toHaveBeenCalled();
   });
 
   it("claims fetch runs idempotently and increments the attempt count once", async () => {

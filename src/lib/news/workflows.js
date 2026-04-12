@@ -1238,17 +1238,6 @@ export async function claimPublishAttemptById(
     };
   }
 
-  if (typeof db.publishingStream?.update === "function") {
-    await db.publishingStream.update({
-      where: {
-        id: existingAttempt.streamId,
-      },
-      data: {
-        lastRunStartedAt: now,
-      },
-    });
-  }
-
   return {
     leaseOwner,
     record: await db.publishAttempt.findUnique({
@@ -2726,7 +2715,9 @@ async function enqueueDueStreamFetchRuns(db, { now = new Date() } = {}) {
         id: stream.id,
       },
       data: {
-        nextRunAt: new Date(now.getTime() + stream.scheduleIntervalMinutes * 60 * 1000),
+        nextRunAt: new Date(
+          scheduledRunAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000,
+        ),
       },
     });
 
