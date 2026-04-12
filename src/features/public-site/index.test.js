@@ -772,7 +772,7 @@ describe("public site data", () => {
       openGraphTitle: "Breaking story open graph title",
       path: "/en/news/breaking-story",
       seoImage: {
-        url: "https://cdn.example.com/story-seo.jpg",
+        url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fstory-seo.jpg",
       },
       sourceAttribution: "Source: Example Source - https://example.com/story",
       sourceName: "Example Source",
@@ -840,7 +840,7 @@ describe("public site data", () => {
     expect(pageData.article.authors).toEqual(["Casey Reporter"]);
     expect(pageData.article.noindex).toBe(true);
     expect(pageData.article.seoImage).toMatchObject({
-      url: "https://cdn.example.com/story-seo.jpg",
+      url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fstory-seo.jpg",
     });
   });
 
@@ -939,13 +939,13 @@ describe("public site data", () => {
     });
 
     expect(storyPageData.article.image).toMatchObject({
-      url: "https://cdn.example.com/source-fallback.jpg",
+      url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fsource-fallback.jpg",
     });
     expect(storyPageData.article.media).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           kind: "image",
-          url: "https://cdn.example.com/gallery-image.jpg",
+          url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fgallery-image.jpg",
         }),
         expect.objectContaining({
           kind: "video",
@@ -955,7 +955,7 @@ describe("public site data", () => {
     );
     expect(storyPageData.article.primaryMedia).toMatchObject({
       kind: "image",
-      url: "https://cdn.example.com/gallery-image.jpg",
+      url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fgallery-image.jpg",
     });
     expect(listingData.items[0].primaryMedia).toMatchObject({
       kind: "video",

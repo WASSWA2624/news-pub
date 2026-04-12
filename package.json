@@ -12,7 +12,7 @@
     "dev": "node scripts/bootstrap-dev-db.js && nodemon --config nodemon.json",
     "prebuild": "node scripts/prepare-next-build.js && prisma generate",
     "build": "next build",
-    "build:analyze": "cross-env ANALYZE=true BUNDLE_ANALYZE_FORMAT=static next build",
+    "build:analyze": "cross-env ANALYZE=true BUNDLE_ANALYZE_FORMAT=static next build --webpack",
     "start": "node scripts/start-standalone.js",
     "build:cpanel": "npm run build && node scripts/build-cpanel-package.js",
     "cpanel:db:deploy": "node scripts/cpanel-db-deploy.js",

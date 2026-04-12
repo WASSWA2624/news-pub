@@ -128,4 +128,67 @@ describe("analytics library", () => {
       expect.stringContaining("\"action\":\"MEDIA_LIBRARY_FAILURE\""),
     );
   });
+
+  it("records normalized web vitals with route and form-factor metadata", async () => {
+    const webVitalMetricCreate = vi.fn().mockResolvedValue({
+      buildId: "build-42",
+      createdAt: new Date("2026-04-03T10:05:00.000Z"),
+      id: "metric_1",
+      name: "LCP",
+      path: "/en/news/climate-resilience-market-watch",
+      routeGroup: "story",
+      value: 2140,
+    });
+    const prisma = {
+      webVitalMetric: {
+        create: webVitalMetricCreate,
+      },
+    };
+    const { recordWebVitalMetric } = await import("./index");
+
+    await recordWebVitalMetric(
+      {
+        attribution: {
+          element: "hero-image",
+        },
+        buildId: "build-42",
+        formFactor: "",
+        id: "vital_1",
+        name: "lcp",
+        path: "en/news/climate-resilience-market-watch",
+        rating: "needs-improvement",
+        value: 2140,
+        viewportWidth: 900,
+      },
+      prisma,
+    );
+
+    expect(webVitalMetricCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        attributionJson: {
+          element: "hero-image",
+        },
+        buildId: "build-42",
+        formFactor: "tablet",
+        locale: "en",
+        metricId: "vital_1",
+        name: "LCP",
+        path: "/en/news/climate-resilience-market-watch",
+        rating: "needs-improvement",
+        routeGroup: "story",
+        value: 2140,
+        viewportHeight: null,
+        viewportWidth: 900,
+      }),
+      select: {
+        buildId: true,
+        createdAt: true,
+        id: true,
+        name: true,
+        path: true,
+        routeGroup: true,
+        value: true,
+      },
+    });
+  });
 });

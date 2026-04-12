@@ -10,8 +10,23 @@ on:
 jobs:
   route-entry-sizes:
     runs-on: ubuntu-latest
-    env: &perf_env
-      DATABASE_URL: mysql://news_pub:news_pub@127.0.0.1:3307/news_pub
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: news_pub
+          MARIADB_PASSWORD: news_pub
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_USER: news_pub
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -u news_pub -pnews_pub"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://news_pub:news_pub@127.0.0.1:3306/news_pub
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       NEXT_PUBLIC_RELEASE_ID: ci-route-budgets
       DEFAULT_LOCALE: en
@@ -68,6 +83,8 @@ jobs:
           node-version: 22
 
       - run: npm ci
+
+      - run: npx prisma migrate deploy
 
       - run: npm run build
 

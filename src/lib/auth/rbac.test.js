@@ -63,6 +63,7 @@ describe("RBAC policy", () => {
       "media",
       "templates",
       "jobs",
+      "performance",
       "seo",
       "settings",
     ]);

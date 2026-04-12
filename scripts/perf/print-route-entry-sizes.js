@@ -105,17 +105,34 @@ function getRouteBudget(budgets, routeLabel) {
   };
 }
 
+function resolveEntryFiles(routeManifest, routeEntry) {
+  const directEntryFiles = routeManifest.entryJSFiles?.[routeEntry];
+
+  if (Array.isArray(directEntryFiles) && directEntryFiles.length) {
+    return directEntryFiles;
+  }
+
+  return [
+    ...new Set(
+      Object.values(routeManifest.clientModules || {})
+        .flatMap((moduleDefinition) => moduleDefinition?.chunks || [])
+        .filter((chunk) => typeof chunk === "string" && chunk.endsWith(".js") && chunk.startsWith("static/")),
+    ),
+  ];
+}
+
 function collectRouteEntryStats(route) {
   const routeManifestMap = loadManifest(route.manifest);
   const routeManifest = Object.values(routeManifestMap)[0] || {};
-  const entryFiles = routeManifest.entryJSFiles?.[route.entry] || [];
+  const entryFiles = resolveEntryFiles(routeManifest, route.entry);
   const assets = entryFiles
     .map((file) => {
-      const diskPath = path.join(".next", file.replace(/^static\//, "static/"));
+      const normalizedFile = decodeURIComponent(file);
+      const diskPath = path.join(".next", normalizedFile.replace(/^static\//, "static/"));
 
       return {
         bytes: fs.statSync(diskPath).size,
-        file,
+        file: normalizedFile,
       };
     })
     .sort((left, right) => right.bytes - left.bytes);
