@@ -20,6 +20,7 @@ import {
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -160,6 +161,12 @@ export default function ProviderFormCard({
   provider,
 }) {
   const providerDefinitions = useMemo(() => listProviderDefinitions(), []);
+  const initialProviderKey = provider?.providerKey || providerDefinitions[0]?.key || "";
+  const initialSelectedDefinition =
+    providerDefinitions.find((definition) => definition.key === initialProviderKey) || null;
+  const initialRequestDefaults = provider
+    ? getProviderRequestDefaultValues(provider)
+    : initialSelectedDefinition?.defaultRequestDefaults || {};
   const providerKeyOptions = useMemo(
     () =>
       providerDefinitions.map((definition) => ({
@@ -170,11 +177,11 @@ export default function ProviderFormCard({
       })),
     [providerDefinitions],
   );
-  const [providerKey, setProviderKey] = useState(provider?.providerKey || providerDefinitions[0]?.key || "");
+  const [providerKey, setProviderKey] = useState(initialProviderKey);
   const [metadataResetKey, setMetadataResetKey] = useState(0);
   const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
-  const [requestDefaultsMode, setRequestDefaultsMode] = useState("saved");
-  const [requestDefaultsDraft, setRequestDefaultsDraft] = useState(() => getProviderRequestDefaultValues(provider));
+  const [requestDefaultsMode, setRequestDefaultsMode] = useState(provider ? "saved" : "official");
+  const [requestDefaultsDraft, setRequestDefaultsDraft] = useState(initialRequestDefaults);
   const [availabilityResetKey, setAvailabilityResetKey] = useState(0);
   const formId = useId();
   const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
@@ -188,13 +195,14 @@ export default function ProviderFormCard({
     ? getProviderRequestDefaultValues(provider)
     : selectedDefinition?.defaultRequestDefaults || {};
   const officialRequestDefaults = selectedDefinition?.defaultRequestDefaults || {};
-  const nextRequestDefaults = requestDefaultsMode === "official"
-    ? officialRequestDefaults
-    : savedRequestDefaults;
-  const requestDefaultCount = Object.keys(nextRequestDefaults || {}).length;
   const formRef = useRef(null);
+  const sanitizedRequestDefaultsDraft = useMemo(
+    () => sanitizeProviderFieldValues(providerKey, requestDefaultsDraft),
+    [providerKey, requestDefaultsDraft],
+  );
+  const requestDefaultCount = Object.keys(sanitizedRequestDefaultsDraft || {}).length;
   const providerValidationIssues = getProviderRequestValidationIssues(providerKey, {
-    providerDefaults: sanitizeProviderFieldValues(providerKey, requestDefaultsDraft),
+    providerDefaults: sanitizedRequestDefaultsDraft,
   });
 
   function syncRequestDefaultsDraft() {
@@ -229,174 +237,188 @@ export default function ProviderFormCard({
         title="Fix the provider request defaults before saving."
       />
 
-      <AdminDisclosureSection
-        defaultOpen
-        completionLabel={providerKey ? "Identity ready" : ""}
-        meta={[
-          {
-            label: provider ? "Existing provider" : "New provider",
-            tone: "muted",
-          },
-          ...(providerKey ? [{ label: providerKey, tone: "accent" }] : []),
-        ]}
-        summary="Choose the provider registry entry, adjust the saved label, and confirm the request base URL."
-        title="Provider identity"
-      >
-        <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
-          <Field as="div">
-            <FieldLabel>Provider key</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Provider key"
-              name="providerKey"
-              onChange={(value) => {
-                setProviderKey(`${value || ""}`);
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          defaultOpen
+          completionLabel={providerKey ? "Identity ready" : ""}
+          meta={[
+            {
+              label: provider ? "Existing provider" : "New provider",
+              tone: "muted",
+            },
+            ...(providerKey ? [{ label: providerKey, tone: "accent" }] : []),
+          ]}
+          summary="Choose the provider registry entry, adjust the saved label, and confirm the request base URL."
+          title="Provider identity"
+        >
+          <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
+            <Field as="div">
+              <FieldLabel>Provider key</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Provider key"
+                name="providerKey"
+                onChange={(value) => {
+                  const nextProviderKey = `${value || ""}`;
+                  const nextDefinition =
+                    providerDefinitions.find((definition) => definition.key === nextProviderKey) || null;
+                  const nextSavedRequestDefaults = provider?.providerKey === nextProviderKey
+                    ? getProviderRequestDefaultValues(provider)
+                    : nextDefinition?.defaultRequestDefaults || {};
+                  const nextRequestDefaultsMode = provider?.providerKey === nextProviderKey ? "saved" : "official";
+
+                  setProviderKey(nextProviderKey);
+                  setRequestDefaultsMode(nextRequestDefaultsMode);
+                  setRequestDefaultsDraft(nextSavedRequestDefaults);
+                  setMetadataResetKey((currentValue) => currentValue + 1);
+                  setRequestDefaultsResetKey((currentValue) => currentValue + 1);
+                }}
+                options={providerKeyOptions}
+                placeholder="Select a provider"
+                value={providerKey}
+              />
+              <FieldHint>The provider key keeps the saved record aligned with the supported API adapter.</FieldHint>
+            </Field>
+            <Field>
+              <FieldLabel>Label</FieldLabel>
+              <Input defaultValue={nextLabel} name="label" required />
+              <FieldHint>Use a clear editorial label that is easy to recognize in stream forms and job history.</FieldHint>
+            </Field>
+            <Field>
+              <FieldLabel>Base URL</FieldLabel>
+              <Input defaultValue={nextBaseUrl} name="baseUrl" />
+              <FieldHint>Leave the official endpoint unless your provider contract requires a fixed regional host.</FieldHint>
+            </Field>
+          </FieldGrid>
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          defaultOpen
+          completionLabel="Notes ready"
+          meta={selectedDefinition?.docsUrl ? [{ label: "Docs linked", tone: "success" }] : []}
+          summary="Capture the saved notes operators see before they connect streams to this provider."
+          title="Provider notes"
+        >
+          <SectionActionRow>
+            <SecondaryButton
+              onClick={() => setMetadataResetKey((currentValue) => currentValue + 1)}
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="refresh" />
+              </ButtonIcon>
+              Reset to defaults
+            </SecondaryButton>
+          </SectionActionRow>
+          <Field key={`provider-notes-${providerKey}-${metadataResetKey}`}>
+            <FieldLabel>Description</FieldLabel>
+            <Textarea defaultValue={nextDescription} name="description" />
+            <FieldHint>
+              Describe the provider in operator language so the stream editor makes sense at a glance.
+            </FieldHint>
+          </Field>
+          {selectedDefinition?.docsUrl ? (
+            <SmallText>
+              Official docs: <a href={selectedDefinition.docsUrl} rel="noreferrer" target="_blank">{selectedDefinition.docsUrl}</a>
+            </SmallText>
+          ) : null}
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          defaultOpen
+          completionLabel="Defaults ready"
+          meta={[
+            {
+              label: `${requestDefaultCount} saved default${requestDefaultCount === 1 ? "" : "s"}`,
+              tone: "muted",
+            },
+            {
+              label: requestDefaultsMode === "official" ? "Official baseline" : "Saved profile",
+              tone: requestDefaultsMode === "official" ? "accent" : "success",
+            },
+          ]}
+          summary="Keep the request defaults deterministic so stream-level overrides stay small and predictable."
+          title="Request defaults"
+        >
+          <SectionActionRow>
+            <SecondaryButton
+              onClick={() => {
                 setRequestDefaultsMode("saved");
-                setRequestDefaultsDraft({});
-                setMetadataResetKey((currentValue) => currentValue + 1);
+                setRequestDefaultsDraft(savedRequestDefaults);
                 setRequestDefaultsResetKey((currentValue) => currentValue + 1);
               }}
-              options={providerKeyOptions}
-              placeholder="Select a provider"
-              value={providerKey}
-            />
-            <FieldHint>The provider key keeps the saved record aligned with the supported API adapter.</FieldHint>
-          </Field>
-          <Field>
-            <FieldLabel>Label</FieldLabel>
-            <Input defaultValue={nextLabel} name="label" required />
-            <FieldHint>Use a clear editorial label that is easy to recognize in stream forms and job history.</FieldHint>
-          </Field>
-          <Field>
-            <FieldLabel>Base URL</FieldLabel>
-            <Input defaultValue={nextBaseUrl} name="baseUrl" />
-            <FieldHint>Leave the official endpoint unless your provider contract requires a fixed regional host.</FieldHint>
-          </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        defaultOpen
-        completionLabel="Notes ready"
-        meta={selectedDefinition?.docsUrl ? [{ label: "Docs linked", tone: "success" }] : []}
-        summary="Capture the saved notes operators see before they connect streams to this provider."
-        title="Provider notes"
-      >
-        <SectionActionRow>
-          <SecondaryButton
-            onClick={() => setMetadataResetKey((currentValue) => currentValue + 1)}
-            type="button"
-          >
-            <ButtonIcon>
-              <ActionIcon name="refresh" />
-            </ButtonIcon>
-            Reset to defaults
-          </SecondaryButton>
-        </SectionActionRow>
-        <Field key={`provider-notes-${providerKey}-${metadataResetKey}`}>
-          <FieldLabel>Description</FieldLabel>
-          <Textarea defaultValue={nextDescription} name="description" />
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="refresh" />
+              </ButtonIcon>
+              Reset request defaults
+            </SecondaryButton>
+            <SecondaryButton
+              onClick={() => {
+                setRequestDefaultsMode("official");
+                setRequestDefaultsDraft(officialRequestDefaults);
+                setRequestDefaultsResetKey((currentValue) => currentValue + 1);
+              }}
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="sparkles" />
+              </ButtonIcon>
+              Restore official defaults
+            </SecondaryButton>
+          </SectionActionRow>
           <FieldHint>
-            Describe the provider in operator language so the stream editor makes sense at a glance.
+            Reset returns to the saved provider defaults. Restore official defaults replaces them with the baseline that ships with the selected provider integration.
           </FieldHint>
-        </Field>
-        {selectedDefinition?.docsUrl ? (
-          <SmallText>
-            Official docs: <a href={selectedDefinition.docsUrl} rel="noreferrer" target="_blank">{selectedDefinition.docsUrl}</a>
-          </SmallText>
-        ) : null}
-      </AdminDisclosureSection>
+          <ProviderFilterFields
+            key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}-${requestDefaultsMode}`}
+            namePrefix="requestDefault"
+            onValuesChange={setRequestDefaultsDraft}
+            providerKey={providerKey}
+            scope="provider"
+            values={requestDefaultsDraft}
+          />
+        </AdminDisclosureSection>
 
-      <AdminDisclosureSection
-        defaultOpen
-        completionLabel="Defaults ready"
-        meta={[
-          {
-            label: `${requestDefaultCount} saved default${requestDefaultCount === 1 ? "" : "s"}`,
-            tone: "muted",
-          },
-        ]}
-        summary="Keep the request defaults deterministic so stream-level overrides stay small and predictable."
-        title="Request defaults"
-      >
-        <SectionActionRow>
-          <SecondaryButton
-            onClick={() => {
-              setRequestDefaultsMode("saved");
-              setRequestDefaultsDraft(savedRequestDefaults);
-              setRequestDefaultsResetKey((currentValue) => currentValue + 1);
-            }}
-            type="button"
-          >
-            <ButtonIcon>
-              <ActionIcon name="refresh" />
-            </ButtonIcon>
-            Reset request defaults
-          </SecondaryButton>
-          <SecondaryButton
-            onClick={() => {
-              setRequestDefaultsMode("official");
-              setRequestDefaultsDraft(officialRequestDefaults);
-              setRequestDefaultsResetKey((currentValue) => currentValue + 1);
-            }}
-            type="button"
-          >
-            <ButtonIcon>
-              <ActionIcon name="sparkles" />
-            </ButtonIcon>
-            Restore official defaults
-          </SecondaryButton>
-        </SectionActionRow>
-        <FieldHint>
-          Reset returns to the saved provider defaults. Restore official defaults replaces them with the baseline that ships with the selected provider integration.
-        </FieldHint>
-        <ProviderFilterFields
-          key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}-${requestDefaultsMode}`}
-          namePrefix="requestDefault"
-          onValuesChange={setRequestDefaultsDraft}
-          providerKey={providerKey}
-          scope="provider"
-          values={nextRequestDefaults}
-        />
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        defaultOpen
-        completionLabel="Availability set"
-        meta={[
-          {
-            label: provider?.isEnabled ?? true ? "Enabled" : "Disabled",
-            tone: provider?.isEnabled ?? true ? "success" : "warning",
-          },
-        ]}
-        summary="Control whether the provider is available for new streams and whether it can serve as the workspace default."
-        title="Availability"
-      >
-        <SectionActionRow>
-          <SecondaryButton
-            onClick={() => setAvailabilityResetKey((currentValue) => currentValue + 1)}
-            type="button"
-          >
-            <ButtonIcon>
-              <ActionIcon name="refresh" />
-            </ButtonIcon>
-            Reset availability
-          </SecondaryButton>
-        </SectionActionRow>
-        <ToggleRow key={`provider-availability-${providerKey}-${availabilityResetKey}`}>
-          <ToggleChip>
-            <input defaultChecked={provider?.isEnabled ?? true} name="isEnabled" type="checkbox" />
-            Enabled
-          </ToggleChip>
-          <ToggleChip>
-            <input defaultChecked={provider?.isSelectable ?? true} name="isSelectable" type="checkbox" />
-            Selectable
-          </ToggleChip>
-          <ToggleChip>
-            <input defaultChecked={provider?.isDefault ?? false} name="isDefault" type="checkbox" />
-            Default
-          </ToggleChip>
-        </ToggleRow>
-      </AdminDisclosureSection>
+        <AdminDisclosureSection
+          defaultOpen
+          completionLabel="Availability set"
+          meta={[
+            {
+              label: provider?.isEnabled ?? true ? "Enabled" : "Disabled",
+              tone: provider?.isEnabled ?? true ? "success" : "warning",
+            },
+          ]}
+          summary="Control whether the provider is available for new streams and whether it can serve as the workspace default."
+          title="Availability"
+        >
+          <SectionActionRow>
+            <SecondaryButton
+              onClick={() => setAvailabilityResetKey((currentValue) => currentValue + 1)}
+              type="button"
+            >
+              <ButtonIcon>
+                <ActionIcon name="refresh" />
+              </ButtonIcon>
+              Reset availability
+            </SecondaryButton>
+          </SectionActionRow>
+          <ToggleRow key={`provider-availability-${providerKey}-${availabilityResetKey}`}>
+            <ToggleChip>
+              <input defaultChecked={provider?.isEnabled ?? true} name="isEnabled" type="checkbox" />
+              Enabled
+            </ToggleChip>
+            <ToggleChip>
+              <input defaultChecked={provider?.isSelectable ?? true} name="isSelectable" type="checkbox" />
+              Selectable
+            </ToggleChip>
+            <ToggleChip>
+              <input defaultChecked={provider?.isDefault ?? false} name="isDefault" type="checkbox" />
+              Default
+            </ToggleChip>
+          </ToggleRow>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       <AdminModalFooterActions>
         <PendingSubmitButton

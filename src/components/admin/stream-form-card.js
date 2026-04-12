@@ -22,6 +22,7 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -560,6 +561,7 @@ export default function StreamFormCard({
         title="Fix the highlighted stream sections before saving."
       />
 
+      <AdminDisclosureGroup>
       <AdminDisclosureSection
         completionLabel={name && slug ? "Core setup ready" : ""}
         defaultOpen
@@ -1021,6 +1023,7 @@ export default function StreamFormCard({
           </SmallText>
         )}
       </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       <AdminModalFooterActions>
         {stream ? (

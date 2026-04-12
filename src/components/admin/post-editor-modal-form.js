@@ -15,6 +15,7 @@ import {
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -161,144 +162,146 @@ export default function PostEditorModalForm({
         title="Fix the highlighted editorial sections before continuing."
       />
 
-      <AdminDisclosureSection
-        completionLabel={normalizeText(slug) ? "Editorial settings ready" : ""}
-        defaultOpen
-        meta={[
-          { label: status, tone: status === "PUBLISHED" ? "success" : "warning" },
-          { label: editorialStage, tone: editorialStage === "APPROVED" ? "success" : "accent" },
-          ...(selectedMatch?.optimizationStatus ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }] : []),
-        ]}
-        missingCount={showValidationState ? validationState.sections.editorial.missingCount : 0}
-        summary="Choose the editorial stage, canonical slug, and destination match that the workflow actions should target."
-        title="Editorial settings"
-      >
-        <FieldGrid>
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          completionLabel={normalizeText(slug) ? "Editorial settings ready" : ""}
+          defaultOpen
+          meta={[
+            { label: status, tone: status === "PUBLISHED" ? "success" : "warning" },
+            { label: editorialStage, tone: editorialStage === "APPROVED" ? "success" : "accent" },
+            ...(selectedMatch?.optimizationStatus ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }] : []),
+          ]}
+          missingCount={showValidationState ? validationState.sections.editorial.missingCount : 0}
+          summary="Choose the editorial stage, canonical slug, and destination match that the workflow actions should target."
+          title="Editorial settings"
+        >
+          <FieldGrid>
+            <Field>
+              <FieldLabel>Slug</FieldLabel>
+              <Input
+                aria-invalid={showValidationState && !normalizeText(slug) ? "true" : undefined}
+                name="slug"
+                onChange={(event) => setSlug(event.target.value)}
+                required
+                value={slug}
+              />
+            </Field>
+            <Field as="div">
+              <FieldLabel>Status</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Story status"
+                name="status"
+                onChange={(value) => setStatus(`${value || ""}`)}
+                options={statusOptions}
+                placeholder="Select a status"
+                value={status}
+              />
+            </Field>
+            <Field as="div">
+              <FieldLabel>Editorial stage</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Editorial stage"
+                name="editorialStage"
+                onChange={(value) => setEditorialStage(`${value || ""}`)}
+                options={editorialStageOptions}
+                placeholder="Select an editorial stage"
+                value={editorialStage}
+              />
+            </Field>
+            <Field as="div">
+              <FieldLabel>Publish target match</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Publish target match"
+                name="articleMatchId"
+                onChange={(value) => setArticleMatchId(`${value || ""}`)}
+                options={articleMatchOptions}
+                placeholder="Select a destination match"
+                value={articleMatchId}
+              />
+            </Field>
+          </FieldGrid>
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          completionLabel={normalizeText(title) ? "Copy ready" : ""}
+          defaultOpen
+          meta={[
+            { label: selectedTranslation?.locale || defaultLocale, tone: "muted" },
+            {
+              label: normalizeText(title) ? "Copy loaded" : "Needs copy",
+              tone: normalizeText(title) ? "success" : "warning",
+            },
+          ]}
+          missingCount={showValidationState ? validationState.sections.storyCopy.missingCount : 0}
+          summary="Edit the canonical title, summary, and body that feed both the website rendering path and destination optimization."
+          title="Story copy"
+        >
           <Field>
-            <FieldLabel>Slug</FieldLabel>
+            <FieldLabel>Title</FieldLabel>
             <Input
-              aria-invalid={showValidationState && !normalizeText(slug) ? "true" : undefined}
-              name="slug"
-              onChange={(event) => setSlug(event.target.value)}
+              aria-invalid={showValidationState && !normalizeText(title) ? "true" : undefined}
+              name="title"
+              onChange={(event) => setTitle(event.target.value)}
               required
-              value={slug}
+              value={title}
             />
           </Field>
-          <Field as="div">
-            <FieldLabel>Status</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Story status"
-              name="status"
-              onChange={(value) => setStatus(`${value || ""}`)}
-              options={statusOptions}
-              placeholder="Select a status"
-              value={status}
+          <Field>
+            <FieldLabel>Summary</FieldLabel>
+            <Textarea name="summary" onChange={(event) => setSummary(event.target.value)} value={summary} />
+          </Field>
+          <Field>
+            <FieldLabel>Body markdown</FieldLabel>
+            <Textarea
+              name="contentMd"
+              onChange={(event) => setContentMd(event.target.value)}
+              style={{ minHeight: "280px" }}
+              value={contentMd}
             />
           </Field>
-          <Field as="div">
-            <FieldLabel>Editorial stage</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Editorial stage"
-              name="editorialStage"
-              onChange={(value) => setEditorialStage(`${value || ""}`)}
-              options={editorialStageOptions}
-              placeholder="Select an editorial stage"
-              value={editorialStage}
-            />
-          </Field>
-          <Field as="div">
-            <FieldLabel>Publish target match</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Publish target match"
-              name="articleMatchId"
-              onChange={(value) => setArticleMatchId(`${value || ""}`)}
-              options={articleMatchOptions}
-              placeholder="Select a destination match"
-              value={articleMatchId}
-            />
-          </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
+        </AdminDisclosureSection>
 
-      <AdminDisclosureSection
-        completionLabel={normalizeText(title) ? "Copy ready" : ""}
-        defaultOpen
-        meta={[
-          { label: selectedTranslation?.locale || defaultLocale, tone: "muted" },
-          {
-            label: normalizeText(title) ? "Copy loaded" : "Needs copy",
-            tone: normalizeText(title) ? "success" : "warning",
-          },
-        ]}
-        missingCount={showValidationState ? validationState.sections.storyCopy.missingCount : 0}
-        summary="Edit the canonical title, summary, and body that feed both the website rendering path and destination optimization."
-        title="Story copy"
-      >
-        <Field>
-          <FieldLabel>Title</FieldLabel>
-          <Input
-            aria-invalid={showValidationState && !normalizeText(title) ? "true" : undefined}
-            name="title"
-            onChange={(event) => setTitle(event.target.value)}
-            required
-            value={title}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Summary</FieldLabel>
-          <Textarea name="summary" onChange={(event) => setSummary(event.target.value)} value={summary} />
-        </Field>
-        <Field>
-          <FieldLabel>Body markdown</FieldLabel>
-          <Textarea
-            name="contentMd"
-            onChange={(event) => setContentMd(event.target.value)}
-            style={{ minHeight: "280px" }}
-            value={contentMd}
-          />
-        </Field>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        completionLabel={submitIntent === "schedule" && !isFuturePublishAt(publishAt) ? "" : "Publishing ready"}
-        defaultOpen={false}
-        errorCount={showValidationState ? validationState.sections.publishing.errorCount : 0}
-        meta={[
-          ...(selectedMatch?.optimizationStatus
-            ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }]
-            : []),
-          ...(selectedMatch?.policyStatus ? [{ label: selectedMatch.policyStatus, tone: "warning" }] : []),
-        ]}
-        summary="Set categories, schedule publication, and run the editorial actions that approve, optimize, hold, or publish this story."
-        title="Publishing"
-      >
-        <Field as="div">
-          <FieldLabel>Categories</FieldLabel>
-          <SearchableSelect
-            ariaLabel="Story categories"
-            multiple
-            name="categoryIds"
-            onChange={(value) => setCategoryIds(Array.isArray(value) ? value : [])}
-            options={categoryOptions}
-            placeholder="Select one or more categories"
-            value={categoryIds}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Schedule publish time</FieldLabel>
-          <Input
-            aria-invalid={
-              showValidationState && submitIntent === "schedule" && !isFuturePublishAt(publishAt)
-                ? "true"
-                : undefined
-            }
-            name="publishAt"
-            onChange={(event) => setPublishAt(event.target.value)}
-            type="datetime-local"
-            value={publishAt}
-          />
-        </Field>
-      </AdminDisclosureSection>
+        <AdminDisclosureSection
+          completionLabel={submitIntent === "schedule" && !isFuturePublishAt(publishAt) ? "" : "Publishing ready"}
+          defaultOpen={false}
+          errorCount={showValidationState ? validationState.sections.publishing.errorCount : 0}
+          meta={[
+            ...(selectedMatch?.optimizationStatus
+              ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }]
+              : []),
+            ...(selectedMatch?.policyStatus ? [{ label: selectedMatch.policyStatus, tone: "warning" }] : []),
+          ]}
+          summary="Set categories, schedule publication, and run the editorial actions that approve, optimize, hold, or publish this story."
+          title="Publishing"
+        >
+          <Field as="div">
+            <FieldLabel>Categories</FieldLabel>
+            <SearchableSelect
+              ariaLabel="Story categories"
+              multiple
+              name="categoryIds"
+              onChange={(value) => setCategoryIds(Array.isArray(value) ? value : [])}
+              options={categoryOptions}
+              placeholder="Select one or more categories"
+              value={categoryIds}
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Schedule publish time</FieldLabel>
+            <Input
+              aria-invalid={
+                showValidationState && submitIntent === "schedule" && !isFuturePublishAt(publishAt)
+                  ? "true"
+                  : undefined
+              }
+              name="publishAt"
+              onChange={(event) => setPublishAt(event.target.value)}
+              type="datetime-local"
+              value={publishAt}
+            />
+          </Field>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       <AdminModalFooterActions>
         <PendingSubmitButton

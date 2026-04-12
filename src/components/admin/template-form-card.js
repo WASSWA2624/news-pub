@@ -25,6 +25,7 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -281,142 +282,144 @@ export default function TemplateFormCard({
         title="Fix the highlighted template sections before saving."
       />
 
-      <AdminDisclosureSection
-        completionLabel="Resolution ready"
-        defaultOpen
-        errorCount={issues.length}
-        meta={[
-          {
-            label: formatEnumLabel(platform),
-            tone: "muted",
-          },
-          ...(linkedPlatforms.length
-            ? [{ label: `${linkedPlatforms.length} linked platform${linkedPlatforms.length === 1 ? "" : "s"}`, tone: "warning" }]
-            : []),
-        ]}
-        summary="Define where this template applies before editing the destination-specific content blocks."
-        title="Resolution rules"
-      >
-        <FieldGrid>
-          <Field>
-            <FieldLabel>Name</FieldLabel>
-            <Input defaultValue={template?.name || ""} name="name" required />
-            <FieldHint>Name the template for the editorial use case it solves, not just the platform it belongs to.</FieldHint>
-          </Field>
-          <Field as="div">
-            <FieldLabel>Platform</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Template platform"
-              invalid={issues.length > 0}
-              name="platform"
-              onChange={(value) => setPlatform(`${value || ""}`)}
-              options={resolvedPlatformOptions}
-              placeholder="Select a platform"
-              value={platform}
-            />
-            {linkedPlatforms.length ? (
-              <FieldHint>
-                Linked stream platforms: {linkedPlatforms.map((value) => formatEnumLabel(value)).join(", ")}
-              </FieldHint>
-            ) : (
-              <FieldHint>Choose the publishing surface this copy structure is optimized for.</FieldHint>
-            )}
-            {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
-          </Field>
-          <Field>
-            <FieldLabel>Locale override</FieldLabel>
-            <Input defaultValue={template?.locale || ""} name="locale" placeholder="en, en-UG, fr" />
-            <FieldHint>Leave blank to let the template apply across all locales for the selected platform.</FieldHint>
-          </Field>
-          <Field as="div">
-            <FieldLabel>Category override</FieldLabel>
-            <SearchableSelect
-              ariaLabel="Category override"
-              defaultValue={template?.categoryId || ""}
-              name="categoryId"
-              options={categoryOptions}
-              placeholder="Select a category override"
-            />
-            <FieldHint>Use a category override only when a coverage lane truly needs different copy or compliance rules.</FieldHint>
-          </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        completionLabel="Content ready"
-        defaultOpen
-        meta={[
-          {
-            label: "Reusable tokens",
-            tone: "accent",
-          },
-          {
-            label: template?.isDefault ? "Platform default" : "Optional override",
-            tone: template?.isDefault ? "success" : "muted",
-          },
-        ]}
-        summary="Compose the final payload with reusable story tokens so fallback and platform-specific copy stay bounded and predictable."
-        title="Content blocks"
-      >
-        <ContentGrid>
-          <TokenGrid>
-            {visibleTokenCards.map((token) => (
-              <TokenCard key={token.label}>
-                <TokenLabel>{token.label}</TokenLabel>
-                <TokenDescription>{token.description}</TokenDescription>
-              </TokenCard>
-            ))}
-          </TokenGrid>
-
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          completionLabel="Resolution ready"
+          defaultOpen
+          errorCount={issues.length}
+          meta={[
+            {
+              label: formatEnumLabel(platform),
+              tone: "muted",
+            },
+            ...(linkedPlatforms.length
+              ? [{ label: `${linkedPlatforms.length} linked platform${linkedPlatforms.length === 1 ? "" : "s"}`, tone: "warning" }]
+              : []),
+          ]}
+          summary="Define where this template applies before editing the destination-specific content blocks."
+          title="Resolution rules"
+        >
           <FieldGrid>
             <Field>
-              <FieldLabel>Title template</FieldLabel>
-              <TemplateTextarea
-                $compact
-                defaultValue={template?.titleTemplate || ""}
-                name="titleTemplate"
-                placeholder="{{title}}"
+              <FieldLabel>Name</FieldLabel>
+              <Input defaultValue={template?.name || ""} name="name" required />
+              <FieldHint>Name the template for the editorial use case it solves, not just the platform it belongs to.</FieldHint>
+            </Field>
+            <Field as="div">
+              <FieldLabel>Platform</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Template platform"
+                invalid={issues.length > 0}
+                name="platform"
+                onChange={(value) => setPlatform(`${value || ""}`)}
+                options={resolvedPlatformOptions}
+                placeholder="Select a platform"
+                value={platform}
               />
-              <FieldHint>Leave this blank when the destination should keep the optimized or canonical title unchanged.</FieldHint>
+              {linkedPlatforms.length ? (
+                <FieldHint>
+                  Linked stream platforms: {linkedPlatforms.map((value) => formatEnumLabel(value)).join(", ")}
+                </FieldHint>
+              ) : (
+                <FieldHint>Choose the publishing surface this copy structure is optimized for.</FieldHint>
+              )}
+              {issues.length ? <FieldErrorText>{issues[0].message}</FieldErrorText> : null}
             </Field>
             <Field>
-              <FieldLabel>Summary template</FieldLabel>
-              <TemplateTextarea
-                $compact
-                defaultValue={template?.summaryTemplate || ""}
-                name="summaryTemplate"
-                placeholder="{{summary}}"
-              />
-              <FieldHint>Use the summary block for concise destination previews or SEO helper copy.</FieldHint>
+              <FieldLabel>Locale override</FieldLabel>
+              <Input defaultValue={template?.locale || ""} name="locale" placeholder="en, en-UG, fr" />
+              <FieldHint>Leave blank to let the template apply across all locales for the selected platform.</FieldHint>
             </Field>
-            <Field>
-              <FieldLabel>Hashtags template</FieldLabel>
-              <TemplateTextarea
-                $compact
-                defaultValue={template?.hashtagsTemplate || ""}
-                name="hashtagsTemplate"
-                placeholder="#news #update"
+            <Field as="div">
+              <FieldLabel>Category override</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Category override"
+                defaultValue={template?.categoryId || ""}
+                name="categoryId"
+                options={categoryOptions}
+                placeholder="Select a category override"
               />
-              <FieldHint>Keep hashtag defaults deterministic so runtime publishing stays bounded and reviewable.</FieldHint>
+              <FieldHint>Use a category override only when a coverage lane truly needs different copy or compliance rules.</FieldHint>
             </Field>
           </FieldGrid>
+        </AdminDisclosureSection>
 
-          <Field>
-            <FieldLabel>Body template</FieldLabel>
-            <TemplateTextarea
-              defaultValue={template?.bodyTemplate || ""}
-              name="bodyTemplate"
-              placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
-            />
-            <FieldHint>The body template is the last deterministic fallback when no destination-specific optimized payload is available.</FieldHint>
-          </Field>
+        <AdminDisclosureSection
+          completionLabel="Content ready"
+          defaultOpen
+          meta={[
+            {
+              label: "Reusable tokens",
+              tone: "accent",
+            },
+            {
+              label: template?.isDefault ? "Platform default" : "Optional override",
+              tone: template?.isDefault ? "success" : "muted",
+            },
+          ]}
+          summary="Compose the final payload with reusable story tokens so fallback and platform-specific copy stay bounded and predictable."
+          title="Content blocks"
+        >
+          <ContentGrid>
+            <TokenGrid>
+              {visibleTokenCards.map((token) => (
+                <TokenCard key={token.label}>
+                  <TokenLabel>{token.label}</TokenLabel>
+                  <TokenDescription>{token.description}</TokenDescription>
+                </TokenCard>
+              ))}
+            </TokenGrid>
 
-          <CheckboxPill>
-            <input defaultChecked={template?.isDefault} name="isDefault" type="checkbox" />
-            Default for this platform
-          </CheckboxPill>
-        </ContentGrid>
-      </AdminDisclosureSection>
+            <FieldGrid>
+              <Field>
+                <FieldLabel>Title template</FieldLabel>
+                <TemplateTextarea
+                  $compact
+                  defaultValue={template?.titleTemplate || ""}
+                  name="titleTemplate"
+                  placeholder="{{title}}"
+                />
+                <FieldHint>Leave this blank when the destination should keep the optimized or canonical title unchanged.</FieldHint>
+              </Field>
+              <Field>
+                <FieldLabel>Summary template</FieldLabel>
+                <TemplateTextarea
+                  $compact
+                  defaultValue={template?.summaryTemplate || ""}
+                  name="summaryTemplate"
+                  placeholder="{{summary}}"
+                />
+                <FieldHint>Use the summary block for concise destination previews or SEO helper copy.</FieldHint>
+              </Field>
+              <Field>
+                <FieldLabel>Hashtags template</FieldLabel>
+                <TemplateTextarea
+                  $compact
+                  defaultValue={template?.hashtagsTemplate || ""}
+                  name="hashtagsTemplate"
+                  placeholder="#news #update"
+                />
+                <FieldHint>Keep hashtag defaults deterministic so runtime publishing stays bounded and reviewable.</FieldHint>
+              </Field>
+            </FieldGrid>
+
+            <Field>
+              <FieldLabel>Body template</FieldLabel>
+              <TemplateTextarea
+                defaultValue={template?.bodyTemplate || ""}
+                name="bodyTemplate"
+                placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
+              />
+              <FieldHint>The body template is the last deterministic fallback when no destination-specific optimized payload is available.</FieldHint>
+            </Field>
+
+            <CheckboxPill>
+              <input defaultChecked={template?.isDefault} name="isDefault" type="checkbox" />
+              Default for this platform
+            </CheckboxPill>
+          </ContentGrid>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       {issues.length ? (
         <NoticeBanner $tone="danger">

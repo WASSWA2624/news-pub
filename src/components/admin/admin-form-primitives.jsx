@@ -4,7 +4,7 @@
  * Shared disclosure and validation primitives used by NewsPub admin forms.
  */
 
-import { useId, useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import { getAutoOpenDisclosureIds, hasBlockingDisclosureState } from "@/components/admin/admin-ui-contract";
@@ -165,6 +165,8 @@ const DisclosureBody = styled.div`
   padding: 0.92rem;
 `;
 
+const DisclosureGroupContext = createContext(null);
+
 function formatStateCount(label, count) {
   return `${count} ${label}${count === 1 ? "" : "s"}`;
 }
@@ -235,6 +237,69 @@ export function AdminValidationSummary({
 }
 
 /**
+ * Provides a shared disclosure state so sibling admin sections stay collapsed
+ * by default and only one opens at a time at the same hierarchy level.
+ *
+ * @param {object} props - Group provider props.
+ * @returns {JSX.Element} Context provider for grouped disclosures.
+ */
+export function AdminDisclosureGroup({ children }) {
+  const [openId, setOpenId] = useState(null);
+  const [registeredIds, setRegisteredIds] = useState([]);
+  const [blockingStates, setBlockingStates] = useState({});
+  const forcedOpenId = useMemo(
+    () => registeredIds.find((id) => blockingStates[id]) || null,
+    [blockingStates, registeredIds],
+  );
+  const value = useMemo(
+    () => ({
+      forcedOpenId,
+      openId,
+      registerItem(id) {
+        setRegisteredIds((currentIds) => (currentIds.includes(id) ? currentIds : [...currentIds, id]));
+      },
+      setItemBlocking(id, isBlocking) {
+        setBlockingStates((currentStates) =>
+          currentStates[id] === isBlocking
+            ? currentStates
+            : {
+                ...currentStates,
+                [id]: isBlocking,
+              },
+        );
+      },
+      toggleItem(id) {
+        setOpenId((currentId) => (currentId === id ? null : id));
+      },
+      unregisterItem(id) {
+        setRegisteredIds((currentIds) => currentIds.filter((currentId) => currentId !== id));
+        setBlockingStates((currentStates) => {
+          if (!Object.prototype.hasOwnProperty.call(currentStates, id)) {
+            return currentStates;
+          }
+
+          const nextStates = {
+            ...currentStates,
+          };
+
+          delete nextStates[id];
+
+          return nextStates;
+        });
+        setOpenId((currentId) => (currentId === id ? null : currentId));
+      },
+    }),
+    [forcedOpenId, openId],
+  );
+
+  return (
+    <DisclosureGroupContext.Provider value={value}>
+      {children}
+    </DisclosureGroupContext.Provider>
+  );
+}
+
+/**
  * Opens the first invalid or aria-invalid form control and moves focus to it.
  *
  * @param {HTMLFormElement|null} formElement - The form that failed validation.
@@ -286,6 +351,7 @@ export function AdminDisclosureSection({
 }) {
   const generatedId = useId();
   const resolvedId = id || generatedId;
+  const disclosureGroup = useContext(DisclosureGroupContext);
   const { bodyProps, toggleProps } = createDisclosureAriaProps(resolvedId);
   const shouldForceOpen = hasBlockingDisclosureState({
     blockingWarningCount,
@@ -302,13 +368,41 @@ export function AdminDisclosureSection({
     ? [...meta, stateMeta]
     : meta;
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const resolvedOpen = isOpen || shouldForceOpen;
+
+  useEffect(() => {
+    if (!disclosureGroup) {
+      return undefined;
+    }
+
+    disclosureGroup.registerItem(resolvedId);
+
+    return () => {
+      disclosureGroup.unregisterItem(resolvedId);
+    };
+  }, [disclosureGroup, resolvedId]);
+
+  useEffect(() => {
+    disclosureGroup?.setItemBlocking(resolvedId, shouldForceOpen);
+  }, [disclosureGroup, resolvedId, shouldForceOpen]);
+
+  const resolvedOpen = disclosureGroup
+    ? disclosureGroup.forcedOpenId
+      ? disclosureGroup.forcedOpenId === resolvedId
+      : disclosureGroup.openId === resolvedId
+    : isOpen || shouldForceOpen;
 
   return (
     <DisclosureCard data-admin-disclosure-section={resolvedId}>
       <DisclosureToggle
         aria-expanded={resolvedOpen}
-        onClick={() => setIsOpen((currentValue) => !currentValue)}
+        onClick={() => {
+          if (disclosureGroup) {
+            disclosureGroup.toggleItem(resolvedId);
+            return;
+          }
+
+          setIsOpen((currentValue) => !currentValue);
+        }}
         {...toggleProps}
         type="button"
       >

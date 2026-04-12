@@ -16,6 +16,7 @@ import {
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -107,86 +108,88 @@ export default function MediaUploadModalForm({ action }) {
         title="Fix the highlighted upload section before continuing."
       />
 
-      <AdminDisclosureSection
-        completionLabel={hasSelectedFile ? "Asset ready" : ""}
-        defaultOpen
-        meta={[
-          {
-            label: hasSelectedFile ? "File selected" : "Required file",
-            tone: hasSelectedFile ? "success" : "warning",
-          },
-        ]}
-        missingCount={showValidationState ? validationState.sections.asset.missingCount : 0}
-        summary="Choose the file NewsPub should ingest through the shared storage adapter and responsive variant pipeline."
-        title="Asset file"
-      >
-        <Field>
-          <FieldLabel>File</FieldLabel>
-          <Input
-            aria-invalid={showValidationState && !hasSelectedFile ? "true" : undefined}
-            name="file"
-            onChange={handleFileChange}
-            ref={fileInputRef}
-            required
-            type="file"
-          />
-          <SmallText>
-            {hasSelectedFile ? `Selected file: ${selectedFileName}` : "Choose an image or supported asset file to upload."}
-          </SmallText>
-        </Field>
-      </AdminDisclosureSection>
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          completionLabel={hasSelectedFile ? "Asset ready" : ""}
+          defaultOpen
+          meta={[
+            {
+              label: hasSelectedFile ? "File selected" : "Required file",
+              tone: hasSelectedFile ? "success" : "warning",
+            },
+          ]}
+          missingCount={showValidationState ? validationState.sections.asset.missingCount : 0}
+          summary="Choose the file NewsPub should ingest through the shared storage adapter and responsive variant pipeline."
+          title="Asset file"
+        >
+          <Field>
+            <FieldLabel>File</FieldLabel>
+            <Input
+              aria-invalid={showValidationState && !hasSelectedFile ? "true" : undefined}
+              name="file"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              required
+              type="file"
+            />
+            <SmallText>
+              {hasSelectedFile ? `Selected file: ${selectedFileName}` : "Choose an image or supported asset file to upload."}
+            </SmallText>
+          </Field>
+        </AdminDisclosureSection>
 
-      <AdminDisclosureSection
-        completionLabel={
-          normalizeText(sourceUrl) || normalizeText(alt) || normalizeText(attributionText) || normalizeText(caption)
-            ? "Metadata added"
-            : ""
-        }
-        defaultOpen={false}
-        meta={[{ label: "Optional metadata", tone: "muted" }]}
-        summary="Add descriptive text and attribution so the asset stays understandable in the editorial library later."
-        title="Source and metadata"
-      >
-        <FieldGrid>
+        <AdminDisclosureSection
+          completionLabel={
+            normalizeText(sourceUrl) || normalizeText(alt) || normalizeText(attributionText) || normalizeText(caption)
+              ? "Metadata added"
+              : ""
+          }
+          defaultOpen={false}
+          meta={[{ label: "Optional metadata", tone: "muted" }]}
+          summary="Add descriptive text and attribution so the asset stays understandable in the editorial library later."
+          title="Source and metadata"
+        >
+          <FieldGrid>
+            <Field>
+              <FieldLabel>Source URL</FieldLabel>
+              <Input
+                name="sourceUrl"
+                onChange={(event) => setSourceUrl(event.target.value)}
+                placeholder="https://example.com/original-asset"
+                type="url"
+                value={sourceUrl}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Alt text</FieldLabel>
+              <Input
+                name="alt"
+                onChange={(event) => setAlt(event.target.value)}
+                placeholder="Describe the subject of the image"
+                value={alt}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Attribution</FieldLabel>
+              <Input
+                name="attributionText"
+                onChange={(event) => setAttributionText(event.target.value)}
+                placeholder="Photo desk, wire service, or photographer"
+                value={attributionText}
+              />
+            </Field>
+          </FieldGrid>
           <Field>
-            <FieldLabel>Source URL</FieldLabel>
-            <Input
-              name="sourceUrl"
-              onChange={(event) => setSourceUrl(event.target.value)}
-              placeholder="https://example.com/original-asset"
-              type="url"
-              value={sourceUrl}
+            <FieldLabel>Caption</FieldLabel>
+            <Textarea
+              name="caption"
+              onChange={(event) => setCaption(event.target.value)}
+              placeholder="Short editorial context for library previews and story embeds."
+              value={caption}
             />
           </Field>
-          <Field>
-            <FieldLabel>Alt text</FieldLabel>
-            <Input
-              name="alt"
-              onChange={(event) => setAlt(event.target.value)}
-              placeholder="Describe the subject of the image"
-              value={alt}
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Attribution</FieldLabel>
-            <Input
-              name="attributionText"
-              onChange={(event) => setAttributionText(event.target.value)}
-              placeholder="Photo desk, wire service, or photographer"
-              value={attributionText}
-            />
-          </Field>
-        </FieldGrid>
-        <Field>
-          <FieldLabel>Caption</FieldLabel>
-          <Textarea
-            name="caption"
-            onChange={(event) => setCaption(event.target.value)}
-            placeholder="Short editorial context for library previews and story embeds."
-            value={caption}
-          />
-        </Field>
-      </AdminDisclosureSection>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       <AdminModalFooterActions>
         <PendingSubmitButton

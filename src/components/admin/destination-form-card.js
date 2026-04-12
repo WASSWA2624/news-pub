@@ -29,6 +29,7 @@ import {
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -582,6 +583,7 @@ export default function DestinationFormCard({
         title="Fix the highlighted destination sections before saving."
       />
 
+      <AdminDisclosureGroup>
       <AdminDisclosureSection
         completionLabel="Routing ready"
         defaultOpen
@@ -1182,6 +1184,7 @@ export default function DestinationFormCard({
           </FieldHelp>
         </Field>
       </AdminDisclosureSection>
+      </AdminDisclosureGroup>
 
       {destination ? (
         <SmallText>

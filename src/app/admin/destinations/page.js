@@ -175,6 +175,67 @@ function getDestinationPlatformTone(platform) {
   return "website";
 }
 
+function normalizeSettings(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function formatConfigKey(value) {
+  return `${value || ""}`
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+}
+
+function getDestinationCredentialSummary(destination) {
+  if (destination.platform === "WEBSITE") {
+    return "Website routing is stored directly on the destination record. No external publish credential is required.";
+  }
+
+  if (destination.usesRuntimeCredentials && !destination.usesDestinationCredentialOverrides) {
+    return "Runtime credentials are being resolved from the environment-backed Meta defaults matched to this destination.";
+  }
+
+  if (destination.usesDestinationCredentialOverrides) {
+    return destination.hasStoredToken
+      ? "This destination is storing its own credential override, including a saved token hint."
+      : "This destination is storing its own credential override values and relies on a refreshed credential or manual token input.";
+  }
+
+  if (destination.hasStoredToken) {
+    return "A destination-specific token is stored for this record.";
+  }
+
+  return "No destination-specific credential override is stored for this record.";
+}
+
+function buildDestinationConfigPreview(destination) {
+  const settings = normalizeSettings(destination.settingsJson);
+  const targetEntries = [
+    destination.externalAccountId ? `External account ${destination.externalAccountId}` : null,
+    settings.pageId ? `Page ${settings.pageId}` : null,
+    settings.instagramUserId ? `Instagram ${settings.instagramUserId}` : null,
+    settings.profileId ? `Profile ${settings.profileId}` : null,
+  ].filter(Boolean);
+  const guardrailOverrides = Object.entries(destination.socialGuardrailOverrides || {}).map(
+    ([key, value]) => `${formatConfigKey(key)} ${value?.value ?? ""}`.trim(),
+  );
+  const parts = [];
+
+  if (targetEntries.length) {
+    parts.push(`Stored targets: ${targetEntries.join(" | ")}`);
+  }
+
+  if (settings.graphApiBaseUrl) {
+    parts.push(`Stored Graph API base URL: ${settings.graphApiBaseUrl}`);
+  }
+
+  if (guardrailOverrides.length) {
+    parts.push(`Guardrail overrides: ${guardrailOverrides.join(" | ")}`);
+  }
+
+  return parts.join(" || ");
+}
+
 /**
  * Renders the destination management route with shared directory cards,
  * responsive route pills, and a sticky create panel.
@@ -264,18 +325,32 @@ export default async function DestinationsPage({ searchParams }) {
                         <MetaPill>{destination.slug}</MetaPill>
                       </PillRow>
                     </RecordTitleBlock>
-                    <RecordMeta>
-                      <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
-                      <StatusBadge $tone={getTone(displayConnectionStatus)}>
-                        {displayConnectionStatus}
-                      </StatusBadge>
-                    </RecordMeta>
-                  </RecordHeader>
-                  <SmallText>
-                    {destination.usesRuntimeCredentials
-                      ? "Meta runtime credentials are currently sourced from environment variables for this destination."
-                      : "Identity, routing, credentials, and operational notes open in a focused modal with room for longer configurations."}
-                  </SmallText>
+                  <RecordMeta>
+                    <MetaPill>{formatEnumLabel(destination.kind)}</MetaPill>
+                    <StatusBadge $tone={getTone(displayConnectionStatus)}>
+                      {displayConnectionStatus}
+                    </StatusBadge>
+                  </RecordMeta>
+                </RecordHeader>
+                  <PillRow>
+                    <MetaPill $tone={destination.usesRuntimeCredentials ? "success" : "warning"}>
+                      {destination.usesRuntimeCredentials ? "Env runtime credentials" : "Stored destination settings"}
+                    </MetaPill>
+                    {destination.usesDestinationCredentialOverrides ? (
+                      <MetaPill $tone="warning">Credential overrides active</MetaPill>
+                    ) : null}
+                    <MetaPill>
+                      {Object.keys(destination.socialGuardrailOverrides || {}).length} guardrail override{Object.keys(destination.socialGuardrailOverrides || {}).length === 1 ? "" : "s"}
+                    </MetaPill>
+                    <MetaPill>{destination.streamCount} linked stream{destination.streamCount === 1 ? "" : "s"}</MetaPill>
+                  </PillRow>
+                  <SmallText>{getDestinationCredentialSummary(destination)}</SmallText>
+                  {buildDestinationConfigPreview(destination) ? (
+                    <SmallText>{buildDestinationConfigPreview(destination)}</SmallText>
+                  ) : null}
+                  {destination.connectionError ? (
+                    <SmallText>{destination.connectionError}</SmallText>
+                  ) : null}
                   <ButtonRow>
                     <AdminFormModal
                       description="Manage destination identity, platform compatibility, connection details, and operational notes in one modal workspace."

@@ -25,7 +25,7 @@ import {
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal, { AdminModalFooterActions } from "@/components/admin/admin-form-modal";
-import { AdminDisclosureSection } from "@/components/admin/admin-form-primitives";
+import { AdminDisclosureGroup, AdminDisclosureSection } from "@/components/admin/admin-form-primitives";
 import ConfirmSubmitButton from "@/components/admin/confirm-submit-button";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
 import { getCategoryManagementSnapshot } from "@/features/categories";
@@ -149,46 +149,48 @@ function CategoryEditorForm({ category = null, formId, submitLabel }) {
   return (
     <CategoryForm action={saveCategoryAction} id={formId}>
       {category ? <input name="id" type="hidden" value={category.id} /> : null}
-      <AdminDisclosureSection
-        completionLabel={category?.name ? "Identity ready" : ""}
-        defaultOpen
-        meta={[
-          {
-            label: category ? "Existing category" : "New category",
-            tone: "muted",
-          },
-        ]}
-        summary="Define the category label and optional custom slug used by editorial filters, landing pages, and search."
-        title="Identity"
-      >
-        <FieldGrid>
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          completionLabel={category?.name ? "Identity ready" : ""}
+          defaultOpen
+          meta={[
+            {
+              label: category ? "Existing category" : "New category",
+              tone: "muted",
+            },
+          ]}
+          summary="Define the category label and optional custom slug used by editorial filters, landing pages, and search."
+          title="Identity"
+        >
+          <FieldGrid>
+            <Field>
+              <FieldLabel>Name</FieldLabel>
+              <Input defaultValue={category?.name || ""} name="name" required />
+            </Field>
+            <Field>
+              <FieldLabel>Slug</FieldLabel>
+              <Input
+                defaultValue={category?.slug || ""}
+                name="slug"
+                placeholder="Auto-suggested from the category name"
+                spellCheck={false}
+              />
+              <SmallText>Leave blank to use the cleaned SEO-friendly slug suggestion.</SmallText>
+            </Field>
+          </FieldGrid>
+        </AdminDisclosureSection>
+        <AdminDisclosureSection
+          completionLabel="Notes ready"
+          defaultOpen={false}
+          summary="Add concise editorial context so stream matching and category decisions stay understandable later."
+          title="Description"
+        >
           <Field>
-            <FieldLabel>Name</FieldLabel>
-            <Input defaultValue={category?.name || ""} name="name" required />
+            <FieldLabel>Description</FieldLabel>
+            <Textarea defaultValue={category?.description || ""} name="description" />
           </Field>
-          <Field>
-            <FieldLabel>Slug</FieldLabel>
-            <Input
-              defaultValue={category?.slug || ""}
-              name="slug"
-              placeholder="Auto-suggested from the category name"
-              spellCheck={false}
-            />
-            <SmallText>Leave blank to use the cleaned SEO-friendly slug suggestion.</SmallText>
-          </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
-      <AdminDisclosureSection
-        completionLabel="Notes ready"
-        defaultOpen={false}
-        summary="Add concise editorial context so stream matching and category decisions stay understandable later."
-        title="Description"
-      >
-        <Field>
-          <FieldLabel>Description</FieldLabel>
-          <Textarea defaultValue={category?.description || ""} name="description" />
-        </Field>
-      </AdminDisclosureSection>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
       <AdminModalFooterActions>
         <PendingSubmitButton
           form={formId}

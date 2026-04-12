@@ -16,6 +16,7 @@ import {
   Textarea,
 } from "@/components/admin/news-admin-ui";
 import {
+  AdminDisclosureGroup,
   AdminDisclosureSection,
   AdminValidationSummary,
   scrollToFirstBlockingField,
@@ -160,185 +161,187 @@ export default function ManualPostForm({
         title="Fix the highlighted manual story sections before continuing."
       />
 
-      <AdminDisclosureSection
-        completionLabel={streamId ? "Routing ready" : ""}
-        defaultOpen
-        missingCount={showValidationState ? validationState.sections.routing.missingCount : 0}
-        meta={[
-          {
-            label: streamId ? "Stream ready" : "Pick stream",
-            tone: streamId ? "success" : "warning",
-          },
-        ]}
-        summary="Choose the website stream and optional slug that should own the manual story."
-        title="Routing"
-      >
-        <FieldGrid>
+      <AdminDisclosureGroup>
+        <AdminDisclosureSection
+          completionLabel={streamId ? "Routing ready" : ""}
+          defaultOpen
+          missingCount={showValidationState ? validationState.sections.routing.missingCount : 0}
+          meta={[
+            {
+              label: streamId ? "Stream ready" : "Pick stream",
+              tone: streamId ? "success" : "warning",
+            },
+          ]}
+          summary="Choose the website stream and optional slug that should own the manual story."
+          title="Routing"
+        >
+          <FieldGrid>
+            <Field as="div">
+              <FieldLabel>Website stream</FieldLabel>
+              <SearchableSelect
+                ariaLabel="Website stream"
+                invalid={showValidationState && validationState.sections.routing.missingCount > 0}
+                name="streamId"
+                onChange={(value) => setStreamId(`${value || ""}`)}
+                options={streamOptions}
+                placeholder="Select a website stream"
+                value={streamId}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Slug</FieldLabel>
+              <Input
+                name="slug"
+                onChange={(event) => setSlug(event.target.value)}
+                placeholder="optional-custom-slug"
+                value={slug}
+              />
+            </Field>
+          </FieldGrid>
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          completionLabel={normalizeText(sourceName) && normalizeText(sourceUrl) ? "Attribution ready" : ""}
+          defaultOpen={false}
+          missingCount={showValidationState ? validationState.sections.source.missingCount : 0}
+          meta={[{ label: "Required attribution", tone: "muted" }]}
+          summary="Store the human-visible source attribution that NewsPub keeps attached to the canonical story."
+          title="Source attribution"
+        >
+          <FieldGrid>
+            <Field>
+              <FieldLabel>Source name</FieldLabel>
+              <Input
+                aria-invalid={showValidationState && !normalizeText(sourceName) ? "true" : undefined}
+                name="sourceName"
+                onChange={(event) => setSourceName(event.target.value)}
+                required
+                value={sourceName}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>Source URL</FieldLabel>
+              <Input
+                aria-invalid={showValidationState && !normalizeText(sourceUrl) ? "true" : undefined}
+                name="sourceUrl"
+                onChange={(event) => setSourceUrl(event.target.value)}
+                placeholder="https://example.com/source-story"
+                required
+                type="url"
+                value={sourceUrl}
+              />
+            </Field>
+          </FieldGrid>
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          completionLabel={normalizeText(title) && normalizeText(contentMd) ? "Copy ready" : ""}
+          defaultOpen
+          missingCount={showValidationState ? validationState.sections.storyCopy.missingCount : 0}
+          meta={[{ label: "Editorial draft", tone: "accent" }]}
+          summary="Enter the canonical copy that the website stream, editor, and publish history will continue to manage."
+          title="Story copy"
+        >
+          <Field>
+            <FieldLabel>Title</FieldLabel>
+            <Input
+              aria-invalid={showValidationState && !normalizeText(title) ? "true" : undefined}
+              name="title"
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              value={title}
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Summary</FieldLabel>
+            <Textarea
+              name="summary"
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder="A short editorial summary for listings and social previews."
+              value={summary}
+            />
+          </Field>
+          <Field>
+            <FieldLabel>Body markdown</FieldLabel>
+            <Textarea
+              aria-invalid={showValidationState && !normalizeText(contentMd) ? "true" : undefined}
+              name="contentMd"
+              onChange={(event) => setContentMd(event.target.value)}
+              required
+              style={{ minHeight: "320px" }}
+              value={contentMd}
+            />
+          </Field>
+        </AdminDisclosureSection>
+
+        <AdminDisclosureSection
+          completionLabel={submitIntent === "schedule" && !isFuturePublishAt(publishAt) ? "" : "Publishing ready"}
+          defaultOpen={false}
+          errorCount={showValidationState ? validationState.sections.publishing.errorCount : 0}
+          meta={[{ label: "Draft, schedule, or publish", tone: "muted" }]}
+          summary="Assign categories, choose an optional publish time, and decide whether this story should save, schedule, or publish immediately."
+          title="Publishing"
+        >
           <Field as="div">
-            <FieldLabel>Website stream</FieldLabel>
+            <FieldLabel>Categories</FieldLabel>
             <SearchableSelect
-              ariaLabel="Website stream"
-              invalid={showValidationState && validationState.sections.routing.missingCount > 0}
-              name="streamId"
-              onChange={(value) => setStreamId(`${value || ""}`)}
-              options={streamOptions}
-              placeholder="Select a website stream"
-              value={streamId}
+              ariaLabel="Story categories"
+              multiple
+              name="categoryIds"
+              onChange={(value) => setCategoryIds(Array.isArray(value) ? value : [])}
+              options={categoryOptions}
+              placeholder="Select one or more categories"
+              value={categoryIds}
             />
           </Field>
           <Field>
-            <FieldLabel>Slug</FieldLabel>
+            <FieldLabel>Schedule publish time</FieldLabel>
             <Input
-              name="slug"
-              onChange={(event) => setSlug(event.target.value)}
-              placeholder="optional-custom-slug"
-              value={slug}
+              aria-invalid={
+                showValidationState && submitIntent === "schedule" && !isFuturePublishAt(publishAt)
+                  ? "true"
+                  : undefined
+              }
+              name="publishAt"
+              onChange={(event) => setPublishAt(event.target.value)}
+              type="datetime-local"
+              value={publishAt}
             />
           </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        completionLabel={normalizeText(sourceName) && normalizeText(sourceUrl) ? "Attribution ready" : ""}
-        defaultOpen={false}
-        missingCount={showValidationState ? validationState.sections.source.missingCount : 0}
-        meta={[{ label: "Required attribution", tone: "muted" }]}
-        summary="Store the human-visible source attribution that NewsPub keeps attached to the canonical story."
-        title="Source attribution"
-      >
-        <FieldGrid>
-          <Field>
-            <FieldLabel>Source name</FieldLabel>
-            <Input
-              aria-invalid={showValidationState && !normalizeText(sourceName) ? "true" : undefined}
-              name="sourceName"
-              onChange={(event) => setSourceName(event.target.value)}
-              required
-              value={sourceName}
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Source URL</FieldLabel>
-            <Input
-              aria-invalid={showValidationState && !normalizeText(sourceUrl) ? "true" : undefined}
-              name="sourceUrl"
-              onChange={(event) => setSourceUrl(event.target.value)}
-              placeholder="https://example.com/source-story"
-              required
-              type="url"
-              value={sourceUrl}
-            />
-          </Field>
-        </FieldGrid>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        completionLabel={normalizeText(title) && normalizeText(contentMd) ? "Copy ready" : ""}
-        defaultOpen
-        missingCount={showValidationState ? validationState.sections.storyCopy.missingCount : 0}
-        meta={[{ label: "Editorial draft", tone: "accent" }]}
-        summary="Enter the canonical copy that the website stream, editor, and publish history will continue to manage."
-        title="Story copy"
-      >
-        <Field>
-          <FieldLabel>Title</FieldLabel>
-          <Input
-            aria-invalid={showValidationState && !normalizeText(title) ? "true" : undefined}
-            name="title"
-            onChange={(event) => setTitle(event.target.value)}
-            required
-            value={title}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Summary</FieldLabel>
-          <Textarea
-            name="summary"
-            onChange={(event) => setSummary(event.target.value)}
-            placeholder="A short editorial summary for listings and social previews."
-            value={summary}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Body markdown</FieldLabel>
-          <Textarea
-            aria-invalid={showValidationState && !normalizeText(contentMd) ? "true" : undefined}
-            name="contentMd"
-            onChange={(event) => setContentMd(event.target.value)}
-            required
-            style={{ minHeight: "320px" }}
-            value={contentMd}
-          />
-        </Field>
-      </AdminDisclosureSection>
-
-      <AdminDisclosureSection
-        completionLabel={submitIntent === "schedule" && !isFuturePublishAt(publishAt) ? "" : "Publishing ready"}
-        defaultOpen={false}
-        errorCount={showValidationState ? validationState.sections.publishing.errorCount : 0}
-        meta={[{ label: "Draft, schedule, or publish", tone: "muted" }]}
-        summary="Assign categories, choose an optional publish time, and decide whether this story should save, schedule, or publish immediately."
-        title="Publishing"
-      >
-        <Field as="div">
-          <FieldLabel>Categories</FieldLabel>
-          <SearchableSelect
-            ariaLabel="Story categories"
-            multiple
-            name="categoryIds"
-            onChange={(value) => setCategoryIds(Array.isArray(value) ? value : [])}
-            options={categoryOptions}
-            placeholder="Select one or more categories"
-            value={categoryIds}
-          />
-        </Field>
-        <Field>
-          <FieldLabel>Schedule publish time</FieldLabel>
-          <Input
-            aria-invalid={
-              showValidationState && submitIntent === "schedule" && !isFuturePublishAt(publishAt)
-                ? "true"
-                : undefined
-            }
-            name="publishAt"
-            onChange={(event) => setPublishAt(event.target.value)}
-            type="datetime-local"
-            value={publishAt}
-          />
-        </Field>
-        <ButtonRow>
-          <PendingSubmitButton
-            icon="save"
-            name="intent"
-            pendingLabel="Saving draft..."
-            tone="secondary"
-            type="submit"
-            value="save"
-          >
-            Save draft
-          </PendingSubmitButton>
-          <PendingSubmitButton
-            icon="schedule"
-            name="intent"
-            pendingLabel="Scheduling story..."
-            tone="secondary"
-            type="submit"
-            value="schedule"
-          >
-            Schedule publish
-          </PendingSubmitButton>
-          <PendingSubmitButton
-            icon="publish"
-            name="intent"
-            pendingLabel="Publishing story..."
-            tone="primary"
-            type="submit"
-            value="publish"
-          >
-            Publish now
-          </PendingSubmitButton>
-        </ButtonRow>
-      </AdminDisclosureSection>
+          <ButtonRow>
+            <PendingSubmitButton
+              icon="save"
+              name="intent"
+              pendingLabel="Saving draft..."
+              tone="secondary"
+              type="submit"
+              value="save"
+            >
+              Save draft
+            </PendingSubmitButton>
+            <PendingSubmitButton
+              icon="schedule"
+              name="intent"
+              pendingLabel="Scheduling story..."
+              tone="secondary"
+              type="submit"
+              value="schedule"
+            >
+              Schedule publish
+            </PendingSubmitButton>
+            <PendingSubmitButton
+              icon="publish"
+              name="intent"
+              pendingLabel="Publishing story..."
+              tone="primary"
+              type="submit"
+              value="publish"
+            >
+              Publish now
+            </PendingSubmitButton>
+          </ButtonRow>
+        </AdminDisclosureSection>
+      </AdminDisclosureGroup>
     </ManualPostFormRoot>
   );
 }

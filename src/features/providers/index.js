@@ -27,18 +27,21 @@ export async function getProviderManagementSnapshot(prisma) {
       },
     }),
   ]);
+  const snapshotConfigs = configs.map((config) => ({
+    ...config,
+    credentialState: getProviderCredentialState(config.providerKey),
+    requestDefaultsJson: config.requestDefaultsJson || {},
+  }));
 
   return {
-    configs: configs.map((config) => ({
-      ...config,
-      credentialState: getProviderCredentialState(config.providerKey),
-      requestDefaultsJson: config.requestDefaultsJson || {},
-    })),
+    configs: snapshotConfigs,
     summary: {
       configuredCredentialCount: catalog.filter((provider) => getProviderCredentialState(provider.key) === "configured")
         .length,
+      defaultCount: snapshotConfigs.filter((config) => config.isDefault).length,
       enabledCount,
       returnedCount: configs.length,
+      savedDefaultsCount: snapshotConfigs.filter((config) => Object.keys(config.requestDefaultsJson || {}).length > 0).length,
       totalCount,
     },
     supportedProviders: catalog,

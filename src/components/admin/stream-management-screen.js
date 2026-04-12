@@ -1189,6 +1189,7 @@ export default function StreamManagementScreen({
   );
   const [runState, setRunState] = useState(null);
   const [runConfiguration, setRunConfiguration] = useState(null);
+  const [openStreamDisclosureById, setOpenStreamDisclosureById] = useState({});
   const streamCountsByDestination = useMemo(() => {
     const counts = new Map();
 
@@ -1308,6 +1309,13 @@ export default function StreamManagementScreen({
 
       return validIds.filter((destinationId) => !destinationIdSet.has(destinationId));
     });
+  }
+
+  function toggleStreamDisclosure(streamId, disclosureKey) {
+    setOpenStreamDisclosureById((currentState) => ({
+      ...currentState,
+      [streamId]: currentState[streamId] === disclosureKey ? null : disclosureKey,
+    }));
   }
 
   const filteredDestinationOptions = useMemo(() => {
@@ -1866,8 +1874,15 @@ export default function StreamManagementScreen({
                     </StreamDetailCard>
                   </StreamDetailGrid>
 
-                  <StreamDisclosure open={Boolean(stream.schedule?.isRunning || stream.schedule?.isDue)}>
-                    <StreamDisclosureSummary>Current provider request</StreamDisclosureSummary>
+                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "provider-request"}>
+                    <StreamDisclosureSummary
+                      onClick={(event) => {
+                        event.preventDefault();
+                        toggleStreamDisclosure(stream.id, "provider-request");
+                      }}
+                    >
+                      Current provider request
+                    </StreamDisclosureSummary>
                     <StreamDisclosureBody>
                       <StreamDetailGrid>
                         <StreamDetailCard>
@@ -1909,8 +1924,15 @@ export default function StreamManagementScreen({
                   </StreamDisclosure>
 
                   {recentRuns.length ? (
-                    <StreamDisclosure open={Boolean(stream.schedule?.isRunning)}>
-                      <StreamDisclosureSummary>Recent runs</StreamDisclosureSummary>
+                    <StreamDisclosure open={openStreamDisclosureById[stream.id] === "recent-runs"}>
+                      <StreamDisclosureSummary
+                        onClick={(event) => {
+                          event.preventDefault();
+                          toggleStreamDisclosure(stream.id, "recent-runs");
+                        }}
+                      >
+                        Recent runs
+                      </StreamDisclosureSummary>
                       <StreamDisclosureBody>
                         <RunHistoryList>
                           {recentRuns.map((run) => (

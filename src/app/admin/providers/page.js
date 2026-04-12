@@ -14,6 +14,7 @@ import {
   CardDescription,
   AdminSectionTitle,
   MetaPill,
+  PillRow,
   RecordCard,
   RecordHeader,
   RecordMeta,
@@ -23,10 +24,7 @@ import {
   SectionGrid,
   SmallText,
   StatusBadge,
-  SummaryCard,
   SummaryGrid,
-  SummaryLabel,
-  SummaryValue,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
 import { getProviderManagementSnapshot } from "@/features/providers";
@@ -38,6 +36,56 @@ import { saveProviderAction } from "../actions";
 const ProviderFormCard = dynamic(() => import("@/components/admin/provider-form-card"), {
   loading: () => <SmallText>Loading provider editor...</SmallText>,
 });
+
+function formatConfigKey(value) {
+  return `${value || ""}`
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim();
+}
+
+function formatConfigValue(value) {
+  if (Array.isArray(value)) {
+    return value.join(", ") || "none";
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, nestedValue]) => `${formatConfigKey(key)}: ${formatConfigValue(nestedValue)}`)
+      .join(", ");
+  }
+
+  const normalizedValue = `${value ?? ""}`.trim();
+
+  return normalizedValue || "none";
+}
+
+function buildRequestDefaultsPreview(requestDefaultsJson = {}) {
+  const entries = Object.entries(requestDefaultsJson).filter(([, value]) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (value && typeof value === "object") {
+      return Object.keys(value).length > 0;
+    }
+
+    return `${value ?? ""}`.trim() !== "";
+  });
+
+  if (!entries.length) {
+    return "Saved request defaults: none. NewsPub is using the provider integration baseline.";
+  }
+
+  const preview = entries
+    .slice(0, 4)
+    .map(([key, value]) => `${formatConfigKey(key)} = ${formatConfigValue(value)}`)
+    .join(" | ");
+
+  return entries.length > 4
+    ? `Saved request defaults: ${preview} | +${entries.length - 4} more`
+    : `Saved request defaults: ${preview}`;
+}
 
 /**
  * Renders the provider management route with shared record cards and the
@@ -63,6 +111,7 @@ export default async function ProvidersPage() {
         <AdminMetricCard icon="providers" label="Total providers" value={snapshot.summary.totalCount} />
         <AdminMetricCard icon="badge-check" label="Enabled providers" value={snapshot.summary.enabledCount} />
         <AdminMetricCard icon="shield" label="Credentials configured" value={snapshot.summary.configuredCredentialCount} />
+        <AdminMetricCard icon="sparkles" label="Providers with saved defaults" tone="accent" value={snapshot.summary.savedDefaultsCount} />
       </SummaryGrid>
 
       <SectionGrid>
@@ -91,9 +140,22 @@ export default async function ProvidersPage() {
                     </StatusBadge>
                   </RecordMeta>
                 </RecordHeader>
-                <SmallText>
-                  Availability, labels, and request defaults are now edited in a dedicated workspace so the provider list stays easier to scan.
-                </SmallText>
+                <PillRow>
+                  <MetaPill $tone={provider.isEnabled ? "success" : "warning"}>
+                    {provider.isEnabled ? "Enabled" : "Disabled"}
+                  </MetaPill>
+                  <MetaPill $tone={provider.isSelectable ? "success" : "warning"}>
+                    {provider.isSelectable ? "Selectable" : "Hidden from stream picker"}
+                  </MetaPill>
+                  {provider.isDefault ? <MetaPill $tone="accent">Workspace default</MetaPill> : null}
+                  <MetaPill>
+                    {Object.keys(provider.requestDefaultsJson || {}).length} saved default{Object.keys(provider.requestDefaultsJson || {}).length === 1 ? "" : "s"}
+                  </MetaPill>
+                </PillRow>
+                <SmallText>{buildRequestDefaultsPreview(provider.requestDefaultsJson)}</SmallText>
+                {provider.baseUrl ? (
+                  <SmallText>Stored base URL: {provider.baseUrl}</SmallText>
+                ) : null}
                 <ButtonRow $justify="flex-end">
                   <AdminFormModal
                     description="Review provider metadata, request defaults, and availability settings without crowding the dashboard grid."
