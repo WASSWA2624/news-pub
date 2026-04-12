@@ -8,8 +8,8 @@ describe("default admin account helpers", () => {
         findUnique: vi.fn().mockResolvedValue({
           email: "admin@example.test",
           id: "user_1",
-          isActive: true,
-          passwordHash: "scrypt$32768$8$1$abc$def",
+          is_active: true,
+          password_hash: "scrypt$32768$8$1$abc$def",
           role: "SUPER_ADMIN",
         }),
       },
@@ -47,8 +47,8 @@ describe("default admin account helpers", () => {
         findUnique: vi.fn().mockResolvedValue({
           email: "admin@example.test",
           id: "user_1",
-          isActive: false,
-          passwordHash: "",
+          is_active: false,
+          password_hash: "",
           role: "EDITOR",
         }),
       },

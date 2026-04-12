@@ -9,16 +9,16 @@ import { handleAdminGet, handleAdminMutation } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
 const templateSchema = z.object({
-  bodyTemplate: z.string().min(1),
-  categoryId: z.string().trim().optional().or(z.literal("")),
-  hashtagsTemplate: z.string().optional(),
+  body_template: z.string().min(1),
+  category_id: z.string().trim().optional().or(z.literal("")),
+  hashtags_template: z.string().optional(),
   id: z.string().trim().optional(),
-  isDefault: z.boolean().optional(),
+  is_default: z.boolean().optional(),
   locale: z.string().trim().optional().or(z.literal("")),
   name: z.string().trim().min(1),
   platform: z.string().trim().min(1),
-  summaryTemplate: z.string().optional(),
-  titleTemplate: z.string().optional(),
+  summary_template: z.string().optional(),
+  title_template: z.string().optional(),
 });
 
 /**
@@ -43,7 +43,7 @@ export async function PUT(request) {
     templateSchema,
     async ({ data, user }) =>
       saveTemplateRecord(data, {
-        actorId: user.id,
+        actor_id: user.id,
       }),
     "Unable to save the template.",
   );

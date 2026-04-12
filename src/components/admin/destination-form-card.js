@@ -163,7 +163,7 @@ export default function DestinationFormCard({
   submitLabel,
 }) {
   const initialSettings = useMemo(() => {
-    const settingsJson = normalizeSettings(destination?.settingsJson);
+    const settings_json = normalizeSettings(destination?.settings_json);
     const initialSlug = `${destination?.slug || ""}`;
     const initialKind = `${destination?.kind || "WEBSITE"}`;
     const initialCredentialState = buildEffectiveCredentialState({
@@ -174,15 +174,15 @@ export default function DestinationFormCard({
     });
 
     return {
-      advancedSettingsJson: JSON.stringify(removeKnownMetaSettings(settingsJson), null, 2),
+      advancedSettingsJson: JSON.stringify(removeKnownMetaSettings(settings_json), null, 2),
       credentialDefaults: initialCredentialState.credentialDefaults,
-      externalAccountId: initialCredentialState.externalAccountId,
+      external_account_id: initialCredentialState.external_account_id,
       graphApiBaseUrl: initialCredentialState.graphApiBaseUrl,
       hasCredentialDefaults: initialCredentialState.hasCredentialDefaults,
       instagramUserId: initialCredentialState.instagramUserId,
       pageId: initialCredentialState.pageId,
       profileId: initialCredentialState.profileId,
-      socialGuardrails: buildInitialSocialGuardrails(settingsJson, metaConfig?.socialGuardrails || {}),
+      socialGuardrails: buildInitialSocialGuardrails(settings_json, metaConfig?.socialGuardrails || {}),
       useDestinationCredentialOverrides: initialCredentialState.useDestinationCredentialOverrides,
     };
   }, [destination, metaConfig]);
@@ -190,17 +190,17 @@ export default function DestinationFormCard({
   const [slug, setSlug] = useState(`${destination?.slug || ""}`);
   const [platform, setPlatform] = useState(`${destination?.platform || "WEBSITE"}`);
   const [kind, setKind] = useState(`${destination?.kind || "WEBSITE"}`);
-  const [connectionStatus, setConnectionStatus] = useState(`${destination?.connectionStatus || "DISCONNECTED"}`);
-  const [accountHandle, setAccountHandle] = useState(`${destination?.accountHandle || ""}`);
+  const [connection_status, setConnectionStatus] = useState(`${destination?.connection_status || "DISCONNECTED"}`);
+  const [account_handle, setAccountHandle] = useState(`${destination?.account_handle || ""}`);
   const [nameWasEdited, setNameWasEdited] = useState(Boolean(trimText(destination?.name)));
   const [slugWasEdited, setSlugWasEdited] = useState(Boolean(trimText(destination?.slug)));
   const [accountHandleWasEdited, setAccountHandleWasEdited] = useState(
-    Boolean(trimText(destination?.accountHandle)),
+    Boolean(trimText(destination?.account_handle)),
   );
   const [useDestinationCredentialOverrides, setUseDestinationCredentialOverrides] = useState(
     initialSettings.useDestinationCredentialOverrides,
   );
-  const [externalAccountId, setExternalAccountId] = useState(initialSettings.externalAccountId);
+  const [external_account_id, setExternalAccountId] = useState(initialSettings.external_account_id);
   const [graphApiBaseUrl, setGraphApiBaseUrl] = useState(initialSettings.graphApiBaseUrl);
   const [pageId, setPageId] = useState(initialSettings.pageId);
   const [profileId, setProfileId] = useState(initialSettings.profileId);
@@ -234,7 +234,7 @@ export default function DestinationFormCard({
   const shouldPersistCredentialOverrides = useDestinationCredentialOverrides || !hasCredentialDefaults;
   const shouldPersistCredentialOverrideFlag = useDestinationCredentialOverrides && hasCredentialDefaults;
   const credentialInputsDisabled = hasCredentialDefaults && !useDestinationCredentialOverrides;
-  const submittedExternalAccountId = shouldPersistCredentialOverrides ? trimText(externalAccountId) : "";
+  const submittedExternalAccountId = shouldPersistCredentialOverrides ? trimText(external_account_id) : "";
   const submittedGraphApiBaseUrl = shouldPersistCredentialOverrides ? graphApiBaseUrl : "";
   const submittedInstagramUserId = shouldPersistCredentialOverrides ? instagramUserId : "";
   const submittedPageId = shouldPersistCredentialOverrides ? pageId : "";
@@ -374,11 +374,11 @@ export default function DestinationFormCard({
         setSlug(createDestinationSlug(nextSlugSource));
       }
 
-      if ((!accountHandleWasEdited || !trimText(accountHandle)) && normalizedHandle) {
+      if ((!accountHandleWasEdited || !trimText(account_handle)) && normalizedHandle) {
         setAccountHandle(normalizedHandle);
       }
     },
-    [accountHandle, accountHandleWasEdited, name, nameWasEdited, slug, slugWasEdited],
+    [account_handle, accountHandleWasEdited, name, nameWasEdited, slug, slugWasEdited],
   );
 
   useEffect(() => {
@@ -399,7 +399,7 @@ export default function DestinationFormCard({
     }
 
     const hasManualCredentialState = Boolean(
-      trimText(externalAccountId)
+      trimText(external_account_id)
         || trimText(instagramUserId)
         || trimText(pageId)
         || trimText(profileId)
@@ -413,7 +413,7 @@ export default function DestinationFormCard({
     }
   }, [
     destination,
-    externalAccountId,
+    external_account_id,
     hasCredentialDefaults,
     instagramUserId,
     pageId,
@@ -553,7 +553,7 @@ export default function DestinationFormCard({
 
   return (
     <DestinationForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
-      <input name="externalAccountId" type="hidden" value={submittedExternalAccountId} />
+      <input name="external_account_id" type="hidden" value={submittedExternalAccountId} />
       <input name="graphApiBaseUrl" type="hidden" value={submittedGraphApiBaseUrl} />
       <input name="instagramUserId" type="hidden" value={submittedInstagramUserId} />
       <input
@@ -573,7 +573,7 @@ export default function DestinationFormCard({
       />
       <input name="pageId" type="hidden" value={submittedPageId} />
       <input name="profileId" type="hidden" value={submittedProfileId} />
-      <input name="settingsJson" type="hidden" value={settingsJsonValue} />
+      <input name="settings_json" type="hidden" value={settingsJsonValue} />
       {socialGuardrailFieldDefinitions.map((field) => (
         <input key={field.key} name={`socialGuardrail.${field.key}`} type="hidden" value={socialGuardrails[field.key] || ""} />
       ))}
@@ -594,8 +594,8 @@ export default function DestinationFormCard({
             tone: "muted",
           },
           {
-            label: formatEnumLabel(connectionStatus),
-            tone: getStatusTone(connectionStatus),
+            label: formatEnumLabel(connection_status),
+            tone: getStatusTone(connection_status),
           },
         ]}
         summary="Choose the platform, compatible destination kind, and the connection state operators should see in the admin directory."
@@ -635,14 +635,14 @@ export default function DestinationFormCard({
             <FieldLabel>Connection status</FieldLabel>
             <SearchableSelect
               ariaLabel="Connection status"
-              name="connectionStatus"
+              name="connection_status"
               onChange={(value) => setConnectionStatus(`${value || ""}`)}
               options={connectionStatusOptions}
               placeholder="Select a connection status"
-              value={connectionStatus}
+              value={connection_status}
             />
             <StatusHint>
-              <StatusChip $tone={getStatusTone(connectionStatus)}>{formatEnumLabel(connectionStatus)}</StatusChip>
+              <StatusChip $tone={getStatusTone(connection_status)}>{formatEnumLabel(connection_status)}</StatusChip>
             </StatusHint>
             <FieldHint>Set the live connection state shown across directory cards, review surfaces, and job history.</FieldHint>
           </Field>
@@ -698,12 +698,12 @@ export default function DestinationFormCard({
           <Field>
             <FieldLabel>Account handle</FieldLabel>
             <Input
-              name="accountHandle"
+              name="account_handle"
               onChange={(event) => {
                 setAccountHandle(event.target.value);
                 setAccountHandleWasEdited(true);
               }}
-              value={accountHandle}
+              value={account_handle}
             />
             <FieldHint>Store the human-readable page or profile handle operators expect to recognize quickly.</FieldHint>
           </Field>
@@ -935,7 +935,7 @@ export default function DestinationFormCard({
                   setInstagramUserId(nextValue);
                 }
               }}
-              value={externalAccountId}
+              value={external_account_id}
             />
             <FieldHint>
               {hasCredentialDefaults && !useDestinationCredentialOverrides
@@ -1036,8 +1036,8 @@ export default function DestinationFormCard({
               placeholder={
                 credentialInputsDisabled && credentialDefaults?.hasAccessToken
                   ? "Using access token from environment-backed Meta defaults"
-                  : destination?.tokenHint
-                    ? `Stored token ending ${destination.tokenHint}`
+                  : destination?.token_hint
+                    ? `Stored token ending ${destination.token_hint}`
                     : "Paste a manual override token"
               }
               value={tokenValue}
@@ -1130,10 +1130,10 @@ export default function DestinationFormCard({
       ) : null}
 
       <AdminDisclosureSection
-        completionLabel={destination?.connectionError ? "" : "No issue recorded"}
+        completionLabel={destination?.connection_error ? "" : "No issue recorded"}
         defaultOpen={false}
         meta={[
-          ...(destination?.connectionError ? [{ label: "Issue recorded", tone: "warning" }] : []),
+          ...(destination?.connection_error ? [{ label: "Issue recorded", tone: "warning" }] : []),
         ]}
         summary="Store operator-facing notes about connection health without changing the runtime routing values."
         title="Operational notes"
@@ -1141,8 +1141,8 @@ export default function DestinationFormCard({
         <Field>
           <FieldLabel>Connection error</FieldLabel>
           <Textarea
-            defaultValue={destination?.connectionError || ""}
-            name="connectionError"
+            defaultValue={destination?.connection_error || ""}
+            name="connection_error"
             placeholder="Graph API returned 190: Invalid OAuth 2.0 Access Token on 2026-04-06. Reconnect with a fresh token."
           />
           <FieldHelp>

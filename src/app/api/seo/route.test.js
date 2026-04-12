@@ -22,7 +22,7 @@ describe("seo api route", () => {
   it("returns the seo snapshot for an authorized admin", async () => {
     const getSeoManagementSnapshot = vi.fn().mockResolvedValue({
       defaults: {
-        titleTemplate: "%s | NewsPub",
+        title_template: "%s | NewsPub",
       },
     });
 
@@ -45,7 +45,7 @@ describe("seo api route", () => {
     expect(body).toEqual({
       data: {
         defaults: {
-          titleTemplate: "%s | NewsPub",
+          title_template: "%s | NewsPub",
         },
       },
       success: true,

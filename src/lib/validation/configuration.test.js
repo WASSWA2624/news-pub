@@ -64,7 +64,7 @@ describe("configuration validation", () => {
           endpoint: "everything",
           q: "",
         },
-        providerKey: "newsapi",
+        provider_key: "newsapi",
       }),
     ).toMatchObject([
       {
@@ -76,8 +76,8 @@ describe("configuration validation", () => {
   it("flags provider-specific max posts per run values that exceed upstream request limits", () => {
     expect(
       getStreamValidationIssues({
-        maxPostsPerRun: 34,
-        providerKey: "mediastack",
+        max_posts_per_run: 34,
+        provider_key: "mediastack",
       }),
     ).toMatchObject([
       {
@@ -89,12 +89,12 @@ describe("configuration validation", () => {
   it("flags NewsAPI stream limits above the provider page size cap", () => {
     expect(
       getStreamValidationIssues({
-        maxPostsPerRun: 101,
+        max_posts_per_run: 101,
         providerDefaults: {
           category: "business",
           endpoint: "top-headlines",
         },
-        providerKey: "newsapi",
+        provider_key: "newsapi",
       }),
     ).toEqual(
       expect.arrayContaining([

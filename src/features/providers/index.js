@@ -17,20 +17,20 @@ export async function getProviderManagementSnapshot(prisma) {
   const catalog = listNewsProviders();
   const [configs, totalCount, enabledCount] = await Promise.all([
     db.newsProviderConfig.findMany({
-      orderBy: [{ isDefault: "desc" }, { label: "asc" }],
+      orderBy: [{ is_default: "desc" }, { label: "asc" }],
       take: providerSnapshotLimit,
     }),
     db.newsProviderConfig.count(),
     db.newsProviderConfig.count({
       where: {
-        isEnabled: true,
+        is_enabled: true,
       },
     }),
   ]);
   const snapshotConfigs = configs.map((config) => ({
     ...config,
-    credentialState: getProviderCredentialState(config.providerKey),
-    requestDefaultsJson: config.requestDefaultsJson || {},
+    credentialState: getProviderCredentialState(config.provider_key),
+    request_defaults_json: config.request_defaults_json || {},
   }));
 
   return {
@@ -38,10 +38,10 @@ export async function getProviderManagementSnapshot(prisma) {
     summary: {
       configuredCredentialCount: catalog.filter((provider) => getProviderCredentialState(provider.key) === "configured")
         .length,
-      defaultCount: snapshotConfigs.filter((config) => config.isDefault).length,
+      defaultCount: snapshotConfigs.filter((config) => config.is_default).length,
       enabledCount,
       returnedCount: configs.length,
-      savedDefaultsCount: snapshotConfigs.filter((config) => Object.keys(config.requestDefaultsJson || {}).length > 0).length,
+      savedDefaultsCount: snapshotConfigs.filter((config) => Object.keys(config.request_defaults_json || {}).length > 0).length,
       totalCount,
     },
     supportedProviders: catalog,
@@ -51,21 +51,21 @@ export async function getProviderManagementSnapshot(prisma) {
  * Creates or updates a NewsPub provider configuration record.
  */
 
-export async function saveProviderRecord(input, { actorId } = {}, prisma) {
+export async function saveProviderRecord(input, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const providerKey = trimText(input.providerKey).toLowerCase();
+  const provider_key = trimText(input.provider_key).toLowerCase();
   const label = trimText(input.label);
-  const requestDefaultsJson = sanitizeProviderFieldValues(providerKey, input.requestDefaultsJson);
+  const request_defaults_json = sanitizeProviderFieldValues(provider_key, input.request_defaults_json);
 
-  if (!providerKey || !label) {
+  if (!provider_key || !label) {
     throw new NewsPubError("Provider key and label are required.", {
       status: "provider_validation_failed",
       statusCode: 400,
     });
   }
 
-  const validationIssues = getProviderRequestValidationIssues(providerKey, {
-    providerDefaults: requestDefaultsJson,
+  const validationIssues = getProviderRequestValidationIssues(provider_key, {
+    providerDefaults: request_defaults_json,
   });
 
   if (validationIssues.length) {
@@ -77,33 +77,33 @@ export async function saveProviderRecord(input, { actorId } = {}, prisma) {
 
   const record = await db.newsProviderConfig.upsert({
     where: {
-      providerKey,
+      provider_key,
     },
     update: {
-      baseUrl: trimText(input.baseUrl) || null,
+      base_url: trimText(input.base_url) || null,
       description: trimText(input.description) || null,
-      isDefault: Boolean(input.isDefault),
-      isEnabled: input.isEnabled !== false,
-      isSelectable: input.isSelectable !== false,
+      is_default: Boolean(input.is_default),
+      is_enabled: input.is_enabled !== false,
+      is_selectable: input.is_selectable !== false,
       label,
-      requestDefaultsJson,
+      request_defaults_json,
     },
     create: {
-      baseUrl: trimText(input.baseUrl) || null,
+      base_url: trimText(input.base_url) || null,
       description: trimText(input.description) || null,
-      isDefault: Boolean(input.isDefault),
-      isEnabled: input.isEnabled !== false,
-      isSelectable: input.isSelectable !== false,
+      is_default: Boolean(input.is_default),
+      is_enabled: input.is_enabled !== false,
+      is_selectable: input.is_selectable !== false,
       label,
-      providerKey,
-      requestDefaultsJson,
+      provider_key,
+      request_defaults_json,
     },
   });
 
-  if (record.isDefault) {
+  if (record.is_default) {
     await db.newsProviderConfig.updateMany({
       data: {
-        isDefault: false,
+        is_default: false,
       },
       where: {
         id: {
@@ -116,13 +116,13 @@ export async function saveProviderRecord(input, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "PROVIDER_CONFIG_SAVED",
-      actorId,
-      entityId: record.id,
-      entityType: "provider_config",
-      payloadJson: {
-        isDefault: record.isDefault,
-        isEnabled: record.isEnabled,
-        providerKey: record.providerKey,
+      actor_id,
+      entity_id: record.id,
+      entity_type: "provider_config",
+      payload_json: {
+        is_default: record.is_default,
+        is_enabled: record.is_enabled,
+        provider_key: record.provider_key,
       },
     },
     db,

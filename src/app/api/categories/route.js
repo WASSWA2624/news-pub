@@ -41,7 +41,7 @@ export async function PUT(request) {
     saveCategorySchema,
     async ({ data, user }) =>
       saveCategoryRecord(data, {
-        actorId: user.id,
+        actor_id: user.id,
       }),
     "Unable to save the category.",
   );
@@ -57,7 +57,7 @@ export async function DELETE(request) {
     deleteCategorySchema,
     async ({ data, user }) =>
       deleteCategoryRecord(data.id, {
-        actorId: user.id,
+        actor_id: user.id,
       }),
     "Unable to delete the category.",
   );

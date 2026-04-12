@@ -133,8 +133,8 @@ export default async function ReviewQueuePage({ searchParams }) {
                         {item.reviewPolicyStatus}
                       </StatusBadge>
                     </td>
-                    <td data-label="Source">{item.sourceName}</td>
-                    <td data-label="Scheduled">{formatDateTime(item.scheduledPublishAt)}</td>
+                    <td data-label="Source">{item.source_name}</td>
+                    <td data-label="Scheduled">{formatDateTime(item.scheduled_publish_at)}</td>
                     <td data-label="Action">
                       <LinkButton href={`/admin/posts/${item.id}`}>
                         <ButtonIcon>

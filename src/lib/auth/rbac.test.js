@@ -83,7 +83,7 @@ describe("RBAC policy", () => {
     ]);
     expect(
       getRequiredPermissionsForPostUpdate({
-        editorialStage: "APPROVED",
+        editorial_stage: "APPROVED",
         status: "PUBLISHED",
       }),
     ).toEqual([ADMIN_PERMISSIONS.EDIT_POSTS, ADMIN_PERMISSIONS.PUBLISH_POSTS]);

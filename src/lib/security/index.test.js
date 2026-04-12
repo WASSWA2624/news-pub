@@ -95,7 +95,7 @@ describe("security sanitizers", () => {
     ]);
   });
 
-  it("preserves gallery images saved with sourceUrl or publicUrl", () => {
+  it("preserves gallery images saved with source_url or public_url", () => {
     const sanitized = sanitizeStructuredContentJson({
       sections: [
         {
@@ -103,11 +103,11 @@ describe("security sanitizers", () => {
           images: [
             {
               alt: "Source image",
-              sourceUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Flexible_endoscope.jpg",
+              source_url: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Flexible_endoscope.jpg",
             },
             {
               alt: "Public image",
-              publicUrl: "https://cdn.example.com/endoscopy/components.jpg",
+              public_url: "https://cdn.example.com/endoscopy/components.jpg",
             },
           ],
           kind: "image_gallery",
@@ -119,12 +119,12 @@ describe("security sanitizers", () => {
     expect(sanitized.sections[0].images).toEqual([
       {
         alt: "Source image",
-        sourceUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Flexible_endoscope.jpg",
+        source_url: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Flexible_endoscope.jpg",
         url: "https://upload.wikimedia.org/wikipedia/commons/b/b6/Flexible_endoscope.jpg",
       },
       {
         alt: "Public image",
-        publicUrl: "https://cdn.example.com/endoscopy/components.jpg",
+        public_url: "https://cdn.example.com/endoscopy/components.jpg",
         url: "https://cdn.example.com/endoscopy/components.jpg",
       },
     ]);

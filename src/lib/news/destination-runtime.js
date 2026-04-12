@@ -24,9 +24,9 @@ function createStoredTokenDecryptionError() {
 }
 
 function readStoredDestinationToken(destination) {
-  const ciphertext = destination?.encryptedTokenCiphertext;
-  const iv = destination?.encryptedTokenIv;
-  const tag = destination?.encryptedTokenTag;
+  const ciphertext = destination?.encrypted_token_ciphertext;
+  const iv = destination?.encrypted_token_iv;
+  const tag = destination?.encrypted_token_tag;
 
   if (!ciphertext || !iv || !tag) {
     return {
@@ -56,12 +56,12 @@ function readStoredDestinationToken(destination) {
 
 /** Builds the effective runtime connection details for one destination. */
 export function resolveDestinationRuntimeConnection(destination = {}) {
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
   const platform = trimText(destination?.platform).toUpperCase();
   const storedTokenState = readStoredDestinationToken(destination);
   const storedToken = storedTokenState.value;
   const storedAccessToken = trimText(storedToken) || null;
-  const storedExternalAccountId = trimText(destination?.externalAccountId) || null;
+  const storedExternalAccountId = trimText(destination?.external_account_id) || null;
   const storedGraphApiBaseUrl = trimText(settings.graphApiBaseUrl) || null;
   const storedPageId = trimText(settings.pageId) || null;
   const storedProfileId = trimText(settings.profileId) || null;
@@ -101,14 +101,14 @@ export function resolveDestinationRuntimeConnection(destination = {}) {
     ? "CONNECTED"
     : storedTokenState.credentialError
       ? "ERROR"
-      : trimText(destination?.connectionStatus) || "DISCONNECTED";
+      : trimText(destination?.connection_status) || "DISCONNECTED";
 
   return {
     accessToken,
     accountId,
     credentialError: storedTokenState.credentialError,
     effectiveConnectionStatus,
-    externalAccountId: storedExternalAccountId,
+    external_account_id: storedExternalAccountId,
     graphApiBaseUrl,
     hasRuntimeCredentials,
     hasCompleteEnvCredentials: Boolean((envMetaSystemUserAccessToken || envMetaUserAccessToken) && accountId),

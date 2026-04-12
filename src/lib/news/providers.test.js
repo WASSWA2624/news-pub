@@ -16,14 +16,14 @@ function getRequestedUrl() {
   return new URL(`${fetch.mock.calls[0][0]}`);
 }
 
-function createNewsApiArticles(count, page, { sourceName = "Example Wire" } = {}) {
+function createNewsApiArticles(count, page, { source_name = "Example Wire" } = {}) {
   return Array.from({ length: count }, (_, index) => ({
     author: `Reporter ${page}-${index + 1}`,
     content: `Story content ${page}-${index + 1}`,
     description: `Story description ${page}-${index + 1}`,
-    publishedAt: `2026-04-${`${Math.min(page, 9)}`.padStart(2, "0")}T${`${index % 24}`.padStart(2, "0")}:00:00Z`,
+    published_at: `2026-04-${`${Math.min(page, 9)}`.padStart(2, "0")}T${`${index % 24}`.padStart(2, "0")}:00:00Z`,
     source: {
-      name: sourceName,
+      name: source_name,
     },
     title: `Story ${page}-${index + 1}`,
     url: `https://example.com/newsapi/${page}-${index + 1}`,
@@ -59,17 +59,17 @@ describe("news providers", () => {
         expect.objectContaining({
           credentialEnv: "MEDIASTACK_API_KEY",
           docsUrl: "https://mediastack.com/documentation",
-          providerKey: "mediastack",
+          provider_key: "mediastack",
         }),
         expect.objectContaining({
           credentialEnv: "NEWSDATA_API_KEY",
           docsUrl: "https://newsdata.io/documentation",
-          providerKey: "newsdata",
+          provider_key: "newsdata",
         }),
         expect.objectContaining({
           credentialEnv: "NEWSAPI_API_KEY",
           docsUrl: "https://newsapi.org/docs",
-          providerKey: "newsapi",
+          provider_key: "newsapi",
         }),
       ]),
     );
@@ -103,21 +103,21 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       now: new Date("2026-04-05T12:34:56.000Z"),
-      providerKey: "mediastack",
+      provider_key: "mediastack",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             categories: ["general"],
             countries: ["us"],
             languages: ["en"],
             sort: "published_desc",
           },
         },
-        countryAllowlistJson: ["ug"],
-        languageAllowlistJson: ["en"],
+        country_allowlist_json: ["ug"],
+        language_allowlist_json: ["en"],
         locale: "en",
-        maxPostsPerRun: 2,
-        settingsJson: {
+        max_posts_per_run: 2,
+        settings_json: {
           providerFilters: {
             categories: ["business"],
             dateFrom: "2026-04-01",
@@ -148,14 +148,14 @@ describe("news providers", () => {
         limit: 2,
         offset: 0,
       },
-      fetchedCount: 1,
+      fetched_count: 1,
     });
     expect(result.articles[0]).toMatchObject({
       language: "en",
       providerCategories: ["business"],
       providerCountries: ["ug"],
-      providerKey: "mediastack",
-      sourceName: "Example Source",
+      provider_key: "mediastack",
+      source_name: "Example Source",
       title: "Budget update",
     });
   });
@@ -177,10 +177,10 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
 
     await fetchProviderArticles({
-      providerKey: "mediastack",
+      provider_key: "mediastack",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             categories: ["general"],
             countries: ["us"],
             languages: ["en"],
@@ -188,8 +188,8 @@ describe("news providers", () => {
           },
         },
         locale: "en",
-        maxPostsPerRun: 50,
-        settingsJson: {
+        max_posts_per_run: 50,
+        settings_json: {
           providerFilters: {
             categories: ["general", "business"],
           },
@@ -253,17 +253,17 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       maxArticlesHint: 1,
-      providerKey: "mediastack",
+      provider_key: "mediastack",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             countries: ["ug"],
             languages: ["en"],
           },
         },
         locale: "en",
-        maxPostsPerRun: 1,
-        settingsJson: {
+        max_posts_per_run: 1,
+        settings_json: {
           providerFilters: {
             sources: "cnn,bbc",
           },
@@ -286,7 +286,7 @@ describe("news providers", () => {
         pageCount: 2,
         stopReason: "provider_exhausted",
       },
-      fetchedCount: 26,
+      fetched_count: 26,
     });
   });
 
@@ -323,13 +323,13 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       checkpoint: {
-        cursorJson: "page_token_2",
+        cursor_json: "page_token_2",
       },
       now: new Date("2026-04-05T12:34:56.000Z"),
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             category: ["top"],
             country: ["us"],
             endpoint: "latest",
@@ -337,11 +337,11 @@ describe("news providers", () => {
             removeDuplicate: "1",
           },
         },
-        countryAllowlistJson: ["ug"],
-        languageAllowlistJson: ["en"],
+        country_allowlist_json: ["ug"],
+        language_allowlist_json: ["en"],
         locale: "en",
-        maxPostsPerRun: 7,
-        settingsJson: {
+        max_posts_per_run: 7,
+        settings_json: {
           providerFilters: {
             category: ["technology"],
             datatype: ["news", "analysis"],
@@ -376,14 +376,14 @@ describe("news providers", () => {
         pageCount: 2,
         stopReason: "empty_page",
       },
-      fetchedCount: 1,
+      fetched_count: 1,
     });
     expect(result.articles[0]).toMatchObject({
       language: "en",
       providerCategories: ["technology"],
       providerCountries: ["ug"],
-      providerKey: "newsdata",
-      sourceName: "bbc",
+      provider_key: "newsdata",
+      source_name: "bbc",
       title: "Technology policy update",
     });
   });
@@ -398,7 +398,7 @@ describe("news providers", () => {
               author: "Reporter",
               content: "A climate policy feature",
               description: "Climate policy feature",
-              publishedAt: "2026-04-05T00:00:00Z",
+              published_at: "2026-04-05T00:00:00Z",
               source: {
                 name: "Example Wire",
               },
@@ -415,23 +415,23 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       checkpoint: {
-        lastSuccessfulFetchAt: new Date("2026-04-03T06:00:00.000Z"),
+        last_successful_fetch_at: new Date("2026-04-03T06:00:00.000Z"),
       },
       now: new Date("2026-04-05T12:34:56.000Z"),
-      providerKey: "newsapi",
+      provider_key: "newsapi",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "everything",
             language: "en",
             searchIn: ["title"],
-            sortBy: "publishedAt",
+            sortBy: "published_at",
           },
         },
-        languageAllowlistJson: ["fr"],
+        language_allowlist_json: ["fr"],
         locale: "en",
-        maxPostsPerRun: 3,
-        settingsJson: {
+        max_posts_per_run: 3,
+        settings_json: {
           providerFilters: {
             domains: "bbc.co.uk,techcrunch.com",
             excludeDomains: "example.com",
@@ -464,14 +464,14 @@ describe("news providers", () => {
         endpoint: "everything",
         totalResults: 1,
       },
-      fetchedCount: 1,
+      fetched_count: 1,
     });
     expect(result.articles[0]).toMatchObject({
       language: "fr",
       providerCategories: [],
       providerCountries: [],
-      providerKey: "newsapi",
-      sourceName: "Example Wire",
+      provider_key: "newsapi",
+      source_name: "Example Wire",
       title: "Climate policy feature",
     });
   });
@@ -479,7 +479,7 @@ describe("news providers", () => {
   it("paginates NewsAPI Top Headlines with documented sources support", async () => {
     const firstPageArticles = Array.from({ length: 25 }, (_, index) => ({
       description: `First page headline ${index + 1}`,
-      publishedAt: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
+      published_at: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
       source: {
         name: "BBC News",
       },
@@ -501,7 +501,7 @@ describe("news providers", () => {
             articles: [
               {
                 description: "Second page headline",
-                publishedAt: "2026-04-05T01:00:00Z",
+                published_at: "2026-04-05T01:00:00Z",
                 source: {
                   name: "BBC News",
                 },
@@ -517,17 +517,17 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       maxArticlesHint: 1,
-      providerKey: "newsapi",
+      provider_key: "newsapi",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "top-headlines",
             sources: "bbc-news",
           },
         },
         locale: "en",
-        maxPostsPerRun: 1,
-        settingsJson: {
+        max_posts_per_run: 1,
+        settings_json: {
           providerFilters: {
             q: "economy",
             sources: "bbc-news",
@@ -551,7 +551,7 @@ describe("news providers", () => {
         pageCount: 2,
         stopReason: "provider_exhausted",
       },
-      fetchedCount: 26,
+      fetched_count: 26,
     });
   });
 
@@ -577,17 +577,17 @@ describe("news providers", () => {
         writeCheckpointOnSuccess: false,
       },
       now: new Date("2026-04-02T06:00:00.000Z"),
-      providerKey: "newsapi",
+      provider_key: "newsapi",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "everything",
             language: "en",
           },
         },
         locale: "en",
-        maxPostsPerRun: 1,
-        settingsJson: {
+        max_posts_per_run: 1,
+        settings_json: {
           providerFilters: {
             q: "markets",
           },
@@ -624,17 +624,17 @@ describe("news providers", () => {
         writeCheckpointOnSuccess: false,
       },
       now: new Date("2026-04-02T06:00:00.000Z"),
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "latest",
             language: ["en"],
           },
         },
         locale: "en",
-        maxPostsPerRun: 1,
-        settingsJson: {
+        max_posts_per_run: 1,
+        settings_json: {
           providerFilters: {
             q: "policy",
           },
@@ -670,17 +670,17 @@ describe("news providers", () => {
         writeCheckpointOnSuccess: false,
       },
       now: new Date("2026-04-05T23:59:59.000Z"),
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "archive",
             language: ["en"],
           },
         },
         locale: "en",
-        maxPostsPerRun: 4,
-        settingsJson: {
+        max_posts_per_run: 4,
+        settings_json: {
           providerFilters: {
             excludeCategories: ["sports"],
             fromDate: "2026-04-01",
@@ -745,20 +745,20 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
       checkpoint: {
-        cursorJson: "cursor_1",
+        cursor_json: "cursor_1",
       },
       maxArticlesHint: 1,
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "latest",
             language: ["en"],
           },
         },
         locale: "en",
-        maxPostsPerRun: 1,
-        settingsJson: {
+        max_posts_per_run: 1,
+        settings_json: {
           providerFilters: {
             q: "policy",
           },
@@ -777,7 +777,7 @@ describe("news providers", () => {
         pageCount: 2,
         stopReason: "provider_exhausted",
       },
-      fetchedCount: 2,
+      fetched_count: 2,
     });
   });
 
@@ -795,17 +795,17 @@ describe("news providers", () => {
     const { fetchProviderArticles } = await import("./providers");
 
     await fetchProviderArticles({
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "latest",
             language: ["en"],
           },
         },
         locale: "en",
-        maxPostsPerRun: 30,
-        settingsJson: {
+        max_posts_per_run: 30,
+        settings_json: {
           providerFilters: {
             q: "policy",
           },
@@ -836,17 +836,17 @@ describe("news providers", () => {
 
     const { fetchProviderArticles } = await import("./providers");
     const result = await fetchProviderArticles({
-      providerKey: "newsapi",
+      provider_key: "newsapi",
       stream: {
         activeProvider: {
-          requestDefaultsJson: {
+          request_defaults_json: {
             endpoint: "everything",
             language: "en",
           },
         },
         locale: "en",
-        maxPostsPerRun: 40,
-        settingsJson: {
+        max_posts_per_run: 40,
+        settings_json: {
           providerFilters: {
             q: "markets",
           },
@@ -861,7 +861,7 @@ describe("news providers", () => {
     expect(result).toMatchObject({
       diagnostics: {
         pageCount: 5,
-        providerKey: "newsapi",
+        provider_key: "newsapi",
         requestSizing: {
           cappedByProvider: true,
           providerBatchCap: 100,
@@ -872,7 +872,7 @@ describe("news providers", () => {
         totalFetchedArticles: 500,
         truncatedByPageLimit: true,
       },
-      fetchedCount: 500,
+      fetched_count: 500,
     });
   });
 
@@ -893,17 +893,17 @@ describe("news providers", () => {
 
     await expect(
       fetchProviderArticles({
-        providerKey: "newsdata",
+        provider_key: "newsdata",
         stream: {
           activeProvider: {
-            requestDefaultsJson: {
+            request_defaults_json: {
               endpoint: "latest",
               language: ["en"],
             },
           },
           locale: "en",
-          maxPostsPerRun: 1,
-          settingsJson: {
+          max_posts_per_run: 1,
+          settings_json: {
             providerFilters: {
               q: "policy",
             },

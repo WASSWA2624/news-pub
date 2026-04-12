@@ -129,7 +129,7 @@ describe("outbound fetch", () => {
       expect.objectContaining({
         attempt: 1,
         delayMs: 125,
-        errorMessage: "Network request failed",
+        last_error_message: "Network request failed",
         kind: "error",
         status: null,
       }),

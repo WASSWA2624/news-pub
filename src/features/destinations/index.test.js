@@ -68,14 +68,14 @@ describe("destination feature validation", () => {
 
     const record = await saveDestinationRecord(
       {
-        connectionStatus: "CONNECTED",
+        connection_status: "CONNECTED",
         kind: "FACEBOOK_PAGE",
         metaDiscoverySourceKey: "env:meta-user-access-token",
         metaDiscoveryTargetId: "page_1",
         metaDiscoveryTargetType: "FACEBOOK_PAGE",
         name: "Example destination",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
         slug: "example-destination",
       },
       {},
@@ -92,16 +92,16 @@ describe("destination feature validation", () => {
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(record.externalAccountId).toBe("page_1");
-    expect(record.settingsJson).toMatchObject({
+    expect(record.external_account_id).toBe("page_1");
+    expect(record.settings_json).toMatchObject({
       metaAuthStrategy: "refreshable-user-derived",
       metaCredentialSourceKey: "env:meta-user-access-token",
       pageId: "page_1",
     });
-    expect(record.tokenHint).toBeNull();
-    expect(record.encryptedTokenCiphertext).toBeNull();
-    expect(record.encryptedTokenIv).toBeNull();
-    expect(record.encryptedTokenTag).toBeNull();
+    expect(record.token_hint).toBeNull();
+    expect(record.encrypted_token_ciphertext).toBeNull();
+    expect(record.encrypted_token_iv).toBeNull();
+    expect(record.encrypted_token_tag).toBeNull();
   });
 
   it("persists destination-specific Meta credential overrides when requested", async () => {
@@ -114,13 +114,13 @@ describe("destination feature validation", () => {
 
     const record = await saveDestinationRecord(
       {
-        connectionStatus: "CONNECTED",
-        externalAccountId: "override-page-id",
+        connection_status: "CONNECTED",
+        external_account_id: "override-page-id",
         kind: "FACEBOOK_PAGE",
         name: "Override destination",
         pageId: "override-page-id",
         platform: "FACEBOOK",
-        settingsJson: {
+        settings_json: {
           useDestinationCredentialOverrides: true,
         },
         slug: "override-destination",
@@ -139,17 +139,17 @@ describe("destination feature validation", () => {
     );
 
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(record.externalAccountId).toBe("override-page-id");
-    expect(record.settingsJson).toMatchObject({
+    expect(record.external_account_id).toBe("override-page-id");
+    expect(record.settings_json).toMatchObject({
       metaAuthStrategy: "legacy-stored-token-fallback",
       pageId: "override-page-id",
       useDestinationCredentialOverrides: true,
     });
     expect(
       decryptSecretValue({
-        ciphertext: record.encryptedTokenCiphertext,
-        iv: record.encryptedTokenIv,
-        tag: record.encryptedTokenTag,
+        ciphertext: record.encrypted_token_ciphertext,
+        iv: record.encrypted_token_iv,
+        tag: record.encrypted_token_tag,
       }),
     ).toBe("override-token");
   });
@@ -169,17 +169,17 @@ describe("destination feature validation", () => {
               publishAttempts: 0,
               streams: 0,
             },
-            connectionError: null,
-            connectionStatus: "CONNECTED",
-            encryptedTokenCiphertext: encryptedToken.ciphertext,
-            encryptedTokenIv: encryptedToken.iv,
-            encryptedTokenTag: encryptedToken.tag,
-            externalAccountId: "page_1",
+            connection_error: null,
+            connection_status: "CONNECTED",
+            encrypted_token_ciphertext: encryptedToken.ciphertext,
+            encrypted_token_iv: encryptedToken.iv,
+            encrypted_token_tag: encryptedToken.tag,
+            external_account_id: "page_1",
             id: "destination_legacy_1",
             kind: "FACEBOOK_PAGE",
             name: "Legacy Facebook Page",
             platform: "FACEBOOK",
-            settingsJson: {
+            settings_json: {
               pageId: "page_1",
             },
             slug: "legacy-facebook-page",
@@ -190,7 +190,7 @@ describe("destination feature validation", () => {
     });
 
     expect(snapshot.destinations[0]).toMatchObject({
-      connectionError: expect.stringContaining("could not be decrypted"),
+      connection_error: expect.stringContaining("could not be decrypted"),
       effectiveConnectionStatus: "ERROR",
       hasStoredToken: true,
       name: "Legacy Facebook Page",

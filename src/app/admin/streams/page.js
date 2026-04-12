@@ -68,12 +68,12 @@ export default async function StreamsPage({ searchParams }) {
     value: destination.id,
   }));
   const providerOptions = snapshot.providers.map((provider) => ({
-    badge: provider.providerKey,
-    description: getProviderDefinition(provider.providerKey)?.docsUrl || "Configured provider",
-    docsUrl: getProviderDefinition(provider.providerKey)?.docsUrl || "",
+    badge: provider.provider_key,
+    description: getProviderDefinition(provider.provider_key)?.docsUrl || "Configured provider",
+    docsUrl: getProviderDefinition(provider.provider_key)?.docsUrl || "",
     label: provider.label,
-    providerKey: provider.providerKey,
-    requestDefaultsJson: provider.requestDefaultsJson || {},
+    provider_key: provider.provider_key,
+    request_defaults_json: provider.request_defaults_json || {},
     value: provider.id,
   }));
   const templateOptions = [

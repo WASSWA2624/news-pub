@@ -99,8 +99,8 @@ async function seedLocales(db) {
     await db.locale.upsert({
       where: { code: locale.code },
       update: {
-        isActive: true,
-        isDefault: locale.isDefault,
+        is_active: true,
+        is_default: locale.is_default,
         name: locale.name,
       },
       create: locale,
@@ -110,32 +110,32 @@ async function seedLocales(db) {
 
 async function seedAdminUser(db) {
   const email = requiredEnv("ADMIN_SEED_EMAIL").toLowerCase();
-  const passwordHash = createPasswordHash(requiredEnv("ADMIN_SEED_PASSWORD"));
+  const password_hash = createPasswordHash(requiredEnv("ADMIN_SEED_PASSWORD"));
 
   const user = await db.user.upsert({
     where: { email },
     update: {
-      isActive: true,
+      is_active: true,
       name: "NewsPub Admin",
-      passwordHash,
+      password_hash,
       role: "SUPER_ADMIN",
     },
     create: {
       email,
-      isActive: true,
+      is_active: true,
       name: "NewsPub Admin",
-      passwordHash,
+      password_hash,
       role: "SUPER_ADMIN",
     },
   });
 
   await db.adminSession.updateMany({
     data: {
-      invalidatedAt: new Date(),
+      invalidated_at: new Date(),
     },
     where: {
-      invalidatedAt: null,
-      userId: user.id,
+      invalidated_at: null,
+      user_id: user.id,
     },
   });
 }
@@ -153,7 +153,7 @@ async function seedCategories(db, categories) {
 async function seedProviders(db) {
   for (const provider of DEFAULT_PROVIDERS) {
     await db.newsProviderConfig.upsert({
-      where: { providerKey: provider.providerKey },
+      where: { provider_key: provider.provider_key },
       update: provider,
       create: provider,
     });
@@ -189,7 +189,7 @@ async function seedTemplates(db) {
 async function loadSeedRelationMaps(db) {
   const [providers, destinations, templates, categories] = await Promise.all([
     db.newsProviderConfig.findMany({
-      select: { id: true, providerKey: true },
+      select: { id: true, provider_key: true },
     }),
     db.destination.findMany({
       select: { id: true, slug: true },
@@ -205,7 +205,7 @@ async function loadSeedRelationMaps(db) {
   return {
     categoryBySlug: new Map(categories.map((category) => [category.slug, category])),
     destinationBySlug: new Map(destinations.map((destination) => [destination.slug, destination])),
-    providerByKey: new Map(providers.map((provider) => [provider.providerKey, provider])),
+    providerByKey: new Map(providers.map((provider) => [provider.provider_key, provider])),
     templateByName: new Map(templates.map((template) => [template.name, template])),
   };
 }
@@ -214,7 +214,7 @@ async function seedStreams(db) {
   const relationMaps = await loadSeedRelationMaps(db);
 
   for (const stream of DEFAULT_STREAMS) {
-    const provider = relationMaps.providerByKey.get(stream.providerKey);
+    const provider = relationMaps.providerByKey.get(stream.provider_key);
     const destination = relationMaps.destinationBySlug.get(stream.destinationSlug);
     const template = relationMaps.templateByName.get(stream.defaultTemplateName);
 
@@ -230,40 +230,40 @@ async function seedStreams(db) {
       const seededStream = await tx.publishingStream.upsert({
         where: { slug: stream.slug },
         update: {
-          activeProviderId: provider.id,
-          countryAllowlistJson: stream.countryAllowlistJson || [],
-          defaultTemplateId: template.id,
-          destinationId: destination.id,
-          duplicateWindowHours: stream.duplicateWindowHours,
-          includeKeywordsJson: stream.includeKeywordsJson,
-          languageAllowlistJson: stream.languageAllowlistJson || [],
+          active_provider_id: provider.id,
+          country_allowlist_json: stream.country_allowlist_json || [],
+          default_template_id: template.id,
+          destination_id: destination.id,
+          duplicate_window_hours: stream.duplicate_window_hours,
+          include_keywords_json: stream.include_keywords_json,
+          language_allowlist_json: stream.language_allowlist_json || [],
           locale: stream.locale,
-          maxPostsPerRun: stream.maxPostsPerRun,
+          max_posts_per_run: stream.max_posts_per_run,
           mode: stream.mode,
           name: stream.name,
-          retryBackoffMinutes: stream.retryBackoffMinutes,
-          retryLimit: stream.retryLimit,
-          scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
-          settingsJson: stream.settingsJson || {},
+          retry_backoff_minutes: stream.retry_backoff_minutes,
+          retry_limit: stream.retry_limit,
+          schedule_interval_minutes: stream.schedule_interval_minutes,
+          settings_json: stream.settings_json || {},
           status: stream.status,
           timezone: stream.timezone,
         },
         create: {
-          activeProviderId: provider.id,
-          countryAllowlistJson: stream.countryAllowlistJson || [],
-          defaultTemplateId: template.id,
-          destinationId: destination.id,
-          duplicateWindowHours: stream.duplicateWindowHours,
-          includeKeywordsJson: stream.includeKeywordsJson,
-          languageAllowlistJson: stream.languageAllowlistJson || [],
+          active_provider_id: provider.id,
+          country_allowlist_json: stream.country_allowlist_json || [],
+          default_template_id: template.id,
+          destination_id: destination.id,
+          duplicate_window_hours: stream.duplicate_window_hours,
+          include_keywords_json: stream.include_keywords_json,
+          language_allowlist_json: stream.language_allowlist_json || [],
           locale: stream.locale,
-          maxPostsPerRun: stream.maxPostsPerRun,
+          max_posts_per_run: stream.max_posts_per_run,
           mode: stream.mode,
           name: stream.name,
-          retryBackoffMinutes: stream.retryBackoffMinutes,
-          retryLimit: stream.retryLimit,
-          scheduleIntervalMinutes: stream.scheduleIntervalMinutes,
-          settingsJson: stream.settingsJson || {},
+          retry_backoff_minutes: stream.retry_backoff_minutes,
+          retry_limit: stream.retry_limit,
+          schedule_interval_minutes: stream.schedule_interval_minutes,
+          settings_json: stream.settings_json || {},
           slug: stream.slug,
           status: stream.status,
           timezone: stream.timezone,
@@ -272,15 +272,15 @@ async function seedStreams(db) {
 
       await tx.streamCategory.deleteMany({
         where: {
-          streamId: seededStream.id,
+          stream_id: seededStream.id,
         },
       });
 
       if (categoryIds.length > 0) {
         await tx.streamCategory.createMany({
-          data: categoryIds.map((categoryId) => ({
-            categoryId,
-            streamId: seededStream.id,
+          data: categoryIds.map((category_id) => ({
+            category_id,
+            stream_id: seededStream.id,
           })),
           skipDuplicates: true,
         });
@@ -288,15 +288,15 @@ async function seedStreams(db) {
 
       await tx.providerFetchCheckpoint.upsert({
         where: {
-          streamId_providerConfigId: {
-            providerConfigId: provider.id,
-            streamId: seededStream.id,
+          stream_id_provider_config_id: {
+            provider_config_id: provider.id,
+            stream_id: seededStream.id,
           },
         },
         update: {},
         create: {
-          providerConfigId: provider.id,
-          streamId: seededStream.id,
+          provider_config_id: provider.id,
+          stream_id: seededStream.id,
         },
       });
     });

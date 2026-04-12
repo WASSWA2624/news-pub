@@ -74,21 +74,21 @@ function getMetricStatus(name, p75) {
   return "good";
 }
 
-function buildMetricSample(records, { buildId, formFactor, name, routeGroup }) {
+function buildMetricSample(records, { build_id, form_factor, name, route_group }) {
   const values = records.map((record) => record.value);
   const latestRecord = records
     .slice()
-    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
+    .sort((left, right) => right.created_at.getTime() - left.created_at.getTime())[0];
   const p75 = calculatePercentile(values, 75);
 
   return {
-    buildId: formatBuildLabel(buildId),
+    build_id: formatBuildLabel(build_id),
     count: records.length,
-    formFactor,
-    latestAt: serializeDate(latestRecord?.createdAt),
+    form_factor,
+    latestAt: serializeDate(latestRecord?.created_at),
     metricName: name,
     p75: roundMetricValue(p75, name === "CLS" ? 3 : 0),
-    routeGroup,
+    route_group,
     sampleValues: values,
     status: getMetricStatus(name, p75),
     threshold: getMetricThreshold(name),
@@ -98,9 +98,9 @@ function buildMetricSample(records, { buildId, formFactor, name, routeGroup }) {
 function sortMetricSamples(left, right) {
   return (
     left.metricName.localeCompare(right.metricName)
-    || left.routeGroup.localeCompare(right.routeGroup)
-    || left.formFactor.localeCompare(right.formFactor)
-    || left.buildId.localeCompare(right.buildId)
+    || left.route_group.localeCompare(right.route_group)
+    || left.form_factor.localeCompare(right.form_factor)
+    || left.build_id.localeCompare(right.build_id)
   );
 }
 
@@ -109,10 +109,10 @@ function summarizeByMetric(records = []) {
 
   for (const record of records) {
     const key = [
-      formatBuildLabel(record.buildId),
-      record.formFactor,
+      formatBuildLabel(record.build_id),
+      record.form_factor,
       record.name,
-      record.routeGroup,
+      record.route_group,
     ].join(":");
 
     if (!groupedRecords.has(key)) {
@@ -124,22 +124,22 @@ function summarizeByMetric(records = []) {
 
   return [...groupedRecords.entries()]
     .map(([key, value]) => {
-      const [buildId, formFactor, name, routeGroup] = key.split(":");
+      const [build_id, form_factor, name, route_group] = key.split(":");
 
       return buildMetricSample(value, {
-        buildId,
-        formFactor,
+        build_id,
+        form_factor,
         name,
-        routeGroup,
+        route_group,
       });
     })
     .sort(sortMetricSamples);
 }
 
 function createLatestBuildSummary(metricSamples = [], latestBuildId = "") {
-  const resolvedBuildId = formatBuildLabel(latestBuildId) || metricSamples[0]?.buildId || "unversioned";
+  const resolvedBuildId = formatBuildLabel(latestBuildId) || metricSamples[0]?.build_id || "unversioned";
 
-  return metricSamples.filter((sample) => sample.buildId === resolvedBuildId);
+  return metricSamples.filter((sample) => sample.build_id === resolvedBuildId);
 }
 
 function createMetricHighlights(records = []) {
@@ -162,11 +162,11 @@ function createAlerts(metricSamples = []) {
     .filter((sample) => sample.status !== "good")
     .sort((left, right) => right.p75 - left.p75)
     .map((sample) => ({
-      buildId: sample.buildId,
-      formFactor: sample.formFactor,
+      build_id: sample.build_id,
+      form_factor: sample.form_factor,
       metricName: sample.metricName,
       p75: sample.p75,
-      routeGroup: sample.routeGroup,
+      route_group: sample.route_group,
       status: sample.status,
       threshold: sample.threshold,
     }));
@@ -174,7 +174,7 @@ function createAlerts(metricSamples = []) {
 
 export async function getAdminPerformanceSnapshot(
   user,
-  { buildId = "", days = 7, routeGroup = "" } = {},
+  { build_id = "", days = 7, route_group = "" } = {},
   prisma,
 ) {
   const canViewAnalytics = hasAdminPermission(user, ADMIN_PERMISSIONS.VIEW_ANALYTICS);
@@ -198,27 +198,27 @@ export async function getAdminPerformanceSnapshot(
   const db = await resolvePrismaClient(prisma);
   const since = new Date(Date.now() - Math.max(1, Number.parseInt(`${days || 7}`, 10) || 7) * 24 * 60 * 60 * 1000);
   const records = await db.webVitalMetric.findMany({
-    orderBy: [{ createdAt: "desc" }],
+    orderBy: [{ created_at: "desc" }],
     select: {
-      buildId: true,
-      createdAt: true,
-      formFactor: true,
+      build_id: true,
+      created_at: true,
+      form_factor: true,
       id: true,
       name: true,
       path: true,
-      routeGroup: true,
+      route_group: true,
       value: true,
     },
     where: {
-      createdAt: {
+      created_at: {
         gte: since,
       },
-      ...(buildId ? { buildId } : {}),
-      ...(routeGroup ? { routeGroup } : {}),
+      ...(build_id ? { build_id } : {}),
+      ...(route_group ? { route_group } : {}),
     },
   });
   const metricSamples = summarizeByMetric(records);
-  const latestBuildId = formatBuildLabel(records[0]?.buildId);
+  const latestBuildId = formatBuildLabel(records[0]?.build_id);
   const latestBuildMetrics = createLatestBuildSummary(metricSamples, latestBuildId);
 
   return {
@@ -228,10 +228,10 @@ export async function getAdminPerformanceSnapshot(
     metricHighlights: createMetricHighlights(records),
     metricSamples,
     summary: {
-      latestBuildId: latestBuildMetrics[0]?.buildId || latestBuildId,
-      routeGroupCount: new Set(records.map((record) => record.routeGroup)).size,
+      latestBuildId: latestBuildMetrics[0]?.build_id || latestBuildId,
+      routeGroupCount: new Set(records.map((record) => record.route_group)).size,
       sampleCount: records.length,
-      uniqueBuildCount: new Set(records.map((record) => formatBuildLabel(record.buildId))).size,
+      uniqueBuildCount: new Set(records.map((record) => formatBuildLabel(record.build_id))).size,
     },
   };
 }

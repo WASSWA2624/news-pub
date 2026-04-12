@@ -39,25 +39,25 @@ import {
  */
 export async function saveProviderAction(formData) {
   const auth = await requireAdminPageSession("/admin/providers");
-  const providerKey = trimFormValue(formData.get("providerKey")).toLowerCase();
+  const provider_key = trimFormValue(formData.get("provider_key")).toLowerCase();
 
   try {
     await saveProviderRecord(
       {
-        baseUrl: formData.get("baseUrl"),
+        base_url: formData.get("base_url"),
         description: formData.get("description"),
-        isDefault: getFormBoolean(formData, "isDefault"),
-        isEnabled: getFormBoolean(formData, "isEnabled"),
-        isSelectable: getFormBoolean(formData, "isSelectable"),
+        is_default: getFormBoolean(formData, "is_default"),
+        is_enabled: getFormBoolean(formData, "is_enabled"),
+        is_selectable: getFormBoolean(formData, "is_selectable"),
         label: formData.get("label"),
-        providerKey,
-        requestDefaultsJson: sanitizeProviderFieldValues(
-          providerKey,
+        provider_key,
+        request_defaults_json: sanitizeProviderFieldValues(
+          provider_key,
           parseScopedFormFields(formData, "requestDefault."),
         ),
       },
       {
-        actorId: getActionActorId(auth),
+        actor_id: getActionActorId(auth),
       },
     );
   } catch (error) {
@@ -78,11 +78,11 @@ export async function saveDestinationAction(formData) {
 
   await saveDestinationRecord(
     {
-      accountHandle: formData.get("accountHandle"),
+      account_handle: formData.get("account_handle"),
       clearToken: getFormBoolean(formData, "clearToken"),
-      connectionError: formData.get("connectionError"),
-      connectionStatus: formData.get("connectionStatus"),
-      externalAccountId: formData.get("externalAccountId"),
+      connection_error: formData.get("connection_error"),
+      connection_status: formData.get("connection_status"),
+      external_account_id: formData.get("external_account_id"),
       graphApiBaseUrl: formData.get("graphApiBaseUrl"),
       instagramUserId: formData.get("instagramUserId"),
       kind: formData.get("kind"),
@@ -100,12 +100,12 @@ export async function saveDestinationAction(formData) {
         instagramMaxPostsPer24Hours: formData.get("socialGuardrail.instagramMaxPostsPer24Hours"),
         minPostIntervalMinutes: formData.get("socialGuardrail.minPostIntervalMinutes"),
       },
-      settingsJson: parseJsonFormField(formData, "settingsJson", {}),
+      settings_json: parseJsonFormField(formData, "settings_json", {}),
       slug: formData.get("slug"),
       token: formData.get("token"),
     },
     {
-      actorId: getActionActorId(auth),
+      actor_id: getActionActorId(auth),
     },
   );
 
@@ -120,12 +120,12 @@ export async function saveDestinationAction(formData) {
  */
 export async function deleteDestinationAction(formData) {
   const auth = await requireAdminPageSession("/admin/destinations");
-  const destinationId = trimFormValue(formData.get("id"));
+  const destination_id = trimFormValue(formData.get("id"));
 
   try {
-    if (destinationId) {
-      await deleteDestinationRecord(destinationId, {
-        actorId: getActionActorId(auth),
+    if (destination_id) {
+      await deleteDestinationRecord(destination_id, {
+        actor_id: getActionActorId(auth),
       });
     }
   } catch (error) {
@@ -147,32 +147,32 @@ export async function saveStreamAction(formData) {
   try {
     await saveStreamRecord(
       {
-        activeProviderId: formData.get("activeProviderId"),
+        active_provider_id: formData.get("active_provider_id"),
         categoryIds: parseRepeatedFormField(formData, "categoryIds"),
-        countryAllowlistJson: parseRepeatedFormField(formData, "countryAllowlistJson"),
-        defaultTemplateId: formData.get("defaultTemplateId"),
+        country_allowlist_json: parseRepeatedFormField(formData, "country_allowlist_json"),
+        default_template_id: formData.get("default_template_id"),
         description: formData.get("description"),
-        destinationId: formData.get("destinationId"),
-        duplicateWindowHours: formData.get("duplicateWindowHours"),
-        excludeKeywordsJson: formData.get("excludeKeywordsJson"),
-        includeKeywordsJson: formData.get("includeKeywordsJson"),
-        languageAllowlistJson: parseRepeatedFormField(formData, "languageAllowlistJson"),
+        destination_id: formData.get("destination_id"),
+        duplicate_window_hours: formData.get("duplicate_window_hours"),
+        exclude_keywords_json: formData.get("exclude_keywords_json"),
+        include_keywords_json: formData.get("include_keywords_json"),
+        language_allowlist_json: parseRepeatedFormField(formData, "language_allowlist_json"),
         locale: formData.get("locale"),
-        maxPostsPerRun: formData.get("maxPostsPerRun"),
+        max_posts_per_run: formData.get("max_posts_per_run"),
         mode: formData.get("mode"),
         name: formData.get("name"),
         postLinkPlacement: formData.get("postLinkPlacement"),
         postLinkUrl: formData.get("postLinkUrl"),
         providerFilters: parseScopedFormFields(formData, "providerFilter."),
-        retryBackoffMinutes: formData.get("retryBackoffMinutes"),
-        retryLimit: formData.get("retryLimit"),
-        scheduleIntervalMinutes: formData.get("scheduleIntervalMinutes"),
+        retry_backoff_minutes: formData.get("retry_backoff_minutes"),
+        retry_limit: formData.get("retry_limit"),
+        schedule_interval_minutes: formData.get("schedule_interval_minutes"),
         slug: formData.get("slug"),
         status: formData.get("status"),
         timezone: formData.get("timezone"),
       },
       {
-        actorId: getActionActorId(auth),
+        actor_id: getActionActorId(auth),
       },
     );
   } catch (error) {
@@ -190,12 +190,12 @@ export async function saveStreamAction(formData) {
  */
 export async function deleteStreamAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
-  const streamId = trimFormValue(formData.get("id"));
+  const stream_id = trimFormValue(formData.get("id"));
 
   try {
-    if (streamId) {
-      await deleteStreamRecord(streamId, {
-        actorId: getActionActorId(auth),
+    if (stream_id) {
+      await deleteStreamRecord(stream_id, {
+        actor_id: getActionActorId(auth),
       });
     }
   } catch (error) {
@@ -213,14 +213,14 @@ export async function deleteStreamAction(formData) {
  */
 export async function runStreamNowAction(formData) {
   const auth = await requireAdminPageSession("/admin/streams");
-  const streamId = trimFormValue(formData.get("streamId"));
+  const stream_id = trimFormValue(formData.get("stream_id"));
 
-  if (streamId) {
+  if (stream_id) {
     await runStreamFetch(
-      streamId,
+      stream_id,
       {
-        actorId: getActionActorId(auth),
-        triggerType: "manual",
+        actor_id: getActionActorId(auth),
+        trigger_type: "manual",
       },
     );
   }
@@ -242,8 +242,8 @@ export async function runSelectedStreamsAction(formData) {
     await runMultipleStreamFetches(
       streamIds,
       {
-        actorId: getActionActorId(auth),
-        triggerType: "manual",
+        actor_id: getActionActorId(auth),
+        trigger_type: "manual",
       },
     );
   }
@@ -275,7 +275,7 @@ export async function retryPublishAttemptAction(formData) {
 
   if (attemptId) {
     await retryPublishAttempt(attemptId, {
-      actorId: getActionActorId(auth),
+      actor_id: getActionActorId(auth),
     });
   }
 
@@ -290,19 +290,19 @@ export async function retryPublishAttemptAction(formData) {
  */
 export async function repostPostAction(formData) {
   const auth = await requireAdminPageSession("/admin");
-  const postId = trimFormValue(formData.get("postId"));
-  const articleMatchId = trimFormValue(formData.get("articleMatchId")) || null;
+  const post_id = trimFormValue(formData.get("post_id"));
+  const article_match_id = trimFormValue(formData.get("article_match_id")) || null;
   const returnTo =
-    trimFormValue(formData.get("returnTo")) || (postId ? `/admin/posts/${postId}` : "/admin/posts");
+    trimFormValue(formData.get("returnTo")) || (post_id ? `/admin/posts/${post_id}` : "/admin/posts");
 
-  if (postId) {
+  if (post_id) {
     await repostPostRecord(
       {
-        articleMatchId,
-        postId,
+        article_match_id,
+        post_id,
       },
       {
-        actorId: getActionActorId(auth),
+        actor_id: getActionActorId(auth),
       },
     );
   }
@@ -327,7 +327,7 @@ export async function saveCategoryAction(formData) {
       slug: formData.get("slug"),
     },
     {
-      actorId: getActionActorId(auth),
+      actor_id: getActionActorId(auth),
     },
   );
 
@@ -342,11 +342,11 @@ export async function saveCategoryAction(formData) {
  */
 export async function deleteCategoryAction(formData) {
   const auth = await requireAdminPageSession("/admin/categories");
-  const categoryId = trimFormValue(formData.get("id"));
+  const category_id = trimFormValue(formData.get("id"));
 
-  if (categoryId) {
-    await deleteCategoryRecord(categoryId, {
-      actorId: getActionActorId(auth),
+  if (category_id) {
+    await deleteCategoryRecord(category_id, {
+      actor_id: getActionActorId(auth),
     });
   }
 
@@ -364,19 +364,19 @@ export async function saveTemplateAction(formData) {
 
   await saveTemplateRecord(
     {
-      bodyTemplate: formData.get("bodyTemplate"),
-      categoryId: trimFormValue(formData.get("categoryId")) || null,
-      hashtagsTemplate: formData.get("hashtagsTemplate"),
+      body_template: formData.get("body_template"),
+      category_id: trimFormValue(formData.get("category_id")) || null,
+      hashtags_template: formData.get("hashtags_template"),
       id: trimFormValue(formData.get("id")) || undefined,
-      isDefault: getFormBoolean(formData, "isDefault"),
+      is_default: getFormBoolean(formData, "is_default"),
       locale: formData.get("locale"),
       name: formData.get("name"),
       platform: formData.get("platform"),
-      summaryTemplate: formData.get("summaryTemplate"),
-      titleTemplate: formData.get("titleTemplate"),
+      summary_template: formData.get("summary_template"),
+      title_template: formData.get("title_template"),
     },
     {
-      actorId: getActionActorId(auth),
+      actor_id: getActionActorId(auth),
     },
   );
 
@@ -396,27 +396,27 @@ export async function createManualPostAction(formData) {
     {
       action: intent,
       categoryIds: formData.getAll("categoryIds").map((value) => trimFormValue(value)),
-      contentMd: formData.get("contentMd"),
+      content_md: formData.get("content_md"),
       publishAt: formData.get("publishAt"),
       slug: formData.get("slug"),
-      sourceName: formData.get("sourceName"),
-      sourceUrl: formData.get("sourceUrl"),
+      source_name: formData.get("source_name"),
+      source_url: formData.get("source_url"),
       status:
         intent === "publish"
           ? "PUBLISHED"
           : intent === "schedule"
             ? "SCHEDULED"
             : "DRAFT",
-      streamId: formData.get("streamId"),
+      stream_id: formData.get("stream_id"),
       summary: formData.get("summary"),
       title: formData.get("title"),
     },
     {
-      actorId: getActionActorId(auth),
+      actor_id: getActionActorId(auth),
     },
   );
 
-  redirectWithRevalidation(`/admin/posts/${record.postId}`);
+  redirectWithRevalidation(`/admin/posts/${record.post_id}`);
 }
 
 /**
@@ -428,16 +428,16 @@ export async function createManualPostAction(formData) {
 export async function updatePostEditorAction(formData) {
   await requireAdminPageSession("/admin/posts");
   const intent = trimFormValue(formData.get("intent")).toLowerCase();
-  const postId = trimFormValue(formData.get("postId"));
+  const post_id = trimFormValue(formData.get("post_id"));
 
   await updatePostEditorialRecord({
     action: intent,
-    articleMatchId: trimFormValue(formData.get("articleMatchId")) || null,
+    article_match_id: trimFormValue(formData.get("article_match_id")) || null,
     categoryIds: formData.getAll("categoryIds").map((value) => trimFormValue(value)),
-    contentMd: formData.get("contentMd"),
-    editorialStage: formData.get("editorialStage"),
+    content_md: formData.get("content_md"),
+    editorial_stage: formData.get("editorial_stage"),
     locale: formData.get("locale"),
-    postId,
+    post_id,
     publishAt: formData.get("publishAt"),
     slug: formData.get("slug"),
     status:
@@ -452,7 +452,7 @@ export async function updatePostEditorAction(formData) {
     title: formData.get("title"),
   });
 
-  redirectWithRevalidation(`/admin/posts/${postId}`);
+  redirectWithRevalidation(`/admin/posts/${post_id}`);
 }
 
 /**
@@ -469,15 +469,15 @@ export async function uploadMediaAction(formData) {
     await uploadMediaAsset(
       {
         alt: formData.get("alt"),
-        attributionText: formData.get("attributionText"),
+        attribution_text: formData.get("attribution_text"),
         buffer: Buffer.from(await file.arrayBuffer()),
         caption: formData.get("caption"),
-        fileName: file.name || "upload",
-        mimeType: file.type || "application/octet-stream",
-        sourceUrl: formData.get("sourceUrl"),
+        file_name: file.name || "upload",
+        mime_type: file.type || "application/octet-stream",
+        source_url: formData.get("source_url"),
       },
       {
-        actorId: getActionActorId(auth),
+        actor_id: getActionActorId(auth),
       },
     );
   }

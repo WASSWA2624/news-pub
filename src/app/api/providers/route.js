@@ -9,14 +9,14 @@ import { handleAdminGet, handleAdminMutation } from "@/lib/api/admin-route";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 
 const providerSchema = z.object({
-  baseUrl: z.string().trim().optional().or(z.literal("")),
+  base_url: z.string().trim().optional().or(z.literal("")),
   description: z.string().trim().optional().or(z.literal("")),
-  isDefault: z.boolean().optional(),
-  isEnabled: z.boolean().optional(),
-  isSelectable: z.boolean().optional(),
+  is_default: z.boolean().optional(),
+  is_enabled: z.boolean().optional(),
+  is_selectable: z.boolean().optional(),
   label: z.string().trim().min(1),
-  providerKey: z.string().trim().min(1),
-  requestDefaultsJson: z.record(z.string(), z.any()).optional(),
+  provider_key: z.string().trim().min(1),
+  request_defaults_json: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -41,7 +41,7 @@ export async function PUT(request) {
     providerSchema,
     async ({ data, user }) =>
       saveProviderRecord(data, {
-        actorId: user.id,
+        actor_id: user.id,
       }),
     "Unable to save the provider.",
   );

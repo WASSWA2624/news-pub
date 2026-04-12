@@ -28,14 +28,14 @@ function isNavigationActive(pathname, href) {
   return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
 }
 
-function setDiscoveryActiveState(selector, isActive) {
+function setDiscoveryActiveState(selector, is_active) {
   const element = document.querySelector(selector);
 
   if (!element) {
     return;
   }
 
-  element.dataset.active = isActive ? "true" : "false";
+  element.dataset.active = is_active ? "true" : "false";
 }
 
 export default function SiteHeaderState({ categoryPrefix, homePath, searchPath }) {
@@ -48,10 +48,10 @@ export default function SiteHeaderState({ categoryPrefix, homePath, searchPath }
 
     document.querySelectorAll("[data-public-nav-link='true']").forEach((node) => {
       const href = node.getAttribute("href") || "";
-      const isActive = isNavigationActive(pathname, href);
+      const is_active = isNavigationActive(pathname, href);
 
-      node.dataset.active = isActive ? "true" : "false";
-      if (isActive) {
+      node.dataset.active = is_active ? "true" : "false";
+      if (is_active) {
         node.setAttribute("aria-current", "page");
       } else {
         node.removeAttribute("aria-current");

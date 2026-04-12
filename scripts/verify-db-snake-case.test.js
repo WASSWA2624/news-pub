@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import verifyDbSnakeCaseModule from "./verify-db-snake-case";
 
 const {
+  findLegacyQueryIdentifierMatches,
   findLegacySqlIdentifierMatches,
   runVerification,
 } = verifyDbSnakeCaseModule;
@@ -61,11 +62,47 @@ describe("verify-db-snake-case", () => {
     );
   });
 
-  it("ignores mapped Prisma field names when they are not inside SQL literals", () => {
+  it("detects stale camelCase Prisma query identifiers in repository code", () => {
+    const matches = findLegacyQueryIdentifierMatches(`
+      const stream = await db.publishingStream.findUnique({
+        where: {
+          streamId_providerConfigId: {
+            providerConfigId: "provider_1",
+            streamId: "stream_1",
+          },
+        },
+        select: {
+          scheduleIntervalMinutes: true,
+        },
+      });
+    `);
+
+    expect(matches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          canonicalName: "publishing_stream.schedule_interval_minutes",
+          legacyName: "scheduleIntervalMinutes",
+          scope: "runtime_query_field",
+        }),
+        expect.objectContaining({
+          canonicalName: "provider_fetch_checkpoint.stream_id_provider_config_id",
+          legacyName: "streamId_providerConfigId",
+          scope: "runtime_query_composite",
+        }),
+        expect.objectContaining({
+          canonicalName: "provider_fetch_checkpoint.provider_config_id",
+          legacyName: "providerConfigId",
+          scope: "runtime_query_field",
+        }),
+      ]),
+    );
+  });
+
+  it("ignores snake_case Prisma field identifiers when they are already compliant", () => {
     const matches = findLegacySqlIdentifierMatches(`
       const user = {
-        isActive: true,
-        passwordHash: "scrypt$123$abc",
+        is_active: true,
+        password_hash: "scrypt$123$abc",
       };
     `);
 

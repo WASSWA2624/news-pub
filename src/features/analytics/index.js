@@ -61,7 +61,7 @@ async function countViewEventsIntoBuckets(db, dayCount, now = new Date()) {
 
       return db.viewEvent.count({
         where: {
-          createdAt: {
+          created_at: {
             gte: range.start,
             lt: range.end,
           },
@@ -87,7 +87,7 @@ function getAuditActionCount(rows, action) {
 }
 
 function getFetchRunExecutionDetails(run) {
-  const executionDetails = run.executionDetailsJson || null;
+  const executionDetails = run.execution_details_json || null;
 
   if (!executionDetails || typeof executionDetails !== "object" || Array.isArray(executionDetails)) {
     return null;
@@ -111,28 +111,28 @@ function mapFetchRun(run) {
   const executionDetails = getFetchRunExecutionDetails(run);
 
   return {
-    aiCacheHitCount: run.aiCacheHitCount,
-    blockedCount: run.blockedCount,
-    createdAt: serializeDate(run.createdAt),
-    duplicateCount: run.duplicateCount,
+    ai_cache_hit_count: run.ai_cache_hit_count,
+    blocked_count: run.blocked_count,
+    created_at: serializeDate(run.created_at),
+    duplicate_count: run.duplicate_count,
     executionDetails,
-    failedCount: run.failedCount,
-    fetchedCount: run.fetchedCount,
-    finishedAt: serializeDate(run.finishedAt),
-    heldCount: run.heldCount,
+    failed_count: run.failed_count,
+    fetched_count: run.fetched_count,
+    finished_at: serializeDate(run.finished_at),
+    held_count: run.held_count,
     id: run.id,
-    optimizedCount: run.optimizedCount,
+    optimized_count: run.optimized_count,
     provider: run.providerConfig
       ? {
           id: run.providerConfig.id,
           label: run.providerConfig.label,
-          providerKey: run.providerConfig.providerKey,
+          provider_key: run.providerConfig.provider_key,
         }
       : null,
-    publishableCount: run.publishableCount,
-    publishedCount: run.publishedCount,
-    skippedCount: run.skippedCount,
-    startedAt: serializeDate(run.startedAt),
+    publishable_count: run.publishable_count,
+    published_count: run.published_count,
+    skipped_count: run.skipped_count,
+    started_at: serializeDate(run.started_at),
     status: run.status,
     stream: run.stream
       ? {
@@ -141,7 +141,7 @@ function mapFetchRun(run) {
           name: run.stream.name,
         }
       : null,
-    triggerType: run.triggerType,
+    trigger_type: run.trigger_type,
   };
 }
 
@@ -149,9 +149,9 @@ function mapPublishAttempt(attempt) {
   const diagnosticSummary = getPublishAttemptDiagnosticSummary(attempt);
 
   return {
-    aiResolution: attempt.diagnosticsJson?.aiResolution || null,
-    articleMatchId: attempt.articleMatchId,
-    createdAt: serializeDate(attempt.createdAt),
+    aiResolution: attempt.diagnostics_json?.aiResolution || null,
+    article_match_id: attempt.article_match_id,
+    created_at: serializeDate(attempt.created_at),
     diagnosticIssueCodes: diagnosticSummary.issueCodes,
     diagnosticReasonCode: diagnosticSummary.reasonCode,
     diagnosticReasonMessage: diagnosticSummary.reasonMessage,
@@ -162,7 +162,7 @@ function mapPublishAttempt(attempt) {
           platform: attempt.destination.platform,
         }
       : null,
-    errorMessage: attempt.errorMessage || null,
+    last_error_message: attempt.last_error_message || null,
     id: attempt.id,
     platform: attempt.platform,
     post: attempt.post
@@ -171,12 +171,12 @@ function mapPublishAttempt(attempt) {
           slug: attempt.post.slug,
         }
       : null,
-    optimizationStatus: attempt.diagnosticsJson?.optimizationStatus || null,
-    publicationMode: attempt.diagnosticsJson?.publicationMode || null,
-    publishedAt: serializeDate(attempt.publishedAt),
-    queuedAt: serializeDate(attempt.queuedAt),
-    remoteId: attempt.remoteId || null,
-    retryCount: attempt.retryCount,
+    optimization_status: attempt.diagnostics_json?.optimization_status || null,
+    publicationMode: attempt.diagnostics_json?.publicationMode || null,
+    published_at: serializeDate(attempt.published_at),
+    queued_at: serializeDate(attempt.queued_at),
+    remote_id: attempt.remote_id || null,
+    retry_count: attempt.retry_count,
     status: attempt.status,
     stream: attempt.stream
       ? {
@@ -190,19 +190,19 @@ function mapPublishAttempt(attempt) {
 function mapProviderStatus(config) {
   return {
     activeStreamCount: config._count?.streams ?? config.streams?.length ?? 0,
-    credentialState: getProviderCredentialState(config.providerKey),
+    credentialState: getProviderCredentialState(config.provider_key),
     id: config.id,
-    isDefault: Boolean(config.isDefault),
-    isEnabled: Boolean(config.isEnabled),
-    isSelectable: Boolean(config.isSelectable),
+    is_default: Boolean(config.is_default),
+    is_enabled: Boolean(config.is_enabled),
+    is_selectable: Boolean(config.is_selectable),
     label: config.label,
-    providerKey: config.providerKey,
+    provider_key: config.provider_key,
   };
 }
 
 function mapFailureItem(item) {
   return {
-    createdAt: item.createdAt,
+    created_at: item.created_at,
     details: item.details,
     id: item.id,
     label: item.label,
@@ -212,7 +212,7 @@ function mapFailureItem(item) {
 }
 
 function mapAuditEvent(event) {
-  const payload = event.payloadJson || null;
+  const payload = event.payload_json || null;
 
   return {
     ...serializeAuditEvent(event),
@@ -264,7 +264,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
     trafficTrend,
   ] = await Promise.all([
     db.newsProviderConfig.findMany({
-      orderBy: [{ isDefault: "desc" }, { label: "asc" }],
+      orderBy: [{ is_default: "desc" }, { label: "asc" }],
       select: {
         _count: {
           select: {
@@ -272,15 +272,15 @@ export async function getAdminDashboardSnapshot(user, prisma) {
           },
         },
         id: true,
-        isDefault: true,
-        isEnabled: true,
-        isSelectable: true,
+        is_default: true,
+        is_enabled: true,
+        is_selectable: true,
         label: true,
-        providerKey: true,
+        provider_key: true,
       },
     }),
     db.destination.groupBy({
-      by: ["connectionStatus"],
+      by: ["connection_status"],
       _count: {
         _all: true,
       },
@@ -297,7 +297,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
           select: {
             id: true,
             label: true,
-            providerKey: true,
+            provider_key: true,
           },
         },
         stream: {
@@ -308,10 +308,10 @@ export async function getAdminDashboardSnapshot(user, prisma) {
           },
         },
       },
-      orderBy: [{ startedAt: "desc" }],
+      orderBy: [{ started_at: "desc" }],
       take: 20,
       where: {
-        createdAt: {
+        created_at: {
           gte: since,
         },
       },
@@ -338,10 +338,10 @@ export async function getAdminDashboardSnapshot(user, prisma) {
           },
         },
       },
-      orderBy: [{ createdAt: "desc" }],
+      orderBy: [{ created_at: "desc" }],
       take: 20,
       where: {
-        createdAt: {
+        created_at: {
           gte: since,
         },
       },
@@ -367,14 +367,14 @@ export async function getAdminDashboardSnapshot(user, prisma) {
           },
         },
       },
-      orderBy: [{ publishedAt: "desc" }],
+      orderBy: [{ published_at: "desc" }],
       take: 5,
       where: {
         status: "PUBLISHED",
       },
     }),
     db.auditEvent.findMany({
-      orderBy: [{ createdAt: "desc" }],
+      orderBy: [{ created_at: "desc" }],
       take: 12,
     }),
     db.auditEvent.groupBy({
@@ -386,7 +386,7 @@ export async function getAdminDashboardSnapshot(user, prisma) {
         action: {
           in: ["AI_OPTIMIZATION_FALLBACK_USED", "AI_OPTIMIZATION_SKIPPED"],
         },
-        createdAt: {
+        created_at: {
           gte: since,
         },
       },
@@ -409,8 +409,8 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       .filter((run) => run.status === "FAILED")
       .map((run) =>
         mapFailureItem({
-          createdAt: serializeDate(run.startedAt || run.createdAt),
-          details: run.errorMessage || run.providerConfig?.label || "Fetch run failed.",
+          created_at: serializeDate(run.started_at || run.created_at),
+          details: run.last_error_message || run.providerConfig?.label || "Fetch run failed.",
           id: `fetch:${run.id}`,
           label: run.stream?.name || "Stream fetch run",
           status: run.status,
@@ -421,8 +421,8 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       .filter((attempt) => attempt.status === "FAILED")
       .map((attempt) =>
         mapFailureItem({
-          createdAt: serializeDate(attempt.queuedAt || attempt.createdAt),
-          details: attempt.errorMessage || attempt.destination?.name || "Publish attempt failed.",
+          created_at: serializeDate(attempt.queued_at || attempt.created_at),
+          details: attempt.last_error_message || attempt.destination?.name || "Publish attempt failed.",
           id: `publish:${attempt.id}`,
           label: attempt.destination?.name || attempt.platform,
           status: attempt.status,
@@ -430,28 +430,28 @@ export async function getAdminDashboardSnapshot(user, prisma) {
         }),
       ),
   ]
-    .sort((left, right) => `${right.createdAt || ""}`.localeCompare(`${left.createdAt || ""}`))
+    .sort((left, right) => `${right.created_at || ""}`.localeCompare(`${left.created_at || ""}`))
     .slice(0, 6);
 
   return {
     canViewAnalytics,
     destinationStatus: {
-      connected: getGroupedCount(destinationStatusCounts, "connectionStatus", "CONNECTED"),
-      disconnected: getGroupedCount(destinationStatusCounts, "connectionStatus", "DISCONNECTED"),
-      error: getGroupedCount(destinationStatusCounts, "connectionStatus", "ERROR"),
+      connected: getGroupedCount(destinationStatusCounts, "connection_status", "CONNECTED"),
+      disconnected: getGroupedCount(destinationStatusCounts, "connection_status", "DISCONNECTED"),
+      error: getGroupedCount(destinationStatusCounts, "connection_status", "ERROR"),
       total: totalDestinationCount,
     },
     providerStatus: {
       configured: providers.length,
-      enabled: providers.filter((provider) => provider.isEnabled).length,
+      enabled: providers.filter((provider) => provider.is_enabled).length,
       missingCredentials: providers.filter(
-        (provider) => getProviderCredentialState(provider.providerKey) !== "configured",
+        (provider) => getProviderCredentialState(provider.provider_key) !== "configured",
       ).length,
       providers: providers.map(mapProviderStatus),
     },
     latestStories: latestStories.map((story) => ({
       id: story.id,
-      publishedAt: serializeDate(story.publishedAt),
+      published_at: serializeDate(story.published_at),
       slug: story.slug,
       title: story.translations[0]?.title || story.slug,
       viewCount: canViewAnalytics ? story._count?.viewEvents || 0 : null,
@@ -466,19 +466,19 @@ export async function getAdminDashboardSnapshot(user, prisma) {
       total: totalStreamCount,
     },
     summary: {
-      aiCacheHitCount7d: sumCounts(fetchRuns, "aiCacheHitCount"),
+      aiCacheHitCount7d: sumCounts(fetchRuns, "ai_cache_hit_count"),
       aiFallbackCount7d: getAuditActionCount(aiOptimizationAuditEvents, "AI_OPTIMIZATION_FALLBACK_USED"),
       aiSkippedCount7d: getAuditActionCount(aiOptimizationAuditEvents, "AI_OPTIMIZATION_SKIPPED"),
-      blockedBeforePublish7d: sumCounts(fetchRuns, "blockedCount"),
-      duplicateCount7d: sumCounts(fetchRuns, "duplicateCount"),
+      blockedBeforePublish7d: sumCounts(fetchRuns, "blocked_count"),
+      duplicateCount7d: sumCounts(fetchRuns, "duplicate_count"),
       failedFetchRuns7d: fetchRuns.filter((run) => run.status === "FAILED").length,
       failedPublishAttempts7d: publishAttempts.filter((attempt) => attempt.status === "FAILED").length,
       fetchRunCount7d: fetchRuns.length,
-      optimizedCount7d: sumCounts(fetchRuns, "optimizedCount"),
+      optimizedCount7d: sumCounts(fetchRuns, "optimized_count"),
       publishAttemptCount7d: publishAttempts.length,
-      publishableCount7d: sumCounts(fetchRuns, "publishableCount"),
-      publishedCount7d: sumCounts(fetchRuns, "publishedCount"),
-      retryCount7d: publishAttempts.reduce((total, attempt) => total + (attempt.retryCount || 0), 0),
+      publishableCount7d: sumCounts(fetchRuns, "publishable_count"),
+      publishedCount7d: sumCounts(fetchRuns, "published_count"),
+      retryCount7d: publishAttempts.reduce((total, attempt) => total + (attempt.retry_count || 0), 0),
       sharedFetchRunCount7d: countSharedFetchRuns(fetchRuns),
       sharedUpstreamCalls7d: countSharedFetchUpstreamCalls(fetchRuns),
       totalViews7d: canViewAnalytics ? totalViews7d : null,
@@ -498,7 +498,7 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
         select: {
           id: true,
           label: true,
-          providerKey: true,
+          provider_key: true,
         },
       },
       stream: {
@@ -508,7 +508,7 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
         },
       },
     },
-    orderBy: [{ startedAt: "desc" }],
+    orderBy: [{ started_at: "desc" }],
     take: 30,
     where: {
       ...(normalizedStatus !== "ALL"
@@ -560,7 +560,7 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
         },
       },
     },
-    orderBy: [{ createdAt: "desc" }],
+    orderBy: [{ created_at: "desc" }],
     take: 30,
     where: {
       ...(normalizedStatus !== "ALL"
@@ -598,7 +598,7 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
     },
   });
   const auditEvents = await db.auditEvent.findMany({
-    orderBy: [{ createdAt: "desc" }],
+    orderBy: [{ created_at: "desc" }],
     take: 20,
     where: normalizedSearch
       ? {
@@ -609,12 +609,12 @@ export async function getAdminJobLogsSnapshot({ search = "", status = "ALL" } = 
               },
             },
             {
-              entityId: {
+              entity_id: {
                 contains: normalizedSearch,
               },
             },
             {
-              entityType: {
+              entity_type: {
                 contains: normalizedSearch,
               },
             },

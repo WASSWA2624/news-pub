@@ -28,15 +28,15 @@ function normalizePositiveInteger(value, fallbackValue) {
  * Returns a reset-safe max-posts value that respects the selected provider's
  * execution limits when they exist.
  *
- * @param {string} providerKey - Selected provider key.
- * @param {string|number} maxPostsPerRun - Candidate max posts value.
+ * @param {string} provider_key - Selected provider key.
+ * @param {string|number} max_posts_per_run - Candidate max posts value.
  * @param {number} [fallbackValue=5] - Value used when input is empty/invalid.
  * @returns {string} Reset-safe max posts value.
  */
-export function resolveResettableMaxPostsPerRun(providerKey, maxPostsPerRun, fallbackValue = 5) {
-  const normalizedValue = normalizePositiveInteger(maxPostsPerRun, fallbackValue);
-  const providerExecutionLimits = getProviderExecutionLimits(providerKey);
-  const maxPostsLimit = providerExecutionLimits.maxPostsPerRun || null;
+export function resolveResettableMaxPostsPerRun(provider_key, max_posts_per_run, fallbackValue = 5) {
+  const normalizedValue = normalizePositiveInteger(max_posts_per_run, fallbackValue);
+  const providerExecutionLimits = getProviderExecutionLimits(provider_key);
+  const maxPostsLimit = providerExecutionLimits.max_posts_per_run || null;
 
   if (!maxPostsLimit) {
     return `${normalizedValue}`;
@@ -61,10 +61,10 @@ export function resolveResettableMaxPostsPerRun(providerKey, maxPostsPerRun, fal
  */
 export function createStreamFormResetSeed(values = {}) {
   return {
-    activeProviderId: `${values.activeProviderId || ""}`,
-    defaultTemplateId: `${values.defaultTemplateId || ""}`,
-    destinationId: `${values.destinationId || ""}`,
-    maxPostsPerRun: resolveResettableMaxPostsPerRun(values.providerKey, values.maxPostsPerRun),
+    active_provider_id: `${values.active_provider_id || ""}`,
+    default_template_id: `${values.default_template_id || ""}`,
+    destination_id: `${values.destination_id || ""}`,
+    max_posts_per_run: resolveResettableMaxPostsPerRun(values.provider_key, values.max_posts_per_run),
     mode: `${values.mode || ""}`,
     modeWasEdited: Boolean(values.modeWasEdited),
     name: `${values.name || ""}`,
@@ -90,12 +90,12 @@ export function applyStreamFormResetSeed(seed = {}, setters = {}) {
 
   setters.setName?.(normalizedSeed.name);
   setters.setSlug?.(normalizedSeed.slug);
-  setters.setActiveProviderId?.(normalizedSeed.activeProviderId);
-  setters.setDestinationId?.(normalizedSeed.destinationId);
-  setters.setDefaultTemplateId?.(normalizedSeed.defaultTemplateId);
+  setters.setActiveProviderId?.(normalizedSeed.active_provider_id);
+  setters.setDestinationId?.(normalizedSeed.destination_id);
+  setters.setDefaultTemplateId?.(normalizedSeed.default_template_id);
   setters.setMode?.(normalizedSeed.mode);
   setters.setStatus?.(normalizedSeed.status);
-  setters.setMaxPostsPerRun?.(normalizedSeed.maxPostsPerRun);
+  setters.setMaxPostsPerRun?.(normalizedSeed.max_posts_per_run);
   setters.setPostLinkPlacement?.(normalizedSeed.postLinkPlacement);
   setters.setProviderFormValues?.(cloneResetValue(normalizedSeed.providerFormValues));
   setters.setRunWindowState?.(cloneResetValue(normalizedSeed.runWindowState));

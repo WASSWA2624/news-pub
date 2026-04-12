@@ -42,7 +42,7 @@ describe("providers api route", () => {
       new Request("https://example.com/api/providers", {
         body: JSON.stringify({
           label: "News API",
-          providerKey: "newsapi",
+          provider_key: "newsapi",
         }),
         headers: {
           "content-type": "application/json",
@@ -63,10 +63,10 @@ describe("providers api route", () => {
     expect(saveProviderRecord).toHaveBeenCalledWith(
       {
         label: "News API",
-        providerKey: "newsapi",
+        provider_key: "newsapi",
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
   });

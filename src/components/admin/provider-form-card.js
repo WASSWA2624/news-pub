@@ -161,7 +161,7 @@ export default function ProviderFormCard({
   provider,
 }) {
   const providerDefinitions = useMemo(() => listProviderDefinitions(), []);
-  const initialProviderKey = provider?.providerKey || providerDefinitions[0]?.key || "";
+  const initialProviderKey = provider?.provider_key || providerDefinitions[0]?.key || "";
   const initialSelectedDefinition =
     providerDefinitions.find((definition) => definition.key === initialProviderKey) || null;
   const initialRequestDefaults = provider
@@ -177,37 +177,37 @@ export default function ProviderFormCard({
       })),
     [providerDefinitions],
   );
-  const [providerKey, setProviderKey] = useState(initialProviderKey);
+  const [provider_key, setProviderKey] = useState(initialProviderKey);
   const [metadataResetKey, setMetadataResetKey] = useState(0);
   const [requestDefaultsResetKey, setRequestDefaultsResetKey] = useState(0);
   const [requestDefaultsMode, setRequestDefaultsMode] = useState(provider ? "saved" : "official");
   const [requestDefaultsDraft, setRequestDefaultsDraft] = useState(initialRequestDefaults);
   const [availabilityResetKey, setAvailabilityResetKey] = useState(0);
   const formId = useId();
-  const selectedDefinition = providerDefinitions.find((definition) => definition.key === providerKey) || null;
-  const isExistingProviderSelection = provider?.providerKey === providerKey;
+  const selectedDefinition = providerDefinitions.find((definition) => definition.key === provider_key) || null;
+  const isExistingProviderSelection = provider?.provider_key === provider_key;
   const nextLabel = isExistingProviderSelection ? provider?.label || selectedDefinition?.label || "" : selectedDefinition?.label || "";
-  const nextBaseUrl = isExistingProviderSelection ? provider?.baseUrl || providerBaseUrls[providerKey] || "" : providerBaseUrls[providerKey] || "";
+  const nextBaseUrl = isExistingProviderSelection ? provider?.base_url || providerBaseUrls[provider_key] || "" : providerBaseUrls[provider_key] || "";
   const nextDescription = isExistingProviderSelection
-    ? provider?.description || providerDescriptions[providerKey] || ""
-    : providerDescriptions[providerKey] || "";
+    ? provider?.description || providerDescriptions[provider_key] || ""
+    : providerDescriptions[provider_key] || "";
   const savedRequestDefaults = isExistingProviderSelection
     ? getProviderRequestDefaultValues(provider)
     : selectedDefinition?.defaultRequestDefaults || {};
   const officialRequestDefaults = selectedDefinition?.defaultRequestDefaults || {};
   const formRef = useRef(null);
   const sanitizedRequestDefaultsDraft = useMemo(
-    () => sanitizeProviderFieldValues(providerKey, requestDefaultsDraft),
-    [providerKey, requestDefaultsDraft],
+    () => sanitizeProviderFieldValues(provider_key, requestDefaultsDraft),
+    [provider_key, requestDefaultsDraft],
   );
   const requestDefaultCount = Object.keys(sanitizedRequestDefaultsDraft || {}).length;
-  const providerValidationIssues = getProviderRequestValidationIssues(providerKey, {
+  const providerValidationIssues = getProviderRequestValidationIssues(provider_key, {
     providerDefaults: sanitizedRequestDefaultsDraft,
   });
 
   function syncRequestDefaultsDraft() {
     const nextDraft = sanitizeProviderFieldValues(
-      providerKey,
+      provider_key,
       parseScopedFormValues(formRef.current, "requestDefault."),
     );
 
@@ -240,31 +240,31 @@ export default function ProviderFormCard({
       <AdminDisclosureGroup>
         <AdminDisclosureSection
           defaultOpen
-          completionLabel={providerKey ? "Identity ready" : ""}
+          completionLabel={provider_key ? "Identity ready" : ""}
           meta={[
             {
               label: provider ? "Existing provider" : "New provider",
               tone: "muted",
             },
-            ...(providerKey ? [{ label: providerKey, tone: "accent" }] : []),
+            ...(provider_key ? [{ label: provider_key, tone: "accent" }] : []),
           ]}
           summary="Choose the provider registry entry, adjust the saved label, and confirm the request base URL."
           title="Provider identity"
         >
-          <FieldGrid key={`provider-core-${providerKey}-${metadataResetKey}`}>
+          <FieldGrid key={`provider-core-${provider_key}-${metadataResetKey}`}>
             <Field as="div">
               <FieldLabel>Provider key</FieldLabel>
               <SearchableSelect
                 ariaLabel="Provider key"
-                name="providerKey"
+                name="provider_key"
                 onChange={(value) => {
                   const nextProviderKey = `${value || ""}`;
                   const nextDefinition =
                     providerDefinitions.find((definition) => definition.key === nextProviderKey) || null;
-                  const nextSavedRequestDefaults = provider?.providerKey === nextProviderKey
+                  const nextSavedRequestDefaults = provider?.provider_key === nextProviderKey
                     ? getProviderRequestDefaultValues(provider)
                     : nextDefinition?.defaultRequestDefaults || {};
-                  const nextRequestDefaultsMode = provider?.providerKey === nextProviderKey ? "saved" : "official";
+                  const nextRequestDefaultsMode = provider?.provider_key === nextProviderKey ? "saved" : "official";
 
                   setProviderKey(nextProviderKey);
                   setRequestDefaultsMode(nextRequestDefaultsMode);
@@ -274,7 +274,7 @@ export default function ProviderFormCard({
                 }}
                 options={providerKeyOptions}
                 placeholder="Select a provider"
-                value={providerKey}
+                value={provider_key}
               />
               <FieldHint>The provider key keeps the saved record aligned with the supported API adapter.</FieldHint>
             </Field>
@@ -285,7 +285,7 @@ export default function ProviderFormCard({
             </Field>
             <Field>
               <FieldLabel>Base URL</FieldLabel>
-              <Input defaultValue={nextBaseUrl} name="baseUrl" />
+              <Input defaultValue={nextBaseUrl} name="base_url" />
               <FieldHint>Leave the official endpoint unless your provider contract requires a fixed regional host.</FieldHint>
             </Field>
           </FieldGrid>
@@ -309,7 +309,7 @@ export default function ProviderFormCard({
               Reset to defaults
             </SecondaryButton>
           </SectionActionRow>
-          <Field key={`provider-notes-${providerKey}-${metadataResetKey}`}>
+          <Field key={`provider-notes-${provider_key}-${metadataResetKey}`}>
             <FieldLabel>Description</FieldLabel>
             <Textarea defaultValue={nextDescription} name="description" />
             <FieldHint>
@@ -371,10 +371,10 @@ export default function ProviderFormCard({
             Reset returns to the saved provider defaults. Restore official defaults replaces them with the baseline that ships with the selected provider integration.
           </FieldHint>
           <ProviderFilterFields
-            key={`provider-defaults-${providerKey}-${requestDefaultsResetKey}-${requestDefaultsMode}`}
+            key={`provider-defaults-${provider_key}-${requestDefaultsResetKey}-${requestDefaultsMode}`}
             namePrefix="requestDefault"
             onValuesChange={setRequestDefaultsDraft}
-            providerKey={providerKey}
+            provider_key={provider_key}
             scope="provider"
             values={requestDefaultsDraft}
           />
@@ -385,8 +385,8 @@ export default function ProviderFormCard({
           completionLabel="Availability set"
           meta={[
             {
-              label: provider?.isEnabled ?? true ? "Enabled" : "Disabled",
-              tone: provider?.isEnabled ?? true ? "success" : "warning",
+              label: provider?.is_enabled ?? true ? "Enabled" : "Disabled",
+              tone: provider?.is_enabled ?? true ? "success" : "warning",
             },
           ]}
           summary="Control whether the provider is available for new streams and whether it can serve as the workspace default."
@@ -403,17 +403,17 @@ export default function ProviderFormCard({
               Reset availability
             </SecondaryButton>
           </SectionActionRow>
-          <ToggleRow key={`provider-availability-${providerKey}-${availabilityResetKey}`}>
+          <ToggleRow key={`provider-availability-${provider_key}-${availabilityResetKey}`}>
             <ToggleChip>
-              <input defaultChecked={provider?.isEnabled ?? true} name="isEnabled" type="checkbox" />
+              <input defaultChecked={provider?.is_enabled ?? true} name="is_enabled" type="checkbox" />
               Enabled
             </ToggleChip>
             <ToggleChip>
-              <input defaultChecked={provider?.isSelectable ?? true} name="isSelectable" type="checkbox" />
+              <input defaultChecked={provider?.is_selectable ?? true} name="is_selectable" type="checkbox" />
               Selectable
             </ToggleChip>
             <ToggleChip>
-              <input defaultChecked={provider?.isDefault ?? false} name="isDefault" type="checkbox" />
+              <input defaultChecked={provider?.is_default ?? false} name="is_default" type="checkbox" />
               Default
             </ToggleChip>
           </ToggleRow>

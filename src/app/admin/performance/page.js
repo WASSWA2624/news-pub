@@ -101,10 +101,10 @@ export default async function AdminPerformancePage() {
                 </thead>
                 <tbody>
                   {snapshot.alerts.map((alert) => (
-                    <tr key={`${alert.metricName}-${alert.routeGroup}-${alert.formFactor}`}>
+                    <tr key={`${alert.metricName}-${alert.route_group}-${alert.form_factor}`}>
                       <td data-label="Metric">{alert.metricName}</td>
-                      <td data-label="Route">{alert.routeGroup}</td>
-                      <td data-label="Form factor">{alert.formFactor}</td>
+                      <td data-label="Route">{alert.route_group}</td>
+                      <td data-label="Form factor">{alert.form_factor}</td>
                       <td data-label="p75">{alert.p75}</td>
                       <td data-label="Status">
                         <StatusBadge $tone={getTone(alert.status)}>{alert.status}</StatusBadge>
@@ -166,10 +166,10 @@ export default async function AdminPerformancePage() {
               </thead>
               <tbody>
                 {snapshot.latestBuildMetrics.map((sample) => (
-                  <tr key={`${sample.metricName}-${sample.routeGroup}-${sample.formFactor}`}>
+                  <tr key={`${sample.metricName}-${sample.route_group}-${sample.form_factor}`}>
                     <td data-label="Metric">{sample.metricName}</td>
-                    <td data-label="Route">{sample.routeGroup}</td>
-                    <td data-label="Form factor">{sample.formFactor}</td>
+                    <td data-label="Route">{sample.route_group}</td>
+                    <td data-label="Form factor">{sample.form_factor}</td>
                     <td data-label="p75">{sample.p75}</td>
                     <td data-label="Samples">{sample.count}</td>
                     <td data-label="Status">

@@ -59,7 +59,7 @@ export default function ResponsiveImage({
       ? createImagePlaceholderDataUrl({
           alt,
           height: resolvedHeight,
-          sourceUrl: resolvedSrc,
+          source_url: resolvedSrc,
           width: resolvedWidth,
         })
       : undefined;

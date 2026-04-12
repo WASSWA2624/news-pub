@@ -29,8 +29,8 @@ describe("seo helpers", () => {
       openGraphTitle: "Open graph title",
       segments: ["news"],
       title: "Published stories",
-      twitterDescription: "Twitter description",
-      twitterTitle: "Twitter title",
+      twitter_description: "Twitter description",
+      twitter_title: "Twitter title",
     });
 
     expect(metadata.alternates).toEqual({
@@ -120,7 +120,7 @@ describe("seo helpers", () => {
     const article = buildArticleJsonLd({
       article: {
         authors: ["NewsPub Editorial", "Jane Reporter"],
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         categories: [
           {
             name: "Technology",
@@ -129,21 +129,21 @@ describe("seo helpers", () => {
             name: "AI",
           },
         ],
-        contentHtml: "<p>Breaking story summary with enough words to count accurately.</p>",
+        content_html: "<p>Breaking story summary with enough words to count accurately.</p>",
         image: {
           url: "https://cdn.example.com/story.jpg",
         },
         keywords: ["breaking", "technology"],
         locale: "en",
-        metaDescription: "Breaking story meta description.",
-        metaTitle: "Breaking story meta title",
-        publishedAt: "2026-04-03T08:00:00.000Z",
+        meta_description: "Breaking story meta description.",
+        meta_title: "Breaking story meta title",
+        published_at: "2026-04-03T08:00:00.000Z",
         seoImage: {
           url: "https://cdn.example.com/story-seo.jpg",
         },
         summary: "Breaking story summary.",
         title: "Breaking story",
-        updatedAt: "2026-04-03T09:00:00.000Z",
+        updated_at: "2026-04-03T09:00:00.000Z",
       },
     });
 

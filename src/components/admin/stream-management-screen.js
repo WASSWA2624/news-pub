@@ -822,37 +822,37 @@ function getRunStatusTone(status) {
 function describeScheduleStatus(stream, scheduler) {
   const schedule = stream.schedule || {};
 
-  if (!schedule.isActive) {
+  if (!schedule.is_active) {
     return "This stream is paused. Its cadence and filters are saved, but automatic runs stay off until you reactivate it.";
   }
 
-  if (!schedule.isEnabled) {
+  if (!schedule.is_enabled) {
     return "Automatic runs are disabled for this stream. It only runs manually.";
   }
 
   if (schedule.isRunning) {
-    return schedule.lastRunStartedAt
-      ? `This stream is running now. Current execution started ${formatDateTime(schedule.lastRunStartedAt)}.`
+    return schedule.last_run_started_at
+      ? `This stream is running now. Current execution started ${formatDateTime(schedule.last_run_started_at)}.`
       : "This stream is running now.";
   }
 
   if (schedule.isDue) {
     if (scheduler?.usesExternalCron) {
-      return schedule.nextRunAt
-        ? `This stream became due at ${formatDateTime(schedule.nextRunAt)} and is waiting for the scheduler endpoint to be triggered.`
+      return schedule.next_run_at
+        ? `This stream became due at ${formatDateTime(schedule.next_run_at)} and is waiting for the scheduler endpoint to be triggered.`
         : "This stream is due and is waiting for the scheduler endpoint to be triggered.";
     }
 
-    return schedule.nextRunAt
-      ? `This stream became due at ${formatDateTime(schedule.nextRunAt)} and will run on the next internal scheduler poll.`
+    return schedule.next_run_at
+      ? `This stream became due at ${formatDateTime(schedule.next_run_at)} and will run on the next internal scheduler poll.`
       : "This stream is due and will run on the next internal scheduler poll.";
   }
 
-  if (schedule.nextRunAt) {
-    return `Next automatic run is scheduled for ${formatDateTime(schedule.nextRunAt)}.`;
+  if (schedule.next_run_at) {
+    return `Next automatic run is scheduled for ${formatDateTime(schedule.next_run_at)}.`;
   }
 
-  if (!schedule.lastRunCompletedAt && !schedule.lastFailureAt) {
+  if (!schedule.last_run_completed_at && !schedule.last_failure_at) {
     return "This stream has not completed an automatic run yet and is ready for its first scheduled pass.";
   }
 
@@ -868,9 +868,9 @@ function describeLatestRun(stream) {
 
   const runWindow = run.executionDetails?.streamFetchWindow;
   const fragments = [
-    `${formatEnumLabel(run.triggerType || "manual")} run`,
-    run.startedAt ? `started ${formatDateTime(run.startedAt)}` : "",
-    run.finishedAt ? `finished ${formatDateTime(run.finishedAt)}` : "",
+    `${formatEnumLabel(run.trigger_type || "manual")} run`,
+    run.started_at ? `started ${formatDateTime(run.started_at)}` : "",
+    run.finished_at ? `finished ${formatDateTime(run.finished_at)}` : "",
   ].filter(Boolean);
 
   if (runWindow?.start && runWindow?.end) {
@@ -883,14 +883,14 @@ function describeLatestRun(stream) {
 }
 
 function getRecentRunLabel(run) {
-  const triggerLabel = formatEnumLabel(run.triggerType || "manual");
+  const triggerLabel = formatEnumLabel(run.trigger_type || "manual");
 
-  if (run.startedAt && run.finishedAt) {
-    return `${triggerLabel} | ${formatDateTime(run.startedAt)} to ${formatDateTime(run.finishedAt)}`;
+  if (run.started_at && run.finished_at) {
+    return `${triggerLabel} | ${formatDateTime(run.started_at)} to ${formatDateTime(run.finished_at)}`;
   }
 
-  if (run.startedAt) {
-    return `${triggerLabel} | started ${formatDateTime(run.startedAt)}`;
+  if (run.started_at) {
+    return `${triggerLabel} | started ${formatDateTime(run.started_at)}`;
   }
 
   return triggerLabel;
@@ -992,15 +992,15 @@ function RunProgressModal({ runState, onClose }) {
                 <ProgressSummaryLabel>Failed runs</ProgressSummaryLabel>
               </ProgressSummaryCard>
               <ProgressSummaryCard>
-                <ProgressSummaryValue>{resultSummary.publishedCount}</ProgressSummaryValue>
+                <ProgressSummaryValue>{resultSummary.published_count}</ProgressSummaryValue>
                 <ProgressSummaryLabel>Published stories</ProgressSummaryLabel>
               </ProgressSummaryCard>
               <ProgressSummaryCard>
-                <ProgressSummaryValue>{resultSummary.heldCount}</ProgressSummaryValue>
+                <ProgressSummaryValue>{resultSummary.held_count}</ProgressSummaryValue>
                 <ProgressSummaryLabel>Held for review</ProgressSummaryLabel>
               </ProgressSummaryCard>
               <ProgressSummaryCard>
-                <ProgressSummaryValue>{resultSummary.skippedCount + resultSummary.duplicateCount}</ProgressSummaryValue>
+                <ProgressSummaryValue>{resultSummary.skipped_count + resultSummary.duplicate_count}</ProgressSummaryValue>
                 <ProgressSummaryLabel>Skipped or duplicate</ProgressSummaryLabel>
               </ProgressSummaryCard>
               <ProgressSummaryCard>
@@ -1074,7 +1074,7 @@ function getRunConfigurationErrorMessage(error) {
  * @returns {JSX.Element} Manual run configuration dialog.
  */
 function RunConfigurationModal({
-  errorMessage = "",
+  last_error_message = "",
   onClose,
   onConfirm,
   open = false,
@@ -1132,7 +1132,7 @@ function RunConfigurationModal({
         startValue={windowState?.startInputValue || ""}
         writeCheckpointOnSuccess={Boolean(windowState?.writeCheckpointOnSuccess)}
       />
-      {errorMessage ? <FieldErrorText>{errorMessage}</FieldErrorText> : null}
+      {last_error_message ? <FieldErrorText>{last_error_message}</FieldErrorText> : null}
       <ButtonRow>
         <PrimaryButton disabled={runInProgress} onClick={onConfirm} type="button">
           <AppIcon name="bolt" size={14} />
@@ -1176,13 +1176,13 @@ export default function StreamManagementScreen({
     const counts = new Map();
 
     for (const stream of streams) {
-      const destinationId = stream.destination?.id;
+      const destination_id = stream.destination?.id;
 
-      if (!destinationId) {
+      if (!destination_id) {
         continue;
       }
 
-      counts.set(destinationId, (counts.get(destinationId) || 0) + 1);
+      counts.set(destination_id, (counts.get(destination_id) || 0) + 1);
     }
 
     return counts;
@@ -1233,18 +1233,18 @@ export default function StreamManagementScreen({
   );
 
   const destinationOrder = useMemo(
-    () => new Map(allDestinationIds.map((destinationId, index) => [destinationId, index])),
+    () => new Map(allDestinationIds.map((destination_id, index) => [destination_id, index])),
     [allDestinationIds],
   );
 
   const normalizedSelectedDestinationIds = useMemo(
-    () => selectedDestinationIds.filter((destinationId) => destinationOrder.has(destinationId)),
+    () => selectedDestinationIds.filter((destination_id) => destinationOrder.has(destination_id)),
     [destinationOrder, selectedDestinationIds],
   );
 
   function sortDestinationIds(destinationIds) {
     return [...destinationIds]
-      .filter((destinationId) => destinationOrder.has(destinationId))
+      .filter((destination_id) => destinationOrder.has(destination_id))
       .sort(
       (left, right) =>
         (destinationOrder.get(left) ?? Number.MAX_SAFE_INTEGER)
@@ -1257,13 +1257,13 @@ export default function StreamManagementScreen({
     [normalizedSelectedDestinationIds],
   );
 
-  function toggleDestination(destinationId) {
+  function toggleDestination(destination_id) {
     setSelectedDestinationIds((currentIds) => {
       const validIds = currentIds.filter((value) => destinationOrder.has(value));
 
-      return validIds.includes(destinationId)
-        ? validIds.filter((value) => value !== destinationId)
-        : sortDestinationIds([...validIds, destinationId]);
+      return validIds.includes(destination_id)
+        ? validIds.filter((value) => value !== destination_id)
+        : sortDestinationIds([...validIds, destination_id]);
     });
   }
 
@@ -1277,7 +1277,7 @@ export default function StreamManagementScreen({
 
   function selectDestinationGroup(destinationIds) {
     setSelectedDestinationIds((currentIds) => {
-      const validIds = currentIds.filter((destinationId) => destinationOrder.has(destinationId));
+      const validIds = currentIds.filter((destination_id) => destinationOrder.has(destination_id));
 
       return sortDestinationIds([...new Set([...validIds, ...destinationIds])]);
     });
@@ -1287,9 +1287,9 @@ export default function StreamManagementScreen({
     const destinationIdSet = new Set(destinationIds);
 
     setSelectedDestinationIds((currentIds) => {
-      const validIds = currentIds.filter((destinationId) => destinationOrder.has(destinationId));
+      const validIds = currentIds.filter((destination_id) => destinationOrder.has(destination_id));
 
-      return validIds.filter((destinationId) => !destinationIdSet.has(destinationId));
+      return validIds.filter((destination_id) => !destinationIdSet.has(destination_id));
     });
   }
 
@@ -1369,7 +1369,7 @@ export default function StreamManagementScreen({
     }
 
     setRunConfiguration({
-      errorMessage: "",
+      last_error_message: "",
       scopeLabel:
         streamBatch.length === 1
           ? streamBatch[0].name
@@ -1452,7 +1452,7 @@ export default function StreamManagementScreen({
     try {
       const responseResults = await executeStreamBatch(streamBatch, fetchWindow);
       const responseResultByStreamId = new Map(
-        responseResults.map((result) => [result.stream?.id || result.run?.streamId, result]),
+        responseResults.map((result) => [result.stream?.id || result.run?.stream_id, result]),
       );
 
       results = streamBatch.map((stream) => {
@@ -1516,7 +1516,7 @@ export default function StreamManagementScreen({
         currentState
           ? {
               ...currentState,
-              errorMessage: getRunConfigurationErrorMessage(error),
+              last_error_message: getRunConfigurationErrorMessage(error),
             }
           : currentState,
       );
@@ -1636,8 +1636,8 @@ export default function StreamManagementScreen({
                     <ScopeGroupGrid>
                       {destinationGroups.map((group) => {
                         const groupDestinationIds = group.destinations.map((destination) => destination.value);
-                        const selectedGroupCount = groupDestinationIds.filter((destinationId) =>
-                          selectedDestinationSet.has(destinationId),
+                        const selectedGroupCount = groupDestinationIds.filter((destination_id) =>
+                          selectedDestinationSet.has(destination_id),
                         ).length;
 
                         return (
@@ -1675,13 +1675,13 @@ export default function StreamManagementScreen({
                             </ScopeGroupHeader>
                             <ScopeRail>
                               {group.destinations.map((destination) => {
-                                const isActive = selectedDestinationSet.has(destination.value);
+                                const is_active = selectedDestinationSet.has(destination.value);
 
                                 return (
-                                  <ScopeCheckbox $active={isActive} key={destination.value}>
+                                  <ScopeCheckbox $active={is_active} key={destination.value}>
                                     <ScopeCheckboxLeading>
                                       <input
-                                        checked={isActive}
+                                        checked={is_active}
                                         onChange={() => toggleDestination(destination.value)}
                                         type="checkbox"
                                       />
@@ -1693,13 +1693,13 @@ export default function StreamManagementScreen({
                                       </ScopeDestinationBadge>
                                       <ScopeCheckboxBody>
                                         <ScopeCheckboxLabel>{destination.label}</ScopeCheckboxLabel>
-                                        <ScopeCheckboxMeta $active={isActive}>
+                                        <ScopeCheckboxMeta $active={is_active}>
                                           {formatEnumLabel(destination.kind)}
                                           {destination.slug ? ` | ${destination.slug}` : ""}
                                         </ScopeCheckboxMeta>
                                       </ScopeCheckboxBody>
                                     </ScopeCheckboxLeading>
-                                    <ScopeCount $active={isActive}>{destination.streamCount}</ScopeCount>
+                                    <ScopeCount $active={is_active}>{destination.streamCount}</ScopeCount>
                                   </ScopeCheckbox>
                                 );
                               })}
@@ -1806,18 +1806,18 @@ export default function StreamManagementScreen({
                             <StreamDetailTitle>Automation status</StreamDetailTitle>
                             <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
                             <StreamDetailPills>
-                              <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
+                              <MetaPill $tone={stream.schedule?.is_enabled ? "accent" : undefined}>
                                 <AppIcon name="clock" size={11} />
                                 {formatIntervalLabel(stream.schedule?.intervalMinutes)}
                               </MetaPill>
-                              {stream.schedule?.nextRunAt ? (
-                                <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
+                              {stream.schedule?.next_run_at ? (
+                                <MetaPill>Next {formatDateTime(stream.schedule.next_run_at)}</MetaPill>
                               ) : null}
                               {stream.schedule?.latestTriggerType ? (
                                 <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
                               ) : null}
-                              {stream.checkpoint?.lastSuccessfulFetchAt ? (
-                                <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
+                              {stream.checkpoint?.last_successful_fetch_at ? (
+                                <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.last_successful_fetch_at)}</MetaPill>
                               ) : null}
                             </StreamDetailPills>
                             <SmallText>{describeLatestRun(stream)}</SmallText>
@@ -1839,18 +1839,18 @@ export default function StreamManagementScreen({
                               ) : (
                                 <MetaPill>Categories: Any</MetaPill>
                               )}
-                              <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
-                              <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
-                              <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
-                              {(stream.includeKeywordsJson || []).length ? (
-                                stream.includeKeywordsJson.map((keyword) => (
+                              <MetaPill>Languages: {formatValueList(stream.language_allowlist_json)}</MetaPill>
+                              <MetaPill>Countries: {formatValueList(stream.country_allowlist_json)}</MetaPill>
+                              <MetaPill>Regions: {formatValueList(stream.region_allowlist_json)}</MetaPill>
+                              {(stream.include_keywords_json || []).length ? (
+                                stream.include_keywords_json.map((keyword) => (
                                   <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
                                 ))
                               ) : (
                                 <MetaPill>Include keywords: Any</MetaPill>
                               )}
-                              {(stream.excludeKeywordsJson || []).length ? (
-                                stream.excludeKeywordsJson.map((keyword) => (
+                              {(stream.exclude_keywords_json || []).length ? (
+                                stream.exclude_keywords_json.map((keyword) => (
                                   <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
                                     Exclude: {keyword}
                                   </MetaPill>
@@ -1919,7 +1919,7 @@ export default function StreamManagementScreen({
                                       {formatDateTime(run.executionDetails.streamFetchWindow.end)}
                                     </SmallText>
                                   ) : null}
-                                  {run.errorMessage ? <SmallText>{run.errorMessage}</SmallText> : null}
+                                  {run.last_error_message ? <SmallText>{run.last_error_message}</SmallText> : null}
                                 </RunHistoryItem>
                               ))}
                             </RunHistoryList>
@@ -2028,7 +2028,7 @@ export default function StreamManagementScreen({
       </SectionGrid>
 
       <RunConfigurationModal
-        errorMessage={runConfiguration?.errorMessage || ""}
+        last_error_message={runConfiguration?.last_error_message || ""}
         onClose={closeRunConfiguration}
         onConfirm={handleRunConfigurationConfirm}
         open={Boolean(runConfiguration)}
@@ -2047,7 +2047,7 @@ export default function StreamManagementScreen({
 
             return {
               ...currentState,
-              errorMessage: "",
+              last_error_message: "",
               windowState: nextWindowState,
             };
           });

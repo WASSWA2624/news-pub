@@ -115,9 +115,9 @@ function decodeDiscoveryValue(value) {
   };
 }
 
-function removeKnownMetaSettings(settingsJson) {
+function removeKnownMetaSettings(settings_json) {
   const nextSettings = {
-    ...normalizeSettings(settingsJson),
+    ...normalizeSettings(settings_json),
   };
 
   ["graphApiBaseUrl", "instagramUserId", "pageId", "profileId", "socialGuardrails", "useDestinationCredentialOverrides"].forEach((key) => {
@@ -127,8 +127,8 @@ function removeKnownMetaSettings(settingsJson) {
   return nextSettings;
 }
 
-function buildInitialSocialGuardrails(settingsJson, defaults) {
-  const settings = normalizeSettings(settingsJson);
+function buildInitialSocialGuardrails(settings_json, defaults) {
+  const settings = normalizeSettings(settings_json);
   const overrides = normalizeSettings(settings.socialGuardrails);
 
   return Object.entries(defaults || {}).reduce((result, [key, fallbackValue]) => {
@@ -146,7 +146,7 @@ function normalizeMetaCredentialDefaults(metaConfig, slug) {
   }
 
   return {
-    externalAccountId: trimText(credentialDefaults.externalAccountId),
+    external_account_id: trimText(credentialDefaults.external_account_id),
     graphApiBaseUrl: trimText(credentialDefaults.graphApiBaseUrl),
     hasAccessToken: Boolean(credentialDefaults.hasAccessToken),
     instagramUserId: trimText(credentialDefaults.instagramUserId),
@@ -161,7 +161,7 @@ function hasMetaCredentialDefaults(credentialDefaults) {
     credentialDefaults
       && (
         credentialDefaults.hasAccessToken
-        || credentialDefaults.externalAccountId
+        || credentialDefaults.external_account_id
         || credentialDefaults.graphApiBaseUrl
         || credentialDefaults.instagramUserId
         || credentialDefaults.pageId
@@ -172,7 +172,7 @@ function hasMetaCredentialDefaults(credentialDefaults) {
 
 function getPrimaryAccountIdForKind(kind, values = {}) {
   const normalizedKind = trimText(kind).toUpperCase();
-  const normalizedExternalAccountId = trimText(values.externalAccountId);
+  const normalizedExternalAccountId = trimText(values.external_account_id);
 
   if (normalizedExternalAccountId) {
     return normalizedExternalAccountId;
@@ -199,21 +199,21 @@ function buildEffectiveCredentialState({
   metaConfig = {},
   slug = "",
 } = {}) {
-  const settingsJson = normalizeSettings(destination?.settingsJson);
+  const settings_json = normalizeSettings(destination?.settings_json);
   const credentialDefaults = normalizeMetaCredentialDefaults(metaConfig, slug);
   const hasCredentialDefaults = hasMetaCredentialDefaults(credentialDefaults);
   const useDestinationCredentialOverrides =
-    settingsJson.useDestinationCredentialOverrides === true || !hasCredentialDefaults;
+    settings_json.useDestinationCredentialOverrides === true || !hasCredentialDefaults;
   const sourceValues = useDestinationCredentialOverrides
     ? {
-        externalAccountId: trimText(destination?.externalAccountId),
-        graphApiBaseUrl: trimText(settingsJson.graphApiBaseUrl),
-        instagramUserId: trimText(settingsJson.instagramUserId),
-        pageId: trimText(settingsJson.pageId),
-        profileId: trimText(settingsJson.profileId),
+        external_account_id: trimText(destination?.external_account_id),
+        graphApiBaseUrl: trimText(settings_json.graphApiBaseUrl),
+        instagramUserId: trimText(settings_json.instagramUserId),
+        pageId: trimText(settings_json.pageId),
+        profileId: trimText(settings_json.profileId),
       }
     : {
-        externalAccountId: credentialDefaults?.externalAccountId || "",
+        external_account_id: credentialDefaults?.external_account_id || "",
         graphApiBaseUrl: credentialDefaults?.graphApiBaseUrl || "",
         instagramUserId: credentialDefaults?.instagramUserId || "",
         pageId: credentialDefaults?.pageId || "",
@@ -222,9 +222,9 @@ function buildEffectiveCredentialState({
 
   return {
     credentialDefaults,
-    externalAccountId:
+    external_account_id:
       getPrimaryAccountIdForKind(kind, sourceValues)
-      || trimText(sourceValues.externalAccountId),
+      || trimText(sourceValues.external_account_id),
     graphApiBaseUrl:
       trimText(sourceValues.graphApiBaseUrl)
       || metaConfig?.defaultGraphApiBaseUrl
@@ -245,7 +245,7 @@ function buildMetaCredentialDefaultsPreview(credentialDefaults) {
   return JSON.stringify(
     {
       accessToken: credentialDefaults.hasAccessToken ? "[Configured in environment]" : null,
-      externalAccountId: credentialDefaults.externalAccountId || null,
+      external_account_id: credentialDefaults.external_account_id || null,
       graphApiBaseUrl: credentialDefaults.graphApiBaseUrl || null,
       instagramUserId: credentialDefaults.instagramUserId || null,
       pageId: credentialDefaults.pageId || null,

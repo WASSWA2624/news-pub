@@ -71,10 +71,10 @@ describe("auth helpers", () => {
     expect(prisma.auditEvent.create).toHaveBeenCalledWith({
       data: {
         action: "AUTH_LOGIN_FAILED",
-        actorId: null,
-        entityId: "missing@example.com",
-        entityType: "auth_identity",
-        payloadJson: {
+        actor_id: null,
+        entity_id: "missing@example.com",
+        entity_type: "auth_identity",
+        payload_json: {
           reason: "user_not_found",
         },
       },
@@ -90,9 +90,9 @@ describe("auth helpers", () => {
         findUnique: vi.fn(async () => ({
           email: "admin@example.com",
           id: "user_1",
-          isActive: true,
+          is_active: true,
           name: "NewsPub Admin",
-          passwordHash: "invalid-format",
+          password_hash: "invalid-format",
           role: "SUPER_ADMIN",
         })),
       },
@@ -117,10 +117,10 @@ describe("auth helpers", () => {
     expect(prisma.auditEvent.create).toHaveBeenCalledWith({
       data: {
         action: "AUTH_LOGIN_FAILED",
-        actorId: null,
-        entityId: "admin@example.com",
-        entityType: "auth_identity",
-        payloadJson: {
+        actor_id: null,
+        entity_id: "admin@example.com",
+        entity_type: "auth_identity",
+        payload_json: {
           reason: "invalid_password",
         },
       },

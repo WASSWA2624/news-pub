@@ -22,11 +22,11 @@ export async function generateMetadata({ params, searchParams }) {
   const page = Number.parseInt(`${resolvedSearchParams?.page ?? ""}`.trim(), 10);
 
   return buildPageMetadata({
-    description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
+    description: pageContent.meta_description || pageContent.description || messages.site.tagline,
     locale,
     query: Number.isFinite(page) && page > 1 ? { page } : undefined,
     segments: publicRouteSegments.news,
-    title: pageContent.metaTitle || pageContent.title || messages.site.title,
+    title: pageContent.meta_title || pageContent.title || messages.site.title,
   });
 }
 /**

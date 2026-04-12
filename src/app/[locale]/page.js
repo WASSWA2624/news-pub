@@ -20,10 +20,10 @@ export async function generateMetadata({ params }) {
   const pageContent = messages?.public?.home || {};
 
   return buildPageMetadata({
-    description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
+    description: pageContent.meta_description || pageContent.description || messages.site.tagline,
     locale,
     segments: publicRouteSegments.home,
-    title: pageContent.metaTitle || pageContent.title || messages.site.title,
+    title: pageContent.meta_title || pageContent.title || messages.site.title,
   });
 }
 /**

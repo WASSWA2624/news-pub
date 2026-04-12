@@ -179,7 +179,7 @@ const visibleTokenCards = [
   },
   {
     description: "Canonical article URL for website read-more links or attribution.",
-    label: "{{canonicalUrl}}",
+    label: "{{canonical_url}}",
   },
 ];
 
@@ -334,8 +334,8 @@ export default function TemplateFormCard({
               <FieldLabel>Category override</FieldLabel>
               <SearchableSelect
                 ariaLabel="Category override"
-                defaultValue={template?.categoryId || ""}
-                name="categoryId"
+                defaultValue={template?.category_id || ""}
+                name="category_id"
                 options={categoryOptions}
                 placeholder="Select a category override"
               />
@@ -353,8 +353,8 @@ export default function TemplateFormCard({
               tone: "accent",
             },
             {
-              label: template?.isDefault ? "Platform default" : "Optional override",
-              tone: template?.isDefault ? "success" : "muted",
+              label: template?.is_default ? "Platform default" : "Optional override",
+              tone: template?.is_default ? "success" : "muted",
             },
           ]}
           summary="Compose the final payload with reusable story tokens so fallback and platform-specific copy stay bounded and predictable."
@@ -375,8 +375,8 @@ export default function TemplateFormCard({
                 <FieldLabel>Title template</FieldLabel>
                 <TemplateTextarea
                   $compact
-                  defaultValue={template?.titleTemplate || ""}
-                  name="titleTemplate"
+                  defaultValue={template?.title_template || ""}
+                  name="title_template"
                   placeholder="{{title}}"
                 />
                 <FieldHint>Leave this blank when the destination should keep the optimized or canonical title unchanged.</FieldHint>
@@ -385,8 +385,8 @@ export default function TemplateFormCard({
                 <FieldLabel>Summary template</FieldLabel>
                 <TemplateTextarea
                   $compact
-                  defaultValue={template?.summaryTemplate || ""}
-                  name="summaryTemplate"
+                  defaultValue={template?.summary_template || ""}
+                  name="summary_template"
                   placeholder="{{summary}}"
                 />
                 <FieldHint>Use the summary block for concise destination previews or SEO helper copy.</FieldHint>
@@ -395,8 +395,8 @@ export default function TemplateFormCard({
                 <FieldLabel>Hashtags template</FieldLabel>
                 <TemplateTextarea
                   $compact
-                  defaultValue={template?.hashtagsTemplate || ""}
-                  name="hashtagsTemplate"
+                  defaultValue={template?.hashtags_template || ""}
+                  name="hashtags_template"
                   placeholder="#news #update"
                 />
                 <FieldHint>Keep hashtag defaults deterministic so runtime publishing stays bounded and reviewable.</FieldHint>
@@ -406,15 +406,15 @@ export default function TemplateFormCard({
             <Field>
               <FieldLabel>Body template</FieldLabel>
               <TemplateTextarea
-                defaultValue={template?.bodyTemplate || ""}
-                name="bodyTemplate"
-                placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}"
+                defaultValue={template?.body_template || ""}
+                name="body_template"
+                placeholder="{{title}}\n\n{{summary}}\n\nRead more: {{canonical_url}}"
               />
               <FieldHint>The body template is the last deterministic fallback when no destination-specific optimized payload is available.</FieldHint>
             </Field>
 
             <CheckboxPill>
-              <input defaultChecked={template?.isDefault} name="isDefault" type="checkbox" />
+              <input defaultChecked={template?.is_default} name="is_default" type="checkbox" />
               Default for this platform
             </CheckboxPill>
           </ContentGrid>

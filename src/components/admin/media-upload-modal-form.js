@@ -64,9 +64,9 @@ export default function MediaUploadModalForm({ action }) {
   const formRef = useRef(null);
   const fileInputRef = useRef(null);
   const [selectedFileName, setSelectedFileName] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
+  const [source_url, setSourceUrl] = useState("");
   const [alt, setAlt] = useState("");
-  const [attributionText, setAttributionText] = useState("");
+  const [attribution_text, setAttributionText] = useState("");
   const [caption, setCaption] = useState("");
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const hasSelectedFile = Boolean(selectedFileName);
@@ -140,7 +140,7 @@ export default function MediaUploadModalForm({ action }) {
 
         <AdminDisclosureSection
           completionLabel={
-            normalizeText(sourceUrl) || normalizeText(alt) || normalizeText(attributionText) || normalizeText(caption)
+            normalizeText(source_url) || normalizeText(alt) || normalizeText(attribution_text) || normalizeText(caption)
               ? "Metadata added"
               : ""
           }
@@ -153,11 +153,11 @@ export default function MediaUploadModalForm({ action }) {
             <Field>
               <FieldLabel>Source URL</FieldLabel>
               <Input
-                name="sourceUrl"
+                name="source_url"
                 onChange={(event) => setSourceUrl(event.target.value)}
                 placeholder="https://example.com/original-asset"
                 type="url"
-                value={sourceUrl}
+                value={source_url}
               />
             </Field>
             <Field>
@@ -172,10 +172,10 @@ export default function MediaUploadModalForm({ action }) {
             <Field>
               <FieldLabel>Attribution</FieldLabel>
               <Input
-                name="attributionText"
+                name="attribution_text"
                 onChange={(event) => setAttributionText(event.target.value)}
                 placeholder="Photo desk, wire service, or photographer"
-                value={attributionText}
+                value={attribution_text}
               />
             </Field>
           </FieldGrid>

@@ -16,12 +16,12 @@ function normalizeStorageKey(key) {
     .replace(/\/{2,}/g, "/");
 }
 
-function normalizeBaseUrl(baseUrl) {
-  if (baseUrl === "/") {
+function normalizeBaseUrl(base_url) {
+  if (base_url === "/") {
     return "";
   }
 
-  return `${baseUrl || ""}`.replace(/\/+$/, "");
+  return `${base_url || ""}`.replace(/\/+$/, "");
 }
 
 function normalizeStoredPath(basePath, key) {
@@ -44,8 +44,8 @@ function createLocalStorageAbsolutePath(basePath, key) {
   return path.join(resolveAbsoluteBasePath(basePath), ...key.split("/"));
 }
 
-function createPublicUrl(baseUrl, key) {
-  return `${normalizeBaseUrl(baseUrl)}/${key}`;
+function createPublicUrl(base_url, key) {
+  return `${normalizeBaseUrl(base_url)}/${key}`;
 }
 /**
  * Creates the local-filesystem storage adapter used by NewsPub media uploads.
@@ -55,32 +55,32 @@ export function createLocalStorageAdapter(config) {
   return {
     driver: "local",
     async deleteObject(key) {
-      const storageKey = normalizeStorageKey(key);
+      const storage_key = normalizeStorageKey(key);
 
-      if (!storageKey) {
+      if (!storage_key) {
         return;
       }
 
-      await fs.rm(createLocalStorageAbsolutePath(config.basePath, storageKey), {
+      await fs.rm(createLocalStorageAbsolutePath(config.basePath, storage_key), {
         force: true,
       });
     },
     async writeObject({ body, key }) {
-      const storageKey = normalizeStorageKey(key);
+      const storage_key = normalizeStorageKey(key);
 
-      if (!storageKey) {
+      if (!storage_key) {
         throw new Error("Storage key is required.");
       }
 
-      const absolutePath = createLocalStorageAbsolutePath(config.basePath, storageKey);
+      const absolutePath = createLocalStorageAbsolutePath(config.basePath, storage_key);
 
       await fs.mkdir(path.dirname(absolutePath), { recursive: true });
       await fs.writeFile(absolutePath, body);
 
       return {
-        localPath: normalizeStoredPath(config.basePath, storageKey),
-        publicUrl: createPublicUrl(config.baseUrl, storageKey),
-        storageKey,
+        local_path: normalizeStoredPath(config.basePath, storage_key),
+        public_url: createPublicUrl(config.base_url, storage_key),
+        storage_key,
       };
     },
   };
@@ -103,23 +103,23 @@ export function createS3StorageAdapter(config, overrides = {}) {
   return {
     driver: "s3",
     async deleteObject(key) {
-      const storageKey = normalizeStorageKey(key);
+      const storage_key = normalizeStorageKey(key);
 
-      if (!storageKey) {
+      if (!storage_key) {
         return;
       }
 
       await client.send(
         new DeleteObjectCommand({
           Bucket: config.bucket,
-          Key: storageKey,
+          Key: storage_key,
         }),
       );
     },
     async writeObject({ body, cacheControl, contentType, key }) {
-      const storageKey = normalizeStorageKey(key);
+      const storage_key = normalizeStorageKey(key);
 
-      if (!storageKey) {
+      if (!storage_key) {
         throw new Error("Storage key is required.");
       }
 
@@ -129,14 +129,14 @@ export function createS3StorageAdapter(config, overrides = {}) {
           Bucket: config.bucket,
           CacheControl: cacheControl,
           ContentType: contentType,
-          Key: storageKey,
+          Key: storage_key,
         }),
       );
 
       return {
-        localPath: null,
-        publicUrl: createPublicUrl(config.baseUrl, storageKey),
-        storageKey,
+        local_path: null,
+        public_url: createPublicUrl(config.base_url, storage_key),
+        storage_key,
       };
     },
   };

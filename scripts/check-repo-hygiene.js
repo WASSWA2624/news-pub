@@ -53,8 +53,8 @@ function addFinding(message) {
   findings.push(message);
 }
 
-function isForbiddenLocalEnvFile(fileName) {
-  return /^\.env(?:\.[^.]+)?\.local$/i.test(fileName);
+function isForbiddenLocalEnvFile(file_name) {
+  return /^\.env(?:\.[^.]+)?\.local$/i.test(file_name);
 }
 
 function getTrackedFiles() {

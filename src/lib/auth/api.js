@@ -29,9 +29,9 @@ function getLoginFailureMessage(status) {
   return LOGIN_FAILURE_MESSAGES[status] || LOGIN_FAILURE_MESSAGES.invalid_credentials;
 }
 
-function getSessionCookieSettings(expiresAt) {
+function getSessionCookieSettings(expires_at) {
   return {
-    expires: expiresAt,
+    expires: expires_at,
     httpOnly: true,
     path: "/",
     sameSite: "lax",
@@ -42,8 +42,8 @@ function getSessionCookieSettings(expiresAt) {
 /**
  * Stores the validated NewsPub admin session token on the response cookie.
  */
-export function setAdminSessionCookie(response, sessionToken, expiresAt) {
-  response.cookies.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieSettings(expiresAt));
+export function setAdminSessionCookie(response, sessionToken, expires_at) {
+  response.cookies.set(SESSION_COOKIE_NAME, sessionToken, getSessionCookieSettings(expires_at));
 }
 
 /**
@@ -126,11 +126,11 @@ export async function requireAdminApiPermission(request, permission) {
 /**
  * Authenticates admin credentials, creates the session cookie, and returns the standard NewsPub login payload.
  */
-export async function createLoginResponse({ email, password, userAgent }) {
+export async function createLoginResponse({ email, password, user_agent }) {
   let result;
 
   try {
-    result = await authenticateAdminCredentials({ email, password, userAgent });
+    result = await authenticateAdminCredentials({ email, password, user_agent });
   } catch (error) {
     if (!isPrismaConnectionError(error)) {
       throw error;
@@ -158,9 +158,9 @@ export async function createLoginResponse({ email, password, userAgent }) {
     );
   }
 
-  const response = NextResponse.json(buildLoginSuccessPayload(result.user, result.expiresAt));
+  const response = NextResponse.json(buildLoginSuccessPayload(result.user, result.expires_at));
 
-  setAdminSessionCookie(response, result.sessionToken, result.expiresAt);
+  setAdminSessionCookie(response, result.sessionToken, result.expires_at);
 
   return response;
 }

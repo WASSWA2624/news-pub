@@ -12,72 +12,72 @@ const fixtureStories = Object.freeze([
   {
     categorySlugs: ["environment", "business"],
     countryCodes: ["us", "ug"],
-    imageUrl: "/perf/newsroom-hero.svg",
+    image_url: "/perf/newsroom-hero.svg",
     slug: "climate-resilience-market-watch",
-    sourceName: "Climate Desk",
+    source_name: "Climate Desk",
     summary: "Regional climate financing and resilience projects are reshaping energy, farming, and city planning budgets.",
     title: "Climate resilience projects redraw market priorities",
   },
   {
     categorySlugs: ["technology", "environment"],
     countryCodes: ["us"],
-    imageUrl: "/perf/newsroom-grid.svg",
+    image_url: "/perf/newsroom-grid.svg",
     slug: "battery-storage-grid-upgrade",
-    sourceName: "Energy Monitor",
+    source_name: "Energy Monitor",
     summary: "Battery storage pilots are moving from demonstration status into utility-scale procurement cycles.",
     title: "Battery storage rollouts move from pilot to procurement",
   },
   {
     categorySlugs: ["health", "technology"],
     countryCodes: ["gb", "us"],
-    imageUrl: "/perf/newsroom-hero.svg",
+    image_url: "/perf/newsroom-hero.svg",
     slug: "public-health-data-hubs",
-    sourceName: "Public Health Briefing",
+    source_name: "Public Health Briefing",
     summary: "Hospitals are consolidating response dashboards to reduce lag during regional outbreaks and supply shortages.",
     title: "Health systems expand real-time data hubs for response teams",
   },
   {
     categorySlugs: ["business", "world"],
     countryCodes: ["ke", "ug"],
-    imageUrl: "/perf/newsroom-grid.svg",
+    image_url: "/perf/newsroom-grid.svg",
     slug: "ports-and-trade-corridors",
-    sourceName: "Trade Ledger",
+    source_name: "Trade Ledger",
     summary: "Logistics operators are repricing routes as ports and inland hubs compete for freight volume.",
     title: "Ports and inland trade corridors compete for faster cargo flows",
   },
   {
     categorySlugs: ["environment", "science"],
     countryCodes: ["ug", "tz"],
-    imageUrl: "/perf/newsroom-hero.svg",
+    image_url: "/perf/newsroom-hero.svg",
     slug: "regional-rainfall-forecast-centers",
-    sourceName: "Weather Science Review",
+    source_name: "Weather Science Review",
     summary: "New rainfall models are helping agencies decide when to pre-position food, water, and flood-response teams.",
     title: "Forecast centers sharpen rainfall planning for flood season",
   },
   {
     categorySlugs: ["technology", "business"],
     countryCodes: ["ug"],
-    imageUrl: "/perf/newsroom-grid.svg",
+    image_url: "/perf/newsroom-grid.svg",
     slug: "local-startups-water-monitoring",
-    sourceName: "Startup Wire",
+    source_name: "Startup Wire",
     summary: "Utility teams are trialing low-cost sensors to track pressure loss and automate maintenance dispatch.",
     title: "Startups pitch water-network monitoring tools to city utilities",
   },
   {
     categorySlugs: ["business", "politics"],
     countryCodes: ["za", "ug"],
-    imageUrl: "/perf/newsroom-hero.svg",
+    image_url: "/perf/newsroom-hero.svg",
     slug: "city-bus-electrification-budget",
-    sourceName: "Metro Policy Report",
+    source_name: "Metro Policy Report",
     summary: "Transport agencies are tying bus-electrification plans to grid upgrades, depot redesign, and procurement reform.",
     title: "City bus electrification plans bring new budget tradeoffs",
   },
   {
     categorySlugs: ["education", "food"],
     countryCodes: ["ug", "rw"],
-    imageUrl: "/perf/newsroom-grid.svg",
+    image_url: "/perf/newsroom-grid.svg",
     slug: "school-meal-prices-and-farms",
-    sourceName: "Education & Food Report",
+    source_name: "Education & Food Report",
     summary: "School meal programs are adjusting contracts to protect student nutrition while managing farm input costs.",
     title: "School meal contracts shift as food costs pressure districts",
   },
@@ -116,7 +116,7 @@ function buildStructuredContent(story, paragraphs) {
       {
         items: [
           {
-            title: story.sourceName,
+            title: story.source_name,
             url: `https://example.com/fixtures/${story.slug}`,
           },
         ],
@@ -129,50 +129,50 @@ function buildStructuredContent(story, paragraphs) {
 }
 
 async function seedFixtureStory(prisma, references, story, index) {
-  const publishedAt = new Date(Date.now() - index * 60 * 60 * 1000);
-  const sourceUrl = `https://example.com/fixtures/${story.slug}`;
+  const published_at = new Date(Date.now() - index * 60 * 60 * 1000);
+  const source_url = `https://example.com/fixtures/${story.slug}`;
   const paragraphs = buildFixtureParagraphs(story);
-  const contentMd = paragraphs.join("\n\n");
-  const contentHtml = paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("\n");
-  const structuredContentJson = buildStructuredContent(story, paragraphs);
-  const dedupeFingerprint = `perf-fixture:${story.slug}`;
+  const content_md = paragraphs.join("\n\n");
+  const content_html = paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("\n");
+  const structured_content_json = buildStructuredContent(story, paragraphs);
+  const dedupe_fingerprint = `perf-fixture:${story.slug}`;
   const fetchedArticle = await prisma.fetchedArticle.upsert({
     where: {
-      dedupeFingerprint,
+      dedupe_fingerprint,
     },
     update: {
-      body: contentMd,
-      imageUrl: story.imageUrl,
+      body: content_md,
+      image_url: story.image_url,
       language: "en",
-      normalizedTitleHash: createHash(story.title.toLowerCase()),
-      providerCountriesJson: story.countryCodes,
-      publishedAt,
-      rawPayloadJson: {
+      normalized_title_hash: createHash(story.title.toLowerCase()),
+      provider_countries_json: story.countryCodes,
+      published_at,
+      raw_payload_json: {
         fixture: true,
         slug: story.slug,
       },
-      sourceName: story.sourceName,
-      sourceUrl,
-      sourceUrlHash: createHash(sourceUrl),
+      source_name: story.source_name,
+      source_url,
+      source_url_hash: createHash(source_url),
       summary: story.summary,
       title: story.title,
     },
     create: {
-      body: contentMd,
-      dedupeFingerprint,
-      imageUrl: story.imageUrl,
+      body: content_md,
+      dedupe_fingerprint,
+      image_url: story.image_url,
       language: "en",
-      normalizedTitleHash: createHash(story.title.toLowerCase()),
-      providerConfigId: references.provider.id,
-      providerCountriesJson: story.countryCodes,
-      publishedAt,
-      rawPayloadJson: {
+      normalized_title_hash: createHash(story.title.toLowerCase()),
+      provider_config_id: references.provider.id,
+      provider_countries_json: story.countryCodes,
+      published_at,
+      raw_payload_json: {
         fixture: true,
         slug: story.slug,
       },
-      sourceName: story.sourceName,
-      sourceUrl,
-      sourceUrlHash: createHash(sourceUrl),
+      source_name: story.source_name,
+      source_url,
+      source_url_hash: createHash(source_url),
       summary: story.summary,
       title: story.title,
     },
@@ -182,24 +182,24 @@ async function seedFixtureStory(prisma, references, story, index) {
       slug: story.slug,
     },
     update: {
-      editorialStage: "PUBLISHED",
+      editorial_stage: "PUBLISHED",
       excerpt: story.summary,
-      providerKey: references.provider.providerKey,
-      publishedAt,
-      sourceArticleId: fetchedArticle.id,
-      sourceName: story.sourceName,
-      sourceUrl,
+      provider_key: references.provider.provider_key,
+      published_at,
+      source_article_id: fetchedArticle.id,
+      source_name: story.source_name,
+      source_url,
       status: "PUBLISHED",
     },
     create: {
-      editorialStage: "PUBLISHED",
+      editorial_stage: "PUBLISHED",
       excerpt: story.summary,
-      providerKey: references.provider.providerKey,
-      publishedAt,
+      provider_key: references.provider.provider_key,
+      published_at,
       slug: story.slug,
-      sourceArticleId: fetchedArticle.id,
-      sourceName: story.sourceName,
-      sourceUrl,
+      source_article_id: fetchedArticle.id,
+      source_name: story.source_name,
+      source_url,
       status: "PUBLISHED",
     },
   });
@@ -215,93 +215,93 @@ async function seedFixtureStory(prisma, references, story, index) {
 
   await prisma.postTranslation.upsert({
     where: {
-      postId_locale: {
+      post_id_locale: {
         locale: "en",
-        postId: post.id,
+        post_id: post.id,
       },
     },
     update: {
-      contentHtml,
-      contentMd,
-      sourceAttribution: `Source: ${story.sourceName}`,
-      structuredContentJson,
+      content_html,
+      content_md,
+      source_attribution: `Source: ${story.source_name}`,
+      structured_content_json,
       summary: story.summary,
       title: story.title,
     },
     create: {
-      contentHtml,
-      contentMd,
+      content_html,
+      content_md,
       locale: "en",
-      postId: post.id,
-      sourceAttribution: `Source: ${story.sourceName}`,
-      structuredContentJson,
+      post_id: post.id,
+      source_attribution: `Source: ${story.source_name}`,
+      structured_content_json,
       summary: story.summary,
       title: story.title,
     },
   });
   await prisma.postCategory.deleteMany({
     where: {
-      categoryId: {
+      category_id: {
         notIn: categoryIds,
       },
-      postId: post.id,
+      post_id: post.id,
     },
   });
   await prisma.postCategory.createMany({
-    data: categoryIds.map((categoryId) => ({
-      categoryId,
-      postId: post.id,
+    data: categoryIds.map((category_id) => ({
+      category_id,
+      post_id: post.id,
     })),
     skipDuplicates: true,
   });
 
   const articleMatch = await prisma.articleMatch.upsert({
     where: {
-      fetchedArticleId_streamId: {
-        fetchedArticleId: fetchedArticle.id,
-        streamId: references.stream.id,
+      fetched_article_id_stream_id: {
+        fetched_article_id: fetchedArticle.id,
+        stream_id: references.stream.id,
       },
     },
     update: {
-      canonicalPostId: post.id,
-      destinationId: references.destination.id,
-      publishedAt,
+      canonical_post_id: post.id,
+      destination_id: references.destination.id,
+      published_at,
       status: "PUBLISHED",
-      workflowStage: "PUBLISHED",
+      workflow_stage: "PUBLISHED",
     },
     create: {
-      canonicalPostId: post.id,
-      destinationId: references.destination.id,
-      fetchedArticleId: fetchedArticle.id,
-      publishedAt,
+      canonical_post_id: post.id,
+      destination_id: references.destination.id,
+      fetched_article_id: fetchedArticle.id,
+      published_at,
       status: "PUBLISHED",
-      streamId: references.stream.id,
-      workflowStage: "PUBLISHED",
+      stream_id: references.stream.id,
+      workflow_stage: "PUBLISHED",
     },
   });
 
   await prisma.publishAttempt.upsert({
     where: {
-      idempotencyKey: `perf-fixture:${story.slug}:website`,
+      idempotency_key: `perf-fixture:${story.slug}:website`,
     },
     update: {
-      articleMatchId: articleMatch.id,
-      destinationId: references.destination.id,
+      article_match_id: articleMatch.id,
+      destination_id: references.destination.id,
       platform: "WEBSITE",
-      postId: post.id,
-      publishedAt,
+      post_id: post.id,
+      published_at,
       status: "SUCCEEDED",
-      streamId: references.stream.id,
+      stream_id: references.stream.id,
     },
     create: {
-      articleMatchId: articleMatch.id,
-      destinationId: references.destination.id,
-      idempotencyKey: `perf-fixture:${story.slug}:website`,
+      article_match_id: articleMatch.id,
+      destination_id: references.destination.id,
+      idempotency_key: `perf-fixture:${story.slug}:website`,
       platform: "WEBSITE",
-      postId: post.id,
-      publishedAt,
+      post_id: post.id,
+      published_at,
       status: "SUCCEEDED",
-      streamId: references.stream.id,
+      stream_id: references.stream.id,
     },
   });
 }
@@ -321,10 +321,10 @@ async function main() {
     const [provider, destination, stream, categories] = await Promise.all([
       prisma.newsProviderConfig.findFirst({
         orderBy: {
-          isDefault: "desc",
+          is_default: "desc",
         },
         where: {
-          providerKey: "mediastack",
+          provider_key: "mediastack",
         },
       }),
       prisma.destination.findUnique({

@@ -60,8 +60,8 @@ function formatConfigValue(value) {
   return normalizedValue || "none";
 }
 
-function buildRequestDefaultsPreview(requestDefaultsJson = {}) {
-  const entries = Object.entries(requestDefaultsJson).filter(([, value]) => {
+function buildRequestDefaultsPreview(request_defaults_json = {}) {
+  const entries = Object.entries(request_defaults_json).filter(([, value]) => {
     if (Array.isArray(value)) {
       return value.length > 0;
     }
@@ -130,31 +130,31 @@ export default async function ProvidersPage() {
                   <RecordTitleBlock>
                     <RecordTitle>{provider.label}</RecordTitle>
                     <SmallText>
-                      {provider.description || provider.baseUrl || "Provider configuration record."}
+                      {provider.description || provider.base_url || "Provider configuration record."}
                     </SmallText>
                   </RecordTitleBlock>
                   <RecordMeta>
-                    <MetaPill>{provider.providerKey}</MetaPill>
+                    <MetaPill>{provider.provider_key}</MetaPill>
                     <StatusBadge $tone={provider.credentialState === "configured" ? "success" : "warning"}>
                       {provider.credentialState}
                     </StatusBadge>
                   </RecordMeta>
                 </RecordHeader>
                 <PillRow>
-                  <MetaPill $tone={provider.isEnabled ? "success" : "warning"}>
-                    {provider.isEnabled ? "Enabled" : "Disabled"}
+                  <MetaPill $tone={provider.is_enabled ? "success" : "warning"}>
+                    {provider.is_enabled ? "Enabled" : "Disabled"}
                   </MetaPill>
-                  <MetaPill $tone={provider.isSelectable ? "success" : "warning"}>
-                    {provider.isSelectable ? "Selectable" : "Hidden from stream picker"}
+                  <MetaPill $tone={provider.is_selectable ? "success" : "warning"}>
+                    {provider.is_selectable ? "Selectable" : "Hidden from stream picker"}
                   </MetaPill>
-                  {provider.isDefault ? <MetaPill $tone="accent">Workspace default</MetaPill> : null}
+                  {provider.is_default ? <MetaPill $tone="accent">Workspace default</MetaPill> : null}
                   <MetaPill>
-                    {Object.keys(provider.requestDefaultsJson || {}).length} saved default{Object.keys(provider.requestDefaultsJson || {}).length === 1 ? "" : "s"}
+                    {Object.keys(provider.request_defaults_json || {}).length} saved default{Object.keys(provider.request_defaults_json || {}).length === 1 ? "" : "s"}
                   </MetaPill>
                 </PillRow>
-                <SmallText>{buildRequestDefaultsPreview(provider.requestDefaultsJson)}</SmallText>
-                {provider.baseUrl ? (
-                  <SmallText>Stored base URL: {provider.baseUrl}</SmallText>
+                <SmallText>{buildRequestDefaultsPreview(provider.request_defaults_json)}</SmallText>
+                {provider.base_url ? (
+                  <SmallText>Stored base URL: {provider.base_url}</SmallText>
                 ) : null}
                 <ButtonRow $justify="flex-end">
                   <AdminFormModal
@@ -180,7 +180,7 @@ export default async function ProvidersPage() {
             </CardDescription>
           </CardHeader>
           <SmallText>
-            Supported catalog: {snapshot.supportedProviders.map((provider) => `${provider.label} (${provider.providerKey})`).join(", ")}.
+            Supported catalog: {snapshot.supportedProviders.map((provider) => `${provider.label} (${provider.provider_key})`).join(", ")}.
           </SmallText>
         </Card>
       </SectionGrid>

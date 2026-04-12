@@ -56,7 +56,7 @@ describe("locale scaffold", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "fr",
-          isActive: false,
+          is_active: false,
           label: "French",
         }),
       ]),

@@ -54,10 +54,10 @@ const metaPageFields = [
 ].join(",");
 
 class MetaDiscoveryError extends Error {
-  constructor(message, { responseJson = null, sourceKey = null, sourceLabel = null, statusCode = 502 } = {}) {
+  constructor(message, { response_json = null, sourceKey = null, sourceLabel = null, statusCode = 502 } = {}) {
     super(message);
     this.name = "MetaDiscoveryError";
-    this.responseJson = responseJson;
+    this.response_json = response_json;
     this.sourceKey = sourceKey;
     this.sourceLabel = sourceLabel;
     this.statusCode = statusCode;
@@ -118,7 +118,7 @@ export function getMetaCredentialSources() {
     sources.push({
       accessToken: normalizedSystemUserAccessToken,
       credentialKey: "meta-system-user-access-token",
-      externalAccountId: null,
+      external_account_id: null,
       graphApiBaseUrl: getMetaGraphRequestBaseUrl(),
       instagramUserId: null,
       pageId: null,
@@ -132,7 +132,7 @@ export function getMetaCredentialSources() {
     sources.push({
       accessToken: normalizedUserAccessToken,
       credentialKey: "meta-user-access-token",
-      externalAccountId: null,
+      external_account_id: null,
       graphApiBaseUrl: getMetaGraphRequestBaseUrl(),
       instagramUserId: null,
       pageId: null,
@@ -150,9 +150,9 @@ export function getMetaCredentialSourceByKey(sourceKey) {
   return getMetaCredentialSources().find((source) => source.sourceKey === trimText(sourceKey)) || null;
 }
 
-function createMetaDiscoveryError(source, message, responseJson = null, statusCode = 502) {
+function createMetaDiscoveryError(source, message, response_json = null, statusCode = 502) {
   return new MetaDiscoveryError(message, {
-    responseJson,
+    response_json,
     sourceKey: source?.sourceKey || null,
     sourceLabel: source?.sourceLabel || null,
     statusCode,
@@ -182,8 +182,8 @@ async function getMetaGraphJson(source, path, values = {}) {
     }, 400);
   }
 
-  const baseUrl = normalizeBaseUrl(source.graphApiBaseUrl || defaultGraphApiBaseUrl);
-  const url = new URL(path.replace(/^\/+/, ""), baseUrl);
+  const base_url = normalizeBaseUrl(source.graphApiBaseUrl || defaultGraphApiBaseUrl);
+  const url = new URL(path.replace(/^\/+/, ""), base_url);
 
   Object.entries(values).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") {
@@ -323,9 +323,9 @@ export async function discoverAssetsFromSource(source) {
     lastError = error;
   }
 
-  if (!discoveredPages.length && (source.pageId || source.externalAccountId)) {
+  if (!discoveredPages.length && (source.pageId || source.external_account_id)) {
     try {
-      const pagePayload = await getMetaGraphJson(source, source.pageId || source.externalAccountId, {
+      const pagePayload = await getMetaGraphJson(source, source.pageId || source.external_account_id, {
         fields: metaPageFields,
       });
       const fallbackPage = buildPageDiscoveryRecord(pagePayload, source);
@@ -339,9 +339,9 @@ export async function discoverAssetsFromSource(source) {
 
   let discoveredInstagramAccounts = discoveredPages.flatMap((page) => page.instagramAccounts || []);
 
-  if (!discoveredInstagramAccounts.length && (source.instagramUserId || source.externalAccountId)) {
+  if (!discoveredInstagramAccounts.length && (source.instagramUserId || source.external_account_id)) {
     try {
-      const instagramPayload = await getMetaGraphJson(source, source.instagramUserId || source.externalAccountId, {
+      const instagramPayload = await getMetaGraphJson(source, source.instagramUserId || source.external_account_id, {
         fields: metaInstagramFields,
       });
       const fallbackInstagramAccount = buildInstagramDiscoveryRecord(
@@ -408,9 +408,9 @@ function createDiscoveryErrorRecord(source, error) {
   };
 }
 
-function removeKnownMetaSettings(settingsJson) {
+function removeKnownMetaSettings(settings_json) {
   const nextSettings = {
-    ...normalizeSettings(settingsJson),
+    ...normalizeSettings(settings_json),
   };
 
   knownMetaSettingKeys.forEach((key) => {
@@ -432,14 +432,14 @@ function buildSocialGuardrailOverrides(values = {}, defaults = getDestinationSoc
   }, {});
 }
 
-function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
+function sanitizeDestinationSettingsByKind(settings_json = {}, kind = "") {
   const sanitizedSettings = {
-    ...removeKnownMetaSettings(settingsJson),
+    ...removeKnownMetaSettings(settings_json),
   };
   const normalizedKind = trimText(kind).toUpperCase();
-  const nextGraphApiBaseUrl = trimText(settingsJson.graphApiBaseUrl);
-  const nextSocialGuardrails = normalizeSettings(settingsJson.socialGuardrails);
-  const useDestinationCredentialOverrides = settingsJson.useDestinationCredentialOverrides === true;
+  const nextGraphApiBaseUrl = trimText(settings_json.graphApiBaseUrl);
+  const nextSocialGuardrails = normalizeSettings(settings_json.socialGuardrails);
+  const useDestinationCredentialOverrides = settings_json.useDestinationCredentialOverrides === true;
 
   if (nextGraphApiBaseUrl) {
     sanitizedSettings.graphApiBaseUrl = nextGraphApiBaseUrl;
@@ -454,7 +454,7 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
   }
 
   if (normalizedKind === "FACEBOOK_PAGE") {
-    const pageId = trimText(settingsJson.pageId);
+    const pageId = trimText(settings_json.pageId);
 
     if (pageId) {
       sanitizedSettings.pageId = pageId;
@@ -464,7 +464,7 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
   }
 
   if (normalizedKind === "FACEBOOK_PROFILE") {
-    const profileId = trimText(settingsJson.profileId);
+    const profileId = trimText(settings_json.profileId);
 
     if (profileId) {
       sanitizedSettings.profileId = profileId;
@@ -474,8 +474,8 @@ function sanitizeDestinationSettingsByKind(settingsJson = {}, kind = "") {
   }
 
   if (normalizedKind === "INSTAGRAM_BUSINESS" || normalizedKind === "INSTAGRAM_PERSONAL") {
-    const instagramUserId = trimText(settingsJson.instagramUserId);
-    const pageId = trimText(settingsJson.pageId);
+    const instagramUserId = trimText(settings_json.instagramUserId);
+    const pageId = trimText(settings_json.pageId);
 
     if (instagramUserId) {
       sanitizedSettings.instagramUserId = instagramUserId;
@@ -533,7 +533,7 @@ export function getDestinationSocialGuardrailDefaults() {
 /** Resolves the effective Meta guardrails for one destination record. */
 export function getDestinationSocialGuardrails(destination = {}) {
   const defaults = getDestinationSocialGuardrailDefaults();
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
   const overrides = normalizeSettings(settings.socialGuardrails);
 
   return Object.entries(defaults).reduce((result, [key, fallbackValue]) => {
@@ -544,12 +544,12 @@ export function getDestinationSocialGuardrails(destination = {}) {
 
 /** Returns whether a destination explicitly overrides shared Meta credentials. */
 export function usesDestinationCredentialOverrides(destination = {}) {
-  return normalizeSettings(destination?.settingsJson).useDestinationCredentialOverrides === true;
+  return normalizeSettings(destination?.settings_json).useDestinationCredentialOverrides === true;
 }
 
 /** Returns only the guardrail fields explicitly overridden by the destination. */
 export function getDestinationSocialGuardrailOverrideFields(destination = {}) {
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
   const overrides = normalizeSettings(settings.socialGuardrails);
 
   return Object.entries(socialGuardrailFieldMapping).reduce((result, [key, envField]) => {
@@ -739,8 +739,8 @@ export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targe
 
     return {
       accessToken: trimText(pageRecord.accessToken) || source.accessToken,
-      accountHandle: normalizeAccountHandle(pageRecord.username, pageRecord.name),
-      externalAccountId: pageRecord.id,
+      account_handle: normalizeAccountHandle(pageRecord.username, pageRecord.name),
+      external_account_id: pageRecord.id,
       sourceKey: source.sourceKey,
       sourceLabel: source.sourceLabel,
       settingsJsonPatch: sanitizeDestinationSettingsByKind(
@@ -768,8 +768,8 @@ export async function resolveMetaDiscoverySelection({ sourceKey, targetId, targe
 
     return {
       accessToken: trimText(instagramRecord.accessToken) || source.accessToken,
-      accountHandle: normalizeAccountHandle(instagramRecord.username, instagramRecord.connectedPageName),
-      externalAccountId: instagramRecord.id,
+      account_handle: normalizeAccountHandle(instagramRecord.username, instagramRecord.connectedPageName),
+      external_account_id: instagramRecord.id,
       sourceKey: source.sourceKey,
       sourceLabel: source.sourceLabel,
       settingsJsonPatch: sanitizeDestinationSettingsByKind(

@@ -117,7 +117,7 @@ export async function getCategoryManagementSnapshot(prisma) {
  * Creates or updates a NewsPub category record.
  */
 
-export async function saveCategoryRecord(input, { actorId } = {}, prisma) {
+export async function saveCategoryRecord(input, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const name = normalizeDisplayText(input.name);
 
@@ -155,10 +155,10 @@ export async function saveCategoryRecord(input, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "CATEGORY_SAVED",
-      actorId,
-      entityId: category.id,
-      entityType: "category",
-      payloadJson: {
+      actor_id,
+      entity_id: category.id,
+      entity_type: "category",
+      payload_json: {
         slug: category.slug,
       },
     },
@@ -171,7 +171,7 @@ export async function saveCategoryRecord(input, { actorId } = {}, prisma) {
  * Deletes a NewsPub category record after validation checks pass.
  */
 
-export async function deleteCategoryRecord(id, { actorId } = {}, prisma) {
+export async function deleteCategoryRecord(id, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const category = await db.category.delete({
     where: { id },
@@ -180,10 +180,10 @@ export async function deleteCategoryRecord(id, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "CATEGORY_DELETED",
-      actorId,
-      entityId: category.id,
-      entityType: "category",
-      payloadJson: {
+      actor_id,
+      entity_id: category.id,
+      entity_type: "category",
+      payload_json: {
         slug: category.slug,
       },
     },

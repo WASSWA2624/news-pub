@@ -23,7 +23,7 @@ function createPrismaStub(overrides = {}) {
     newsProviderConfig: {
       findUnique: vi.fn().mockResolvedValue({
         id: "provider_1",
-        providerKey: "mediastack",
+        provider_key: "mediastack",
       }),
       ...(overrides.newsProviderConfig || {}),
     },
@@ -35,22 +35,22 @@ function createPrismaStub(overrides = {}) {
     },
     publishingStream: {
       delete: vi.fn().mockResolvedValue({
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         id: "stream_1",
         name: "Website via Mediastack",
         slug: "website-via-mediastack",
       }),
       findUnique: vi.fn().mockResolvedValue({
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         id: "stream_1",
         name: "Website via Mediastack",
         slug: "website-via-mediastack",
       }),
       upsert: vi.fn().mockResolvedValue({
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         id: "stream_1",
         mode: "REVIEW_REQUIRED",
         status: "ACTIVE",
@@ -103,10 +103,10 @@ function createStreamSnapshotPrisma(now = new Date()) {
       findMany: vi.fn().mockResolvedValue([
         {
           id: "provider_1",
-          isDefault: true,
+          is_default: true,
           label: "NewsAPI",
-          providerKey: "newsapi",
-          requestDefaultsJson: {
+          provider_key: "newsapi",
+          request_defaults_json: {
             category: "general",
             endpoint: "top-headlines",
           },
@@ -120,13 +120,13 @@ function createStreamSnapshotPrisma(now = new Date()) {
           activeProvider: {
             id: "provider_1",
             label: "NewsAPI",
-            providerKey: "newsapi",
-            requestDefaultsJson: {
+            provider_key: "newsapi",
+            request_defaults_json: {
               category: "general",
               endpoint: "top-headlines",
             },
           },
-          activeProviderId: "provider_1",
+          active_provider_id: "provider_1",
           categories: [
             {
               category: {
@@ -139,12 +139,12 @@ function createStreamSnapshotPrisma(now = new Date()) {
           checkpoints: [
             {
               id: "checkpoint_1",
-              lastSuccessfulFetchAt: lastScheduledRunAt,
-              providerConfigId: "provider_1",
-              updatedAt: lastScheduledRunAt,
+              last_successful_fetch_at: lastScheduledRunAt,
+              provider_config_id: "provider_1",
+              updated_at: lastScheduledRunAt,
             },
           ],
-          countryAllowlistJson: ["ug"],
+          country_allowlist_json: ["ug"],
           defaultTemplate: null,
           destination: {
             id: "destination_1",
@@ -153,14 +153,14 @@ function createStreamSnapshotPrisma(now = new Date()) {
             platform: "WEBSITE",
             slug: "website",
           },
-          excludeKeywordsJson: ["rumor"],
+          exclude_keywords_json: ["rumor"],
           fetchRuns: [
             {
-              aiCacheHitCount: 0,
-              blockedCount: 0,
-              duplicateCount: 0,
-              errorMessage: null,
-              executionDetailsJson: {
+              ai_cache_hit_count: 0,
+              blocked_count: 0,
+              duplicate_count: 0,
+              last_error_message: null,
+              execution_details_json: {
                 executionMode: "single",
                 sharedRequest: {
                   requestValues: {
@@ -176,36 +176,36 @@ function createStreamSnapshotPrisma(now = new Date()) {
                   start: lastScheduledRunAt.toISOString(),
                 },
               },
-              failedCount: 0,
-              fetchedCount: 6,
-              finishedAt: new Date(now.getTime() - 40 * 60 * 1000),
-              heldCount: 0,
+              failed_count: 0,
+              fetched_count: 6,
+              finished_at: new Date(now.getTime() - 40 * 60 * 1000),
+              held_count: 0,
               id: "run_1",
-              optimizedCount: 4,
-              publishableCount: 4,
-              publishedCount: 4,
-              queuedCount: 0,
-              skippedCount: 2,
-              startedAt: lastScheduledRunAt,
+              optimized_count: 4,
+              publishable_count: 4,
+              published_count: 4,
+              queued_count: 0,
+              skipped_count: 2,
+              started_at: lastScheduledRunAt,
               status: "SUCCEEDED",
-              triggerType: "scheduled",
+              trigger_type: "scheduled",
             },
           ],
           id: "stream_1",
-          includeKeywordsJson: ["uganda", "ai"],
-          languageAllowlistJson: ["en"],
-          lastFailureAt: null,
-          lastRunCompletedAt: lastScheduledRunAt,
-          lastRunStartedAt: lastScheduledRunAt,
+          include_keywords_json: ["uganda", "ai"],
+          language_allowlist_json: ["en"],
+          last_failure_at: null,
+          last_run_completed_at: lastScheduledRunAt,
+          last_run_started_at: lastScheduledRunAt,
           locale: "en",
-          maxPostsPerRun: 5,
+          max_posts_per_run: 5,
           mode: "AUTO_PUBLISH",
           name: "Website auto stream",
-          regionAllowlistJson: [],
-          scheduleIntervalMinutes: 30,
-          settingsJson: {
+          region_allowlist_json: [],
+          schedule_interval_minutes: 30,
+          settings_json: {
             providerFilters: {
-              countryAllowlistJson: ["ug"],
+              country_allowlist_json: ["ug"],
               endpoint: "top-headlines",
               q: "uganda tech",
             },
@@ -266,9 +266,9 @@ describe("stream feature validation", () => {
     await expect(
       saveStreamRecord(
         {
-          activeProviderId: "provider_1",
-          defaultTemplateId: "template_1",
-          destinationId: "destination_1",
+          active_provider_id: "provider_1",
+          default_template_id: "template_1",
+          destination_id: "destination_1",
           locale: "en",
           mode: "REVIEW_REQUIRED",
           name: "Mismatch stream",
@@ -298,8 +298,8 @@ describe("stream feature validation", () => {
     await expect(
       saveStreamRecord(
         {
-          activeProviderId: "provider_1",
-          destinationId: "destination_1",
+          active_provider_id: "provider_1",
+          destination_id: "destination_1",
           locale: "en",
           mode: "AUTO_PUBLISH",
           name: "Instagram auto stream",
@@ -327,20 +327,20 @@ describe("stream feature validation", () => {
       newsProviderConfig: {
         findUnique: vi.fn().mockResolvedValue({
           id: "provider_1",
-          providerKey: "newsdata",
+          provider_key: "newsdata",
         }),
       },
     });
 
     await saveStreamRecord(
       {
-        activeProviderId: "provider_1",
+        active_provider_id: "provider_1",
         categoryIds: ["category_1"],
-        countryAllowlistJson: ["UG", "US"],
-        destinationId: "destination_1",
-        excludeKeywordsJson: "rumor",
-        includeKeywordsJson: "ai, policy",
-        languageAllowlistJson: ["EN", "FR"],
+        country_allowlist_json: ["UG", "US"],
+        destination_id: "destination_1",
+        exclude_keywords_json: "rumor",
+        include_keywords_json: "ai, policy",
+        language_allowlist_json: ["EN", "FR"],
         locale: "en",
         mode: "REVIEW_REQUIRED",
         name: "NewsData stream",
@@ -361,11 +361,11 @@ describe("stream feature validation", () => {
     expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          countryAllowlistJson: ["ug", "us"],
-          excludeKeywordsJson: ["rumor"],
-          includeKeywordsJson: ["ai", "policy"],
-          languageAllowlistJson: ["en", "fr"],
-          settingsJson: {
+          country_allowlist_json: ["ug", "us"],
+          exclude_keywords_json: ["rumor"],
+          include_keywords_json: ["ai", "policy"],
+          language_allowlist_json: ["en", "fr"],
+          settings_json: {
             providerFilters: {
               category: ["technology"],
               endpoint: "latest",
@@ -384,20 +384,20 @@ describe("stream feature validation", () => {
     );
     expect(prisma.streamCategory.create).toHaveBeenCalledWith({
       data: {
-        categoryId: "category_1",
-        streamId: "stream_1",
+        category_id: "category_1",
+        stream_id: "stream_1",
       },
     });
     expect(prisma.providerFetchCheckpoint.upsert).toHaveBeenCalledWith({
       create: {
-        providerConfigId: "provider_1",
-        streamId: "stream_1",
+        provider_config_id: "provider_1",
+        stream_id: "stream_1",
       },
       update: {},
       where: {
-        streamId_providerConfigId: {
-          providerConfigId: "provider_1",
-          streamId: "stream_1",
+        stream_id_provider_config_id: {
+          provider_config_id: "provider_1",
+          stream_id: "stream_1",
         },
       },
     });
@@ -418,8 +418,8 @@ describe("stream feature validation", () => {
       newsProviderConfig: {
         findUnique: vi.fn().mockResolvedValue({
           id: "provider_1",
-          providerKey: "newsapi",
-          requestDefaultsJson: {
+          provider_key: "newsapi",
+          request_defaults_json: {
             category: "general",
             endpoint: "top-headlines",
           },
@@ -430,8 +430,8 @@ describe("stream feature validation", () => {
     await expect(
       saveStreamRecord(
         {
-          activeProviderId: "provider_1",
-          destinationId: "destination_1",
+          active_provider_id: "provider_1",
+          destination_id: "destination_1",
           locale: "en",
           mode: "REVIEW_REQUIRED",
           name: "NewsAPI everything stream",
@@ -457,8 +457,8 @@ describe("stream feature validation", () => {
       newsProviderConfig: {
         findUnique: vi.fn().mockResolvedValue({
           id: "provider_1",
-          providerKey: "newsapi",
-          requestDefaultsJson: {
+          provider_key: "newsapi",
+          request_defaults_json: {
             category: "general",
             endpoint: "top-headlines",
           },
@@ -468,14 +468,14 @@ describe("stream feature validation", () => {
 
     await saveStreamRecord(
       {
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         locale: "en",
         mode: "REVIEW_REQUIRED",
         name: "NewsAPI top headlines stream",
         providerFilters: {
           category: "sports",
-          countryAllowlistJson: "us",
+          country_allowlist_json: "us",
           endpoint: "top-headlines",
         },
       },
@@ -486,8 +486,8 @@ describe("stream feature validation", () => {
     expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          countryAllowlistJson: ["us"],
-          settingsJson: {
+          country_allowlist_json: ["us"],
+          settings_json: {
             providerFilters: {
               category: "sports",
               endpoint: "top-headlines",
@@ -508,14 +508,14 @@ describe("stream feature validation", () => {
 
     await saveStreamRecord(
       {
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         locale: "en",
         mode: "REVIEW_REQUIRED",
         name: "Website stream with social link",
         postLinkPlacement: "END",
         postLinkUrl: "/go/deeper",
-        scheduleIntervalMinutes: "0",
+        schedule_interval_minutes: "0",
       },
       {},
       prisma,
@@ -524,9 +524,9 @@ describe("stream feature validation", () => {
     expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          scheduleExpression: null,
-          scheduleIntervalMinutes: 0,
-          settingsJson: {
+          schedule_expression: null,
+          schedule_interval_minutes: 0,
+          settings_json: {
             providerFilters: {},
             socialPost: {
               linkPlacement: "END",
@@ -544,8 +544,8 @@ describe("stream feature validation", () => {
       newsProviderConfig: {
         findUnique: vi.fn().mockResolvedValue({
           id: "provider_1",
-          providerKey: "mediastack",
-          requestDefaultsJson: {
+          provider_key: "mediastack",
+          request_defaults_json: {
             countries: ["us"],
             languages: ["en"],
             sort: "published_desc",
@@ -557,10 +557,10 @@ describe("stream feature validation", () => {
     await expect(
       saveStreamRecord(
         {
-          activeProviderId: "provider_1",
-          destinationId: "destination_1",
+          active_provider_id: "provider_1",
+          destination_id: "destination_1",
           locale: "en",
-          maxPostsPerRun: "34",
+          max_posts_per_run: "34",
           mode: "REVIEW_REQUIRED",
           name: "Too many Mediastack posts",
         },
@@ -580,8 +580,8 @@ describe("stream feature validation", () => {
 
     await saveStreamRecord(
       {
-        activeProviderId: "provider_1",
-        destinationId: "destination_1",
+        active_provider_id: "provider_1",
+        destination_id: "destination_1",
         locale: "en",
         name: "Website default mode stream",
       },
@@ -635,11 +635,11 @@ describe("stream feature validation", () => {
       },
       latestRun: {
         id: "run_1",
-        triggerType: "scheduled",
+        trigger_type: "scheduled",
       },
       schedule: {
         isDue: true,
-        isEnabled: true,
+        is_enabled: true,
       },
     });
   });
@@ -652,15 +652,15 @@ describe("stream feature validation", () => {
     const record = await deleteStreamRecord(
       "stream_1",
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
       prisma,
     );
 
     expect(prisma.publishingStream.findUnique).toHaveBeenCalledWith({
       select: {
-        activeProviderId: true,
-        destinationId: true,
+        active_provider_id: true,
+        destination_id: true,
         id: true,
         name: true,
         slug: true,
@@ -677,12 +677,12 @@ describe("stream feature validation", () => {
     expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
       {
         action: "STREAM_DELETED",
-        actorId: "admin_1",
-        entityId: "stream_1",
-        entityType: "publishing_stream",
-        payloadJson: {
-          destinationId: "destination_1",
-          providerConfigId: "provider_1",
+        actor_id: "admin_1",
+        entity_id: "stream_1",
+        entity_type: "publishing_stream",
+        payload_json: {
+          destination_id: "destination_1",
+          provider_config_id: "provider_1",
           slug: "website-via-mediastack",
         },
       },
@@ -706,7 +706,7 @@ describe("stream feature validation", () => {
       deleteStreamRecord(
         "missing_stream",
         {
-          actorId: "admin_1",
+          actor_id: "admin_1",
         },
         prisma,
       ),

@@ -9,8 +9,8 @@ import { usePathname } from "next/navigation";
 
 const recentViewTtlMs = 3000;
 
-function buildTrackingKey({ eventType, path, postId }) {
-  return `news-pub:view:${eventType}:${postId || "none"}:${path}`;
+function buildTrackingKey({ event_type, path, post_id }) {
+  return `news-pub:view:${event_type}:${post_id || "none"}:${path}`;
 }
 
 function shouldSkipRecentDuplicate(key, now) {
@@ -31,7 +31,7 @@ function shouldSkipRecentDuplicate(key, now) {
 /**
  * Tracks NewsPub public view events after the page becomes visible to the reader.
  */
-export default function PublicViewTracker({ eventType, locale, postId = null }) {
+export default function PublicViewTracker({ event_type, locale, post_id = null }) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -44,9 +44,9 @@ export default function PublicViewTracker({ eventType, locale, postId = null }) 
 
     const now = Date.now();
     const trackingKey = buildTrackingKey({
-      eventType,
+      event_type,
       path,
-      postId,
+      post_id,
     });
 
     if (shouldSkipRecentDuplicate(trackingKey, now)) {
@@ -55,10 +55,10 @@ export default function PublicViewTracker({ eventType, locale, postId = null }) 
 
     void fetch("/api/analytics/views", {
       body: JSON.stringify({
-        eventType,
+        event_type,
         locale,
         path,
-        ...(postId ? { postId } : {}),
+        ...(post_id ? { post_id } : {}),
         ...(document.referrer ? { referrer: document.referrer } : {}),
       }),
       credentials: "same-origin",
@@ -68,7 +68,7 @@ export default function PublicViewTracker({ eventType, locale, postId = null }) 
       keepalive: true,
       method: "POST",
     }).catch(() => {});
-  }, [eventType, locale, pathname, postId]);
+  }, [event_type, locale, pathname, post_id]);
 
   return null;
 }

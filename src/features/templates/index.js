@@ -67,12 +67,12 @@ export async function getTemplateManagementSnapshot(prisma) {
     db.destinationTemplate.count(),
     db.destinationTemplate.count({
       where: {
-        isDefault: true,
+        is_default: true,
       },
     }),
     db.destinationTemplate.count({
       where: {
-        categoryId: {
+        category_id: {
           not: null,
         },
       },
@@ -110,12 +110,12 @@ export async function getTemplateManagementSnapshot(prisma) {
  * Creates or updates a NewsPub destination template record.
  */
 
-export async function saveTemplateRecord(input, { actorId } = {}, prisma) {
+export async function saveTemplateRecord(input, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const name = trimText(input.name);
   const platform = trimText(input.platform).toUpperCase();
 
-  if (!name || !platform || !trimText(input.bodyTemplate)) {
+  if (!name || !platform || !trimText(input.body_template)) {
     throw new NewsPubError("Template name, platform, and body template are required.", {
       status: "template_validation_failed",
       statusCode: 400,
@@ -168,35 +168,35 @@ export async function saveTemplateRecord(input, { actorId } = {}, prisma) {
     ? await db.destinationTemplate.update({
         where: { id: input.id },
         data: {
-          bodyTemplate: trimText(input.bodyTemplate),
-          categoryId: input.categoryId || null,
-          hashtagsTemplate: trimText(input.hashtagsTemplate) || null,
-          isDefault: Boolean(input.isDefault),
+          body_template: trimText(input.body_template),
+          category_id: input.category_id || null,
+          hashtags_template: trimText(input.hashtags_template) || null,
+          is_default: Boolean(input.is_default),
           locale: trimText(input.locale) || null,
           name,
           platform,
-          summaryTemplate: trimText(input.summaryTemplate) || null,
-          titleTemplate: trimText(input.titleTemplate) || null,
+          summary_template: trimText(input.summary_template) || null,
+          title_template: trimText(input.title_template) || null,
         },
       })
     : await db.destinationTemplate.create({
         data: {
-          bodyTemplate: trimText(input.bodyTemplate),
-          categoryId: input.categoryId || null,
-          hashtagsTemplate: trimText(input.hashtagsTemplate) || null,
-          isDefault: Boolean(input.isDefault),
+          body_template: trimText(input.body_template),
+          category_id: input.category_id || null,
+          hashtags_template: trimText(input.hashtags_template) || null,
+          is_default: Boolean(input.is_default),
           locale: trimText(input.locale) || null,
           name,
           platform,
-          summaryTemplate: trimText(input.summaryTemplate) || null,
-          titleTemplate: trimText(input.titleTemplate) || null,
+          summary_template: trimText(input.summary_template) || null,
+          title_template: trimText(input.title_template) || null,
         },
       });
 
-  if (template.isDefault) {
+  if (template.is_default) {
     await db.destinationTemplate.updateMany({
       data: {
-        isDefault: false,
+        is_default: false,
       },
       where: {
         id: {
@@ -210,11 +210,11 @@ export async function saveTemplateRecord(input, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "DESTINATION_TEMPLATE_SAVED",
-      actorId,
-      entityId: template.id,
-      entityType: "destination_template",
-      payloadJson: {
-        isDefault: template.isDefault,
+      actor_id,
+      entity_id: template.id,
+      entity_type: "destination_template",
+      payload_json: {
+        is_default: template.is_default,
         platform: template.platform,
       },
     },

@@ -114,9 +114,9 @@ function stopProcess(pid) {
 }
 
 function waitForPortToClear(port, timeoutMs = 10000) {
-  const startedAt = Date.now();
+  const started_at = Date.now();
 
-  while (Date.now() - startedAt < timeoutMs) {
+  while (Date.now() - started_at < timeoutMs) {
     if (!getListeningPidsForPort(port).length) {
       return;
     }

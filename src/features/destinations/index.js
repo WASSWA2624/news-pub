@@ -108,25 +108,25 @@ export async function getDestinationManagementSnapshot(prisma) {
         : []),
     ];
     const connectionErrors = [
-      trimText(destinationFields.connectionError),
+      trimText(destinationFields.connection_error),
       trimText(runtimeConnection.credentialError),
     ].filter(Boolean);
 
     return {
       ...destinationFields,
-      connectionError: connectionErrors.length ? [...new Set(connectionErrors)].join(" ") : null,
+      connection_error: connectionErrors.length ? [...new Set(connectionErrors)].join(" ") : null,
       effectiveSocialGuardrails: getDestinationSocialGuardrails(destinationFields),
       effectiveConnectionStatus: runtimeConnection.effectiveConnectionStatus,
       hasRuntimeCredentials: runtimeConnection.hasRuntimeCredentials,
       socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destinationFields),
-      hasStoredToken: Boolean(destinationFields.encryptedTokenCiphertext),
+      hasStoredToken: Boolean(destinationFields.encrypted_token_ciphertext),
       articleMatchCount: _count.articleMatches,
       publishAttemptCount: _count.publishAttempts,
       streamCount: _count.streams,
       usesDestinationCredentialOverrides: usesDestinationCredentialOverrides(destinationFields),
       usesRuntimeCredentials: runtimeConnection.usesEnvCredentials,
       validationIssues,
-      storedTokenPreview: Boolean(destinationFields.encryptedTokenCiphertext),
+      storedTokenPreview: Boolean(destinationFields.encrypted_token_ciphertext),
     };
   });
 
@@ -147,11 +147,11 @@ export async function getDestinationManagementSnapshot(prisma) {
  *
  * @param {object} input - Submitted destination data.
  * @param {object} [options] - Save options.
- * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {string|null} [options.actor_id] - Acting admin id.
  * @param {object} [prisma] - Optional Prisma client override.
  * @returns {Promise<object>} Saved destination record.
  */
-export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
+export async function saveDestinationRecord(input, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const slug = trimText(input.slug);
   const name = trimText(input.name);
@@ -182,7 +182,7 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
       slug,
     },
     select: {
-      settingsJson: true,
+      settings_json: true,
     },
   });
 
@@ -192,8 +192,8 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
     targetType: input.metaDiscoveryTargetType,
   });
   const inputSettingsJson =
-    input.settingsJson && typeof input.settingsJson === "object" && !Array.isArray(input.settingsJson)
-      ? input.settingsJson
+    input.settings_json && typeof input.settings_json === "object" && !Array.isArray(input.settings_json)
+      ? input.settings_json
       : {};
   const nextSettingsJson = buildDestinationSettingsPayload({
     advancedSettings: inputSettingsJson,
@@ -212,9 +212,9 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
   const tokenToEncrypt = nextToken || (shouldPersistResolvedSelectionToken ? discoveredToken : "");
   const encryptedToken = tokenToEncrypt ? encryptSecretValue(tokenToEncrypt) : null;
   const nextExternalAccountId =
-    trimText(input.externalAccountId) || trimText(resolvedSelection?.externalAccountId) || null;
+    trimText(input.external_account_id) || trimText(resolvedSelection?.external_account_id) || null;
   const nextAccountHandle =
-    trimText(input.accountHandle) || trimText(resolvedSelection?.accountHandle) || null;
+    trimText(input.account_handle) || trimText(resolvedSelection?.account_handle) || null;
   const shouldPersistToken = Boolean(nextToken || shouldPersistResolvedSelectionToken || input.clearToken);
   const nextMetaAuthStrategy =
     platform === "FACEBOOK" && kind === "FACEBOOK_PAGE" && trimText(env.meta.systemUserAccessToken)
@@ -223,9 +223,9 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
         ? META_AUTH_STRATEGIES.REFRESHABLE_USER_DERIVED
         : tokenToEncrypt
           ? META_AUTH_STRATEGIES.LEGACY_STORED_TOKEN
-          : pickManagedMetaCredentialSettings(existingDestination?.settingsJson, inputSettingsJson).metaAuthStrategy || null;
+          : pickManagedMetaCredentialSettings(existingDestination?.settings_json, inputSettingsJson).metaAuthStrategy || null;
   const credentialMetadataSettings = {
-    ...pickManagedMetaCredentialSettings(existingDestination?.settingsJson, inputSettingsJson),
+    ...pickManagedMetaCredentialSettings(existingDestination?.settings_json, inputSettingsJson),
     ...(resolvedSelection?.sourceKey
       ? {
           metaCredentialSourceKey: resolvedSelection.sourceKey,
@@ -248,47 +248,47 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
       slug,
     },
     update: {
-      accountHandle: nextAccountHandle,
-      connectionError: trimText(input.connectionError) || null,
-      connectionStatus: trimText(input.connectionStatus) || "DISCONNECTED",
-      encryptedTokenCiphertext: shouldPersistToken ? encryptedToken?.ciphertext || null : undefined,
-      encryptedTokenIv: shouldPersistToken ? encryptedToken?.iv || null : undefined,
-      encryptedTokenTag: shouldPersistToken ? encryptedToken?.tag || null : undefined,
-      externalAccountId: nextExternalAccountId,
+      account_handle: nextAccountHandle,
+      connection_error: trimText(input.connection_error) || null,
+      connection_status: trimText(input.connection_status) || "DISCONNECTED",
+      encrypted_token_ciphertext: shouldPersistToken ? encryptedToken?.ciphertext || null : undefined,
+      encrypted_token_iv: shouldPersistToken ? encryptedToken?.iv || null : undefined,
+      encrypted_token_tag: shouldPersistToken ? encryptedToken?.tag || null : undefined,
+      external_account_id: nextExternalAccountId,
       kind,
-      lastConnectedAt:
-        trimText(input.connectionStatus) === "CONNECTED" ? new Date() : input.lastConnectedAt || null,
+      last_connected_at:
+        trimText(input.connection_status) === "CONNECTED" ? new Date() : input.last_connected_at || null,
       name,
       platform,
-      settingsJson: nextSettingsJsonWithMetadata,
-      tokenHint: tokenToEncrypt ? createTokenHint(tokenToEncrypt) : input.clearToken ? null : undefined,
+      settings_json: nextSettingsJsonWithMetadata,
+      token_hint: tokenToEncrypt ? createTokenHint(tokenToEncrypt) : input.clearToken ? null : undefined,
     },
     create: {
-      accountHandle: nextAccountHandle,
-      connectionError: trimText(input.connectionError) || null,
-      connectionStatus: trimText(input.connectionStatus) || "DISCONNECTED",
-      encryptedTokenCiphertext: encryptedToken?.ciphertext || null,
-      encryptedTokenIv: encryptedToken?.iv || null,
-      encryptedTokenTag: encryptedToken?.tag || null,
-      externalAccountId: nextExternalAccountId,
+      account_handle: nextAccountHandle,
+      connection_error: trimText(input.connection_error) || null,
+      connection_status: trimText(input.connection_status) || "DISCONNECTED",
+      encrypted_token_ciphertext: encryptedToken?.ciphertext || null,
+      encrypted_token_iv: encryptedToken?.iv || null,
+      encrypted_token_tag: encryptedToken?.tag || null,
+      external_account_id: nextExternalAccountId,
       kind,
-      lastConnectedAt: trimText(input.connectionStatus) === "CONNECTED" ? new Date() : null,
+      last_connected_at: trimText(input.connection_status) === "CONNECTED" ? new Date() : null,
       name,
       platform,
-      settingsJson: nextSettingsJsonWithMetadata,
+      settings_json: nextSettingsJsonWithMetadata,
       slug,
-      tokenHint: createTokenHint(tokenToEncrypt),
+      token_hint: createTokenHint(tokenToEncrypt),
     },
   });
 
   await createAuditEventRecord(
     {
       action: "DESTINATION_SAVED",
-      actorId,
-      entityId: destination.id,
-      entityType: "destination",
-      payloadJson: {
-        connectionStatus: destination.connectionStatus,
+      actor_id,
+      entity_id: destination.id,
+      entity_type: "destination",
+      payload_json: {
+        connection_status: destination.connection_status,
         kind: destination.kind,
         platform: destination.platform,
         socialGuardrailOverrides: getDestinationSocialGuardrailOverrideFields(destination),
@@ -306,11 +306,11 @@ export async function saveDestinationRecord(input, { actorId } = {}, prisma) {
  *
  * @param {string} id - Destination id.
  * @param {object} [options] - Delete options.
- * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {string|null} [options.actor_id] - Acting admin id.
  * @param {object} [prisma] - Optional Prisma client override.
  * @returns {Promise<object>} Deleted destination record.
  */
-export async function deleteDestinationRecord(id, { actorId } = {}, prisma) {
+export async function deleteDestinationRecord(id, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const destination = await db.destination.findUnique({
     include: {
@@ -352,10 +352,10 @@ export async function deleteDestinationRecord(id, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "DESTINATION_DELETED",
-      actorId,
-      entityId: deletedDestination.id,
-      entityType: "destination",
-      payloadJson: {
+      actor_id,
+      entity_id: deletedDestination.id,
+      entity_type: "destination",
+      payload_json: {
         kind: deletedDestination.kind,
         platform: deletedDestination.platform,
         slug: deletedDestination.slug,

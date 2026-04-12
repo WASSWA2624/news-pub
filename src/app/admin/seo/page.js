@@ -67,8 +67,8 @@ export default async function SeoPage() {
               <tbody>
                 {snapshot.stories.map((story) => (
                   <tr key={story.slug}>
-                    <td data-label="Story">{story.metaTitle}</td>
-                    <td data-label="Canonical URL">{story.canonicalUrl}</td>
+                    <td data-label="Story">{story.meta_title}</td>
+                    <td data-label="Canonical URL">{story.canonical_url}</td>
                     <td data-label="Locales">{story.locales.join(", ")}</td>
                     <td data-label="SEO status">{story.missingSeoRecord ? "Needs review" : "Configured"}</td>
                   </tr>

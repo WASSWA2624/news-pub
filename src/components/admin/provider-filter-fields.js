@@ -108,7 +108,7 @@ export default function ProviderFilterFields({
   hideManagedWindowFields = false,
   namePrefix = "",
   onValuesChange = null,
-  providerKey,
+  provider_key,
   scope,
   values = {},
 }) {
@@ -124,8 +124,8 @@ export default function ProviderFilterFields({
   const emittedDynamicValuesRef = useRef(dynamicValues);
 
   const definition = useMemo(
-    () => getProviderFormDefinition(providerKey, scope, dynamicValues),
-    [dynamicValues, providerKey, scope],
+    () => getProviderFormDefinition(provider_key, scope, dynamicValues),
+    [dynamicValues, provider_key, scope],
   );
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function ProviderFilterFields({
         }
 
         return (
-          <FormSection key={`${providerKey}-${section.key}`}>
+          <FormSection key={`${provider_key}-${section.key}`}>
             <FormSectionTitle>{section.title}</FormSectionTitle>
             {section.description ? <SmallText>{section.description}</SmallText> : null}
             {scope === "stream" ? (
@@ -168,7 +168,7 @@ export default function ProviderFilterFields({
                   <Field key={field.key}>
                     <FieldLabel>{field.label}</FieldLabel>
                     <ScopeBadge>
-                      {["countryAllowlistJson", "languageAllowlistJson"].includes(field.key)
+                      {["country_allowlist_json", "language_allowlist_json"].includes(field.key)
                         ? "Upstream + local"
                         : "Upstream request"}
                     </ScopeBadge>
@@ -208,7 +208,7 @@ export default function ProviderFilterFields({
             {checkboxFields.map((field) => (
               <div key={field.key}>
                 <ScopeBadge>
-                  {["countryAllowlistJson", "languageAllowlistJson"].includes(field.key)
+                  {["country_allowlist_json", "language_allowlist_json"].includes(field.key)
                     ? "Upstream + local"
                     : "Upstream request"}
                 </ScopeBadge>

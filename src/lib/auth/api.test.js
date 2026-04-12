@@ -40,7 +40,7 @@ describe("auth api helpers", () => {
     const response = await createLoginResponse({
       email: "admin@example.com",
       password: "wrong-password",
-      userAgent: "Vitest Browser",
+      user_agent: "Vitest Browser",
     });
 
     await expect(response.json()).resolves.toEqual({
@@ -69,7 +69,7 @@ describe("auth api helpers", () => {
     const response = await createLoginResponse({
       email: "admin@example.com",
       password: "strong-password",
-      userAgent: "Vitest Browser",
+      user_agent: "Vitest Browser",
     });
 
     await expect(response.json()).resolves.toEqual({

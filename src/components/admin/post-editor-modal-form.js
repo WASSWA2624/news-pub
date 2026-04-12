@@ -103,17 +103,17 @@ export default function PostEditorModalForm({
   const formRef = useRef(null);
   const [slug, setSlug] = useState(post.slug);
   const [status, setStatus] = useState(post.status);
-  const [editorialStage, setEditorialStage] = useState(post.editorialStage);
-  const [articleMatchId, setArticleMatchId] = useState(defaultArticleMatchId || "");
+  const [editorial_stage, setEditorialStage] = useState(post.editorial_stage);
+  const [article_match_id, setArticleMatchId] = useState(defaultArticleMatchId || "");
   const [title, setTitle] = useState(selectedTranslation?.title || "");
   const [summary, setSummary] = useState(selectedTranslation?.summary || post.excerpt || "");
-  const [contentMd, setContentMd] = useState(selectedTranslation?.contentMd || "");
+  const [content_md, setContentMd] = useState(selectedTranslation?.content_md || "");
   const [publishAt, setPublishAt] = useState("");
   const [categoryIds, setCategoryIds] = useState(post.categories.map((category) => category.id));
   const [submitIntent, setSubmitIntent] = useState("save");
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const selectedMatch =
-    articleMatches.find((match) => match.id === articleMatchId)
+    articleMatches.find((match) => match.id === article_match_id)
     || articleMatches.find((match) => match.id === defaultArticleMatchId)
     || articleMatches[0]
     || null;
@@ -155,7 +155,7 @@ export default function PostEditorModalForm({
   return (
     <EditorForm action={action} id={formId} onSubmit={handleSubmit} ref={formRef}>
       <input name="locale" type="hidden" value={selectedTranslation?.locale || defaultLocale} />
-      <input name="postId" type="hidden" value={post.id} />
+      <input name="post_id" type="hidden" value={post.id} />
 
       <AdminValidationSummary
         items={showValidationState ? validationState.messages : []}
@@ -168,8 +168,8 @@ export default function PostEditorModalForm({
           defaultOpen
           meta={[
             { label: status, tone: status === "PUBLISHED" ? "success" : "warning" },
-            { label: editorialStage, tone: editorialStage === "APPROVED" ? "success" : "accent" },
-            ...(selectedMatch?.optimizationStatus ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }] : []),
+            { label: editorial_stage, tone: editorial_stage === "APPROVED" ? "success" : "accent" },
+            ...(selectedMatch?.optimization_status ? [{ label: selectedMatch.optimization_status, tone: "muted" }] : []),
           ]}
           missingCount={showValidationState ? validationState.sections.editorial.missingCount : 0}
           summary="Choose the editorial stage, canonical slug, and destination match that the workflow actions should target."
@@ -201,22 +201,22 @@ export default function PostEditorModalForm({
               <FieldLabel>Editorial stage</FieldLabel>
               <SearchableSelect
                 ariaLabel="Editorial stage"
-                name="editorialStage"
+                name="editorial_stage"
                 onChange={(value) => setEditorialStage(`${value || ""}`)}
                 options={editorialStageOptions}
                 placeholder="Select an editorial stage"
-                value={editorialStage}
+                value={editorial_stage}
               />
             </Field>
             <Field as="div">
               <FieldLabel>Publish target match</FieldLabel>
               <SearchableSelect
                 ariaLabel="Publish target match"
-                name="articleMatchId"
+                name="article_match_id"
                 onChange={(value) => setArticleMatchId(`${value || ""}`)}
                 options={articleMatchOptions}
                 placeholder="Select a destination match"
-                value={articleMatchId}
+                value={article_match_id}
               />
             </Field>
           </FieldGrid>
@@ -253,10 +253,10 @@ export default function PostEditorModalForm({
           <Field>
             <FieldLabel>Body markdown</FieldLabel>
             <Textarea
-              name="contentMd"
+              name="content_md"
               onChange={(event) => setContentMd(event.target.value)}
               style={{ minHeight: "280px" }}
-              value={contentMd}
+              value={content_md}
             />
           </Field>
         </AdminDisclosureSection>
@@ -266,10 +266,10 @@ export default function PostEditorModalForm({
           defaultOpen={false}
           errorCount={showValidationState ? validationState.sections.publishing.errorCount : 0}
           meta={[
-            ...(selectedMatch?.optimizationStatus
-              ? [{ label: selectedMatch.optimizationStatus, tone: "muted" }]
+            ...(selectedMatch?.optimization_status
+              ? [{ label: selectedMatch.optimization_status, tone: "muted" }]
               : []),
-            ...(selectedMatch?.policyStatus ? [{ label: selectedMatch.policyStatus, tone: "warning" }] : []),
+            ...(selectedMatch?.policy_status ? [{ label: selectedMatch.policy_status, tone: "warning" }] : []),
           ]}
           summary="Set categories, schedule publication, and run the editorial actions that approve, optimize, hold, or publish this story."
           title="Publishing"

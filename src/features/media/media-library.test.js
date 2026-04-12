@@ -15,26 +15,26 @@ function createMockPrisma() {
       count: vi.fn().mockResolvedValue(1),
       create: vi.fn(async ({ data }) => ({
         ...data,
-        createdAt: new Date("2026-04-03T10:00:00.000Z"),
+        created_at: new Date("2026-04-03T10:00:00.000Z"),
         id: "asset_1",
-        updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+        updated_at: new Date("2026-04-03T10:00:00.000Z"),
       })),
       findMany: vi.fn(async () => [
         {
           alt: "Stored story image",
           caption: "Story image",
-          createdAt: new Date("2026-04-03T10:00:00.000Z"),
-          fileName: "story.png",
-          fileSizeBytes: 1024,
+          created_at: new Date("2026-04-03T10:00:00.000Z"),
+          file_name: "story.png",
+          file_size_bytes: 1024,
           height: 900,
           id: "asset_1",
-          mimeType: "image/png",
-          publicUrl: "/uploads/media/story.png",
-          sourceDomain: "example.com",
-          sourceUrl: "https://example.com/story.png",
-          storageDriver: "local",
-          storageKey: "media/story.png",
-          updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+          mime_type: "image/png",
+          public_url: "/uploads/media/story.png",
+          source_domain: "example.com",
+          source_url: "https://example.com/story.png",
+          storage_driver: "local",
+          storage_key: "media/story.png",
+          updated_at: new Date("2026-04-03T10:00:00.000Z"),
           _count: {
             variants: storedVariants.length,
           },
@@ -43,20 +43,20 @@ function createMockPrisma() {
       ]),
       update: vi.fn(async ({ data }) => ({
         alt: "Story image alt",
-        attributionText: "Example Source",
+        attribution_text: "Example Source",
         caption: "Story image",
-        createdAt: new Date("2026-04-03T10:00:00.000Z"),
-        fileName: "story.png",
-        fileSizeBytes: 1024,
+        created_at: new Date("2026-04-03T10:00:00.000Z"),
+        file_name: "story.png",
+        file_size_bytes: 1024,
         height: data.height,
         id: "asset_1",
-        mimeType: "image/png",
-        publicUrl: "/uploads/media/story.png",
-        sourceDomain: "example.com",
-        sourceUrl: "https://example.com/story.png",
-        storageDriver: "local",
-        storageKey: "media/story.png",
-        updatedAt: new Date("2026-04-03T10:00:00.000Z"),
+        mime_type: "image/png",
+        public_url: "/uploads/media/story.png",
+        source_domain: "example.com",
+        source_url: "https://example.com/story.png",
+        storage_driver: "local",
+        storage_key: "media/story.png",
+        updated_at: new Date("2026-04-03T10:00:00.000Z"),
         variants: storedVariants,
         width: data.width,
       })),
@@ -100,11 +100,11 @@ describe("media library pipeline", () => {
     const { safeIngestRemoteMediaAsset } = await import("./index");
     const result = await safeIngestRemoteMediaAsset(
       {
-        fileName: "story.png",
-        sourceUrl: "https://example.com/story.png",
+        file_name: "story.png",
+        source_url: "https://example.com/story.png",
       },
       {
-        actorId: "user_1",
+        actor_id: "user_1",
       },
       prisma,
     );
@@ -114,7 +114,7 @@ describe("media library pipeline", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           action: "MEDIA_LIBRARY_FAILURE",
-          entityType: "media_asset",
+          entity_type: "media_asset",
         }),
       }),
     );
@@ -130,8 +130,8 @@ describe("media library pipeline", () => {
       totalCount: 1,
     });
     expect(snapshot.assets[0]).toMatchObject({
-      fileName: "story.png",
-      sourceDomain: "example.com",
+      file_name: "story.png",
+      source_domain: "example.com",
     });
   }, 15000);
 });

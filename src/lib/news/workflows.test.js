@@ -7,21 +7,21 @@ const originalEnv = process.env;
 function createWorkflowArticle(id, overrides = {}) {
   return {
     body: `Story body ${id}`,
-    dedupeFingerprint: `fingerprint_${id}`,
-    imageUrl: `https://cdn.example.com/${id}.jpg`,
+    dedupe_fingerprint: `fingerprint_${id}`,
+    image_url: `https://cdn.example.com/${id}.jpg`,
     language: "en",
-    normalizedTitleHash: `title_hash_${id}`,
-    providerArticleId: `provider_${id}`,
+    normalized_title_hash: `title_hash_${id}`,
+    provider_article_id: `provider_${id}`,
     providerCategories: ["general"],
     providerCountries: ["ug"],
     providerRegions: [],
-    publishedAt: "2026-04-07T10:00:00.000Z",
-    rawPayloadJson: {
+    published_at: "2026-04-07T10:00:00.000Z",
+    raw_payload_json: {
       id,
     },
-    sourceName: "Example Source",
-    sourceUrl: `https://example.com/${id}`,
-    sourceUrlHash: `source_hash_${id}`,
+    source_name: "Example Source",
+    source_url: `https://example.com/${id}`,
+    source_url_hash: `source_hash_${id}`,
     summary: `Story summary ${id}`,
     tags: ["tag-one"],
     title: `Story title ${id}`,
@@ -32,57 +32,57 @@ function createWorkflowArticle(id, overrides = {}) {
 function createWorkflowStream({
   destinationPlatform = "FACEBOOK",
   id,
-  maxPostsPerRun = 1,
+  max_posts_per_run = 1,
   mode = "REVIEW_REQUIRED",
   providerFilters = {},
-  providerKey = "newsdata",
-  requestDefaultsJson = {
+  provider_key = "newsdata",
+  request_defaults_json = {
     endpoint: "latest",
   },
 } = {}) {
-  const destinationId = `destination_${id}`;
-  const destinationKind =
+  const destination_id = `destination_${id}`;
+  const destination_kind =
     destinationPlatform === "WEBSITE" ? "WEBSITE" : `${destinationPlatform}_PAGE`;
-  const providerConfigId = `provider_config_${providerKey}`;
+  const provider_config_id = `provider_config_${provider_key}`;
 
   return {
     activeProvider: {
-      providerKey,
-      requestDefaultsJson,
+      provider_key,
+      request_defaults_json,
     },
-    activeProviderId: providerConfigId,
+    active_provider_id: provider_config_id,
     categories: [],
     checkpoints: [
       {
-        cursorJson: {
+        cursor_json: {
           page: 1,
         },
-        lastSuccessfulFetchAt: new Date("2026-04-07T08:00:00.000Z"),
-        providerConfigId,
-        streamId: id,
+        last_successful_fetch_at: new Date("2026-04-07T08:00:00.000Z"),
+        provider_config_id,
+        stream_id: id,
       },
     ],
-    consecutiveFailureCount: 0,
-    countryAllowlistJson: [],
+    consecutive_failure_count: 0,
+    country_allowlist_json: [],
     defaultTemplate: null,
     destination: {
-      id: destinationId,
-      kind: destinationKind,
+      id: destination_id,
+      kind: destination_kind,
       platform: destinationPlatform,
     },
-    destinationId,
-    duplicateWindowHours: 48,
-    excludeKeywordsJson: [],
+    destination_id,
+    duplicate_window_hours: 48,
+    exclude_keywords_json: [],
     id,
-    includeKeywordsJson: [],
-    languageAllowlistJson: [],
+    include_keywords_json: [],
+    language_allowlist_json: [],
     locale: "en",
-    maxPostsPerRun,
+    max_posts_per_run,
     mode,
     name: `Stream ${id}`,
-    regionAllowlistJson: [],
-    retryLimit: 3,
-    settingsJson: {
+    region_allowlist_json: [],
+    retry_limit: 3,
+    settings_json: {
       providerFilters,
     },
     status: "ACTIVE",
@@ -105,10 +105,10 @@ function createWorkflowExecutionPrisma(streamsById) {
       create: vi.fn(({ data }) => {
         const id = `match_${++articleMatchCounter}`;
         const record = {
-          canonicalPostId: data.canonicalPostId,
-          destinationId: data.destinationId,
+          canonical_post_id: data.canonical_post_id,
+          destination_id: data.destination_id,
           id,
-          streamId: data.streamId,
+          stream_id: data.stream_id,
         };
 
         articleMatches.set(id, record);
@@ -117,7 +117,7 @@ function createWorkflowExecutionPrisma(streamsById) {
       }),
       findFirst: vi.fn().mockResolvedValue(null),
       findUnique: vi.fn(({ where }) => {
-        if (where?.fetchedArticleId_streamId) {
+        if (where?.fetched_article_id_stream_id) {
           return Promise.resolve(null);
         }
 
@@ -131,23 +131,23 @@ function createWorkflowExecutionPrisma(streamsById) {
           return Promise.resolve(null);
         }
 
-        const stream = streamsById[articleMatch.streamId];
-        const post = posts.get(articleMatch.canonicalPostId) || {
+        const stream = streamsById[articleMatch.stream_id];
+        const post = posts.get(articleMatch.canonical_post_id) || {
           excerpt: "Story summary",
           featuredImage: null,
-          featuredImageId: null,
-          id: articleMatch.canonicalPostId,
+          featured_image_id: null,
+          id: articleMatch.canonical_post_id,
           slug: "story-title",
           sourceArticle: {
             body: "Story body",
-            imageUrl: null,
+            image_url: null,
             summary: "Story summary",
           },
-          sourceName: "Example Source",
-          sourceUrl: "https://example.com/story",
+          source_name: "Example Source",
+          source_url: "https://example.com/story",
           translations: [
             {
-              contentMd: "Story body",
+              content_md: "Story body",
               locale: stream.locale,
               seoRecord: null,
               summary: "Story summary",
@@ -158,19 +158,19 @@ function createWorkflowExecutionPrisma(streamsById) {
 
         return Promise.resolve({
           canonicalPost: post,
-          canonicalPostId: articleMatch.canonicalPostId,
+          canonical_post_id: articleMatch.canonical_post_id,
           destination: stream.destination,
-          destinationId: stream.destinationId,
+          destination_id: stream.destination_id,
           id: articleMatch.id,
           stream: {
-            defaultTemplateId: null,
+            default_template_id: null,
             destination: stream.destination,
-            destinationId: stream.destinationId,
+            destination_id: stream.destination_id,
             id: stream.id,
             locale: stream.locale,
             mode: stream.mode,
           },
-          streamId: stream.id,
+          stream_id: stream.id,
         });
       }),
       update: vi.fn(({ where, data }) =>
@@ -184,13 +184,13 @@ function createWorkflowExecutionPrisma(streamsById) {
     },
     destinationTemplate: {
       findFirst: vi.fn().mockResolvedValue({
-        bodyTemplate: "{{body}}",
-        hashtagsTemplate: "",
-        isDefault: true,
+        body_template: "{{body}}",
+        hashtags_template: "",
+        is_default: true,
         locale: "en",
         platform: "WEBSITE",
-        summaryTemplate: "{{summary}}",
-        titleTemplate: "{{title}}",
+        summary_template: "{{summary}}",
+        title_template: "{{title}}",
       }),
       findUnique: vi.fn().mockResolvedValue(null),
     },
@@ -198,7 +198,7 @@ function createWorkflowExecutionPrisma(streamsById) {
       create: vi.fn(({ data }) => {
         const run = {
           id: `fetch_run_${++fetchRunCounter}`,
-          startedAt: new Date("2026-04-07T12:00:00.000Z"),
+          started_at: new Date("2026-04-07T12:00:00.000Z"),
           ...data,
         };
 
@@ -225,19 +225,19 @@ function createWorkflowExecutionPrisma(streamsById) {
         const post = {
           excerpt: data.excerpt,
           featuredImage: null,
-          featuredImageId: data.featuredImageId || null,
+          featured_image_id: data.featured_image_id || null,
           id: `post_${++postCounter}`,
           slug: data.slug,
           sourceArticle: {
             body: data.excerpt,
-            imageUrl: null,
+            image_url: null,
             summary: data.excerpt,
           },
-          sourceName: data.sourceName,
-          sourceUrl: data.sourceUrl,
+          source_name: data.source_name,
+          source_url: data.source_url,
           translations: [
             {
-              contentMd: data.excerpt,
+              content_md: data.excerpt,
               locale: "en",
               seoRecord: null,
               summary: data.excerpt,
@@ -299,7 +299,7 @@ function createOptimizationPassResult() {
       id: "cache_1",
       status: "SUCCESS",
     },
-    optimizationHash: "optimization_hash_1",
+    optimization_hash: "optimization_hash_1",
     payload: {
       body: "Optimized body",
       title: "Optimized title",
@@ -334,8 +334,8 @@ describe("news workflow image resolution", () => {
 
     await expect(
       resolveFetchedArticleImageUrl({
-        imageUrl: "https://cdn.example.com/story.jpg",
-        sourceUrl: "https://example.com/news/story",
+        image_url: "https://cdn.example.com/story.jpg",
+        source_url: "https://example.com/news/story",
       }),
     ).resolves.toBe("https://cdn.example.com/story.jpg");
   });
@@ -352,8 +352,8 @@ describe("news workflow image resolution", () => {
 
     await expect(
       resolveFetchedArticleImageUrl({
-        imageUrl: null,
-        sourceUrl: "https://example.com/news/story",
+        image_url: null,
+        source_url: "https://example.com/news/story",
       }),
     ).resolves.toBe("https://cdn.example.com/discovered-story.jpg");
     expect(discoverRemoteImageUrl).toHaveBeenCalledWith("https://example.com/news/story");
@@ -385,15 +385,15 @@ describe("social publishing guardrails", () => {
             findMany: vi.fn().mockResolvedValue([
               {
                 id: "attempt_1",
-                payloadJson: {
-                  canonicalUrl: "https://example.com/en/news/breaking-story",
-                  destinationKind: "FACEBOOK_PAGE",
+                payload_json: {
+                  canonical_url: "https://example.com/en/news/breaking-story",
+                  destination_kind: "FACEBOOK_PAGE",
                   hashtags: "#news",
                   platform: "FACEBOOK",
                   summary: "Breaking story summary",
                   title: "Breaking story",
                 },
-                publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+                published_at: new Date(Date.now() - 2 * 60 * 60 * 1000),
               },
             ]),
           },
@@ -403,8 +403,8 @@ describe("social publishing guardrails", () => {
           platform: "FACEBOOK",
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
-          destinationKind: "FACEBOOK_PAGE",
+          canonical_url: "https://example.com/en/news/breaking-story",
+          destination_kind: "FACEBOOK_PAGE",
           hashtags: "#news",
           platform: "FACEBOOK",
           sourceReference: "Source: Example Source - https://example.com/story",
@@ -432,8 +432,8 @@ describe("social publishing guardrails", () => {
           platform: "INSTAGRAM",
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/visual-story",
-          destinationKind: "INSTAGRAM_BUSINESS",
+          canonical_url: "https://example.com/en/news/visual-story",
+          destination_kind: "INSTAGRAM_BUSINESS",
           hashtags: "#one #two #three #four #five #six #seven #eight #nine",
           platform: "INSTAGRAM",
           sourceReference: "Source: Example Source - https://example.com/story",
@@ -464,15 +464,15 @@ describe("social publishing guardrails", () => {
         destination: {
           id: "destination_1",
           platform: "INSTAGRAM",
-          settingsJson: {
+          settings_json: {
             socialGuardrails: {
               instagramMaxHashtags: 3,
             },
           },
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/visual-story",
-          destinationKind: "INSTAGRAM_BUSINESS",
+          canonical_url: "https://example.com/en/news/visual-story",
+          destination_kind: "INSTAGRAM_BUSINESS",
           hashtags: "#one #two #three #four #five",
           platform: "INSTAGRAM",
           sourceReference: "Source: Example Source - https://example.com/story",
@@ -501,14 +501,14 @@ describe("social publishing guardrails", () => {
             findMany: vi.fn().mockResolvedValue([
               {
                 id: "attempt_1",
-                payloadJson: {
-                  canonicalUrl: "https://example.com/en/news/breaking-story",
-                  destinationKind: "FACEBOOK_PAGE",
+                payload_json: {
+                  canonical_url: "https://example.com/en/news/breaking-story",
+                  destination_kind: "FACEBOOK_PAGE",
                   platform: "FACEBOOK",
                   summary: "Breaking story summary",
                   title: "Breaking story",
                 },
-                publishedAt: new Date(Date.now() - 10 * 60 * 1000),
+                published_at: new Date(Date.now() - 10 * 60 * 1000),
               },
             ]),
           },
@@ -518,8 +518,8 @@ describe("social publishing guardrails", () => {
           platform: "FACEBOOK",
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
-          destinationKind: "FACEBOOK_PAGE",
+          canonical_url: "https://example.com/en/news/breaking-story",
+          destination_kind: "FACEBOOK_PAGE",
           platform: "FACEBOOK",
           sourceReference: "Source: Example Source - https://example.com/story",
           summary: "Breaking story summary",
@@ -528,7 +528,7 @@ describe("social publishing guardrails", () => {
       }),
     ).resolves.toMatchObject({
       payload: expect.objectContaining({
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
       }),
     });
   });
@@ -556,7 +556,7 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       resolveStreamFetchWindow({
         checkpoint: {
-          lastSuccessfulFetchAt: new Date("2026-04-04T11:00:00.000Z"),
+          last_successful_fetch_at: new Date("2026-04-04T11:00:00.000Z"),
         },
         now,
       }),
@@ -591,7 +591,7 @@ describe("stream selection and scheduling helpers", () => {
 
     expect(
       selectStreamRunCandidates({
-        maxPostsPerRun: 3,
+        max_posts_per_run: 3,
         repostEligibleDuplicates,
         uniqueEligibleCandidates,
       }),
@@ -609,10 +609,10 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       classifyDuplicateCandidate(
         {
-          createdAt: new Date("2026-04-05T08:00:00.000Z"),
+          created_at: new Date("2026-04-05T08:00:00.000Z"),
         },
         {
-          duplicateWindowHours: 12,
+          duplicate_window_hours: 12,
           now,
         },
       ),
@@ -621,10 +621,10 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       classifyDuplicateCandidate(
         {
-          createdAt: new Date("2026-04-03T08:00:00.000Z"),
+          created_at: new Date("2026-04-03T08:00:00.000Z"),
         },
         {
-          duplicateWindowHours: 12,
+          duplicate_window_hours: 12,
           now,
         },
       ),
@@ -638,8 +638,8 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       isStreamDueForScheduledRun(
         {
-          lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-          scheduleIntervalMinutes: 0,
+          last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+          schedule_interval_minutes: 0,
         },
         now,
       ),
@@ -648,8 +648,8 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       isStreamDueForScheduledRun(
         {
-          lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-          scheduleIntervalMinutes: 30,
+          last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+          schedule_interval_minutes: 30,
         },
         now,
       ),
@@ -657,17 +657,17 @@ describe("stream selection and scheduling helpers", () => {
 
     expect(
       isStreamExecutionInProgress({
-        lastFailureAt: new Date("2026-04-05T10:00:00.000Z"),
-        lastRunStartedAt: new Date("2026-04-05T12:20:00.000Z"),
+        last_failure_at: new Date("2026-04-05T10:00:00.000Z"),
+        last_run_started_at: new Date("2026-04-05T12:20:00.000Z"),
       }),
     ).toBe(true);
 
     expect(
       isStreamDueForScheduledRun(
         {
-          lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-          lastRunStartedAt: new Date("2026-04-05T12:20:00.000Z"),
-          scheduleIntervalMinutes: 30,
+          last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+          last_run_started_at: new Date("2026-04-05T12:20:00.000Z"),
+          schedule_interval_minutes: 30,
         },
         now,
       ),
@@ -675,29 +675,29 @@ describe("stream selection and scheduling helpers", () => {
 
     expect(
       getStreamNextScheduledRunAt({
-        lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-        scheduleIntervalMinutes: 30,
+        last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+        schedule_interval_minutes: 30,
       }),
     ).toEqual(new Date("2026-04-05T11:30:00.000Z"));
   });
 
-  it("prefers persisted nextRunAt values when determining whether a stream is due", async () => {
+  it("prefers persisted next_run_at values when determining whether a stream is due", async () => {
     const { getStreamNextScheduledRunAt, isStreamDueForScheduledRun } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
 
     expect(
       getStreamNextScheduledRunAt({
-        lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-        nextRunAt: new Date("2026-04-05T13:00:00.000Z"),
-        scheduleIntervalMinutes: 30,
+        last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+        next_run_at: new Date("2026-04-05T13:00:00.000Z"),
+        schedule_interval_minutes: 30,
       }),
     ).toEqual(new Date("2026-04-05T13:00:00.000Z"));
 
     expect(
       isStreamDueForScheduledRun(
         {
-          nextRunAt: new Date("2026-04-05T13:00:00.000Z"),
-          scheduleIntervalMinutes: 30,
+          next_run_at: new Date("2026-04-05T13:00:00.000Z"),
+          schedule_interval_minutes: 30,
         },
         now,
       ),
@@ -706,8 +706,8 @@ describe("stream selection and scheduling helpers", () => {
     expect(
       isStreamDueForScheduledRun(
         {
-          nextRunAt: new Date("2026-04-05T12:00:00.000Z"),
-          scheduleIntervalMinutes: 30,
+          next_run_at: new Date("2026-04-05T12:00:00.000Z"),
+          schedule_interval_minutes: 30,
         },
         now,
       ),
@@ -722,19 +722,19 @@ describe("stream selection and scheduling helpers", () => {
         findMany: vi.fn().mockResolvedValue([
           {
             canonicalPost: {
-              scheduledPublishAt: null,
+              scheduled_publish_at: null,
             },
-            canonicalPostId: "post_1",
+            canonical_post_id: "post_1",
             destination: {
               platform: "WEBSITE",
             },
             id: "match_1",
-            queuedAt: now,
+            queued_at: now,
             stream: {
               destination: {
                 platform: "WEBSITE",
               },
-              destinationId: "destination_1",
+              destination_id: "destination_1",
               id: "stream_1",
               mode: "AUTO_PUBLISH",
               status: "ACTIVE",
@@ -750,7 +750,7 @@ describe("stream selection and scheduling helpers", () => {
         findMany: vi.fn().mockResolvedValue([]),
         upsert: vi.fn().mockResolvedValue({
           id: "fetch_run_queued_1",
-          queueKey: "scheduled:stream_1:2026-04-05T12:00:00.000Z",
+          queue_key: "scheduled:stream_1:2026-04-05T12:00:00.000Z",
           status: "PENDING",
         }),
         update: vi.fn().mockResolvedValue(null),
@@ -758,9 +758,9 @@ describe("stream selection and scheduling helpers", () => {
       publishAttempt: {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockResolvedValue({
-          articleMatchId: "match_1",
+          article_match_id: "match_1",
           id: "attempt_1",
-          retryCount: 0,
+          retry_count: 0,
           status: "PENDING",
         }),
         findFirst: vi.fn().mockResolvedValue(null),
@@ -768,13 +768,13 @@ describe("stream selection and scheduling helpers", () => {
           .fn()
           .mockResolvedValueOnce([
             {
-              errorCode: null,
-              errorMessage: null,
+              last_error_code: null,
+              last_error_message: null,
               id: "stale_attempt_1",
               post: {
-                scheduledPublishAt: null,
+                scheduled_publish_at: null,
               },
-              startedAt: new Date("2026-04-05T11:00:00.000Z"),
+              started_at: new Date("2026-04-05T11:00:00.000Z"),
               status: "RUNNING",
             },
           ])
@@ -784,12 +784,12 @@ describe("stream selection and scheduling helpers", () => {
       publishingStream: {
         findMany: vi.fn().mockResolvedValue([
           {
-            activeProviderId: "provider_1",
+            active_provider_id: "provider_1",
             checkpoints: [],
             id: "stream_1",
-            lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
-            nextRunAt: new Date("2026-04-05T12:00:00.000Z"),
-            scheduleIntervalMinutes: 30,
+            last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+            next_run_at: new Date("2026-04-05T12:00:00.000Z"),
+            schedule_interval_minutes: 30,
             status: "ACTIVE",
           },
         ]),
@@ -810,8 +810,8 @@ describe("stream selection and scheduling helpers", () => {
           id: "stale_attempt_1",
         },
         data: expect.objectContaining({
-          availableAt: now,
-          errorCode: "stale_publish_attempt_recovered",
+          available_at: now,
+          last_error_code: "stale_publish_attempt_recovered",
           status: "PENDING",
         }),
       }),
@@ -819,9 +819,9 @@ describe("stream selection and scheduling helpers", () => {
     expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          articleMatchId: "match_1",
-          availableAt: now,
-          diagnosticsJson: expect.objectContaining({
+          article_match_id: "match_1",
+          available_at: now,
+          diagnostics_json: expect.objectContaining({
             publicationMode: "original",
             queueSource: "orphan_recovery",
           }),
@@ -832,16 +832,16 @@ describe("stream selection and scheduling helpers", () => {
     expect(prisma.fetchRun.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          queueKey: expect.stringContaining("scheduled:stream_1:"),
+          queue_key: expect.stringContaining("scheduled:stream_1:"),
           status: "PENDING",
-          streamId: "stream_1",
-          triggerType: "scheduled",
+          stream_id: "stream_1",
+          trigger_type: "scheduled",
         }),
       }),
     );
     expect(prisma.publishingStream.update).toHaveBeenCalledWith({
       data: {
-        nextRunAt: new Date("2026-04-05T12:30:00.000Z"),
+        next_run_at: new Date("2026-04-05T12:30:00.000Z"),
       },
       where: {
         id: "stream_1",
@@ -867,12 +867,12 @@ describe("stream selection and scheduling helpers", () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([
           {
-            errorMessage: null,
+            last_error_message: null,
             id: "stale_fetch_run_1",
-            lastErrorCode: null,
-            startedAt: new Date("2026-04-05T11:00:00.000Z"),
+            last_error_code: null,
+            started_at: new Date("2026-04-05T11:00:00.000Z"),
             status: "RUNNING",
-            streamId: "stream_1",
+            stream_id: "stream_1",
           },
         ]),
         update: vi.fn().mockResolvedValue(null),
@@ -900,15 +900,15 @@ describe("stream selection and scheduling helpers", () => {
           id: "stale_fetch_run_1",
         },
         data: expect.objectContaining({
-          availableAt: now,
-          lastErrorCode: "stale_fetch_run_recovered",
+          available_at: now,
+          last_error_code: "stale_fetch_run_recovered",
           status: "PENDING",
         }),
       }),
     );
     expect(prisma.publishingStream.update).toHaveBeenCalledWith({
       data: {
-        lastRunStartedAt: null,
+        last_run_started_at: null,
       },
       where: {
         id: "stream_1",
@@ -925,14 +925,14 @@ describe("stream selection and scheduling helpers", () => {
     const { claimPublishAttemptById } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
     let attemptRecord = {
-      availableAt: new Date("2026-04-05T12:00:00.000Z"),
-      heartbeatAt: null,
+      available_at: new Date("2026-04-05T12:00:00.000Z"),
+      heartbeat_at: null,
       id: "attempt_1",
-      leaseExpiresAt: null,
-      leaseOwner: null,
-      startedAt: null,
+      lease_expires_at: null,
+      lease_owner: null,
+      started_at: null,
       status: "PENDING",
-      streamId: "stream_1",
+      stream_id: "stream_1",
     };
     const db = {
       publishAttempt: {
@@ -942,10 +942,10 @@ describe("stream selection and scheduling helpers", () => {
           const claimable =
             where.id === attemptRecord.id
             && attemptRecord.status === "PENDING"
-            && attemptRecord.availableAt <= where.availableAt.lte
+            && attemptRecord.available_at <= where.available_at.lte
             && (
-              attemptRecord.leaseExpiresAt === null
-              || attemptRecord.leaseExpiresAt <= where.OR[1].leaseExpiresAt.lte
+              attemptRecord.lease_expires_at === null
+              || attemptRecord.lease_expires_at <= where.OR[1].lease_expires_at.lte
             );
 
           if (!claimable) {
@@ -973,7 +973,7 @@ describe("stream selection and scheduling helpers", () => {
       db,
       "attempt_1",
       {
-        leaseOwner: "publish_lease_1",
+        lease_owner: "publish_lease_1",
         now,
       },
     );
@@ -981,16 +981,16 @@ describe("stream selection and scheduling helpers", () => {
       db,
       "attempt_1",
       {
-        leaseOwner: "publish_lease_2",
+        lease_owner: "publish_lease_2",
         now,
       },
     );
 
     expect(firstClaim.record).toMatchObject({
       id: "attempt_1",
-      leaseOwner: "publish_lease_1",
+      lease_owner: "publish_lease_1",
       status: "RUNNING",
-      streamId: "stream_1",
+      stream_id: "stream_1",
     });
     expect(secondClaim.record).toBeNull();
     expect(db.publishingStream.update).not.toHaveBeenCalled();
@@ -1000,13 +1000,13 @@ describe("stream selection and scheduling helpers", () => {
     const { claimFetchRunById } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
     let fetchRunRecord = {
-      attemptCount: 0,
-      availableAt: new Date("2026-04-05T12:00:00.000Z"),
-      heartbeatAt: null,
+      attempt_count: 0,
+      available_at: new Date("2026-04-05T12:00:00.000Z"),
+      heartbeat_at: null,
       id: "fetch_run_1",
-      leaseExpiresAt: null,
-      leaseOwner: null,
-      startedAt: null,
+      lease_expires_at: null,
+      lease_owner: null,
+      started_at: null,
       status: "PENDING",
     };
     const db = {
@@ -1017,10 +1017,10 @@ describe("stream selection and scheduling helpers", () => {
           const claimable =
             where.id === fetchRunRecord.id
             && fetchRunRecord.status === "PENDING"
-            && fetchRunRecord.availableAt <= where.availableAt.lte
+            && fetchRunRecord.available_at <= where.available_at.lte
             && (
-              fetchRunRecord.leaseExpiresAt === null
-              || fetchRunRecord.leaseExpiresAt <= where.OR[1].leaseExpiresAt.lte
+              fetchRunRecord.lease_expires_at === null
+              || fetchRunRecord.lease_expires_at <= where.OR[1].lease_expires_at.lte
             );
 
           if (!claimable) {
@@ -1045,7 +1045,7 @@ describe("stream selection and scheduling helpers", () => {
       db,
       "fetch_run_1",
       {
-        leaseOwner: "fetch_lease_1",
+        lease_owner: "fetch_lease_1",
         now,
       },
     );
@@ -1053,16 +1053,16 @@ describe("stream selection and scheduling helpers", () => {
       db,
       "fetch_run_1",
       {
-        leaseOwner: "fetch_lease_2",
+        lease_owner: "fetch_lease_2",
         now,
       },
     );
 
     expect(firstClaim.record).toMatchObject({
-      attemptCount: 1,
+      attempt_count: 1,
       id: "fetch_run_1",
-      leaseOwner: "fetch_lease_1",
-      startedAt: now,
+      lease_owner: "fetch_lease_1",
+      started_at: now,
       status: "RUNNING",
     });
     expect(secondClaim.record).toBeNull();
@@ -1086,7 +1086,7 @@ describe("stream selection and scheduling helpers", () => {
           canonicalPost: {
             id: "post_1",
           },
-          canonicalPostId: "post_1",
+          canonical_post_id: "post_1",
           destination: {
             id: "destination_1",
             platform: "WEBSITE",
@@ -1104,7 +1104,7 @@ describe("stream selection and scheduling helpers", () => {
               kind: "WEBSITE",
               platform: "WEBSITE",
             },
-            destinationId: "destination_1",
+            destination_id: "destination_1",
             id: "stream_1",
             locale: "en",
             mode: "AUTO_PUBLISH",
@@ -1114,11 +1114,11 @@ describe("stream selection and scheduling helpers", () => {
       },
       destinationTemplate: {
         findFirst: vi.fn().mockResolvedValue({
-          bodyTemplate: "{{body}}",
-          hashtagsTemplate: "",
+          body_template: "{{body}}",
+          hashtags_template: "",
           platform: "WEBSITE",
-          summaryTemplate: "{{summary}}",
-          titleTemplate: "{{title}}",
+          summary_template: "{{summary}}",
+          title_template: "{{title}}",
         }),
         findUnique: vi.fn().mockResolvedValue(null),
       },
@@ -1131,7 +1131,7 @@ describe("stream selection and scheduling helpers", () => {
       publishAttempt: {
         count: vi.fn().mockResolvedValue(1),
         create: vi.fn().mockResolvedValue({
-          articleMatchId: "match_1",
+          article_match_id: "match_1",
           id: "attempt_2",
         }),
         findUnique: vi.fn().mockResolvedValue({
@@ -1148,13 +1148,13 @@ describe("stream selection and scheduling helpers", () => {
                 kind: "WEBSITE",
                 platform: "WEBSITE",
               },
-              destinationId: "destination_1",
+              destination_id: "destination_1",
               id: "stream_1",
               locale: "en",
               mode: "AUTO_PUBLISH",
             },
           },
-          articleMatchId: "match_1",
+          article_match_id: "match_1",
           destination: {
             id: "destination_1",
             kind: "WEBSITE",
@@ -1168,16 +1168,16 @@ describe("stream selection and scheduling helpers", () => {
             slug: "story-title",
             sourceArticle: {
               body: "Story body",
-              imageUrl: null,
+              image_url: null,
             },
-            sourceName: "Example Source",
-            sourceUrl: "https://example.com/story",
+            source_name: "Example Source",
+            source_url: "https://example.com/story",
             translations: [
               {
-                contentMd: "Story body",
+                content_md: "Story body",
                 locale: "en",
                 seoRecord: {
-                  keywordsJson: [],
+                  keywords_json: [],
                   ogImage: null,
                 },
                 summary: "Story summary",
@@ -1185,15 +1185,15 @@ describe("stream selection and scheduling helpers", () => {
               },
             ],
           },
-          postId: "post_1",
-          queuedAt: now,
+          post_id: "post_1",
+          queued_at: now,
           stream: {
             destination: {
               id: "destination_1",
               kind: "WEBSITE",
               platform: "WEBSITE",
             },
-            destinationId: "destination_1",
+            destination_id: "destination_1",
             id: "stream_1",
             locale: "en",
             mode: "AUTO_PUBLISH",
@@ -1209,7 +1209,7 @@ describe("stream selection and scheduling helpers", () => {
     await manualRepostArticleMatch(
       "match_1",
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
       prisma,
     );
@@ -1217,19 +1217,19 @@ describe("stream selection and scheduling helpers", () => {
     expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "PUBLISH_ATTEMPT_MANUAL_REPOST_REQUESTED",
-        actorId: "admin_1",
-        entityId: "attempt_2",
+        actor_id: "admin_1",
+        entity_id: "attempt_2",
       }),
       prisma,
     );
     expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          diagnosticsJson: expect.objectContaining({
+          diagnostics_json: expect.objectContaining({
             publicationMode: "repost",
             queueSource: "manual_repost",
           }),
-          retryCount: 1,
+          retry_count: 1,
           status: "PENDING",
         }),
       }),
@@ -1266,7 +1266,7 @@ describe("stream selection and scheduling helpers", () => {
               kind: "WEBSITE",
               platform: "WEBSITE",
             },
-            destinationId: "destination_1",
+            destination_id: "destination_1",
             id: "stream_1",
             locale: "en",
             mode: "AUTO_PUBLISH",
@@ -1276,11 +1276,11 @@ describe("stream selection and scheduling helpers", () => {
       },
       destinationTemplate: {
         findFirst: vi.fn().mockResolvedValue({
-          bodyTemplate: "{{body}}",
-          hashtagsTemplate: "",
+          body_template: "{{body}}",
+          hashtags_template: "",
           platform: "WEBSITE",
-          summaryTemplate: "{{summary}}",
-          titleTemplate: "{{title}}",
+          summary_template: "{{summary}}",
+          title_template: "{{title}}",
         }),
         findUnique: vi.fn().mockResolvedValue(null),
       },
@@ -1293,9 +1293,9 @@ describe("stream selection and scheduling helpers", () => {
       publishAttempt: {
         count: vi.fn().mockResolvedValue(1),
         create: vi.fn().mockResolvedValue({
-          articleMatchId: "match_1",
+          article_match_id: "match_1",
           id: "attempt_retry_2",
-          retryCount: 1,
+          retry_count: 1,
         }),
         findUnique: vi
           .fn()
@@ -1308,18 +1308,18 @@ describe("stream selection and scheduling helpers", () => {
                 },
               ],
             },
-            articleMatchId: "match_1",
+            article_match_id: "match_1",
             id: "attempt_failed_1",
             platform: "WEBSITE",
-            postId: "post_1",
-            retryCount: 0,
+            post_id: "post_1",
+            retry_count: 0,
             status: "FAILED",
             stream: {
-              destinationId: "destination_1",
+              destination_id: "destination_1",
               id: "stream_1",
               locale: "en",
               mode: "AUTO_PUBLISH",
-              retryLimit: 3,
+              retry_limit: 3,
             },
           })
           .mockResolvedValueOnce({
@@ -1336,13 +1336,13 @@ describe("stream selection and scheduling helpers", () => {
                   kind: "WEBSITE",
                   platform: "WEBSITE",
                 },
-                destinationId: "destination_1",
+                destination_id: "destination_1",
                 id: "stream_1",
                 locale: "en",
                 mode: "AUTO_PUBLISH",
               },
             },
-            articleMatchId: "match_1",
+            article_match_id: "match_1",
             destination: {
               id: "destination_1",
               kind: "WEBSITE",
@@ -1356,16 +1356,16 @@ describe("stream selection and scheduling helpers", () => {
               slug: "story-title",
               sourceArticle: {
                 body: "Story body",
-                imageUrl: null,
+                image_url: null,
               },
-              sourceName: "Example Source",
-              sourceUrl: "https://example.com/story",
+              source_name: "Example Source",
+              source_url: "https://example.com/story",
               translations: [
                 {
-                  contentMd: "Story body",
+                  content_md: "Story body",
                   locale: "en",
                   seoRecord: {
-                    keywordsJson: [],
+                    keywords_json: [],
                     ogImage: null,
                   },
                   summary: "Story summary",
@@ -1373,15 +1373,15 @@ describe("stream selection and scheduling helpers", () => {
                 },
               ],
             },
-            postId: "post_1",
-            queuedAt: now,
+            post_id: "post_1",
+            queued_at: now,
             stream: {
               destination: {
                 id: "destination_1",
                 kind: "WEBSITE",
                 platform: "WEBSITE",
               },
-              destinationId: "destination_1",
+              destination_id: "destination_1",
               id: "stream_1",
               locale: "en",
               mode: "AUTO_PUBLISH",
@@ -1397,7 +1397,7 @@ describe("stream selection and scheduling helpers", () => {
     await retryPublishAttempt(
       "attempt_failed_1",
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
       prisma,
     );
@@ -1405,21 +1405,21 @@ describe("stream selection and scheduling helpers", () => {
     expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "PUBLISH_ATTEMPT_RETRY_REQUESTED",
-        actorId: "admin_1",
-        entityId: "attempt_retry_2",
+        actor_id: "admin_1",
+        entity_id: "attempt_retry_2",
       }),
       prisma,
     );
     expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          articleMatchId: "match_1",
-          diagnosticsJson: expect.objectContaining({
+          article_match_id: "match_1",
+          diagnostics_json: expect.objectContaining({
             publicationMode: "retry",
             queueSource: "retry_request",
             retryOfAttemptId: "attempt_failed_1",
           }),
-          retryCount: 1,
+          retry_count: 1,
           status: "PENDING",
         }),
       }),
@@ -1451,12 +1451,12 @@ describe("AI optimization observability", () => {
             id: "post_1",
             sourceArticle: {
               body: "Story body",
-              imageUrl: null,
+              image_url: null,
               summary: "Story summary",
             },
             translations: [
               {
-                contentMd: "Story body",
+                content_md: "Story body",
                 locale: "en",
                 seoRecord: null,
                 summary: "Story summary",
@@ -1464,42 +1464,42 @@ describe("AI optimization observability", () => {
               },
             ],
           },
-          canonicalPostId: "post_1",
+          canonical_post_id: "post_1",
           destination: {
             id: "destination_1",
             kind: "WEBSITE",
             name: "Website",
             platform: "WEBSITE",
           },
-          destinationId: "destination_1",
+          destination_id: "destination_1",
           id: "match_1",
           stream: {
-            defaultTemplateId: null,
+            default_template_id: null,
             destination: {
               id: "destination_1",
               platform: "WEBSITE",
             },
-            destinationId: "destination_1",
+            destination_id: "destination_1",
             id: "stream_1",
             locale: "en",
             mode: "AUTO_PUBLISH",
           },
-          streamId: "stream_1",
+          stream_id: "stream_1",
         }),
         update: vi.fn().mockResolvedValue({
           id: "match_1",
-          optimizationStatus: "SKIPPED",
+          optimization_status: "SKIPPED",
         }),
       },
       destinationTemplate: {
         findFirst: vi.fn().mockResolvedValue({
-          bodyTemplate: "{{body}}",
-          hashtagsTemplate: "",
-          isDefault: true,
+          body_template: "{{body}}",
+          hashtags_template: "",
+          is_default: true,
           locale: "en",
           platform: "WEBSITE",
-          summaryTemplate: "{{summary}}",
-          titleTemplate: "{{title}}",
+          summary_template: "{{summary}}",
+          title_template: "{{title}}",
         }),
         findUnique: vi.fn().mockResolvedValue(null),
       },
@@ -1526,7 +1526,7 @@ describe("AI optimization observability", () => {
           id: "cache_1",
           status: "SKIPPED",
         },
-        optimizationHash: "hash_1",
+        optimization_hash: "hash_1",
         payload: {
           body: "Deterministic body",
           title: "Deterministic title",
@@ -1549,13 +1549,13 @@ describe("AI optimization observability", () => {
     expect(recordObservabilityEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "AI_OPTIMIZATION_SKIPPED",
-        entityId: "match_1",
-        entityType: "article_match",
+        entity_id: "match_1",
+        entity_type: "article_match",
         level: "warn",
         message: "AI credentials are missing, so NewsPub kept deterministic content.",
         payload: expect.objectContaining({
-          destinationId: "destination_1",
-          optimizationStatus: "SKIPPED",
+          destination_id: "destination_1",
+          optimization_status: "SKIPPED",
           reasonCode: "ai_credentials_missing",
           usedDeterministicFallback: true,
         }),
@@ -1574,7 +1574,7 @@ describe("AI optimization observability", () => {
     vi.doMock("@/lib/ai", () => ({
       optimizeDestinationPayload: vi.fn().mockResolvedValue({
         aiResolution: {
-          errorMessage: "Request timed out.",
+          last_error_message: "Request timed out.",
           reasonCode: "ai_timeout",
           reasonMessage: "AI timed out, so NewsPub fell back to deterministic formatting.",
           status: "FALLBACK",
@@ -1585,7 +1585,7 @@ describe("AI optimization observability", () => {
           id: "cache_2",
           status: "FALLBACK",
         },
-        optimizationHash: "hash_2",
+        optimization_hash: "hash_2",
         payload: {
           body: "Deterministic fallback body",
           title: "Deterministic fallback title",
@@ -1608,12 +1608,12 @@ describe("AI optimization observability", () => {
     expect(recordObservabilityEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "AI_OPTIMIZATION_FALLBACK_USED",
-        entityId: "match_1",
-        entityType: "article_match",
+        entity_id: "match_1",
+        entity_type: "article_match",
         level: "warn",
         message: "AI timed out, so NewsPub fell back to deterministic formatting.",
         payload: expect.objectContaining({
-          optimizationStatus: "FALLBACK",
+          optimization_status: "FALLBACK",
           reasonCode: "ai_timeout",
           usedDeterministicFallback: true,
         }),
@@ -1645,7 +1645,7 @@ describe("shared stream execution and website completeness", () => {
       cursor: {
         page: "next",
       },
-      fetchedCount: 1,
+      fetched_count: 1,
     });
 
     vi.doMock("@/lib/ai", () => ({
@@ -1682,7 +1682,7 @@ describe("shared stream execution and website completeness", () => {
       ["stream_1", "stream_2"],
       {
         now,
-        triggerType: "manual",
+        trigger_type: "manual",
       },
       prisma,
     );
@@ -1691,7 +1691,7 @@ describe("shared stream execution and website completeness", () => {
     expect(fetchProviderArticles).toHaveBeenCalledWith(
       expect.objectContaining({
         checkpoint: null,
-        providerKey: "newsdata",
+        provider_key: "newsdata",
         requestValues: expect.objectContaining({
           category: ["business", "technology"],
           endpoint: "latest",
@@ -1704,15 +1704,15 @@ describe("shared stream execution and website completeness", () => {
       1,
       expect.objectContaining({
         update: expect.objectContaining({
-          cursorJson: null,
-          lastSuccessfulFetchAt: new Date("2026-04-07T12:30:00.000Z"),
+          cursor_json: null,
+          last_successful_fetch_at: new Date("2026-04-07T12:30:00.000Z"),
         }),
       }),
     );
     expect(createAuditEventRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "FETCH_SHARED_BATCH_PLANNED",
-        entityType: "fetch_run_group",
+        entity_type: "fetch_run_group",
       }),
       prisma,
     );
@@ -1722,28 +1722,28 @@ describe("shared stream execution and website completeness", () => {
     });
     expect(result.groups[0]).toMatchObject({
       executionMode: "shared_batch",
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       streamIds: ["stream_1", "stream_2"],
     });
   });
 
-  it("processes every eligible website candidate from a broad pool even when maxPostsPerRun is lower", async () => {
+  it("processes every eligible website candidate from a broad pool even when max_posts_per_run is lower", async () => {
     const fetchProviderArticles = vi.fn().mockResolvedValue({
       articles: [
         createWorkflowArticle("website_story_1"),
         createWorkflowArticle("website_story_2", {
-          dedupeFingerprint: "fingerprint_website_story_2",
-          normalizedTitleHash: "title_hash_website_story_2",
-          providerArticleId: "provider_website_story_2",
-          sourceUrl: "https://example.com/website_story_2",
-          sourceUrlHash: "source_hash_website_story_2",
+          dedupe_fingerprint: "fingerprint_website_story_2",
+          normalized_title_hash: "title_hash_website_story_2",
+          provider_article_id: "provider_website_story_2",
+          source_url: "https://example.com/website_story_2",
+          source_url_hash: "source_hash_website_story_2",
           title: "Story title website 2",
         }),
       ],
       cursor: {
         page: 2,
       },
-      fetchedCount: 2,
+      fetched_count: 2,
     });
 
     vi.doMock("@/lib/ai", () => ({
@@ -1765,7 +1765,7 @@ describe("shared stream execution and website completeness", () => {
       website_stream: createWorkflowStream({
         destinationPlatform: "WEBSITE",
         id: "website_stream",
-        maxPostsPerRun: 1,
+        max_posts_per_run: 1,
       }),
     });
     const completedRun = await runStreamFetch(
@@ -1776,7 +1776,7 @@ describe("shared stream execution and website completeness", () => {
           start: "2026-04-07T00:00:00.000Z",
         },
         now: new Date("2026-04-07T12:00:00.000Z"),
-        triggerType: "manual",
+        trigger_type: "manual",
       },
       prisma,
     );
@@ -1784,15 +1784,15 @@ describe("shared stream execution and website completeness", () => {
     expect(prisma.articleMatch.create).toHaveBeenCalledTimes(2);
     expect(prisma.providerFetchCheckpoint.upsert).not.toHaveBeenCalled();
     expect(completedRun).toMatchObject({
-      heldCount: 2,
-      publishableCount: 2,
-      queuedCount: 0,
+      held_count: 2,
+      publishable_count: 2,
+      queued_count: 0,
       status: "SUCCEEDED",
     });
     expect(prisma.fetchRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          executionDetailsJson: expect.objectContaining({
+          execution_details_json: expect.objectContaining({
             checkpointStrategy: expect.objectContaining({
               writeCheckpointOnSuccess: false,
             }),
@@ -1831,21 +1831,21 @@ describe("stream execution dedupe safety", () => {
         articles: [
           {
             body: "Story body",
-            dedupeFingerprint: "fingerprint_1",
-            imageUrl: "https://cdn.example.com/story.jpg",
+            dedupe_fingerprint: "fingerprint_1",
+            image_url: "https://cdn.example.com/story.jpg",
             language: "en",
-            normalizedTitleHash: "title_hash_1",
-            providerArticleId: "provider_story_1",
+            normalized_title_hash: "title_hash_1",
+            provider_article_id: "provider_story_1",
             providerCategories: ["breaking"],
             providerCountries: ["ug"],
             providerRegions: [],
-            publishedAt: "2026-04-07T10:00:00.000Z",
-            rawPayloadJson: {
+            published_at: "2026-04-07T10:00:00.000Z",
+            raw_payload_json: {
               id: "provider_story_1",
             },
-            sourceName: "Example Source",
-            sourceUrl: "https://example.com/story",
-            sourceUrlHash: "source_hash_1",
+            source_name: "Example Source",
+            source_url: "https://example.com/story",
+            source_url_hash: "source_hash_1",
             summary: "Story summary",
             tags: ["tag-one"],
             title: "Story title",
@@ -1854,7 +1854,7 @@ describe("stream execution dedupe safety", () => {
         cursor: {
           page: 1,
         },
-        fetchedCount: 1,
+        fetched_count: 1,
       }),
     }));
     vi.doMock("@/lib/validation/configuration", () => ({
@@ -1873,20 +1873,20 @@ describe("stream execution dedupe safety", () => {
       fetchRun: {
         create: vi.fn().mockResolvedValue({
           id: "fetch_run_1",
-          startedAt: new Date("2026-04-07T12:00:00.000Z"),
+          started_at: new Date("2026-04-07T12:00:00.000Z"),
         }),
         update: vi.fn().mockResolvedValue({
-          duplicateCount: 1,
+          duplicate_count: 1,
           id: "fetch_run_1",
-          publishableCount: 0,
+          publishable_count: 0,
           status: "SUCCEEDED",
         }),
       },
       fetchedArticle: {
         upsert: vi.fn().mockResolvedValue({
           id: "article_1",
-          sourceName: "Example Source",
-          sourceUrl: "https://example.com/story",
+          source_name: "Example Source",
+          source_url: "https://example.com/story",
           summary: "Story summary",
           title: "Story title",
         }),
@@ -1897,31 +1897,31 @@ describe("stream execution dedupe safety", () => {
       publishingStream: {
         findUnique: vi.fn().mockResolvedValue({
           activeProvider: {
-            providerKey: "newsdata",
-            requestDefaultsJson: {},
+            provider_key: "newsdata",
+            request_defaults_json: {},
           },
-          activeProviderId: "provider_config_1",
+          active_provider_id: "provider_config_1",
           categories: [],
           checkpoints: [],
-          consecutiveFailureCount: 0,
-          countryAllowlistJson: [],
+          consecutive_failure_count: 0,
+          country_allowlist_json: [],
           defaultTemplate: null,
           destination: {
             id: "destination_1",
             kind: "FACEBOOK_PAGE",
             platform: "FACEBOOK",
           },
-          destinationId: "destination_1",
-          duplicateWindowHours: 48,
-          excludeKeywordsJson: [],
+          destination_id: "destination_1",
+          duplicate_window_hours: 48,
+          exclude_keywords_json: [],
           id: "stream_1",
-          includeKeywordsJson: [],
-          languageAllowlistJson: [],
+          include_keywords_json: [],
+          language_allowlist_json: [],
           locale: "en",
           mode: "AUTO_PUBLISH",
-          regionAllowlistJson: [],
-          retryLimit: 3,
-          settingsJson: {},
+          region_allowlist_json: [],
+          retry_limit: 3,
+          settings_json: {},
           status: "ACTIVE",
         }),
         update: vi.fn().mockResolvedValue(null),
@@ -1944,7 +1944,7 @@ describe("stream execution dedupe safety", () => {
     expect(prisma.fetchedArticle.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          dedupeFingerprint: "fingerprint_1",
+          dedupe_fingerprint: "fingerprint_1",
         },
       }),
     );
@@ -1952,8 +1952,8 @@ describe("stream execution dedupe safety", () => {
     expect(prisma.fetchRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          duplicateCount: 1,
-          publishableCount: 0,
+          duplicate_count: 1,
+          publishable_count: 0,
           status: "SUCCEEDED",
         }),
       }),

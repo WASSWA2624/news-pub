@@ -19,8 +19,8 @@ describe("public page utils", () => {
   it("suppresses source-attribution notes when the value only repeats the visible source block", () => {
     expect(
       publicPageUtils.buildSourceAttributionNote("Source: Example Source - https://example.com/story", {
-        sourceName: "Example Source",
-        sourceUrl: "https://example.com/story",
+        source_name: "Example Source",
+        source_url: "https://example.com/story",
       }),
     ).toBe("");
   });
@@ -28,8 +28,8 @@ describe("public page utils", () => {
   it("preserves source-attribution notes that add context beyond the source name and url", () => {
     expect(
       publicPageUtils.buildSourceAttributionNote("Original reporting provided by Example Source and local bureau updates.", {
-        sourceName: "Example Source",
-        sourceUrl: "https://example.com/story",
+        source_name: "Example Source",
+        source_url: "https://example.com/story",
       }),
     ).toBe("Original reporting provided by Example Source and local bureau updates.");
   });

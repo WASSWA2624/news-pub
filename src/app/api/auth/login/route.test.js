@@ -52,7 +52,7 @@ describe("auth login api route", () => {
     expect(createLoginResponse).toHaveBeenCalledWith({
       email: "admin@example.com",
       password: "strong-password",
-      userAgent: "Vitest Browser",
+      user_agent: "Vitest Browser",
     });
   });
 });

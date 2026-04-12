@@ -41,7 +41,7 @@ function serializeDate(value) {
 }
 
 function mapAuditEvent(event) {
-  const payload = event.payloadJson || null;
+  const payload = event.payload_json || null;
 
   return {
     ...serializeAuditEvent(event),
@@ -151,7 +151,7 @@ function mapImage(asset) {
     caption: asset.caption || null,
     height: asset.height || null,
     id: asset.id,
-    url: asset.sourceUrl || asset.publicUrl || null,
+    url: asset.source_url || asset.public_url || null,
     width: asset.width || null,
   };
 }
@@ -174,7 +174,7 @@ function mapRemoteImage(url, fallbackAlt = "Story image") {
 }
 
 function mapPostImage(post, fallbackAlt = "Story image") {
-  return mapRemoteImage(post?.sourceArticle?.imageUrl, fallbackAlt) || mapImage(post?.featuredImage);
+  return mapRemoteImage(post?.sourceArticle?.image_url, fallbackAlt) || mapImage(post?.featuredImage);
 }
 
 function mapCategory(category, locale = defaultLocale) {
@@ -203,36 +203,36 @@ function mapPublishAttempt(attempt) {
   const diagnosticSummary = getPublishAttemptDiagnosticSummary(attempt);
 
   return {
-    completedAt: serializeDate(attempt.completedAt),
-    createdAt: serializeDate(attempt.createdAt),
+    completed_at: serializeDate(attempt.completed_at),
+    created_at: serializeDate(attempt.created_at),
     diagnosticIssueCodes: diagnosticSummary.issueCodes,
     diagnosticReasonCode: diagnosticSummary.reasonCode,
     diagnosticReasonMessage: diagnosticSummary.reasonMessage,
-    diagnostics: attempt.diagnosticsJson || null,
-    errorCode: attempt.errorCode || null,
-    errorMessage: attempt.errorMessage || null,
+    diagnostics: attempt.diagnostics_json || null,
+    last_error_code: attempt.last_error_code || null,
+    last_error_message: attempt.last_error_message || null,
     id: attempt.id,
     platform: attempt.platform,
-    publicationMode: attempt.diagnosticsJson?.publicationMode || null,
-    publishedAt: serializeDate(attempt.publishedAt),
-    queuedAt: serializeDate(attempt.queuedAt),
-    remoteId: attempt.remoteId || null,
+    publicationMode: attempt.diagnostics_json?.publicationMode || null,
+    published_at: serializeDate(attempt.published_at),
+    queued_at: serializeDate(attempt.queued_at),
+    remote_id: attempt.remote_id || null,
     retryable: Boolean(attempt.retryable),
-    retryCount: attempt.retryCount,
+    retry_count: attempt.retry_count,
     status: attempt.status,
   };
 }
 
 function mapOptimizationDetails(match) {
-  const aiResolution = match?.optimizedPayloadJson?.aiResolution;
+  const aiResolution = match?.optimized_payload_json?.aiResolution;
 
   if (aiResolution?.status) {
     return aiResolution;
   }
 
-  if (match?.optimizationStatus === "SKIPPED") {
+  if (match?.optimization_status === "SKIPPED") {
     return {
-      errorMessage: null,
+      last_error_message: null,
       model: null,
       provider: "disabled",
       reasonCode: "cached_ai_skip",
@@ -242,9 +242,9 @@ function mapOptimizationDetails(match) {
     };
   }
 
-  if (match?.optimizationStatus === "FALLBACK") {
+  if (match?.optimization_status === "FALLBACK") {
     return {
-      errorMessage: null,
+      last_error_message: null,
       model: null,
       provider: "fallback",
       reasonCode: "cached_ai_fallback",
@@ -259,7 +259,7 @@ function mapOptimizationDetails(match) {
 
 function mapArticleMatch(match) {
   return {
-    banRiskScore: match.banRiskScore ?? null,
+    ban_risk_score: match.ban_risk_score ?? null,
     destination: match.destination
       ? {
           id: match.destination.id,
@@ -269,32 +269,32 @@ function mapArticleMatch(match) {
           slug: match.destination.slug,
         }
       : null,
-    failedAt: serializeDate(match.failedAt),
+    failed_at: serializeDate(match.failed_at),
     fetchedArticle: match.fetchedArticle
       ? {
           id: match.fetchedArticle.id,
-          publishedAt: serializeDate(match.fetchedArticle.publishedAt),
-          sourceName: match.fetchedArticle.sourceName,
-          sourceUrl: match.fetchedArticle.sourceUrl,
+          published_at: serializeDate(match.fetchedArticle.published_at),
+          source_name: match.fetchedArticle.source_name,
+          source_url: match.fetchedArticle.source_url,
           summary: match.fetchedArticle.summary || null,
           title: match.fetchedArticle.title,
         }
       : null,
-    holdReasons: Array.isArray(match.holdReasonsJson) ? match.holdReasonsJson : [],
+    holdReasons: Array.isArray(match.hold_reasons_json) ? match.hold_reasons_json : [],
     id: match.id,
     optimizationDetails: mapOptimizationDetails(match),
-    lastOptimizedAt: serializeDate(match.lastOptimizedAt),
-    lastPolicyCheckedAt: serializeDate(match.lastPolicyCheckedAt),
-    optimizationStatus: match.optimizationStatus || "NOT_REQUESTED",
-    optimizedPayload: match.optimizedPayloadJson || null,
-    policyReasons: Array.isArray(match.policyReasonsJson) ? match.policyReasonsJson : [],
-    policyStatus: match.policyStatus || "PASS",
+    last_optimized_at: serializeDate(match.last_optimized_at),
+    last_policy_checked_at: serializeDate(match.last_policy_checked_at),
+    optimization_status: match.optimization_status || "NOT_REQUESTED",
+    optimizedPayload: match.optimized_payload_json || null,
+    policyReasons: Array.isArray(match.policy_reasons_json) ? match.policy_reasons_json : [],
+    policy_status: match.policy_status || "PASS",
     publishAttempts: (match.publishAttempts || []).map(mapPublishAttempt),
-    publishedAt: serializeDate(match.publishedAt),
-    queuedAt: serializeDate(match.queuedAt),
-    readinessChecks: Array.isArray(match.readinessChecksJson) ? match.readinessChecksJson : [],
-    reasons: Array.isArray(match.filterReasonsJson) ? match.filterReasonsJson : [],
-    reviewNotes: match.reviewNotes || null,
+    published_at: serializeDate(match.published_at),
+    queued_at: serializeDate(match.queued_at),
+    readinessChecks: Array.isArray(match.readiness_checks_json) ? match.readiness_checks_json : [],
+    reasons: Array.isArray(match.filter_reasons_json) ? match.filter_reasons_json : [],
+    review_notes: match.review_notes || null,
     status: match.status,
     stream: match.stream
       ? {
@@ -305,7 +305,7 @@ function mapArticleMatch(match) {
           status: match.stream.status,
         }
       : null,
-    workflowStage: match.workflowStage || "INGESTED",
+    workflow_stage: match.workflow_stage || "INGESTED",
   };
 }
 
@@ -319,26 +319,26 @@ function mapInventoryPost(post, locale = defaultLocale) {
   return {
     articleMatches: (post.articleMatches || []).map(mapArticleMatch),
     categories: (post.categories || []).map(({ category }) => mapCategory(category, locale)),
-    editorialStage: post.editorialStage,
+    editorial_stage: post.editorial_stage,
     excerpt: post.excerpt,
     featuredImage: mapPostImage(post, translation?.title || post.slug),
     id: post.id,
     locale: translation?.locale || locale,
     path: buildLocalizedPath(translation?.locale || locale, publicRouteSegments.newsPost(post.slug)),
-    providerKey: post.providerKey,
-    publishedAt: serializeDate(post.publishedAt),
-    reviewWorkflowStage: primaryArticleMatch?.workflowStage || "INGESTED",
-    reviewPolicyStatus: primaryArticleMatch?.policyStatus || "PASS",
-    reviewOptimizationStatus: primaryArticleMatch?.optimizationStatus || "NOT_REQUESTED",
+    provider_key: post.provider_key,
+    published_at: serializeDate(post.published_at),
+    reviewWorkflowStage: primaryArticleMatch?.workflow_stage || "INGESTED",
+    reviewPolicyStatus: primaryArticleMatch?.policy_status || "PASS",
+    reviewOptimizationStatus: primaryArticleMatch?.optimization_status || "NOT_REQUESTED",
     reviewOptimizationDetails: mapOptimizationDetails(primaryArticleMatch),
-    scheduledPublishAt: serializeDate(post.scheduledPublishAt),
+    scheduled_publish_at: serializeDate(post.scheduled_publish_at),
     slug: post.slug,
-    sourceName: post.sourceName,
-    sourceUrl: post.sourceUrl,
+    source_name: post.source_name,
+    source_url: post.source_url,
     status: post.status,
     summary: translation?.summary || post.excerpt,
     title: translation?.title || post.slug,
-    updatedAt: serializeDate(post.updatedAt),
+    updated_at: serializeDate(post.updated_at),
     websitePublished,
   };
 }
@@ -372,12 +372,12 @@ function buildInventoryWhere(scope, search) {
               },
             },
             {
-              sourceName: {
+              source_name: {
                 contains: normalizedSearch,
               },
             },
             {
-              sourceUrl: {
+              source_url: {
                 contains: normalizedSearch,
               },
             },
@@ -401,7 +401,7 @@ function buildInventoryWhere(scope, search) {
                       },
                     },
                     {
-                      contentMd: {
+                      content_md: {
                         contains: normalizedSearch,
                       },
                     },
@@ -430,30 +430,30 @@ const postInventoryInclude = Object.freeze({
       fetchedArticle: {
         select: {
           id: true,
-          publishedAt: true,
-          sourceName: true,
-          sourceUrl: true,
+          published_at: true,
+          source_name: true,
+          source_url: true,
           summary: true,
           title: true,
         },
       },
       publishAttempts: {
         orderBy: {
-          createdAt: "desc",
+          created_at: "desc",
         },
         select: {
-          completedAt: true,
-          createdAt: true,
-          diagnosticsJson: true,
-          errorCode: true,
-          errorMessage: true,
+          completed_at: true,
+          created_at: true,
+          diagnostics_json: true,
+          last_error_code: true,
+          last_error_message: true,
           id: true,
           platform: true,
-          publishedAt: true,
-          queuedAt: true,
-          remoteId: true,
+          published_at: true,
+          queued_at: true,
+          remote_id: true,
           retryable: true,
-          retryCount: true,
+          retry_count: true,
           status: true,
         },
         take: 6,
@@ -469,7 +469,7 @@ const postInventoryInclude = Object.freeze({
       },
     },
     orderBy: {
-      createdAt: "desc",
+      created_at: "desc",
     },
   },
   categories: {
@@ -494,33 +494,33 @@ const postInventoryInclude = Object.freeze({
       caption: true,
       height: true,
       id: true,
-      publicUrl: true,
-      sourceUrl: true,
+      public_url: true,
+      source_url: true,
       width: true,
     },
   },
   sourceArticle: {
     select: {
-      imageUrl: true,
+      image_url: true,
     },
   },
   publishAttempts: {
     orderBy: {
-      createdAt: "desc",
+      created_at: "desc",
     },
     select: {
-      completedAt: true,
-      createdAt: true,
-      diagnosticsJson: true,
-      errorCode: true,
-      errorMessage: true,
+      completed_at: true,
+      created_at: true,
+      diagnostics_json: true,
+      last_error_code: true,
+      last_error_message: true,
       id: true,
       platform: true,
-      publishedAt: true,
-      queuedAt: true,
-      remoteId: true,
+      published_at: true,
+      queued_at: true,
+      remote_id: true,
       retryable: true,
-      retryCount: true,
+      retry_count: true,
       status: true,
     },
     take: 10,
@@ -541,26 +541,26 @@ function mapEditorTranslation(translation) {
   }
 
   return {
-    contentHtml: translation.contentHtml,
-    contentMd: translation.contentMd,
+    content_html: translation.content_html,
+    content_md: translation.content_md,
     id: translation.id,
     locale: translation.locale,
     seo: translation.seoRecord
       ? {
-          canonicalUrl: translation.seoRecord.canonicalUrl,
-          keywords: Array.isArray(translation.seoRecord.keywordsJson)
-            ? translation.seoRecord.keywordsJson
+          canonical_url: translation.seoRecord.canonical_url,
+          keywords: Array.isArray(translation.seoRecord.keywords_json)
+            ? translation.seoRecord.keywords_json
             : [],
-          metaDescription: translation.seoRecord.metaDescription,
-          metaTitle: translation.seoRecord.metaTitle,
+          meta_description: translation.seoRecord.meta_description,
+          meta_title: translation.seoRecord.meta_title,
           noindex: Boolean(translation.seoRecord.noindex),
         }
       : null,
-    sourceAttribution: translation.sourceAttribution,
-    structuredContentJson: translation.structuredContentJson,
+    source_attribution: translation.source_attribution,
+    structured_content_json: translation.structured_content_json,
     summary: translation.summary,
     title: translation.title,
-    updatedAt: serializeDate(translation.updatedAt),
+    updated_at: serializeDate(translation.updated_at),
   };
 }
 
@@ -577,121 +577,121 @@ async function rebuildTranslationArtifacts(db, post, locale, nextCategoryIds, ov
   const currentTranslation = pickTranslation(post.translations, locale) || null;
   const title = trimText(overrides.title) || currentTranslation?.title || post.slug;
   const summary = trimText(overrides.summary) || currentTranslation?.summary || post.excerpt || title;
-  const body = trimText(overrides.contentMd) || currentTranslation?.contentMd || summary;
+  const body = trimText(overrides.content_md) || currentTranslation?.content_md || summary;
   const article = buildStoryStructuredArticle({
     body,
     categoryNames: categories.map((category) => category.name),
-    sourceName: post.sourceName,
-    sourceUrl: post.sourceUrl,
+    source_name: post.source_name,
+    source_url: post.source_url,
     summary,
     title,
   });
 
   const translation = await db.postTranslation.upsert({
     where: {
-      postId_locale: {
+      post_id_locale: {
         locale,
-        postId: post.id,
+        post_id: post.id,
       },
     },
     update: {
-      contentHtml: article.contentHtml,
-      contentMd: body,
-      sourceAttribution: `Source: ${post.sourceName} - ${post.sourceUrl}`,
-      structuredContentJson: article.article,
+      content_html: article.content_html,
+      content_md: body,
+      source_attribution: `Source: ${post.source_name} - ${post.source_url}`,
+      structured_content_json: article.article,
       summary,
       title,
     },
     create: {
-      contentHtml: article.contentHtml,
-      contentMd: body,
+      content_html: article.content_html,
+      content_md: body,
       locale,
-      postId: post.id,
-      sourceAttribution: `Source: ${post.sourceName} - ${post.sourceUrl}`,
-      structuredContentJson: article.article,
+      post_id: post.id,
+      source_attribution: `Source: ${post.source_name} - ${post.source_url}`,
+      structured_content_json: article.article,
       summary,
       title,
     },
   });
-  const canonicalUrl = buildLocalizedPath(locale, publicRouteSegments.newsPost(post.slug));
+  const canonical_url = buildLocalizedPath(locale, publicRouteSegments.newsPost(post.slug));
 
   await db.sEORecord.upsert({
     where: {
-      postTranslationId: translation.id,
+      post_translation_id: translation.id,
     },
     update: {
-      authorsJson: ["NewsPub Editorial"],
-      canonicalUrl,
-      keywordsJson: dedupeStrings([
-        post.sourceName,
+      authors_json: ["NewsPub Editorial"],
+      canonical_url,
+      keywords_json: dedupeStrings([
+        post.source_name,
         ...categories.map((category) => category.name),
       ]),
-      metaDescription: summary,
-      metaTitle: title,
-      ogDescription: summary,
-      ogImageId: post.featuredImageId || null,
-      ogTitle: title,
-      twitterDescription: summary,
-      twitterTitle: title,
+      meta_description: summary,
+      meta_title: title,
+      og_description: summary,
+      og_image_id: post.featured_image_id || null,
+      og_title: title,
+      twitter_description: summary,
+      twitter_title: title,
     },
     create: {
-      authorsJson: ["NewsPub Editorial"],
-      canonicalUrl,
-      keywordsJson: dedupeStrings([
-        post.sourceName,
+      authors_json: ["NewsPub Editorial"],
+      canonical_url,
+      keywords_json: dedupeStrings([
+        post.source_name,
         ...categories.map((category) => category.name),
       ]),
-      metaDescription: summary,
-      metaTitle: title,
-      ogDescription: summary,
-      ogImageId: post.featuredImageId || null,
-      ogTitle: title,
-      postTranslationId: translation.id,
-      twitterDescription: summary,
-      twitterTitle: title,
+      meta_description: summary,
+      meta_title: title,
+      og_description: summary,
+      og_image_id: post.featured_image_id || null,
+      og_title: title,
+      post_translation_id: translation.id,
+      twitter_description: summary,
+      twitter_title: title,
     },
   });
 }
 
-async function syncPostCategories(db, postId, categoryIds) {
+async function syncPostCategories(db, post_id, categoryIds) {
   await db.postCategory.deleteMany({
     where: {
-      postId,
+      post_id,
     },
   });
 
-  for (const categoryId of categoryIds) {
+  for (const category_id of categoryIds) {
     await db.postCategory.create({
       data: {
-        categoryId,
-        postId,
+        category_id,
+        post_id,
       },
     });
   }
 }
 
-async function invalidateLinkedArticleMatchOptimizations(db, postId) {
+async function invalidateLinkedArticleMatchOptimizations(db, post_id) {
   if (typeof db.articleMatch?.updateMany !== "function") {
     return;
   }
 
   await db.articleMatch.updateMany({
     data: {
-      banRiskScore: null,
-      holdReasonsJson: [],
-      lastOptimizedAt: null,
-      optimizationCacheId: null,
-      optimizationHash: null,
-      optimizationStatus: "NOT_REQUESTED",
-      optimizedPayloadJson: null,
-      policyReasonsJson: null,
-      policyStatus: "PASS",
-      readinessChecksJson: null,
+      ban_risk_score: null,
+      hold_reasons_json: [],
+      last_optimized_at: null,
+      optimization_cache_id: null,
+      optimization_hash: null,
+      optimization_status: "NOT_REQUESTED",
+      optimized_payload_json: null,
+      policy_reasons_json: null,
+      policy_status: "PASS",
+      readiness_checks_json: null,
       status: "ELIGIBLE",
-      workflowStage: "INGESTED",
+      workflow_stage: "INGESTED",
     },
     where: {
-      canonicalPostId: postId,
+      canonical_post_id: post_id,
       status: {
         not: "PUBLISHED",
       },
@@ -699,9 +699,9 @@ async function invalidateLinkedArticleMatchOptimizations(db, postId) {
   });
 }
 
-function selectPublishableArticleMatch(post, articleMatchId = null) {
-  if (articleMatchId) {
-    return post.articleMatches.find((match) => match.id === articleMatchId) || null;
+function selectPublishableArticleMatch(post, article_match_id = null) {
+  if (article_match_id) {
+    return post.articleMatches.find((match) => match.id === article_match_id) || null;
   }
 
   return (
@@ -717,9 +717,9 @@ function selectPublishableArticleMatch(post, articleMatchId = null) {
   );
 }
 
-function selectRepostableArticleMatch(post, articleMatchId = null) {
-  if (articleMatchId) {
-    return post.articleMatches.find((match) => match.id === articleMatchId) || null;
+function selectRepostableArticleMatch(post, article_match_id = null) {
+  if (article_match_id) {
+    return post.articleMatches.find((match) => match.id === article_match_id) || null;
   }
 
   return (
@@ -735,7 +735,7 @@ async function listWebsitePublishingStreams(db) {
       activeProvider: {
         select: {
           id: true,
-          providerKey: true,
+          provider_key: true,
         },
       },
       defaultTemplate: {
@@ -770,7 +770,7 @@ async function listWebsitePublishingStreams(db) {
     }));
 }
 
-async function resolveManualPostWebsiteStream(db, streamId = null) {
+async function resolveManualPostWebsiteStream(db, stream_id = null) {
   const websiteStreams = await listWebsitePublishingStreams(db);
 
   if (!websiteStreams.length) {
@@ -780,8 +780,8 @@ async function resolveManualPostWebsiteStream(db, streamId = null) {
     });
   }
 
-  const selectedStream = streamId
-    ? websiteStreams.find((stream) => stream.id === streamId) || null
+  const selectedStream = stream_id
+    ? websiteStreams.find((stream) => stream.id === stream_id) || null
     : websiteStreams.find((stream) => !stream.validationIssues.length && stream.status === "ACTIVE")
       || websiteStreams.find((stream) => !stream.validationIssues.length)
       || null;
@@ -835,12 +835,12 @@ export async function getPostInventorySnapshot(options = {}, prisma) {
   const pagination = createPagination(totalItems, paginationPage);
   const posts = await db.post.findMany({
     include: postInventoryInclude,
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ published_at: "desc" }, { updated_at: "desc" }, { created_at: "desc" }],
     skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
     take: pagination.pageSize,
     where,
   });
-  const [reviewCount, publishedCount, scheduledCount, archivedCount] = await Promise.all([
+  const [reviewCount, published_count, scheduledCount, archivedCount] = await Promise.all([
     db.post.count({
       where: {
         status: {
@@ -871,10 +871,10 @@ export async function getPostInventorySnapshot(options = {}, prisma) {
     scope,
     summary: {
       archivedCount,
-      publishedCount,
+      published_count,
       reviewCount,
       scheduledCount,
-      totalCount: reviewCount + publishedCount + archivedCount,
+      totalCount: reviewCount + published_count + archivedCount,
     },
   };
 }
@@ -910,7 +910,7 @@ export async function getManualPostCreationSnapshot({ locale = defaultLocale } =
 }
 
 /** Returns the editor payload for one canonical post and one active locale. */
-export async function getPostEditorSnapshot({ locale = defaultLocale, postId } = {}, prisma) {
+export async function getPostEditorSnapshot({ locale = defaultLocale, post_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const post = await db.post.findUnique({
     include: {
@@ -920,23 +920,23 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
           author: true,
           body: true,
           id: true,
-          imageUrl: true,
+          image_url: true,
           language: true,
-          providerArticleId: true,
-          providerCategoriesJson: true,
-          providerCountriesJson: true,
-          providerRegionsJson: true,
-          publishedAt: true,
-          sourceName: true,
-          sourceUrl: true,
+          provider_article_id: true,
+          provider_categories_json: true,
+          provider_countries_json: true,
+          provider_regions_json: true,
+          published_at: true,
+          source_name: true,
+          source_url: true,
           summary: true,
-          tagsJson: true,
+          tags_json: true,
           title: true,
         },
       },
     },
     where: {
-      id: postId,
+      id: post_id,
     },
   });
 
@@ -960,20 +960,20 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
     }),
     typeof db.auditEvent?.findMany === "function"
       ? db.auditEvent.findMany({
-          orderBy: [{ createdAt: "desc" }],
+          orderBy: [{ created_at: "desc" }],
           take: 12,
           where: {
             OR: [
               {
-                entityId: post.id,
+                entity_id: post.id,
               },
               {
-                entityId: {
+                entity_id: {
                   in: post.articleMatches.map((match) => match.id),
                 },
               },
               {
-                entityId: {
+                entity_id: {
                   in: (post.publishAttempts || []).map((attempt) => attempt.id),
                 },
               },
@@ -991,41 +991,41 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
     post: {
       articleMatches: (post.articleMatches || []).map(mapArticleMatch),
       categories: (post.categories || []).map(({ category }) => mapCategory(category, locale)),
-      editorialStage: post.editorialStage,
+      editorial_stage: post.editorial_stage,
       excerpt: post.excerpt,
       featuredImage: mapPostImage(post, activeTranslation?.title || post.slug),
       id: post.id,
-      providerKey: post.providerKey,
-      publishedAt: serializeDate(post.publishedAt),
-      scheduledPublishAt: serializeDate(post.scheduledPublishAt),
+      provider_key: post.provider_key,
+      published_at: serializeDate(post.published_at),
+      scheduled_publish_at: serializeDate(post.scheduled_publish_at),
       slug: post.slug,
       sourceArticle: post.sourceArticle
         ? {
             author: post.sourceArticle.author || null,
             body: post.sourceArticle.body || null,
             id: post.sourceArticle.id,
-            imageUrl: post.sourceArticle.imageUrl || null,
+            image_url: post.sourceArticle.image_url || null,
             language: post.sourceArticle.language || null,
-            providerArticleId: post.sourceArticle.providerArticleId || null,
-            providerCategories: Array.isArray(post.sourceArticle.providerCategoriesJson)
-              ? post.sourceArticle.providerCategoriesJson
+            provider_article_id: post.sourceArticle.provider_article_id || null,
+            providerCategories: Array.isArray(post.sourceArticle.provider_categories_json)
+              ? post.sourceArticle.provider_categories_json
               : [],
-            providerCountries: Array.isArray(post.sourceArticle.providerCountriesJson)
-              ? post.sourceArticle.providerCountriesJson
+            providerCountries: Array.isArray(post.sourceArticle.provider_countries_json)
+              ? post.sourceArticle.provider_countries_json
               : [],
-            providerRegions: Array.isArray(post.sourceArticle.providerRegionsJson)
-              ? post.sourceArticle.providerRegionsJson
+            providerRegions: Array.isArray(post.sourceArticle.provider_regions_json)
+              ? post.sourceArticle.provider_regions_json
               : [],
-            publishedAt: serializeDate(post.sourceArticle.publishedAt),
-            sourceName: post.sourceArticle.sourceName,
-            sourceUrl: post.sourceArticle.sourceUrl,
+            published_at: serializeDate(post.sourceArticle.published_at),
+            source_name: post.sourceArticle.source_name,
+            source_url: post.sourceArticle.source_url,
             summary: post.sourceArticle.summary || null,
-            tags: Array.isArray(post.sourceArticle.tagsJson) ? post.sourceArticle.tagsJson : [],
+            tags: Array.isArray(post.sourceArticle.tags_json) ? post.sourceArticle.tags_json : [],
             title: post.sourceArticle.title,
           }
         : null,
-      sourceName: post.sourceName,
-      sourceUrl: post.sourceUrl,
+      source_name: post.source_name,
+      source_url: post.source_url,
       status: post.status,
       translations: post.translations.map(mapEditorTranslation),
       websitePath: buildLocalizedPath(
@@ -1041,25 +1041,25 @@ export async function getPostEditorSnapshot({ locale = defaultLocale, postId } =
  * Creates a manual NewsPub canonical post and routes it through the normal workflow.
  */
 
-export async function createManualPostRecord(input = {}, { actorId = null } = {}, prisma) {
+export async function createManualPostRecord(input = {}, { actor_id = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const action = trimText(input.action).toLowerCase();
   const requestedStatus = trimText(input.status).toUpperCase();
   const shouldSchedule = requestedStatus === "SCHEDULED" || action === "schedule";
   const shouldPublish = requestedStatus === "PUBLISHED" || shouldSchedule || action === "publish";
-  const stream = await resolveManualPostWebsiteStream(db, trimText(input.streamId) || null);
+  const stream = await resolveManualPostWebsiteStream(db, trimText(input.stream_id) || null);
   const locale = trimText(input.locale).toLowerCase() || trimText(stream.locale).toLowerCase() || defaultLocale;
   const title = trimText(input.title);
-  const sourceName = trimText(input.sourceName);
-  const sourceUrl = trimText(input.sourceUrl);
+  const source_name = trimText(input.source_name);
+  const source_url = trimText(input.source_url);
   const summary = trimText(input.summary) || title;
-  const contentMd = trimText(input.contentMd) || summary || title;
+  const content_md = trimText(input.content_md) || summary || title;
   const publishAt = parsePublishAt(input.publishAt);
   const nextCategoryIds = Array.isArray(input.categoryIds)
     ? dedupeStrings(input.categoryIds).filter(Boolean)
     : [];
 
-  if (!title || !sourceName || !sourceUrl) {
+  if (!title || !source_name || !source_url) {
     throw new NewsPubError("Title, source name, and source URL are required for manual stories.", {
       status: "manual_post_validation_failed",
       statusCode: 400,
@@ -1074,50 +1074,50 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
   }
 
   const slug = await createUniquePostSlug(db, input.slug || title);
-  const createdAt = new Date();
+  const created_at = new Date();
   const fingerprint = createContentHash(
     "manual_post",
     slug,
-    sourceUrl,
-    actorId || "",
-    createdAt.toISOString(),
+    source_url,
+    actor_id || "",
+    created_at.toISOString(),
   );
   const sourceArticle = await db.fetchedArticle.create({
     data: {
-      body: contentMd,
-      dedupeFingerprint: fingerprint,
-      imageUrl: null,
+      body: content_md,
+      dedupe_fingerprint: fingerprint,
+      image_url: null,
       language: locale,
-      normalizedTitleHash: createContentHash(title),
-      providerArticleId: `manual-${fingerprint.slice(0, 24)}`,
-      providerCategoriesJson: [],
-      providerConfigId: stream.activeProvider.id,
-      providerCountriesJson: [],
-      providerRegionsJson: [],
-      publishedAt: createdAt,
-      rawPayloadJson: {
-        createdBy: actorId,
+      normalized_title_hash: createContentHash(title),
+      provider_article_id: `manual-${fingerprint.slice(0, 24)}`,
+      provider_categories_json: [],
+      provider_config_id: stream.activeProvider.id,
+      provider_countries_json: [],
+      provider_regions_json: [],
+      published_at: created_at,
+      raw_payload_json: {
+        createdBy: actor_id,
         manualEntry: true,
-        streamId: stream.id,
+        stream_id: stream.id,
       },
-      sourceName,
-      sourceUrl,
-      sourceUrlHash: createContentHash(sourceUrl),
+      source_name,
+      source_url,
+      source_url_hash: createContentHash(source_url),
       summary,
-      tagsJson: [],
+      tags_json: [],
       title,
     },
   });
   const post = await db.post.create({
     data: {
-      authorId: actorId || null,
-      canonicalContentHash: createContentHash(title, summary, contentMd, sourceUrl),
+      author_id: actor_id || null,
+      canonical_content_hash: createContentHash(title, summary, content_md, source_url),
       excerpt: summary,
-      providerKey: manualProviderKey,
+      provider_key: manualProviderKey,
       slug,
-      sourceArticleId: sourceArticle.id,
-      sourceName,
-      sourceUrl,
+      source_article_id: sourceArticle.id,
+      source_name,
+      source_url,
       status: "DRAFT",
     },
   });
@@ -1132,7 +1132,7 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
     locale,
     nextCategoryIds,
     {
-      contentMd,
+      content_md,
       summary,
       title,
     },
@@ -1140,27 +1140,27 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
 
   const articleMatch = await db.articleMatch.create({
     data: {
-      canonicalPostId: post.id,
-      destinationId: stream.destinationId,
-      fetchedArticleId: sourceArticle.id,
-      holdReasonsJson: shouldPublish ? [] : ["manual_story_pending_editorial_review"],
-      overrideNotes: "Created manually from the admin story form.",
+      canonical_post_id: post.id,
+      destination_id: stream.destination_id,
+      fetched_article_id: sourceArticle.id,
+      hold_reasons_json: shouldPublish ? [] : ["manual_story_pending_editorial_review"],
+      override_notes: "Created manually from the admin story form.",
       status: shouldPublish ? "ELIGIBLE" : "HELD_FOR_REVIEW",
-      streamId: stream.id,
+      stream_id: stream.id,
     },
   });
 
   await createAuditEventRecord(
     {
       action: "MANUAL_POST_CREATED",
-      actorId,
-      entityId: post.id,
-      entityType: "post",
-      payloadJson: {
-        destinationId: stream.destinationId,
+      actor_id,
+      entity_id: post.id,
+      entity_type: "post",
+      payload_json: {
+        destination_id: stream.destination_id,
         locale,
-        sourceArticleId: sourceArticle.id,
-        streamId: stream.id,
+        source_article_id: sourceArticle.id,
+        stream_id: stream.id,
       },
     },
     db,
@@ -1172,12 +1172,12 @@ export async function createManualPostRecord(input = {}, { actorId = null } = {}
 
   return {
     locale,
-    postId: post.id,
+    post_id: post.id,
   };
 }
 
 /** Applies editorial updates and optionally publishes or schedules the linked article match. */
-export async function updatePostEditorialRecord(input = {}, { actorId = null } = {}, prisma) {
+export async function updatePostEditorialRecord(input = {}, { actor_id = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const locale = trimText(input.locale).toLowerCase() || defaultLocale;
   const action = trimText(input.action).toLowerCase();
@@ -1189,18 +1189,18 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
           stream: true,
         },
         orderBy: {
-          createdAt: "desc",
+          created_at: "desc",
         },
       },
       categories: {
         select: {
-          categoryId: true,
+          category_id: true,
         },
       },
       translations: true,
     },
     where: {
-      id: input.postId,
+      id: input.post_id,
     },
   });
 
@@ -1213,7 +1213,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
 
   const nextCategoryIds = Array.isArray(input.categoryIds)
     ? dedupeStrings(input.categoryIds).filter(Boolean)
-    : post.categories.map((entry) => entry.categoryId);
+    : post.categories.map((entry) => entry.category_id);
   const nextSlug = input.slug ? await createUniquePostSlug(db, input.slug, post.id) : post.slug;
   const requestedStatus = trimText(input.status).toUpperCase();
   const publishAt = parsePublishAt(input.publishAt);
@@ -1229,7 +1229,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     input.slug !== undefined ||
     input.title !== undefined ||
     input.summary !== undefined ||
-    input.contentMd !== undefined ||
+    input.content_md !== undefined ||
     Array.isArray(input.categoryIds);
 
   if (shouldSchedule && (!publishAt || publishAt <= new Date())) {
@@ -1244,15 +1244,15 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
       id: post.id,
     },
     data: {
-      editorialStage:
-        editorialStageOrder.includes(trimText(input.editorialStage).toUpperCase())
-          ? trimText(input.editorialStage).toUpperCase()
-          : post.editorialStage,
+      editorial_stage:
+        editorialStageOrder.includes(trimText(input.editorial_stage).toUpperCase())
+          ? trimText(input.editorial_stage).toUpperCase()
+          : post.editorial_stage,
       excerpt: trimText(input.summary) || post.excerpt,
       slug: nextSlug,
       ...(requestedStatus === "ARCHIVED"
         ? {
-            publishedAt: post.publishedAt,
+            published_at: post.published_at,
             status: "ARCHIVED",
           }
         : requestedStatus === "DRAFT"
@@ -1273,7 +1273,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     locale,
     nextCategoryIds,
     {
-      contentMd: input.contentMd,
+      content_md: input.content_md,
       summary: input.summary,
       title: input.title,
     },
@@ -1284,11 +1284,11 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
       id: post.id,
     },
     data: {
-      canonicalContentHash: createContentHash(
+      canonical_content_hash: createContentHash(
         trimText(input.title) || selectTranslation(post, locale)?.title || post.slug,
         trimText(input.summary) || post.excerpt,
-        trimText(input.contentMd) || selectTranslation(post, locale)?.contentMd || post.excerpt,
-        post.sourceUrl,
+        trimText(input.content_md) || selectTranslation(post, locale)?.content_md || post.excerpt,
+        post.source_url,
       ),
     },
   });
@@ -1300,11 +1300,11 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
   await createAuditEventRecord(
     {
       action: "POST_EDITOR_UPDATED",
-      actorId,
-      entityId: post.id,
-      entityType: "post",
-      payloadJson: {
-        editorialStage: trimText(input.editorialStage).toUpperCase() || post.editorialStage,
+      actor_id,
+      entity_id: post.id,
+      entity_type: "post",
+      payload_json: {
+        editorial_stage: trimText(input.editorial_stage).toUpperCase() || post.editorial_stage,
         locale,
         slug: nextSlug,
         status: requestedStatus || post.status,
@@ -1313,7 +1313,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
     db,
   );
 
-  const targetArticleMatch = selectPublishableArticleMatch(post, input.articleMatchId);
+  const targetArticleMatch = selectPublishableArticleMatch(post, input.article_match_id);
 
   if (shouldReject) {
     if (!targetArticleMatch) {
@@ -1328,10 +1328,10 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
         id: targetArticleMatch.id,
       },
       data: {
-        holdReasonsJson: dedupeStrings(["rejected_by_editor"]),
-        reviewNotes: "Rejected during editor review.",
+        hold_reasons_json: dedupeStrings(["rejected_by_editor"]),
+        review_notes: "Rejected during editor review.",
         status: "HELD_FOR_REVIEW",
-        workflowStage: "HELD",
+        workflow_stage: "HELD",
       },
     });
   }
@@ -1355,7 +1355,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
       });
     }
 
-    if (targetArticleMatch.policyStatus === "BLOCK") {
+    if (targetArticleMatch.policy_status === "BLOCK") {
       throw new NewsPubError("Blocked policy findings must be fixed or re-optimized before approval.", {
         status: "article_match_policy_blocked",
         statusCode: 400,
@@ -1367,10 +1367,10 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
         id: targetArticleMatch.id,
       },
       data: {
-        holdReasonsJson: [],
-        reviewNotes: "Approved during editor review.",
+        hold_reasons_json: [],
+        review_notes: "Approved during editor review.",
         status: "ELIGIBLE",
-        workflowStage: "APPROVED",
+        workflow_stage: "APPROVED",
       },
     });
   }
@@ -1384,7 +1384,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
             stream: true,
           },
           orderBy: {
-            createdAt: "desc",
+            created_at: "desc",
           },
         },
       },
@@ -1392,7 +1392,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
         id: post.id,
       },
     });
-    const articleMatch = selectPublishableArticleMatch(refreshedPost, input.articleMatchId);
+    const articleMatch = selectPublishableArticleMatch(refreshedPost, input.article_match_id);
 
     if (!articleMatch) {
       throw new NewsPubError(
@@ -1414,7 +1414,7 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
   return getPostEditorSnapshot(
     {
       locale,
-      postId: post.id,
+      post_id: post.id,
     },
     db,
   );
@@ -1423,10 +1423,10 @@ export async function updatePostEditorialRecord(input = {}, { actorId = null } =
  * Creates a repost request for an existing NewsPub canonical post.
  */
 
-export async function repostPostRecord(input = {}, { actorId = null } = {}, prisma) {
+export async function repostPostRecord(input = {}, { actor_id = null } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const postId = trimText(input.postId);
-  const articleMatchId = trimText(input.articleMatchId) || null;
+  const post_id = trimText(input.post_id);
+  const article_match_id = trimText(input.article_match_id) || null;
   const post = await db.post.findUnique({
     include: {
       articleMatches: {
@@ -1435,12 +1435,12 @@ export async function repostPostRecord(input = {}, { actorId = null } = {}, pris
           stream: true,
         },
         orderBy: {
-          createdAt: "desc",
+          created_at: "desc",
         },
       },
     },
     where: {
-      id: postId,
+      id: post_id,
     },
   });
 
@@ -1451,7 +1451,7 @@ export async function repostPostRecord(input = {}, { actorId = null } = {}, pris
     });
   }
 
-  const articleMatch = selectRepostableArticleMatch(post, articleMatchId);
+  const articleMatch = selectRepostableArticleMatch(post, article_match_id);
 
   if (!articleMatch) {
     throw new NewsPubError(
@@ -1463,12 +1463,12 @@ export async function repostPostRecord(input = {}, { actorId = null } = {}, pris
     );
   }
 
-  const publishAttempt = await manualRepostArticleMatch(articleMatch.id, { actorId }, db);
+  const publishAttempt = await manualRepostArticleMatch(articleMatch.id, { actor_id }, db);
 
   return {
-    articleMatchId: articleMatch.id,
+    article_match_id: articleMatch.id,
     attemptId: publishAttempt.id,
-    postId: post.id,
+    post_id: post.id,
   };
 }
 
@@ -1485,7 +1485,7 @@ export async function getPublishedPostTranslationBySlug({ locale = defaultLocale
       featuredImage: true,
       sourceArticle: {
         select: {
-          imageUrl: true,
+          image_url: true,
         },
       },
       publishAttempts: {
@@ -1528,23 +1528,23 @@ export async function getPublishedPostTranslationBySlug({ locale = defaultLocale
     id: post.id,
     locale: translation.locale,
     path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
-    postId: post.id,
-    publishedAt: serializeDate(post.publishedAt),
+    post_id: post.id,
+    published_at: serializeDate(post.published_at),
     seo: translation.seoRecord
       ? {
-          canonicalUrl: translation.seoRecord.canonicalUrl,
-          keywords: Array.isArray(translation.seoRecord.keywordsJson)
-            ? translation.seoRecord.keywordsJson
+          canonical_url: translation.seoRecord.canonical_url,
+          keywords: Array.isArray(translation.seoRecord.keywords_json)
+            ? translation.seoRecord.keywords_json
             : [],
-          metaDescription: translation.seoRecord.metaDescription,
-          metaTitle: translation.seoRecord.metaTitle,
+          meta_description: translation.seoRecord.meta_description,
+          meta_title: translation.seoRecord.meta_title,
         }
       : null,
     slug: post.slug,
-    sourceAttribution: translation.sourceAttribution,
-    sourceName: post.sourceName,
-    sourceUrl: post.sourceUrl,
-    structuredContentJson: translation.structuredContentJson,
+    source_attribution: translation.source_attribution,
+    source_name: post.source_name,
+    source_url: post.source_url,
+    structured_content_json: translation.structured_content_json,
     summary: translation.summary,
     title: translation.title,
   };

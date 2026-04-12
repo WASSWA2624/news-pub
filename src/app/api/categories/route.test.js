@@ -98,7 +98,7 @@ describe("categories api route", () => {
         slug: "business",
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
   });

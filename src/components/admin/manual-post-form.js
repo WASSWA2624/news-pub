@@ -46,17 +46,17 @@ function isFuturePublishAt(value) {
 }
 
 function buildManualPostValidationState({
-  contentMd,
+  content_md,
   publishAt,
-  sourceName,
-  sourceUrl,
-  streamId,
+  source_name,
+  source_url,
+  stream_id,
   submitIntent,
   title,
 }) {
-  const routingMissingCount = streamId ? 0 : 1;
-  const sourceMissingCount = [sourceName, sourceUrl].filter((value) => !normalizeText(value)).length;
-  const copyMissingCount = [title, contentMd].filter((value) => !normalizeText(value)).length;
+  const routingMissingCount = stream_id ? 0 : 1;
+  const sourceMissingCount = [source_name, source_url].filter((value) => !normalizeText(value)).length;
+  const copyMissingCount = [title, content_md].filter((value) => !normalizeText(value)).length;
   const publishingMessages = [];
 
   if (submitIntent === "schedule" && !isFuturePublishAt(publishAt)) {
@@ -102,12 +102,12 @@ export default function ManualPostForm({
 }) {
   const formId = useId();
   const formRef = useRef(null);
-  const [streamId, setStreamId] = useState(defaultStreamId || "");
-  const [sourceName, setSourceName] = useState("NewsPub Editorial");
-  const [sourceUrl, setSourceUrl] = useState("");
+  const [stream_id, setStreamId] = useState(defaultStreamId || "");
+  const [source_name, setSourceName] = useState("NewsPub Editorial");
+  const [source_url, setSourceUrl] = useState("");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
-  const [contentMd, setContentMd] = useState("");
+  const [content_md, setContentMd] = useState("");
   const [slug, setSlug] = useState("");
   const [publishAt, setPublishAt] = useState("");
   const [categoryIds, setCategoryIds] = useState([]);
@@ -116,15 +116,15 @@ export default function ManualPostForm({
   const validationState = useMemo(
     () =>
       buildManualPostValidationState({
-        contentMd,
+        content_md,
         publishAt,
-        sourceName,
-        sourceUrl,
-        streamId,
+        source_name,
+        source_url,
+        stream_id,
         submitIntent,
         title,
       }),
-    [contentMd, publishAt, sourceName, sourceUrl, streamId, submitIntent, title],
+    [content_md, publishAt, source_name, source_url, stream_id, submitIntent, title],
   );
   const showValidationState = hasAttemptedSubmit;
 
@@ -133,11 +133,11 @@ export default function ManualPostForm({
     const formElement = formRef.current;
     const hasHtmlValidationIssues = !(formElement?.checkValidity?.() ?? true);
     const nextValidationState = buildManualPostValidationState({
-      contentMd,
+      content_md,
       publishAt,
-      sourceName,
-      sourceUrl,
-      streamId,
+      source_name,
+      source_url,
+      stream_id,
       submitIntent: nextSubmitIntent,
       title,
     });
@@ -163,13 +163,13 @@ export default function ManualPostForm({
 
       <AdminDisclosureGroup>
         <AdminDisclosureSection
-          completionLabel={streamId ? "Routing ready" : ""}
+          completionLabel={stream_id ? "Routing ready" : ""}
           defaultOpen
           missingCount={showValidationState ? validationState.sections.routing.missingCount : 0}
           meta={[
             {
-              label: streamId ? "Stream ready" : "Pick stream",
-              tone: streamId ? "success" : "warning",
+              label: stream_id ? "Stream ready" : "Pick stream",
+              tone: stream_id ? "success" : "warning",
             },
           ]}
           summary="Choose the website stream and optional slug that should own the manual story."
@@ -181,11 +181,11 @@ export default function ManualPostForm({
               <SearchableSelect
                 ariaLabel="Website stream"
                 invalid={showValidationState && validationState.sections.routing.missingCount > 0}
-                name="streamId"
+                name="stream_id"
                 onChange={(value) => setStreamId(`${value || ""}`)}
                 options={streamOptions}
                 placeholder="Select a website stream"
-                value={streamId}
+                value={stream_id}
               />
             </Field>
             <Field>
@@ -201,7 +201,7 @@ export default function ManualPostForm({
         </AdminDisclosureSection>
 
         <AdminDisclosureSection
-          completionLabel={normalizeText(sourceName) && normalizeText(sourceUrl) ? "Attribution ready" : ""}
+          completionLabel={normalizeText(source_name) && normalizeText(source_url) ? "Attribution ready" : ""}
           defaultOpen={false}
           missingCount={showValidationState ? validationState.sections.source.missingCount : 0}
           meta={[{ label: "Required attribution", tone: "muted" }]}
@@ -212,30 +212,30 @@ export default function ManualPostForm({
             <Field>
               <FieldLabel>Source name</FieldLabel>
               <Input
-                aria-invalid={showValidationState && !normalizeText(sourceName) ? "true" : undefined}
-                name="sourceName"
+                aria-invalid={showValidationState && !normalizeText(source_name) ? "true" : undefined}
+                name="source_name"
                 onChange={(event) => setSourceName(event.target.value)}
                 required
-                value={sourceName}
+                value={source_name}
               />
             </Field>
             <Field>
               <FieldLabel>Source URL</FieldLabel>
               <Input
-                aria-invalid={showValidationState && !normalizeText(sourceUrl) ? "true" : undefined}
-                name="sourceUrl"
+                aria-invalid={showValidationState && !normalizeText(source_url) ? "true" : undefined}
+                name="source_url"
                 onChange={(event) => setSourceUrl(event.target.value)}
                 placeholder="https://example.com/source-story"
                 required
                 type="url"
-                value={sourceUrl}
+                value={source_url}
               />
             </Field>
           </FieldGrid>
         </AdminDisclosureSection>
 
         <AdminDisclosureSection
-          completionLabel={normalizeText(title) && normalizeText(contentMd) ? "Copy ready" : ""}
+          completionLabel={normalizeText(title) && normalizeText(content_md) ? "Copy ready" : ""}
           defaultOpen
           missingCount={showValidationState ? validationState.sections.storyCopy.missingCount : 0}
           meta={[{ label: "Editorial draft", tone: "accent" }]}
@@ -264,12 +264,12 @@ export default function ManualPostForm({
           <Field>
             <FieldLabel>Body markdown</FieldLabel>
             <Textarea
-              aria-invalid={showValidationState && !normalizeText(contentMd) ? "true" : undefined}
-              name="contentMd"
+              aria-invalid={showValidationState && !normalizeText(content_md) ? "true" : undefined}
+              name="content_md"
               onChange={(event) => setContentMd(event.target.value)}
               required
               style={{ minHeight: "320px" }}
-              value={contentMd}
+              value={content_md}
             />
           </Field>
         </AdminDisclosureSection>

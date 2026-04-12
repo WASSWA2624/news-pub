@@ -44,11 +44,11 @@ function createPrismaStub(overrides = {}) {
     post: {
       create: vi.fn().mockResolvedValue({
         excerpt: "Manual summary",
-        featuredImageId: null,
+        featured_image_id: null,
         id: "post_1",
         slug: "manual-story",
-        sourceName: "NewsPub Editorial",
-        sourceUrl: "https://example.com/source-story",
+        source_name: "NewsPub Editorial",
+        source_url: "https://example.com/source-story",
       }),
       findUnique: vi.fn().mockResolvedValue(null),
       update: vi.fn().mockResolvedValue(null),
@@ -56,8 +56,8 @@ function createPrismaStub(overrides = {}) {
     },
     postCategory: {
       create: vi.fn().mockResolvedValue({
-        categoryId: "category_1",
-        postId: "post_1",
+        category_id: "category_1",
+        post_id: "post_1",
       }),
       deleteMany: vi.fn().mockResolvedValue({
         count: 0,
@@ -75,7 +75,7 @@ function createPrismaStub(overrides = {}) {
         {
           activeProvider: {
             id: "provider_1",
-            providerKey: "mediastack",
+            provider_key: "mediastack",
           },
           destination: {
             id: "destination_1",
@@ -84,7 +84,7 @@ function createPrismaStub(overrides = {}) {
             platform: "WEBSITE",
             slug: "website",
           },
-          destinationId: "destination_1",
+          destination_id: "destination_1",
           id: "stream_1",
           locale: "en",
           mode: "REVIEW_REQUIRED",
@@ -112,14 +112,14 @@ function createEditorArticleMatch(overrides = {}) {
       platform: "WEBSITE",
       slug: "website",
     },
-    failedAt: null,
+    failed_at: null,
     fetchedArticle: null,
-    filterReasonsJson: [],
-    holdReasonsJson: [],
+    filter_reasons_json: [],
+    hold_reasons_json: [],
     id: "match_1",
     publishAttempts: [],
-    publishedAt: null,
-    queuedAt: null,
+    published_at: null,
+    queued_at: null,
     status: "ELIGIBLE",
     stream: {
       id: "stream_1",
@@ -142,36 +142,36 @@ function createEditorPost(overrides = {}) {
           name: "Technology",
           slug: "technology",
         },
-        categoryId: "category_1",
+        category_id: "category_1",
       },
     ],
-    editorialStage: "APPROVED",
+    editorial_stage: "APPROVED",
     excerpt: "Story summary",
     featuredImage: null,
     id: "post_1",
-    providerKey: "manual",
-    publishedAt: new Date("2026-04-01T10:00:00.000Z"),
-    scheduledPublishAt: null,
+    provider_key: "manual",
+    published_at: new Date("2026-04-01T10:00:00.000Z"),
+    scheduled_publish_at: null,
     slug: "story-title",
     sourceArticle: null,
-    sourceName: "NewsPub Editorial",
-    sourceUrl: "https://example.com/source-story",
+    source_name: "NewsPub Editorial",
+    source_url: "https://example.com/source-story",
     status: "PUBLISHED",
     translations: [
       {
-        contentHtml: "<p>Story body</p>",
-        contentMd: "Story body",
+        content_html: "<p>Story body</p>",
+        content_md: "Story body",
         id: "translation_1",
         locale: "en",
         seoRecord: null,
-        sourceAttribution: "Source: NewsPub Editorial - https://example.com/source-story",
-        structuredContentJson: {},
+        source_attribution: "Source: NewsPub Editorial - https://example.com/source-story",
+        structured_content_json: {},
         summary: "Story summary",
         title: "Story title",
-        updatedAt: new Date("2026-04-01T11:00:00.000Z"),
+        updated_at: new Date("2026-04-01T11:00:00.000Z"),
       },
     ],
-    updatedAt: new Date("2026-04-01T12:00:00.000Z"),
+    updated_at: new Date("2026-04-01T12:00:00.000Z"),
     ...overrides,
   };
 }
@@ -212,52 +212,52 @@ describe("manual post creation", () => {
         {
           action: "publish",
           categoryIds: ["category_1"],
-          contentMd: "Manual body copy",
-          sourceName: "NewsPub Editorial",
-          sourceUrl: "https://example.com/source-story",
-          streamId: "stream_1",
+          content_md: "Manual body copy",
+          source_name: "NewsPub Editorial",
+          source_url: "https://example.com/source-story",
+          stream_id: "stream_1",
           summary: "Manual summary",
           title: "Manual Story",
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
     ).resolves.toEqual({
       locale: "en",
-      postId: "post_1",
+      post_id: "post_1",
     });
 
     expect(prisma.fetchedArticle.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          providerConfigId: "provider_1",
-          rawPayloadJson: expect.objectContaining({
+          provider_config_id: "provider_1",
+          raw_payload_json: expect.objectContaining({
             manualEntry: true,
-            streamId: "stream_1",
+            stream_id: "stream_1",
           }),
-          sourceName: "NewsPub Editorial",
-          sourceUrl: "https://example.com/source-story",
+          source_name: "NewsPub Editorial",
+          source_url: "https://example.com/source-story",
           title: "Manual Story",
         }),
       }),
     );
     expect(prisma.post.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        providerKey: "manual",
-        sourceArticleId: "article_1",
+        provider_key: "manual",
+        source_article_id: "article_1",
         status: "DRAFT",
       }),
     });
     expect(prisma.articleMatch.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        canonicalPostId: "post_1",
-        destinationId: "destination_1",
-        fetchedArticleId: "article_1",
-        holdReasonsJson: [],
+        canonical_post_id: "post_1",
+        destination_id: "destination_1",
+        fetched_article_id: "article_1",
+        hold_reasons_json: [],
         status: "ELIGIBLE",
-        streamId: "stream_1",
+        stream_id: "stream_1",
       }),
     });
     expect(publishArticleMatch).toHaveBeenCalledWith("match_1", {}, prisma);
@@ -279,15 +279,15 @@ describe("manual post creation", () => {
       createManualPostRecord(
         {
           action: "schedule",
-          contentMd: "Manual body copy",
-          sourceName: "NewsPub Editorial",
-          sourceUrl: "https://example.com/source-story",
-          streamId: "stream_1",
+          content_md: "Manual body copy",
+          source_name: "NewsPub Editorial",
+          source_url: "https://example.com/source-story",
+          stream_id: "stream_1",
           summary: "Manual summary",
           title: "Manual Story",
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -341,13 +341,13 @@ describe("post editor updates", () => {
       updatePostEditorialRecord(
         {
           action: "save",
-          postId: post.id,
+          post_id: post.id,
           status: "PUBLISHED",
           summary: "Updated summary",
           title: "Updated title",
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -389,12 +389,12 @@ describe("post editor updates", () => {
     await expect(
       updatePostEditorialRecord(
         {
-          postId: post.id,
+          post_id: post.id,
           status: "PUBLISHED",
           summary: "Updated summary",
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -435,11 +435,11 @@ describe("post editor updates", () => {
       updatePostEditorialRecord(
         {
           action: "schedule",
-          postId: post.id,
+          post_id: post.id,
           status: "SCHEDULED",
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -491,11 +491,11 @@ describe("post editor updates", () => {
       updatePostEditorialRecord(
         {
           action: "optimize",
-          articleMatchId: "match_1",
-          postId: post.id,
+          article_match_id: "match_1",
+          post_id: post.id,
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -548,21 +548,21 @@ describe("post editor updates", () => {
     await updatePostEditorialRecord(
       {
         action: "reject",
-        articleMatchId: "match_1",
-        postId: post.id,
+        article_match_id: "match_1",
+        post_id: post.id,
       },
       {
-        actorId: "user_1",
+        actor_id: "user_1",
       },
       prisma,
     );
 
     expect(prisma.articleMatch.update).toHaveBeenCalledWith({
       data: {
-        holdReasonsJson: ["rejected_by_editor"],
-        reviewNotes: "Rejected during editor review.",
+        hold_reasons_json: ["rejected_by_editor"],
+        review_notes: "Rejected during editor review.",
         status: "HELD_FOR_REVIEW",
-        workflowStage: "HELD",
+        workflow_stage: "HELD",
       },
       where: {
         id: "match_1",
@@ -585,7 +585,7 @@ describe("post editor updates", () => {
     const post = createEditorPost({
       articleMatches: [
         createEditorArticleMatch({
-          policyStatus: "BLOCK",
+          policy_status: "BLOCK",
         }),
       ],
       status: "DRAFT",
@@ -601,11 +601,11 @@ describe("post editor updates", () => {
       updatePostEditorialRecord(
         {
           action: "approve",
-          articleMatchId: "match_1",
-          postId: post.id,
+          article_match_id: "match_1",
+          post_id: post.id,
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
@@ -658,24 +658,24 @@ describe("manual reposts", () => {
     await expect(
       repostPostRecord(
         {
-          articleMatchId: "match_1",
-          postId: post.id,
+          article_match_id: "match_1",
+          post_id: post.id,
         },
         {
-          actorId: "user_1",
+          actor_id: "user_1",
         },
         prisma,
       ),
     ).resolves.toEqual({
-      articleMatchId: "match_1",
+      article_match_id: "match_1",
       attemptId: "attempt_repost_1",
-      postId: "post_1",
+      post_id: "post_1",
     });
 
     expect(manualRepostArticleMatch).toHaveBeenCalledWith(
       "match_1",
       {
-        actorId: "user_1",
+        actor_id: "user_1",
       },
       prisma,
     );
@@ -704,17 +704,17 @@ describe("post image fallbacks", () => {
         author: null,
         body: null,
         id: "article_1",
-        imageUrl: "https://cdn.example.com/source-story.jpg",
+        image_url: "https://cdn.example.com/source-story.jpg",
         language: "en",
-        providerArticleId: "provider-article-1",
-        providerCategoriesJson: [],
-        providerCountriesJson: [],
-        providerRegionsJson: [],
-        publishedAt: new Date("2026-04-01T08:00:00.000Z"),
-        sourceName: "Example Source",
-        sourceUrl: "https://example.com/source-story",
+        provider_article_id: "provider-article-1",
+        provider_categories_json: [],
+        provider_countries_json: [],
+        provider_regions_json: [],
+        published_at: new Date("2026-04-01T08:00:00.000Z"),
+        source_name: "Example Source",
+        source_url: "https://example.com/source-story",
         summary: "Story summary",
-        tagsJson: [],
+        tags_json: [],
         title: "Story title",
       },
     });
@@ -724,7 +724,7 @@ describe("post image fallbacks", () => {
       },
     });
 
-    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+    const snapshot = await getPostEditorSnapshot({ locale: "en", post_id: post.id }, prisma);
 
     expect(snapshot.post.featuredImage).toMatchObject({
       alt: "Story title",
@@ -736,7 +736,7 @@ describe("post image fallbacks", () => {
     const { getPublishedPostTranslationBySlug } = await import("./index");
     const post = createEditorPost({
       sourceArticle: {
-        imageUrl: "https://cdn.example.com/source-story.jpg",
+        image_url: "https://cdn.example.com/source-story.jpg",
       },
     });
     const prisma = createPrismaStub({
@@ -760,18 +760,18 @@ describe("post image fallbacks", () => {
         createEditorArticleMatch({
           publishAttempts: [
             {
-              completedAt: new Date("2026-04-01T10:15:00.000Z"),
-              createdAt: new Date("2026-04-01T10:05:00.000Z"),
-              diagnosticsJson: {
-                policyStatus: "PASS",
+              completed_at: new Date("2026-04-01T10:15:00.000Z"),
+              created_at: new Date("2026-04-01T10:05:00.000Z"),
+              diagnostics_json: {
+                policy_status: "PASS",
               },
-              errorCode: "provider_payload_invalid",
-              errorMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
+              last_error_code: "provider_payload_invalid",
+              last_error_message: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
               id: "attempt_1",
               platform: "FACEBOOK",
-              publishedAt: null,
-              queuedAt: new Date("2026-04-01T10:00:00.000Z"),
-              retryCount: 1,
+              published_at: null,
+              queued_at: new Date("2026-04-01T10:00:00.000Z"),
+              retry_count: 1,
               retryable: true,
               status: "FAILED",
             },
@@ -784,12 +784,12 @@ describe("post image fallbacks", () => {
         findMany: vi.fn().mockResolvedValue([
           {
             action: "PUBLISH_ATTEMPT_FAILED",
-            actorId: "user_1",
-            createdAt: new Date("2026-04-01T10:16:00.000Z"),
-            entityId: "attempt_1",
-            entityType: "publish_attempt",
+            actor_id: "user_1",
+            created_at: new Date("2026-04-01T10:16:00.000Z"),
+            entity_id: "attempt_1",
+            entity_type: "publish_attempt",
             id: "audit_1",
-            payloadJson: {
+            payload_json: {
               level: "error",
               reasonCode: "provider_payload_invalid",
               reasonMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
@@ -802,18 +802,18 @@ describe("post image fallbacks", () => {
       },
     });
 
-    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+    const snapshot = await getPostEditorSnapshot({ locale: "en", post_id: post.id }, prisma);
 
     expect(snapshot.post.articleMatches[0].publishAttempts[0]).toMatchObject({
-      errorCode: "provider_payload_invalid",
-      errorMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
+      last_error_code: "provider_payload_invalid",
+      last_error_message: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
       retryable: true,
       status: "FAILED",
     });
     expect(snapshot.auditEvents[0]).toMatchObject({
       action: "PUBLISH_ATTEMPT_FAILED",
-      entityId: "attempt_1",
-      entityType: "publish_attempt",
+      entity_id: "attempt_1",
+      entity_type: "publish_attempt",
       level: "error",
       reasonCode: "provider_payload_invalid",
       reasonMessage: "Graph API returned 190: Invalid OAuth 2.0 Access Token.",
@@ -825,8 +825,8 @@ describe("post image fallbacks", () => {
     const post = createEditorPost({
       articleMatches: [
         createEditorArticleMatch({
-          optimizationStatus: "SKIPPED",
-          optimizedPayloadJson: {
+          optimization_status: "SKIPPED",
+          optimized_payload_json: {
             aiResolution: {
               reasonCode: "ai_credentials_missing",
               reasonMessage: "AI credentials are missing, so NewsPub used deterministic formatting instead.",
@@ -845,7 +845,7 @@ describe("post image fallbacks", () => {
       },
     });
 
-    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+    const snapshot = await getPostEditorSnapshot({ locale: "en", post_id: post.id }, prisma);
 
     expect(snapshot.post.articleMatches[0].optimizationDetails).toMatchObject({
       reasonCode: "ai_credentials_missing",
@@ -859,7 +859,7 @@ describe("post image fallbacks", () => {
     const post = createEditorPost({
       articleMatches: [
         createEditorArticleMatch({
-          optimizationStatus: "SKIPPED",
+          optimization_status: "SKIPPED",
         }),
       ],
     });
@@ -868,12 +868,12 @@ describe("post image fallbacks", () => {
         findMany: vi.fn().mockResolvedValue([
           {
             action: "AI_OPTIMIZATION_SKIPPED",
-            actorId: null,
-            createdAt: new Date("2026-04-01T10:20:00.000Z"),
-            entityId: "match_1",
-            entityType: "article_match",
+            actor_id: null,
+            created_at: new Date("2026-04-01T10:20:00.000Z"),
+            entity_id: "match_1",
+            entity_type: "article_match",
             id: "audit_ai_skip",
-            payloadJson: {
+            payload_json: {
               level: "warn",
               reasonCode: "ai_credentials_missing",
               reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
@@ -886,7 +886,7 @@ describe("post image fallbacks", () => {
       },
     });
 
-    const snapshot = await getPostEditorSnapshot({ locale: "en", postId: post.id }, prisma);
+    const snapshot = await getPostEditorSnapshot({ locale: "en", post_id: post.id }, prisma);
 
     expect(snapshot.auditEvents[0]).toMatchObject({
       action: "AI_OPTIMIZATION_SKIPPED",

@@ -61,7 +61,7 @@ export default async function PublishedPostsPage({ searchParams }) {
       </AdminHero>
 
       <SummaryGrid>
-        <AdminMetricCard icon="published" label="Total published stories" value={snapshot.summary.publishedCount} />
+        <AdminMetricCard icon="published" label="Total published stories" value={snapshot.summary.published_count} />
         <AdminMetricCard icon="globe" label="Website published on this page" value={snapshot.items.filter((item) => item.websitePublished).length} />
         <AdminMetricCard icon="news" label="Visible on this page" value={snapshot.items.length} />
       </SummaryGrid>
@@ -96,8 +96,8 @@ export default async function PublishedPostsPage({ searchParams }) {
                         {item.status}
                       </StatusBadge>
                     </td>
-                    <td data-label="Published">{formatDateTime(item.publishedAt)}</td>
-                    <td data-label="Source">{item.sourceName}</td>
+                    <td data-label="Published">{formatDateTime(item.published_at)}</td>
+                    <td data-label="Source">{item.source_name}</td>
                     <td data-label="Website">{item.websitePublished ? "Yes" : "No"}</td>
                     <td data-label="Action">
                       <LinkButton href={`/admin/posts/${item.id}`}>

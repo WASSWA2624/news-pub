@@ -25,13 +25,13 @@ describe("destination runtime resolution", () => {
     const encryptedToken = encryptSecretValue("stored-token");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "DISCONNECTED",
-      encryptedTokenCiphertext: encryptedToken.ciphertext,
-      encryptedTokenIv: encryptedToken.iv,
-      encryptedTokenTag: encryptedToken.tag,
-      externalAccountId: "stale-external-id",
+      connection_status: "DISCONNECTED",
+      encrypted_token_ciphertext: encryptedToken.ciphertext,
+      encrypted_token_iv: encryptedToken.iv,
+      encrypted_token_tag: encryptedToken.tag,
+      external_account_id: "stale-external-id",
       platform: "FACEBOOK",
-      settingsJson: {
+      settings_json: {
         pageId: "999999999999999",
       },
       slug: "facebook-page",
@@ -55,12 +55,12 @@ describe("destination runtime resolution", () => {
     const encryptedToken = encryptSecretValue("stored-token");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "DISCONNECTED",
-      encryptedTokenCiphertext: encryptedToken.ciphertext,
-      encryptedTokenIv: encryptedToken.iv,
-      encryptedTokenTag: encryptedToken.tag,
+      connection_status: "DISCONNECTED",
+      encrypted_token_ciphertext: encryptedToken.ciphertext,
+      encrypted_token_iv: encryptedToken.iv,
+      encrypted_token_tag: encryptedToken.tag,
       platform: "FACEBOOK",
-      settingsJson: {
+      settings_json: {
         pageId: "123456789012345",
       },
       slug: "facebook-page",
@@ -84,13 +84,13 @@ describe("destination runtime resolution", () => {
     const encryptedToken = encryptSecretValue("override-token");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "CONNECTED",
-      encryptedTokenCiphertext: encryptedToken.ciphertext,
-      encryptedTokenIv: encryptedToken.iv,
-      encryptedTokenTag: encryptedToken.tag,
-      externalAccountId: "override-page-id",
+      connection_status: "CONNECTED",
+      encrypted_token_ciphertext: encryptedToken.ciphertext,
+      encrypted_token_iv: encryptedToken.iv,
+      encrypted_token_tag: encryptedToken.tag,
+      external_account_id: "override-page-id",
       platform: "FACEBOOK",
-      settingsJson: {
+      settings_json: {
         pageId: "override-page-id",
         useDestinationCredentialOverrides: true,
       },
@@ -113,13 +113,13 @@ describe("destination runtime resolution", () => {
     const encryptedToken = encryptSecretValue("legacy-token", "previous-encryption-key");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "CONNECTED",
-      encryptedTokenCiphertext: encryptedToken.ciphertext,
-      encryptedTokenIv: encryptedToken.iv,
-      encryptedTokenTag: encryptedToken.tag,
-      externalAccountId: "page_1",
+      connection_status: "CONNECTED",
+      encrypted_token_ciphertext: encryptedToken.ciphertext,
+      encrypted_token_iv: encryptedToken.iv,
+      encrypted_token_tag: encryptedToken.tag,
+      external_account_id: "page_1",
       platform: "FACEBOOK",
-      settingsJson: {
+      settings_json: {
         pageId: "page_1",
       },
       slug: "facebook-page",
@@ -149,10 +149,10 @@ describe("destination runtime resolution", () => {
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "DISCONNECTED",
-      externalAccountId: "env-page-id",
+      connection_status: "DISCONNECTED",
+      external_account_id: "env-page-id",
       platform: "FACEBOOK",
-      settingsJson: {},
+      settings_json: {},
       slug: "facebook-page",
     });
 
@@ -182,10 +182,10 @@ describe("destination runtime resolution", () => {
     const { resolveDestinationRuntimeConnection } = await import("./destination-runtime");
 
     const resolved = resolveDestinationRuntimeConnection({
-      connectionStatus: "DISCONNECTED",
-      externalAccountId: "env-page-id",
+      connection_status: "DISCONNECTED",
+      external_account_id: "env-page-id",
       platform: "FACEBOOK",
-      settingsJson: {
+      settings_json: {
         pageId: "env-page-id",
       },
       slug: "facebook-page",

@@ -276,7 +276,7 @@ export default async function TemplatesPage() {
                   </RecordTitleBlock>
                   <RecordMeta>
                     <MetaPill>{formatEnumLabel(template.platform)}</MetaPill>
-                    {template.isDefault ? <MetaPill>Default</MetaPill> : null}
+                    {template.is_default ? <MetaPill>Default</MetaPill> : null}
                   </RecordMeta>
                 </RecordHeader>
                 <SmallText>

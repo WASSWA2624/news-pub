@@ -73,7 +73,7 @@ export async function getSettingsSnapshot(prisma) {
     templates,
   ] = await Promise.all([
     db.locale.findMany({
-      orderBy: [{ isDefault: "desc" }, { code: "asc" }],
+      orderBy: [{ is_default: "desc" }, { code: "asc" }],
     }),
     db.newsProviderConfig.count(),
     db.destination.count(),
@@ -96,12 +96,12 @@ export async function getSettingsSnapshot(prisma) {
         activeProvider: {
           select: {
             id: true,
-            providerKey: true,
-            requestDefaultsJson: true,
+            provider_key: true,
+            request_defaults_json: true,
           },
         },
-        countryAllowlistJson: true,
-        defaultTemplateId: true,
+        country_allowlist_json: true,
+        default_template_id: true,
         defaultTemplate: {
           select: {
             id: true,
@@ -109,7 +109,7 @@ export async function getSettingsSnapshot(prisma) {
             platform: true,
           },
         },
-        destinationId: true,
+        destination_id: true,
         destination: {
           select: {
             id: true,
@@ -120,12 +120,12 @@ export async function getSettingsSnapshot(prisma) {
           },
         },
         id: true,
-        languageAllowlistJson: true,
+        language_allowlist_json: true,
         locale: true,
-        maxPostsPerRun: true,
+        max_posts_per_run: true,
         mode: true,
         name: true,
-        settingsJson: true,
+        settings_json: true,
         slug: true,
       },
       take: settingsSnapshotLimit,
@@ -134,7 +134,7 @@ export async function getSettingsSnapshot(prisma) {
       orderBy: [{ platform: "asc" }, { name: "asc" }],
       select: {
         id: true,
-        isDefault: true,
+        is_default: true,
         name: true,
         platform: true,
       },
@@ -142,14 +142,14 @@ export async function getSettingsSnapshot(prisma) {
     }),
   ]);
   const streamsByTemplateId = streams.reduce((result, stream) => {
-    if (!stream.defaultTemplateId) {
+    if (!stream.default_template_id) {
       return result;
     }
 
-    const templateStreams = result.get(stream.defaultTemplateId) || [];
+    const templateStreams = result.get(stream.default_template_id) || [];
 
     templateStreams.push(stream);
-    result.set(stream.defaultTemplateId, templateStreams);
+    result.set(stream.default_template_id, templateStreams);
 
     return result;
   }, new Map());

@@ -34,12 +34,12 @@ describe("analytics library", () => {
 
   it("records normalized view events with a hashed ip", async () => {
     const viewEventCreate = vi.fn().mockResolvedValue({
-      createdAt: new Date("2026-04-03T10:05:00.000Z"),
-      eventType: "POST_VIEW",
+      created_at: new Date("2026-04-03T10:05:00.000Z"),
+      event_type: "POST_VIEW",
       id: "view_1",
       locale: "en",
       path: "/en/news/microscope-basics",
-      postId: "post_1",
+      post_id: "post_1",
     });
     const prisma = {
       viewEvent: {
@@ -54,10 +54,10 @@ describe("analytics library", () => {
 
     await recordViewEvent(
       {
-        eventType: "post_view",
+        event_type: "post_view",
         locale: "EN",
         path: "en/news/microscope-basics",
-        postId: "post_1",
+        post_id: "post_1",
         referrer: "https://example.com/en",
       },
       {
@@ -69,13 +69,13 @@ describe("analytics library", () => {
     expect(viewEventCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
-          eventType: "POST_VIEW",
-          ipHash: hashAnalyticsValue("203.0.113.12", "session-secret", "view-ip"),
+          event_type: "POST_VIEW",
+          ip_hash: hashAnalyticsValue("203.0.113.12", "session-secret", "view-ip"),
           locale: "en",
           path: "/en/news/microscope-basics",
-          postId: "post_1",
+          post_id: "post_1",
           referrer: "https://example.com/en",
-          userAgent: "Vitest Browser",
+          user_agent: "Vitest Browser",
         },
       }),
     );
@@ -96,9 +96,9 @@ describe("analytics library", () => {
     await recordObservabilityEvent(
       {
         action: "MEDIA_LIBRARY_FAILURE",
-        actorId: "user_1",
-        entityId: "media_library",
-        entityType: "media_library",
+        actor_id: "user_1",
+        entity_id: "media_library",
+        entity_type: "media_library",
         error: new Error("Image derivative write failed."),
         message: "Media upload failed.",
         payload: {
@@ -112,11 +112,11 @@ describe("analytics library", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           action: "MEDIA_LIBRARY_FAILURE",
-          actorId: "user_1",
-          entityId: "media_library",
-          entityType: "media_library",
-          payloadJson: expect.objectContaining({
-            errorMessage: "Image derivative write failed.",
+          actor_id: "user_1",
+          entity_id: "media_library",
+          entity_type: "media_library",
+          payload_json: expect.objectContaining({
+            last_error_message: "Image derivative write failed.",
             level: "error",
             message: "Media upload failed.",
             route: "/api/media",
@@ -131,12 +131,12 @@ describe("analytics library", () => {
 
   it("records normalized web vitals with route and form-factor metadata", async () => {
     const webVitalMetricCreate = vi.fn().mockResolvedValue({
-      buildId: "build-42",
-      createdAt: new Date("2026-04-03T10:05:00.000Z"),
+      build_id: "build-42",
+      created_at: new Date("2026-04-03T10:05:00.000Z"),
       id: "metric_1",
       name: "LCP",
       path: "/en/news/climate-resilience-market-watch",
-      routeGroup: "story",
+      route_group: "story",
       value: 2140,
     });
     const prisma = {
@@ -151,42 +151,42 @@ describe("analytics library", () => {
         attribution: {
           element: "hero-image",
         },
-        buildId: "build-42",
-        formFactor: "",
+        build_id: "build-42",
+        form_factor: "",
         id: "vital_1",
         name: "lcp",
         path: "en/news/climate-resilience-market-watch",
         rating: "needs-improvement",
         value: 2140,
-        viewportWidth: 900,
+        viewport_width: 900,
       },
       prisma,
     );
 
     expect(webVitalMetricCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        attributionJson: {
+        attribution_json: {
           element: "hero-image",
         },
-        buildId: "build-42",
-        formFactor: "tablet",
+        build_id: "build-42",
+        form_factor: "tablet",
         locale: "en",
-        metricId: "vital_1",
+        metric_id: "vital_1",
         name: "LCP",
         path: "/en/news/climate-resilience-market-watch",
         rating: "needs-improvement",
-        routeGroup: "story",
+        route_group: "story",
         value: 2140,
-        viewportHeight: null,
-        viewportWidth: 900,
+        viewport_height: null,
+        viewport_width: 900,
       }),
       select: {
-        buildId: true,
-        createdAt: true,
+        build_id: true,
+        created_at: true,
         id: true,
         name: true,
         path: true,
-        routeGroup: true,
+        route_group: true,
         value: true,
       },
     });

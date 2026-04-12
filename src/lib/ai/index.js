@@ -14,8 +14,8 @@ const optimizedPayloadSchema = z.object({
   body: z.string().trim().max(6000).default(""),
   caption: z.string().trim().max(2200).default(""),
   hashtags: z.array(z.string().trim().min(1)).max(10).default([]),
-  metaDescription: z.string().trim().max(320).default(""),
-  metaTitle: z.string().trim().max(255).default(""),
+  meta_description: z.string().trim().max(320).default(""),
+  meta_title: z.string().trim().max(255).default(""),
   slug: z.string().trim().max(191).default(""),
   summary: z.string().trim().max(800).default(""),
   title: z.string().trim().min(1).max(255),
@@ -56,7 +56,7 @@ function compactParagraphs(value) {
 
 function pickSourceBody(post, translation) {
   return trimText(
-    post?.sourceArticle?.body || translation?.contentMd || translation?.summary || post?.excerpt || "",
+    post?.sourceArticle?.body || translation?.content_md || translation?.summary || post?.excerpt || "",
   );
 }
 
@@ -96,7 +96,7 @@ function buildFallbackBody(sourceText, minWords, maxWords) {
 }
 
 function buildAiResolution({
-  errorMessage = null,
+  last_error_message = null,
   model = null,
   provider = null,
   reasonCode,
@@ -104,7 +104,7 @@ function buildAiResolution({
   status,
 }) {
   return {
-    errorMessage,
+    last_error_message,
     model,
     provider,
     reasonCode,
@@ -131,8 +131,8 @@ function buildFallbackOptimization(input, { aiResolution = null, includeFallback
     return {
       body: buildFallbackBody(baseBody, 20, 100),
       hashtags: [],
-      metaDescription: "",
-      metaTitle: "",
+      meta_description: "",
+      meta_title: "",
       slug: input.slugSeed,
       summary: truncateWords(input.summary || baseBody, 36),
       title: truncateWords(input.title, 10),
@@ -145,7 +145,7 @@ function buildFallbackOptimization(input, { aiResolution = null, includeFallback
       [
         input.title,
         input.summary,
-        input.sourceAttribution,
+        input.source_attribution,
       ]
         .filter(Boolean)
         .join(" "),
@@ -156,8 +156,8 @@ function buildFallbackOptimization(input, { aiResolution = null, includeFallback
       body: "",
       caption,
       hashtags,
-      metaDescription: "",
-      metaTitle: "",
+      meta_description: "",
+      meta_title: "",
       slug: input.slugSeed,
       summary: truncateWords(input.summary || baseBody, 36),
       title: truncateWords(input.title, 12),
@@ -168,8 +168,8 @@ function buildFallbackOptimization(input, { aiResolution = null, includeFallback
   return {
     body: buildFallbackBody(baseBody, 100, 500),
     hashtags: [],
-    metaDescription: truncateWords(input.summary || baseBody, 28),
-    metaTitle: truncateWords(input.title, 14),
+    meta_description: truncateWords(input.summary || baseBody, 28),
+    meta_title: truncateWords(input.title, 14),
     slug: input.slugSeed,
     summary: truncateWords(input.summary || baseBody, 42),
     title: truncateWords(input.title, 14),
@@ -177,10 +177,10 @@ function buildFallbackOptimization(input, { aiResolution = null, includeFallback
   };
 }
 
-function normalizeGeneratedPayload(input, candidate, { aiResolution = null, usedFallback = false } = {}) {
+function normalizeGeneratedPayload(input, candidate, { aiResolution = null, used_fallback = false } = {}) {
   const fallback = buildFallbackOptimization(input, {
     aiResolution,
-    includeFallbackWarning: usedFallback,
+    includeFallbackWarning: used_fallback,
   });
   const resolved = {
     ...fallback,
@@ -197,13 +197,13 @@ function normalizeGeneratedPayload(input, candidate, { aiResolution = null, used
       body: buildFallbackBody(resolved.body || fallback.body, 20, 100),
       caption: "",
       hashtags: [],
-      metaDescription: "",
-      metaTitle: "",
+      meta_description: "",
+      meta_title: "",
       slug: input.slugSeed,
-      sourceAttribution: input.sourceAttribution,
+      source_attribution: input.source_attribution,
       summary: truncateWords(resolved.summary || fallback.summary, 36),
       title: truncateWords(resolved.title || fallback.title, 10),
-      warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
+      warnings: dedupeStrings([...(used_fallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
     };
   }
 
@@ -217,13 +217,13 @@ function normalizeGeneratedPayload(input, candidate, { aiResolution = null, used
       body: "",
       caption,
       hashtags: normalizedHashtags,
-      metaDescription: "",
-      metaTitle: "",
+      meta_description: "",
+      meta_title: "",
       slug: input.slugSeed,
-      sourceAttribution: input.sourceAttribution,
+      source_attribution: input.source_attribution,
       summary: truncateWords(resolved.summary || fallback.summary, 36),
       title: truncateWords(resolved.title || fallback.title, 12),
-      warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
+      warnings: dedupeStrings([...(used_fallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
     };
   }
 
@@ -231,13 +231,13 @@ function normalizeGeneratedPayload(input, candidate, { aiResolution = null, used
     body: buildFallbackBody(resolved.body || fallback.body, 100, 500),
     caption: "",
     hashtags: [],
-    metaDescription: truncateWords(resolved.metaDescription || resolved.summary || fallback.metaDescription, 32),
-    metaTitle: truncateWords(resolved.metaTitle || resolved.title || fallback.metaTitle, 14),
+    meta_description: truncateWords(resolved.meta_description || resolved.summary || fallback.meta_description, 32),
+    meta_title: truncateWords(resolved.meta_title || resolved.title || fallback.meta_title, 14),
     slug: createSlug(resolved.slug || resolved.title || input.slugSeed, input.slugSeed),
-    sourceAttribution: input.sourceAttribution,
+    source_attribution: input.source_attribution,
     summary: truncateWords(resolved.summary || fallback.summary, 42),
     title: truncateWords(resolved.title || fallback.title, 14),
-    warnings: dedupeStrings([...(usedFallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
+    warnings: dedupeStrings([...(used_fallback ? fallback.warnings || [] : []), ...(resolved.warnings || [])]),
   };
 }
 
@@ -265,12 +265,12 @@ function resolveAiSkipResolution() {
 }
 
 function classifyAiFailure(error) {
-  const errorMessage = error instanceof Error ? error.message : "AI optimization failed.";
-  const normalizedMessage = trimText(errorMessage).toLowerCase();
+  const last_error_message = error instanceof Error ? error.message : "AI optimization failed.";
+  const normalizedMessage = trimText(last_error_message).toLowerCase();
 
   if (normalizedMessage.includes("timed out")) {
     return buildAiResolution({
-      errorMessage,
+      last_error_message,
       model: env.ai.model,
       provider: "fallback",
       reasonCode: "ai_timeout",
@@ -285,7 +285,7 @@ function classifyAiFailure(error) {
     || normalizedMessage.includes("validation")
   ) {
     return buildAiResolution({
-      errorMessage,
+      last_error_message,
       model: env.ai.model,
       provider: "fallback",
       reasonCode: "ai_invalid_structured_output",
@@ -296,7 +296,7 @@ function classifyAiFailure(error) {
 
   if (normalizedMessage.includes("rate limit") || normalizedMessage.includes("too many requests")) {
     return buildAiResolution({
-      errorMessage,
+      last_error_message,
       model: env.ai.model,
       provider: "fallback",
       reasonCode: "ai_rate_limited",
@@ -306,7 +306,7 @@ function classifyAiFailure(error) {
   }
 
   return buildAiResolution({
-    errorMessage,
+    last_error_message,
     model: env.ai.model,
     provider: "fallback",
     reasonCode: "ai_unavailable",
@@ -316,7 +316,7 @@ function classifyAiFailure(error) {
 }
 
 function buildCachedAiResolution(cacheRecord) {
-  const existingResolution = cacheRecord?.resultJson?.aiResolution;
+  const existingResolution = cacheRecord?.result_json?.aiResolution;
 
   if (existingResolution?.status) {
     return existingResolution;
@@ -334,7 +334,7 @@ function buildCachedAiResolution(cacheRecord) {
 
   if (cacheRecord?.status === "FALLBACK") {
     return buildAiResolution({
-      errorMessage: cacheRecord?.errorMessage || null,
+      last_error_message: cacheRecord?.last_error_message || null,
       model: cacheRecord?.model || null,
       provider: cacheRecord?.provider || "fallback",
       reasonCode: "cached_ai_fallback",
@@ -383,7 +383,7 @@ function buildOptimizationPrompt(input) {
   return [
     "NewsPub destination optimization request",
     `Platform: ${input.platform}`,
-    `Destination kind: ${input.destinationKind}`,
+    `Destination kind: ${input.destination_kind}`,
     `Locale: ${input.locale}`,
     "",
     "Rules:",
@@ -392,8 +392,8 @@ function buildOptimizationPrompt(input) {
     "",
     `Source title: ${input.title}`,
     `Source summary: ${input.summary}`,
-    `Source attribution: ${input.sourceAttribution}`,
-    `Canonical URL: ${input.canonicalUrl}`,
+    `Source attribution: ${input.source_attribution}`,
+    `Canonical URL: ${input.canonical_url}`,
     `Media URL: ${input.mediaUrl || "none"}`,
     "",
     "Source body:",
@@ -412,51 +412,51 @@ function buildOptimizationInput({
   const summary = pickSummary(post, translation) || title;
   const sourceBody = truncateWords(pickSourceBody(post, translation), env.ai.maxSourceChars);
   const mediaUrl = sanitizeMediaUrl(
-    post?.sourceArticle?.imageUrl ||
-      translation?.seoRecord?.ogImage?.sourceUrl ||
-      translation?.seoRecord?.ogImage?.publicUrl ||
-      post?.featuredImage?.sourceUrl ||
-      post?.featuredImage?.publicUrl ||
+    post?.sourceArticle?.image_url ||
+      translation?.seoRecord?.ogImage?.source_url ||
+      translation?.seoRecord?.ogImage?.public_url ||
+      post?.featuredImage?.source_url ||
+      post?.featuredImage?.public_url ||
       "",
   );
-  const sourceAttribution = trimText(
-    translation?.sourceAttribution || `Source: ${post?.sourceName}${post?.sourceUrl ? ` - ${post.sourceUrl}` : ""}`,
+  const source_attribution = trimText(
+    translation?.source_attribution || `Source: ${post?.source_name}${post?.source_url ? ` - ${post.source_url}` : ""}`,
   );
   const seedHashtags = [
-    ...(Array.isArray(translation?.seoRecord?.keywordsJson) ? translation.seoRecord.keywordsJson : []),
-    ...(compactParagraphs(template?.hashtagsTemplate).length ? compactParagraphs(template.hashtagsTemplate) : []),
+    ...(Array.isArray(translation?.seoRecord?.keywords_json) ? translation.seoRecord.keywords_json : []),
+    ...(compactParagraphs(template?.hashtags_template).length ? compactParagraphs(template.hashtags_template) : []),
   ];
-  const contentHash = createContentHash(
+  const content_hash = createContentHash(
     title,
     summary,
     sourceBody,
-    sourceAttribution,
+    source_attribution,
     mediaUrl,
   );
-  const settingsHash = createContentHash(
+  const settings_hash = createContentHash(
     destination?.platform,
     destination?.kind,
     stream?.locale,
-    JSON.stringify(destination?.settingsJson || {}),
-    template?.bodyTemplate || "",
-    template?.summaryTemplate || "",
-    template?.titleTemplate || "",
-    template?.hashtagsTemplate || "",
+    JSON.stringify(destination?.settings_json || {}),
+    template?.body_template || "",
+    template?.summary_template || "",
+    template?.title_template || "",
+    template?.hashtags_template || "",
   );
-  const optimizationHash = createContentHash(contentHash, settingsHash);
+  const optimization_hash = createContentHash(content_hash, settings_hash);
 
   return {
-    canonicalUrl: translation?.seoRecord?.canonicalUrl || "",
-    contentHash,
-    destinationKind: destination?.kind || "WEBSITE",
+    canonical_url: translation?.seoRecord?.canonical_url || "",
+    content_hash,
+    destination_kind: destination?.kind || "WEBSITE",
     locale: stream?.locale || translation?.locale || "en",
     mediaUrl,
-    optimizationHash,
+    optimization_hash,
     platform: destination?.platform || "WEBSITE",
     seedHashtags,
-    settingsHash,
+    settings_hash,
     slugSeed: createSlug(title, "story"),
-    sourceAttribution,
+    source_attribution,
     sourceBody,
     summary,
     title,
@@ -530,36 +530,36 @@ export async function optimizeDestinationPayload(
     template,
     translation,
   });
-  const cacheKey = input.optimizationHash;
+  const cache_key = input.optimization_hash;
   const hasOptimizationCacheDelegate = typeof db.optimizationCache?.findUnique === "function";
   const existingCache = force
     ? null
     : hasOptimizationCacheDelegate
       ? await db.optimizationCache.findUnique({
         where: {
-          cacheKey,
+          cache_key,
         },
       })
       : null;
 
-  if (existingCache?.resultJson) {
+  if (existingCache?.result_json) {
     const aiResolution = buildCachedAiResolution(existingCache);
 
     return {
       aiResolution,
       cacheHit: true,
       cacheRecord: existingCache,
-      optimizationHash: input.optimizationHash,
+      optimization_hash: input.optimization_hash,
       payload: {
-        ...existingCache.resultJson,
+        ...existingCache.result_json,
         aiResolution,
       },
       policy: {
-        readinessChecks: existingCache.resultJson?.readinessChecks || [],
-        reasons: Array.isArray(existingCache.resultJson?.policyReasons) ? existingCache.resultJson.policyReasons : [],
-        riskScore: existingCache.banRiskScore || 0,
-        status: existingCache.policyStatus,
-        warnings: Array.isArray(existingCache.resultJson?.policyWarnings) ? existingCache.resultJson.policyWarnings : [],
+        readinessChecks: existingCache.result_json?.readinessChecks || [],
+        reasons: Array.isArray(existingCache.result_json?.policyReasons) ? existingCache.result_json.policyReasons : [],
+        riskScore: existingCache.ban_risk_score || 0,
+        status: existingCache.policy_status,
+        warnings: Array.isArray(existingCache.result_json?.policyWarnings) ? existingCache.result_json.policyWarnings : [],
       },
     };
   }
@@ -571,19 +571,19 @@ export async function optimizeDestinationPayload(
           id: existingCache.id,
         },
         data: {
-          errorMessage: null,
+          last_error_message: null,
           status: "PENDING",
         },
       })
       : await db.optimizationCache.create({
         data: {
-          cacheKey,
-          contentHash: input.contentHash,
-          destinationKind: input.destinationKind,
+          cache_key,
+          content_hash: input.content_hash,
+          destination_kind: input.destination_kind,
           locale: input.locale,
-          optimizationHash: input.optimizationHash,
+          optimization_hash: input.optimization_hash,
           platform: input.platform,
-          settingsHash: input.settingsHash,
+          settings_hash: input.settings_hash,
           status: "PENDING",
         },
       })
@@ -603,7 +603,7 @@ export async function optimizeDestinationPayload(
   let aiResolution = null;
   let provider = null;
   let model = null;
-  let errorMessage = null;
+  let last_error_message = null;
   const skippedResolution = resolveAiSkipResolution();
 
   if (skippedResolution) {
@@ -632,21 +632,21 @@ export async function optimizeDestinationPayload(
       });
       provider = aiResolution.provider;
       model = aiResolution.model;
-      errorMessage = aiResolution.errorMessage;
+      last_error_message = aiResolution.last_error_message;
     }
   }
 
-  const usedFallback = aiResolution.status !== "COMPLETED";
+  const used_fallback = aiResolution.status !== "COMPLETED";
   const normalizedPayload = normalizeGeneratedPayload(input, generatedPayload, {
     aiResolution,
-    usedFallback,
+    used_fallback,
   });
   const policy = evaluateDestinationPolicy({
     destination,
     mediaValidation,
     payload: {
       ...normalizedPayload,
-      canonicalUrl: input.canonicalUrl,
+      canonical_url: input.canonical_url,
       mediaUrl: mediaValidation?.ok ? input.mediaUrl : null,
     },
     platform: input.platform,
@@ -654,14 +654,14 @@ export async function optimizeDestinationPayload(
   const resultPayload = {
     aiResolution,
     ...normalizedPayload,
-    cacheKey,
-    canonicalUrl: input.canonicalUrl,
+    cache_key,
+    canonical_url: input.canonical_url,
     mediaUrl: mediaValidation?.ok ? input.mediaUrl : null,
     mediaValidation,
     policyReasons: policy.reasons,
     policyWarnings: policy.warnings,
     readinessChecks: policy.readinessChecks,
-    sourceAttribution: input.sourceAttribution,
+    source_attribution: input.source_attribution,
   };
   const cacheRecord = hasOptimizationCacheDelegate
     ? await db.optimizationCache.update({
@@ -669,28 +669,28 @@ export async function optimizeDestinationPayload(
           id: pendingCache.id,
         },
         data: {
-          banRiskScore: policy.riskScore,
-          errorMessage,
+          ban_risk_score: policy.riskScore,
+          last_error_message,
           model,
-          policyStatus: policy.status,
+          policy_status: policy.status,
           provider,
-          resultJson: resultPayload,
+          result_json: resultPayload,
           status: aiResolution.status,
-          usedFallback,
-          warningsJson: policy.warnings,
+          used_fallback,
+          warnings_json: policy.warnings,
         },
       })
     : {
         ...pendingCache,
-        banRiskScore: policy.riskScore,
-        errorMessage,
+        ban_risk_score: policy.riskScore,
+        last_error_message,
         model,
-        policyStatus: policy.status,
+        policy_status: policy.status,
         provider,
-        resultJson: resultPayload,
+        result_json: resultPayload,
         status: aiResolution.status,
-        usedFallback,
-        warningsJson: policy.warnings,
+        used_fallback,
+        warnings_json: policy.warnings,
       };
 
   if (articleMatch?.id) {
@@ -699,17 +699,17 @@ export async function optimizeDestinationPayload(
         id: articleMatch.id,
       },
       data: {
-        banRiskScore: policy.riskScore,
-        lastOptimizedAt: new Date(),
-        lastPolicyCheckedAt: new Date(),
-        optimizationCacheId: cacheRecord.id,
-        optimizationHash: input.optimizationHash,
-        optimizationStatus: aiResolution.status,
-        optimizedPayloadJson: resultPayload,
-        policyReasonsJson: policy.reasons,
-        policyStatus: policy.status,
-        readinessChecksJson: policy.readinessChecks,
-        workflowStage:
+        ban_risk_score: policy.riskScore,
+        last_optimized_at: new Date(),
+        last_policy_checked_at: new Date(),
+        optimization_cache_id: cacheRecord.id,
+        optimization_hash: input.optimization_hash,
+        optimization_status: aiResolution.status,
+        optimized_payload_json: resultPayload,
+        policy_reasons_json: policy.reasons,
+        policy_status: policy.status,
+        readiness_checks_json: policy.readinessChecks,
+        workflow_stage:
           policy.status === "BLOCK"
             ? "HELD"
             : stream?.mode === "REVIEW_REQUIRED"
@@ -723,7 +723,7 @@ export async function optimizeDestinationPayload(
     aiResolution,
     cacheHit: false,
     cacheRecord,
-    optimizationHash: input.optimizationHash,
+    optimization_hash: input.optimization_hash,
     payload: resultPayload,
     policy,
   };

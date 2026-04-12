@@ -60,58 +60,58 @@ function summarizeRunCounts(results) {
       }
 
       summary.completedRuns += 1;
-      summary.fetchedCount += Number(result.run.fetchedCount || 0);
-      summary.publishedCount += Number(result.run.publishedCount || 0);
-      summary.heldCount += Number(result.run.heldCount || 0);
-      summary.skippedCount += Number(result.run.skippedCount || 0);
-      summary.duplicateCount += Number(result.run.duplicateCount || 0);
-      summary.failedPublishCount += Number(result.run.failedCount || 0);
+      summary.fetched_count += Number(result.run.fetched_count || 0);
+      summary.published_count += Number(result.run.published_count || 0);
+      summary.held_count += Number(result.run.held_count || 0);
+      summary.skipped_count += Number(result.run.skipped_count || 0);
+      summary.duplicate_count += Number(result.run.duplicate_count || 0);
+      summary.failedPublishCount += Number(result.run.failed_count || 0);
 
       return summary;
     },
     {
       completedRuns: 0,
-      duplicateCount: 0,
+      duplicate_count: 0,
       failedPublishCount: 0,
       failedRuns: 0,
-      fetchedCount: 0,
-      heldCount: 0,
-      publishedCount: 0,
-      skippedCount: 0,
+      fetched_count: 0,
+      held_count: 0,
+      published_count: 0,
+      skipped_count: 0,
     },
   );
 }
 
 function describeCompletedRun(run) {
   const fragments = [];
-  const executionDetails = run?.executionDetailsJson || run?.executionDetails || null;
+  const executionDetails = run?.execution_details_json || run?.executionDetails || null;
 
   if (executionDetails?.executionMode === "shared_batch" && Number(executionDetails.groupSize || 0) > 1) {
     fragments.push(`shared fetch across ${executionDetails.groupSize} streams`);
   }
 
-  if (Number(run.fetchedCount || 0) > 0) {
-    fragments.push(`${run.fetchedCount} fetched`);
+  if (Number(run.fetched_count || 0) > 0) {
+    fragments.push(`${run.fetched_count} fetched`);
   }
 
-  if (Number(run.publishedCount || 0) > 0) {
-    fragments.push(`${run.publishedCount} published`);
+  if (Number(run.published_count || 0) > 0) {
+    fragments.push(`${run.published_count} published`);
   }
 
-  if (Number(run.heldCount || 0) > 0) {
-    fragments.push(`${run.heldCount} held for review`);
+  if (Number(run.held_count || 0) > 0) {
+    fragments.push(`${run.held_count} held for review`);
   }
 
-  if (Number(run.skippedCount || 0) > 0) {
-    fragments.push(`${run.skippedCount} skipped`);
+  if (Number(run.skipped_count || 0) > 0) {
+    fragments.push(`${run.skipped_count} skipped`);
   }
 
-  if (Number(run.duplicateCount || 0) > 0) {
-    fragments.push(`${run.duplicateCount} duplicates`);
+  if (Number(run.duplicate_count || 0) > 0) {
+    fragments.push(`${run.duplicate_count} duplicates`);
   }
 
-  if (Number(run.failedCount || 0) > 0) {
-    fragments.push(`${run.failedCount} publish failures`);
+  if (Number(run.failed_count || 0) > 0) {
+    fragments.push(`${run.failed_count} publish failures`);
   }
 
   if (!fragments.length) {
@@ -198,12 +198,12 @@ function buildCapabilityDescription(timeBoundarySupport) {
 }
 
 function buildProviderRequestValues(stream = {}) {
-  return resolveStreamProviderRequestValues(stream?.activeProvider?.providerKey, {
-    countryAllowlistJson: stream?.countryAllowlistJson,
-    languageAllowlistJson: stream?.languageAllowlistJson,
+  return resolveStreamProviderRequestValues(stream?.activeProvider?.provider_key, {
+    country_allowlist_json: stream?.country_allowlist_json,
+    language_allowlist_json: stream?.language_allowlist_json,
     locale: stream?.locale,
-    providerDefaults: stream?.activeProvider?.requestDefaultsJson,
-    providerFilters: stream?.settingsJson?.providerFilters || {},
+    providerDefaults: stream?.activeProvider?.request_defaults_json,
+    providerFilters: stream?.settings_json?.providerFilters || {},
   });
 }
 
@@ -263,16 +263,16 @@ export function buildFetchWindowCapabilityDetails(streams = []) {
   const detailsByKey = new Map();
 
   for (const stream of streams) {
-    const providerKey = `${stream?.activeProvider?.providerKey || ""}`.trim().toLowerCase();
+    const provider_key = `${stream?.activeProvider?.provider_key || ""}`.trim().toLowerCase();
 
-    if (!providerKey) {
+    if (!provider_key) {
       continue;
     }
 
     const requestValues = buildProviderRequestValues(stream);
-    const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, requestValues);
+    const timeBoundarySupport = getProviderTimeBoundarySupport(provider_key, requestValues);
     const capabilityKey = [
-      providerKey,
+      provider_key,
       timeBoundarySupport?.endpoint || "default",
       timeBoundarySupport?.mode || "local_only",
       timeBoundarySupport?.precision || "datetime",
@@ -286,7 +286,7 @@ export function buildFetchWindowCapabilityDetails(streams = []) {
       badge: buildCapabilityBadge(timeBoundarySupport),
       description: buildCapabilityDescription(timeBoundarySupport),
       id: capabilityKey,
-      label: `${stream?.activeProvider?.label || providerKey} | ${formatProviderEndpointLabel(
+      label: `${stream?.activeProvider?.label || provider_key} | ${formatProviderEndpointLabel(
         timeBoundarySupport?.endpoint || "default",
       )}`,
       mode: timeBoundarySupport?.mode || "local_only",

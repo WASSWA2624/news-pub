@@ -32,7 +32,7 @@ export function normalizeSocialPostSettings(settings = {}) {
 
 /** Returns the normalized social-post settings for one stream record. */
 export function getStreamSocialPostSettings(stream = {}) {
-  return normalizeSocialPostSettings(stream?.settingsJson?.socialPost);
+  return normalizeSocialPostSettings(stream?.settings_json?.socialPost);
 }
 
 /** Resolves a deterministic placement when the stored value allows random choice. */

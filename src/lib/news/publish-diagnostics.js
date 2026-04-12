@@ -29,7 +29,7 @@ function normalizeIssue(issue, index) {
  * @returns {Array<object>} Normalized issue objects.
  */
 export function getPublishAttemptDiagnosticIssues(source = {}) {
-  const errorDetails = source?.diagnosticsJson?.errorDetails || source?.responseJson || null;
+  const errorDetails = source?.diagnostics_json?.errorDetails || source?.response_json || null;
 
   if (!Array.isArray(errorDetails?.issues)) {
     return [];
@@ -51,9 +51,9 @@ export function getPublishAttemptDiagnosticIssues(source = {}) {
 export function getPublishAttemptDiagnosticSummary(source = {}) {
   const issues = getPublishAttemptDiagnosticIssues(source);
   const responseError = trimText(
-    source?.diagnosticsJson?.errorDetails?.error
-      || source?.responseJson?.error
-      || source?.errorCode,
+    source?.diagnostics_json?.errorDetails?.error
+      || source?.response_json?.error
+      || source?.last_error_code,
   );
   const primaryIssue = issues[0] || null;
 
@@ -63,8 +63,8 @@ export function getPublishAttemptDiagnosticSummary(source = {}) {
     reasonCode: primaryIssue?.code || responseError || null,
     reasonMessage:
       primaryIssue?.message
-      || trimText(source?.errorMessage)
-      || trimText(source?.responseJson?.status)
+      || trimText(source?.last_error_message)
+      || trimText(source?.response_json?.status)
       || null,
   };
 }

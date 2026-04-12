@@ -6,16 +6,16 @@ function normalizeViewportDimension(value) {
   return Number.isFinite(value) ? Math.max(0, Math.round(value)) : undefined;
 }
 
-function resolveFormFactor(viewportWidth) {
-  if (!Number.isFinite(viewportWidth)) {
+function resolveFormFactor(viewport_width) {
+  if (!Number.isFinite(viewport_width)) {
     return "desktop";
   }
 
-  if (viewportWidth < 760) {
+  if (viewport_width < 760) {
     return "mobile";
   }
 
-  if (viewportWidth < 1040) {
+  if (viewport_width < 1040) {
     return "tablet";
   }
 
@@ -23,28 +23,28 @@ function resolveFormFactor(viewportWidth) {
 }
 
 function buildPayload(metric) {
-  const viewportWidth = typeof window !== "undefined" ? normalizeViewportDimension(window.innerWidth) : undefined;
-  const viewportHeight = typeof window !== "undefined" ? normalizeViewportDimension(window.innerHeight) : undefined;
-  const connectionType =
+  const viewport_width = typeof window !== "undefined" ? normalizeViewportDimension(window.innerWidth) : undefined;
+  const viewport_height = typeof window !== "undefined" ? normalizeViewportDimension(window.innerHeight) : undefined;
+  const connection_type =
     typeof navigator !== "undefined" && navigator.connection?.effectiveType
       ? navigator.connection.effectiveType
       : "";
 
   return {
     attribution: metric.attribution,
-    buildId: process.env.NEXT_PUBLIC_RELEASE_ID || "",
-    connectionType,
+    build_id: process.env.NEXT_PUBLIC_RELEASE_ID || "",
+    connection_type,
     delta: metric.delta,
-    formFactor: resolveFormFactor(viewportWidth),
+    form_factor: resolveFormFactor(viewport_width),
     id: metric.id,
     label: metric.label,
     name: metric.name,
-    navigationType: metric.navigationType,
+    navigation_type: metric.navigation_type,
     path: typeof window !== "undefined" ? window.location.pathname : "",
     rating: metric.rating,
     value: metric.value,
-    viewportHeight,
-    viewportWidth,
+    viewport_height,
+    viewport_width,
   };
 }
 

@@ -714,7 +714,7 @@ export default function AdminShell({ children, messages, user }) {
   const primaryNavViewportRef = useRef(null);
   const measurementRefs = useRef({});
   const [openMenuContext, setOpenMenuContext] = useState(null);
-  const [viewportWidth, setViewportWidth] = useState(null);
+  const [viewport_width, setViewportWidth] = useState(null);
   const [navViewportWidth, setNavViewportWidth] = useState(0);
   const [navItemWidths, setNavItemWidths] = useState({});
   const publicSiteHref = buildLocaleRootPath(defaultLocale);
@@ -798,11 +798,11 @@ export default function AdminShell({ children, messages, user }) {
     return () => {
       observer.disconnect();
     };
-  }, [navigationItems, viewportWidth]);
+  }, [navigationItems, viewport_width]);
 
-  const effectiveViewportWidth = viewportWidth ?? MOBILE_BREAKPOINT;
+  const effectiveViewportWidth = viewport_width ?? MOBILE_BREAKPOINT;
   const isDesktopViewport =
-    viewportWidth !== null && viewportWidth >= TABLET_HEADER_BREAKPOINT;
+    viewport_width !== null && viewport_width >= TABLET_HEADER_BREAKPOINT;
   const primaryKeys = getPrimaryKeysForViewport(effectiveViewportWidth);
   const widthDrivenDistribution = useMemo(() => {
     return distributeNavigationItemsByWidth(navigationItems, pathname, navItemWidths, navViewportWidth);
@@ -822,15 +822,15 @@ export default function AdminShell({ children, messages, user }) {
 
   function renderPrimaryNavigation() {
     return primaryItems.map((item) => {
-      const isActive = isNavigationActive(pathname, item.href);
+      const is_active = isNavigationActive(pathname, item.href);
 
       return (
         <PrimaryNavLink
-          aria-current={isActive ? "page" : undefined}
+          aria-current={is_active ? "page" : undefined}
           href={item.href}
           key={item.key}
           onClick={() => setOpenMenuContext(null)}
-          $active={isActive}
+          $active={is_active}
         >
           {item.icon ? <AppIcon name={item.icon} size={14} /> : null}
           {item.label}
@@ -841,22 +841,22 @@ export default function AdminShell({ children, messages, user }) {
 
   function renderOverflowNavigation() {
     return overflowItems.map((item) => {
-      const isActive = isNavigationActive(pathname, item.href);
+      const is_active = isNavigationActive(pathname, item.href);
 
       return (
         <OverflowLink
-          aria-current={isActive ? "page" : undefined}
+          aria-current={is_active ? "page" : undefined}
           href={item.href}
           key={item.key}
           onClick={() => setOpenMenuContext(null)}
-          $active={isActive}
+          $active={is_active}
         >
-          <OverflowLinkDot aria-hidden="true" $active={isActive}>
+          <OverflowLinkDot aria-hidden="true" $active={is_active}>
             {item.icon ? <AppIcon name={item.icon} size={14} /> : null}
           </OverflowLinkDot>
           <OverflowLinkText>
             <OverflowLinkLabel>{item.label}</OverflowLinkLabel>
-            <OverflowLinkHint>{isActive ? "Current section" : "Open section"}</OverflowLinkHint>
+            <OverflowLinkHint>{is_active ? "Current section" : "Open section"}</OverflowLinkHint>
           </OverflowLinkText>
           <OverflowLinkChevron aria-hidden="true">
             <AppIcon name="chevron-right" size={14} />

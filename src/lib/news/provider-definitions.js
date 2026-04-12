@@ -153,12 +153,12 @@ function readMultiValue(values = {}, key) {
  * Resolves the provider endpoint or request shape used for compatibility,
  * capability, and admin metadata checks.
  *
- * @param {string} providerKey - Provider catalog key.
+ * @param {string} provider_key - Provider catalog key.
  * @param {object} [values] - Sanitized request values.
  * @returns {string} Endpoint identifier for the provider request shape.
  */
-export function getProviderEndpointShape(providerKey, values = {}) {
-  const normalizedProviderKey = normalizeKey(providerKey);
+export function getProviderEndpointShape(provider_key, values = {}) {
+  const normalizedProviderKey = normalizeKey(provider_key);
 
   if (normalizedProviderKey === "newsdata") {
     return readSingleValue(values, "endpoint") === "archive" ? "archive" : "latest";
@@ -179,12 +179,12 @@ export function getProviderEndpointShape(providerKey, values = {}) {
  * `relative` means NewsPub can only ask for a broader relative lookback.
  * `local_only` means NewsPub must fetch broadly and enforce the window locally.
  *
- * @param {string} providerKey - Provider catalog key.
+ * @param {string} provider_key - Provider catalog key.
  * @param {object} [values] - Sanitized request values.
  * @returns {object} Time-boundary capability metadata.
  */
-export function getProviderTimeBoundarySupport(providerKey, values = {}) {
-  const normalizedProviderKey = normalizeKey(providerKey);
+export function getProviderTimeBoundarySupport(provider_key, values = {}) {
+  const normalizedProviderKey = normalizeKey(provider_key);
   const endpoint = getProviderEndpointShape(normalizedProviderKey, values);
 
   if (normalizedProviderKey === "mediastack") {
@@ -252,8 +252,8 @@ export function getProviderTimeBoundarySupport(providerKey, values = {}) {
 /**
  * Returns the provider-specific start and end field keys that map the normalized NewsPub fetch window upstream.
  */
-export function getProviderDateWindowConfig(providerKey, values = {}) {
-  const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, values);
+export function getProviderDateWindowConfig(provider_key, values = {}) {
+  const timeBoundarySupport = getProviderTimeBoundarySupport(provider_key, values);
 
   if (timeBoundarySupport.mode === "direct") {
     return {
@@ -845,7 +845,7 @@ const NEWSAPI_SORT_OPTIONS = buildSingleSelectOptions([
   {
     description: "Newest articles first.",
     label: "Published At",
-    value: "publishedAt",
+    value: "published_at",
   },
 ]);
 
@@ -1051,7 +1051,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Stream-side language allowlist applied both locally and, where possible, upstream.",
         input: "checkboxes",
-        key: "languageAllowlistJson",
+        key: "language_allowlist_json",
         label: "Stream Languages",
         options: MEDIASTACK_LANGUAGE_OPTIONS,
         scopes: ["stream"],
@@ -1060,7 +1060,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Stream-side country allowlist applied both locally and, where possible, upstream.",
         input: "checkboxes",
-        key: "countryAllowlistJson",
+        key: "country_allowlist_json",
         label: "Stream Countries",
         options: MEDIASTACK_COUNTRY_OPTIONS,
         scopes: ["stream"],
@@ -1179,7 +1179,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Stream-side language allowlist applied both locally and, where possible, upstream.",
         input: "checkboxes",
-        key: "languageAllowlistJson",
+        key: "language_allowlist_json",
         label: "Stream Languages",
         options: NEWSDATA_LANGUAGE_OPTIONS,
         scopes: ["stream"],
@@ -1206,7 +1206,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Stream-side country allowlist applied both locally and, where possible, upstream.",
         input: "checkboxes",
-        key: "countryAllowlistJson",
+        key: "country_allowlist_json",
         label: "Stream Countries",
         options: NEWSDATA_COUNTRY_OPTIONS,
         scopes: ["stream"],
@@ -1439,7 +1439,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Everything endpoint stream language filter.",
         input: "single-select",
-        key: "languageAllowlistJson",
+        key: "language_allowlist_json",
         label: "Language",
         options: buildSingleSelectOptions([
           { description: "Return all supported languages.", label: "Any Language", value: "" },
@@ -1465,7 +1465,7 @@ const providerDefinitionMap = Object.freeze({
       {
         description: "Top Headlines country filter.",
         input: "single-select",
-        key: "countryAllowlistJson",
+        key: "country_allowlist_json",
         label: "Country",
         options: buildSingleSelectOptions([
           { description: "Return all supported countries.", label: "Any Country", value: "" },
@@ -1556,7 +1556,7 @@ const providerDefinitionMap = Object.freeze({
 
 const providerExecutionLimits = Object.freeze({
   mediastack: Object.freeze({
-    maxPostsPerRun: Object.freeze({
+    max_posts_per_run: Object.freeze({
       max: 33,
       min: 1,
       reason:
@@ -1564,14 +1564,14 @@ const providerExecutionLimits = Object.freeze({
     }),
   }),
   newsapi: Object.freeze({
-    maxPostsPerRun: Object.freeze({
+    max_posts_per_run: Object.freeze({
       max: 100,
       min: 1,
       reason: "NewsAPI pageSize cannot exceed 100 articles per request.",
     }),
   }),
   newsdata: Object.freeze({
-    maxPostsPerRun: Object.freeze({
+    max_posts_per_run: Object.freeze({
       max: 50,
       min: 1,
       reason: "NewsData request size limits vary by plan, so NewsPub caps stream runs at 50 to avoid obvious upstream failures.",
@@ -1601,23 +1601,23 @@ export function listProviderDefinitions() {
 /**
  * Returns one NewsPub provider definition by key.
  */
-export function getProviderDefinition(providerKey) {
-  return providerDefinitionMap[normalizeKey(providerKey)] || null;
+export function getProviderDefinition(provider_key) {
+  return providerDefinitionMap[normalizeKey(provider_key)] || null;
 }
 
 /**
  * Returns provider-specific execution limits that admin forms can enforce
  * before NewsPub sends provider-shaped requests upstream.
  */
-export function getProviderExecutionLimits(providerKey) {
-  return providerExecutionLimits[normalizeKey(providerKey)] || {};
+export function getProviderExecutionLimits(provider_key) {
+  return providerExecutionLimits[normalizeKey(provider_key)] || {};
 }
 
 /**
  * Returns the scoped provider form definition with values normalized for the current admin surface.
  */
-export function getProviderFormDefinition(providerKey, scope, values = {}) {
-  const definition = getProviderDefinition(providerKey);
+export function getProviderFormDefinition(provider_key, scope, values = {}) {
+  const definition = getProviderDefinition(provider_key);
 
   if (!definition) {
     return null;
@@ -1639,8 +1639,8 @@ export function getProviderFormDefinition(providerKey, scope, values = {}) {
 /**
  * Sanitizes provider field values before NewsPub persists or reuses them in request payloads.
  */
-export function sanitizeProviderFieldValues(providerKey, values = {}, { preserveEmpty = false } = {}) {
-  const definition = getProviderDefinition(providerKey);
+export function sanitizeProviderFieldValues(provider_key, values = {}, { preserveEmpty = false } = {}) {
+  const definition = getProviderDefinition(provider_key);
 
   if (!definition) {
     return {};
@@ -1752,16 +1752,16 @@ function resolveAllowlistValues(values = [], providerFilters = {}, key) {
  * Resolves the provider request values that NewsPub should send for one stream execution.
  */
 export function resolveStreamProviderRequestValues(
-  providerKey,
+  provider_key,
   {
-    countryAllowlistJson = [],
-    languageAllowlistJson = [],
+    country_allowlist_json = [],
+    language_allowlist_json = [],
     locale = "",
     providerDefaults = {},
     providerFilters = {},
   } = {},
 ) {
-  const normalizedProviderKey = normalizeKey(providerKey);
+  const normalizedProviderKey = normalizeKey(provider_key);
   const providerDefaultValues = sanitizeProviderFieldValues(
     normalizedProviderKey,
     providerDefaults,
@@ -1776,18 +1776,18 @@ export function resolveStreamProviderRequestValues(
   const mergedValues = mergeProviderFieldValues(providerDefaultValues, streamOverrideValues);
   const requestValues = sanitizeProviderFieldValues(normalizedProviderKey, mergedValues);
   const normalizedLanguageAllowlist = resolveAllowlistValues(
-    languageAllowlistJson,
+    language_allowlist_json,
     providerFilters,
-    "languageAllowlistJson",
+    "language_allowlist_json",
   );
   const normalizedCountryAllowlist = resolveAllowlistValues(
-    countryAllowlistJson,
+    country_allowlist_json,
     providerFilters,
-    "countryAllowlistJson",
+    "country_allowlist_json",
   );
 
-  delete requestValues.countryAllowlistJson;
-  delete requestValues.languageAllowlistJson;
+  delete requestValues.country_allowlist_json;
+  delete requestValues.language_allowlist_json;
 
   if (normalizedProviderKey === "mediastack") {
     if (normalizedCountryAllowlist.length) {
@@ -1835,8 +1835,8 @@ export function resolveStreamProviderRequestValues(
 /**
  * Returns provider-specific validation issues for the current NewsPub request configuration.
  */
-export function getProviderRequestValidationIssues(providerKey, options = {}) {
-  const normalizedProviderKey = normalizeKey(providerKey);
+export function getProviderRequestValidationIssues(provider_key, options = {}) {
+  const normalizedProviderKey = normalizeKey(provider_key);
   const requestValues = resolveStreamProviderRequestValues(normalizedProviderKey, options);
   const issues = [];
 
@@ -1974,18 +1974,18 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
  * Returns the provider field values that should prefill the NewsPub stream editor.
  */
 export function getStreamProviderFormValues(stream = {}) {
-  const providerFilters = stream?.settingsJson?.providerFilters || {};
-  const savedCountryAllowlist = readMultiValue(stream, "countryAllowlistJson");
-  const savedLanguageAllowlist = readMultiValue(stream, "languageAllowlistJson");
+  const providerFilters = stream?.settings_json?.providerFilters || {};
+  const savedCountryAllowlist = readMultiValue(stream, "country_allowlist_json");
+  const savedLanguageAllowlist = readMultiValue(stream, "language_allowlist_json");
 
   return {
     ...providerFilters,
-    countryAllowlistJson: savedCountryAllowlist.length
+    country_allowlist_json: savedCountryAllowlist.length
       ? savedCountryAllowlist
-      : readMultiValue(providerFilters, "countryAllowlistJson"),
-    languageAllowlistJson: savedLanguageAllowlist.length
+      : readMultiValue(providerFilters, "country_allowlist_json"),
+    language_allowlist_json: savedLanguageAllowlist.length
       ? savedLanguageAllowlist
-      : readMultiValue(providerFilters, "languageAllowlistJson"),
+      : readMultiValue(providerFilters, "language_allowlist_json"),
   };
 }
 
@@ -1993,7 +1993,7 @@ export function getStreamProviderFormValues(stream = {}) {
  * Returns the stored provider request defaults in a safe object shape.
  */
 export function getProviderRequestDefaultValues(providerConfig = {}) {
-  return providerConfig?.requestDefaultsJson && typeof providerConfig.requestDefaultsJson === "object"
-    ? providerConfig.requestDefaultsJson
+  return providerConfig?.request_defaults_json && typeof providerConfig.request_defaults_json === "object"
+    ? providerConfig.request_defaults_json
     : {};
 }

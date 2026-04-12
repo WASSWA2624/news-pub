@@ -192,7 +192,7 @@ export async function fetchWithTimeoutAndRetry(
         onRetry?.({
           attempt: attempt + 1,
           delayMs,
-          errorMessage: error instanceof Error ? error.message : `${error}`,
+          last_error_message: error instanceof Error ? error.message : `${error}`,
           kind: "error",
           status: null,
           url: `${input}`,

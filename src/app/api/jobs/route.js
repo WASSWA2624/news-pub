@@ -22,7 +22,7 @@ const jobRunSchema = z
   .object({
     fetchWindow: fetchWindowSchema.optional(),
     runDueStreams: z.boolean().optional(),
-    streamId: z.string().trim().optional(),
+    stream_id: z.string().trim().optional(),
     streamIds: z.array(z.string().trim().min(1)).min(1).optional(),
   });
 
@@ -68,16 +68,16 @@ export async function POST(request) {
   }
 
   try {
-    if (result.data.streamId) {
-      const run = await runStreamFetch(result.data.streamId, {
-        actorId: auth.user.id,
+    if (result.data.stream_id) {
+      const run = await runStreamFetch(result.data.stream_id, {
+        actor_id: auth.user.id,
         fetchWindow: result.data.fetchWindow
           ? {
               end: result.data.fetchWindow.end,
               start: result.data.fetchWindow.start,
             }
           : null,
-        triggerType: "manual",
+        trigger_type: "manual",
         writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
       });
 
@@ -89,14 +89,14 @@ export async function POST(request) {
 
     if (result.data.streamIds?.length) {
       const batch = await runMultipleStreamFetches(result.data.streamIds, {
-        actorId: auth.user.id,
+        actor_id: auth.user.id,
         fetchWindow: result.data.fetchWindow
           ? {
               end: result.data.fetchWindow.end,
               start: result.data.fetchWindow.start,
             }
           : null,
-        triggerType: "manual",
+        trigger_type: "manual",
         writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
       });
 

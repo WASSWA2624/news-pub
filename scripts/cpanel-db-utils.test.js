@@ -6,8 +6,8 @@ describe("cPanel Prisma naming helpers", () => {
     const metadata = parsePrismaSchemaNamingMetadata(`
 model AdminSession {
   id        String   @id
-  userId    String   @map("user_id")
-  createdAt DateTime @map("created_at")
+  user_id    String   @map("user_id")
+  created_at DateTime @map("created_at")
 
   @@map("admin_session")
 }
@@ -24,12 +24,12 @@ model AdminSession {
           },
           {
             canonicalName: "user_id",
-            fieldName: "userId",
+            fieldName: "user_id",
             legacyNames: ["userId"],
           },
           {
             canonicalName: "created_at",
-            fieldName: "createdAt",
+            fieldName: "created_at",
             legacyNames: ["createdAt"],
           },
         ],

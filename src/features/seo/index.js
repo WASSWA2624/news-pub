@@ -70,7 +70,7 @@ export function getRobotsConfiguration() {
       {
         allow: "/",
         disallow: seoRobotsDisallowPaths,
-        userAgent: "*",
+        user_agent: "*",
       },
     ],
     sitemap: `${sharedEnv.app.url.replace(/\/+$/, "")}/sitemap.xml`,
@@ -85,7 +85,7 @@ export async function getSitemapEntries(prisma) {
       const [posts, categories] = await Promise.all([
         db.post.findMany({
           select: {
-            publishedAt: true,
+            published_at: true,
             slug: true,
             translations: {
               orderBy: {
@@ -95,16 +95,16 @@ export async function getSitemapEntries(prisma) {
                 locale: true,
               },
             },
-            updatedAt: true,
+            updated_at: true,
           },
-          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+          orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
           where: buildPublishedWebsiteWhere(),
         }),
         db.category.findMany({
           orderBy: [{ name: "asc" }],
           select: {
             slug: true,
-            updatedAt: true,
+            updated_at: true,
           },
           where: {
             posts: {
@@ -121,7 +121,7 @@ export async function getSitemapEntries(prisma) {
           .filter((translation) => supportedLocales.includes(translation.locale))
           .map((translation) => ({
             changeFrequency: "hourly",
-            lastModified: post.updatedAt || post.publishedAt || new Date(),
+            lastModified: post.updated_at || post.published_at || new Date(),
             priority: 0.85,
             url: buildAbsoluteUrl(buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug))),
           })),
@@ -129,7 +129,7 @@ export async function getSitemapEntries(prisma) {
       const categoryEntries = categories.flatMap((category) =>
         supportedLocales.map((locale) => ({
           changeFrequency: "daily",
-          lastModified: category.updatedAt || new Date(),
+          lastModified: category.updated_at || new Date(),
           priority: 0.65,
           url: buildAbsoluteUrl(buildLocalizedPath(locale, publicRouteSegments.category(category.slug))),
         })),
@@ -150,7 +150,7 @@ export async function getSeoManagementSnapshot(prisma) {
         db.post.findMany({
           select: {
             excerpt: true,
-            publishedAt: true,
+            published_at: true,
             slug: true,
             translations: {
               include: {
@@ -160,9 +160,9 @@ export async function getSeoManagementSnapshot(prisma) {
                 locale: "asc",
               },
             },
-            updatedAt: true,
+            updated_at: true,
           },
-          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+          orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
           take: 25,
           where: buildPublishedWebsiteWhere(),
         }),
@@ -187,21 +187,21 @@ export async function getSeoManagementSnapshot(prisma) {
 
       return {
         stories: posts.map((post) => ({
-          canonicalUrl:
-            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.canonicalUrl ||
+          canonical_url:
+            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.canonical_url ||
             buildAbsoluteUrl(buildLocalizedPath(defaultLocale, publicRouteSegments.newsPost(post.slug))),
           locales: post.translations.map((translation) => translation.locale),
-          metaDescription:
-            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.metaDescription ||
+          meta_description:
+            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.meta_description ||
             post.excerpt,
-          metaTitle:
-            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.metaTitle ||
+          meta_title:
+            post.translations.find((translation) => translation.locale === defaultLocale)?.seoRecord?.meta_title ||
             post.translations.find((translation) => translation.locale === defaultLocale)?.title ||
             post.slug,
           missingSeoRecord: post.translations.some((translation) => !translation.seoRecord),
-          publishedAt: serializeDate(post.publishedAt),
+          published_at: serializeDate(post.published_at),
           slug: post.slug,
-          updatedAt: serializeDate(post.updatedAt),
+          updated_at: serializeDate(post.updated_at),
         })),
         summary: {
           categoryPageCount,

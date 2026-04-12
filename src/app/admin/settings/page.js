@@ -127,7 +127,7 @@ export default async function SettingsPage() {
                     <td data-label="Code">{locale.code}</td>
                     <td data-label="Name">{locale.name}</td>
                     <td data-label="State">
-                      {locale.isDefault ? "Default" : locale.isActive ? "Active" : "Inactive"}
+                      {locale.is_default ? "Default" : locale.is_active ? "Active" : "Inactive"}
                     </td>
                   </tr>
                 ))}
@@ -162,8 +162,8 @@ export default async function SettingsPage() {
               <NoticeTitle>Detected incompatible records</NoticeTitle>
               <NoticeList>
                 {snapshot.configurationIssues.map((issue) => (
-                  <NoticeItem key={`${issue.entityType}-${issue.entityId}-${issue.code}`}>
-                    {issue.entityType}: {issue.entityLabel}. {issue.message}
+                  <NoticeItem key={`${issue.entity_type}-${issue.entity_id}-${issue.code}`}>
+                    {issue.entity_type}: {issue.entityLabel}. {issue.message}
                   </NoticeItem>
                 ))}
               </NoticeList>

@@ -25,7 +25,7 @@ export async function generateMetadata({ params, searchParams }) {
   const country = typeof resolvedSearchParams?.country === "string" ? resolvedSearchParams.country.trim() : "all";
 
   return buildPageMetadata({
-    description: pageContent.metaDescription || pageContent.description || messages.site.tagline,
+    description: pageContent.meta_description || pageContent.description || messages.site.tagline,
     locale,
     noindex: true,
     query: {
@@ -34,7 +34,7 @@ export async function generateMetadata({ params, searchParams }) {
       ...(query ? { q: query } : {}),
     },
     segments: publicRouteSegments.search,
-    title: pageContent.metaTitle || pageContent.title || messages.site.title,
+    title: pageContent.meta_title || pageContent.title || messages.site.title,
   });
 }
 /**

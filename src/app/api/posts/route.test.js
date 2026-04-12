@@ -22,7 +22,7 @@ describe("posts api route", () => {
   it("creates a manual story and reloads the editor snapshot", async () => {
     const createManualPostRecord = vi.fn().mockResolvedValue({
       locale: "en",
-      postId: "post_1",
+      post_id: "post_1",
     });
     const getPostEditorSnapshot = vi.fn().mockResolvedValue({
       post: {
@@ -56,10 +56,10 @@ describe("posts api route", () => {
       new Request("https://example.com/api/posts", {
         body: JSON.stringify({
           action: "publish",
-          contentMd: "Story body",
-          sourceName: "NewsPub Editorial",
-          sourceUrl: "https://example.com/source-story",
-          streamId: "stream_1",
+          content_md: "Story body",
+          source_name: "NewsPub Editorial",
+          source_url: "https://example.com/source-story",
+          stream_id: "stream_1",
           summary: "Story summary",
           title: "Story title",
         }),
@@ -84,15 +84,15 @@ describe("posts api route", () => {
       expect.objectContaining({
         action: "publish",
         status: "PUBLISHED",
-        streamId: "stream_1",
+        stream_id: "stream_1",
       }),
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
     expect(getPostEditorSnapshot).toHaveBeenCalledWith({
       locale: "en",
-      postId: "post_1",
+      post_id: "post_1",
     });
   });
 });

@@ -130,8 +130,8 @@ describe("destination meta configuration", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(selection).toMatchObject({
       accessToken: "page-access-token",
-      accountHandle: "@example.creator",
-      externalAccountId: "ig_1",
+      account_handle: "@example.creator",
+      external_account_id: "ig_1",
       settingsJsonPatch: {
         graphApiBaseUrl: "https://graph.facebook.com/v25.0",
         instagramUserId: "ig_1",

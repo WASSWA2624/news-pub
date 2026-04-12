@@ -337,16 +337,16 @@ function HomeStoryList({
         const primaryCategory = Array.isArray(item.categories) ? item.categories[0] : null;
         const searchMatchLabel = showSearchContext ? resolveSearchMatchLabel(item, searchMatchCopy) : "";
         const metaItems = [
-          item.publishedAt
+          item.published_at
             ? {
                 icon: "calendar",
-                label: formatDateTimeLabel(locale, item.publishedAt),
+                label: formatDateTimeLabel(locale, item.published_at),
               }
             : null,
-          item.sourceName
+          item.source_name
             ? {
                 icon: "news",
-                label: item.sourceName,
+                label: item.source_name,
               }
             : null,
         ].filter(Boolean);

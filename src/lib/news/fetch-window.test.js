@@ -25,7 +25,7 @@ describe("fetch window helpers", () => {
   it("uses explicit boundaries without advancing checkpoints by default", () => {
     const fetchWindow = resolveExecutionFetchWindow({
       checkpoint: {
-        lastSuccessfulFetchAt: new Date("2026-04-01T00:00:00.000Z"),
+        last_successful_fetch_at: new Date("2026-04-01T00:00:00.000Z"),
       },
       now: new Date("2026-04-07T12:00:00.000Z"),
       requestedWindow: {
@@ -66,7 +66,7 @@ describe("fetch window helpers", () => {
     expect(
       resolveExecutionFetchWindow({
         checkpoint: {
-          lastSuccessfulFetchAt: new Date("2026-04-07T09:15:00.000Z"),
+          last_successful_fetch_at: new Date("2026-04-07T09:15:00.000Z"),
         },
         now,
       }),
@@ -81,7 +81,7 @@ describe("fetch window helpers", () => {
     const mergedWindow = mergeExecutionFetchWindows([
       resolveExecutionFetchWindow({
         checkpoint: {
-          lastSuccessfulFetchAt: new Date("2026-04-05T00:00:00.000Z"),
+          last_successful_fetch_at: new Date("2026-04-05T00:00:00.000Z"),
         },
         now: new Date("2026-04-07T12:00:00.000Z"),
       }),
@@ -116,7 +116,7 @@ describe("fetch window helpers", () => {
     expect(
       isArticleInsideFetchWindow(
         {
-          publishedAt: "2026-04-07T05:00:00.000Z",
+          published_at: "2026-04-07T05:00:00.000Z",
         },
         fetchWindow,
       ),
@@ -124,7 +124,7 @@ describe("fetch window helpers", () => {
     expect(
       isArticleInsideFetchWindow(
         {
-          publishedAt: "2026-04-06T23:59:59.000Z",
+          published_at: "2026-04-06T23:59:59.000Z",
         },
         fetchWindow,
       ),
@@ -132,7 +132,7 @@ describe("fetch window helpers", () => {
     expect(
       isArticleInsideFetchWindow(
         {
-          publishedAt: null,
+          published_at: null,
         },
         fetchWindow,
       ),

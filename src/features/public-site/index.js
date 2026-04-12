@@ -140,11 +140,11 @@ function mapImage(asset, fallbackAlt = "Story image") {
   }
 
   const alt = asset.alt || asset.caption || fallbackAlt;
-  const url = getRenderableImageUrl(asset.publicUrl || asset.sourceUrl || "", {
+  const url = getRenderableImageUrl(asset.public_url || asset.source_url || "", {
     alt,
     caption: asset.caption || null,
     height: asset.height,
-    sourceUrl: asset.sourceUrl || asset.publicUrl || "",
+    source_url: asset.source_url || asset.public_url || "",
     width: asset.width,
   });
 
@@ -255,11 +255,11 @@ function resolveEmbeddableVideoUrl(url) {
 /**
  * Infers the most appropriate media renderer from mixed provider metadata.
  *
- * @param {{kind?: string, mimeType?: string, type?: string, url?: string}} input - Candidate media metadata.
+ * @param {{kind?: string, mime_type?: string, type?: string, url?: string}} input - Candidate media metadata.
  * @returns {"embed"|"image"|"video"} Public media kind.
  */
-function inferMediaKind({ kind, mimeType, type, url }) {
-  const normalizedMimeType = trimText(mimeType).toLowerCase();
+function inferMediaKind({ kind, mime_type, type, url }) {
+  const normalizedMimeType = trimText(mime_type).toLowerCase();
 
   if (isVideoLikeValue(kind) || isVideoLikeValue(type) || normalizedMimeType.startsWith("video/")) {
     return "video";
@@ -300,7 +300,7 @@ function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
     alt,
     caption: metadata.caption || null,
     height: metadata.height,
-    sourceUrl: metadata.sourceUrl || url || "",
+    source_url: metadata.source_url || url || "",
     width: metadata.width,
   });
 
@@ -319,12 +319,12 @@ function mapRemoteImage(url, fallbackAlt = "Story image", metadata = {}) {
  * Creates a placeholder image when published story media is unavailable.
  *
  * @param {object} [options={}] - Placeholder configuration.
- * @returns {{alt: string, caption: null, height: number, kind: string, sourceUrl: string|null, url: string, width: number}} Placeholder image payload.
+ * @returns {{alt: string, caption: null, height: number, kind: string, source_url: string|null, url: string, width: number}} Placeholder image payload.
  */
 function createFallbackPrimaryMedia({
   fallbackAlt = "Story image",
-  sourceName = "",
-  sourceUrl = "",
+  source_name = "",
+  source_url = "",
   summary = "",
 } = {}) {
   const alt = trimText(fallbackAlt) || "Story image";
@@ -334,11 +334,11 @@ function createFallbackPrimaryMedia({
     caption: null,
     height: 900,
     kind: "image",
-    sourceUrl: trimText(sourceUrl) || null,
+    source_url: trimText(source_url) || null,
     url: createImagePlaceholderDataUrl({
       alt,
-      caption: trimText(summary) || (trimText(sourceName) ? `Preview unavailable from ${sourceName}.` : ""),
-      sourceUrl,
+      caption: trimText(summary) || (trimText(source_name) ? `Preview unavailable from ${source_name}.` : ""),
+      source_url,
       width: 1600,
       height: 900,
     }),
@@ -354,22 +354,22 @@ function createFallbackPrimaryMedia({
  * @returns {object|null} Public gallery item or `null` when the source cannot be sanitized.
  */
 function mapMediaItem(rawItem, fallbackAlt = "Story media") {
-  const sourceUrl =
+  const source_url =
     rawItem?.url
     || rawItem?.src
-    || rawItem?.sourceUrl
-    || rawItem?.publicUrl
+    || rawItem?.source_url
+    || rawItem?.public_url
     || rawItem?.videoUrl
     || "";
   const mediaKind = inferMediaKind({
     kind: rawItem?.kind,
-    mimeType: rawItem?.mimeType,
+    mime_type: rawItem?.mime_type,
     type: rawItem?.type,
-    url: sourceUrl,
+    url: source_url,
   });
 
   if (mediaKind === "embed") {
-    const embedUrl = resolveEmbeddableVideoUrl(sourceUrl);
+    const embedUrl = resolveEmbeddableVideoUrl(source_url);
 
     return embedUrl
       ? {
@@ -378,36 +378,36 @@ function mapMediaItem(rawItem, fallbackAlt = "Story media") {
           embedUrl,
           kind: "embed",
           posterUrl: sanitizeMediaUrl(rawItem?.posterUrl || rawItem?.poster || rawItem?.thumbnailUrl || ""),
-          sourceUrl: sanitizeExternalUrl(sourceUrl),
+          source_url: sanitizeExternalUrl(source_url),
           title: rawItem?.title || null,
         }
       : null;
   }
 
   if (mediaKind === "video") {
-    const safeUrl = sanitizeMediaUrl(sourceUrl);
+    const safeUrl = sanitizeMediaUrl(source_url);
 
     return safeUrl
       ? {
           alt: rawItem?.alt || rawItem?.title || fallbackAlt,
           caption: rawItem?.caption || rawItem?.description || null,
           kind: "video",
-          mimeType: rawItem?.mimeType || null,
+          mime_type: rawItem?.mime_type || null,
           posterUrl: sanitizeMediaUrl(rawItem?.posterUrl || rawItem?.poster || rawItem?.thumbnailUrl || ""),
-          sourceUrl: safeUrl,
+          source_url: safeUrl,
           title: rawItem?.title || null,
           url: safeUrl,
         }
       : null;
   }
 
-  const image = mapRemoteImage(sourceUrl, fallbackAlt, rawItem);
+  const image = mapRemoteImage(source_url, fallbackAlt, rawItem);
 
   return image
     ? {
         ...image,
         kind: "image",
-        sourceUrl: image.url,
+        source_url: image.url,
       }
     : null;
 }
@@ -418,9 +418,9 @@ function appendUniqueMedia(items, media) {
     return items;
   }
 
-  const mediaKey = `${media.kind}:${media.embedUrl || media.url || media.sourceUrl || ""}`;
+  const mediaKey = `${media.kind}:${media.embedUrl || media.url || media.source_url || ""}`;
 
-  if (!mediaKey || items.some((item) => `${item.kind}:${item.embedUrl || item.url || item.sourceUrl || ""}` === mediaKey)) {
+  if (!mediaKey || items.some((item) => `${item.kind}:${item.embedUrl || item.url || item.source_url || ""}` === mediaKey)) {
     return items;
   }
 
@@ -432,18 +432,18 @@ function appendUniqueMedia(items, media) {
 /**
  * Extracts gallery-ready media from stored structured content.
  *
- * @param {object|null} structuredContentJson - Stored structured content JSON.
+ * @param {object|null} structured_content_json - Stored structured content JSON.
  * @param {string} [fallbackAlt="Story media"] - Alt text fallback for extracted media.
  * @returns {Array<object>} Ordered media gallery items.
  */
-function extractStructuredMedia(structuredContentJson, fallbackAlt = "Story media") {
-  if (!structuredContentJson || typeof structuredContentJson !== "object") {
+function extractStructuredMedia(structured_content_json, fallbackAlt = "Story media") {
+  if (!structured_content_json || typeof structured_content_json !== "object") {
     return [];
   }
 
   const media = [];
 
-  for (const section of Array.isArray(structuredContentJson.sections) ? structuredContentJson.sections : []) {
+  for (const section of Array.isArray(structured_content_json.sections) ? structured_content_json.sections : []) {
     const sectionAlt = trimText(section?.title) || fallbackAlt;
     const imageCandidates = Array.isArray(section?.images) ? section.images : [];
     const videoCandidates = [
@@ -516,7 +516,7 @@ function normalizeSeoStringList(values) {
  * @returns {string[]} Author names suitable for metadata and structured-data output.
  */
 function resolveStoryAuthors(seoRecord, sourceAuthor) {
-  const seoAuthors = normalizeSeoStringList(seoRecord?.authorsJson);
+  const seoAuthors = normalizeSeoStringList(seoRecord?.authors_json);
 
   return seoAuthors.length ? seoAuthors : normalizeSeoStringList([sourceAuthor]);
 }
@@ -549,7 +549,7 @@ function buildPostCardSummary(post, translation) {
   return (
     trimText(translation?.summary)
     || trimText(post.excerpt)
-    || createSummaryFallback(translation?.contentMd)
+    || createSummaryFallback(translation?.content_md)
   );
 }
 
@@ -565,15 +565,15 @@ function mapPostCard(post, locale = defaultLocale) {
   const fallbackAlt = translation?.title || post.slug;
   const summary = buildPostCardSummary(post, translation);
   const image = mapImage(post.featuredImage, fallbackAlt)
-    || mapRemoteImage(post.sourceArticle?.imageUrl, fallbackAlt);
-  const media = extractStructuredMedia(translation?.structuredContentJson, fallbackAlt);
+    || mapRemoteImage(post.sourceArticle?.image_url, fallbackAlt);
+  const media = extractStructuredMedia(translation?.structured_content_json, fallbackAlt);
   const primaryMedia = media[0]
     || (image
-      ? { ...image, kind: "image", sourceUrl: image.url }
+      ? { ...image, kind: "image", source_url: image.url }
       : createFallbackPrimaryMedia({
           fallbackAlt,
-          sourceName: post.sourceName,
-          sourceUrl: post.sourceUrl,
+          source_name: post.source_name,
+          source_url: post.source_url,
           summary,
         }));
 
@@ -584,14 +584,14 @@ function mapPostCard(post, locale = defaultLocale) {
     locale: translation?.locale || locale,
     path: buildLocalizedPath(translation?.locale || locale, publicRouteSegments.newsPost(post.slug)),
     primaryMedia,
-    providerKey: post.providerKey,
-    publishedAt: serializeDate(post.publishedAt),
+    provider_key: post.provider_key,
+    published_at: serializeDate(post.published_at),
     slug: post.slug,
-    sourceName: post.sourceName,
-    sourceUrl: post.sourceUrl,
+    source_name: post.source_name,
+    source_url: post.source_url,
     summary,
     title: translation?.title || post.slug,
-    updatedAt: serializeDate(post.updatedAt),
+    updated_at: serializeDate(post.updated_at),
   };
 }
 
@@ -626,8 +626,8 @@ const mediaAssetSelect = Object.freeze({
   alt: true,
   caption: true,
   height: true,
-  publicUrl: true,
-  sourceUrl: true,
+  public_url: true,
+  source_url: true,
   width: true,
 });
 const publicCategorySelect = Object.freeze({
@@ -637,9 +637,9 @@ const publicCategorySelect = Object.freeze({
   slug: true,
 });
 const publicListingTranslationSelect = Object.freeze({
-  contentMd: true,
+  content_md: true,
   locale: true,
-  structuredContentJson: true,
+  structured_content_json: true,
   summary: true,
   title: true,
 });
@@ -653,7 +653,7 @@ const publicListingPostSelect = Object.freeze({
       category: {
         select: publicCategorySelect,
       },
-      categoryId: true,
+      category_id: true,
     },
   },
   excerpt: true,
@@ -661,23 +661,23 @@ const publicListingPostSelect = Object.freeze({
     select: mediaAssetSelect,
   },
   id: true,
-  providerKey: true,
-  publishedAt: true,
+  provider_key: true,
+  published_at: true,
   slug: true,
   sourceArticle: {
     select: {
-      imageUrl: true,
+      image_url: true,
     },
   },
-  sourceName: true,
-  sourceUrl: true,
+  source_name: true,
+  source_url: true,
   translations: {
     orderBy: {
       locale: "asc",
     },
     select: publicListingTranslationSelect,
   },
-  updatedAt: true,
+  updated_at: true,
 });
 const publicStorySelect = Object.freeze({
   categories: publicListingPostSelect.categories,
@@ -686,49 +686,49 @@ const publicStorySelect = Object.freeze({
     select: mediaAssetSelect,
   },
   id: true,
-  providerKey: true,
-  publishedAt: true,
+  provider_key: true,
+  published_at: true,
   slug: true,
   sourceArticle: {
     select: {
       author: true,
-      imageUrl: true,
+      image_url: true,
     },
   },
-  sourceName: true,
-  sourceUrl: true,
+  source_name: true,
+  source_url: true,
   translations: {
     orderBy: {
       locale: "asc",
     },
     select: {
-      contentHtml: true,
-      contentMd: true,
+      content_html: true,
+      content_md: true,
       locale: true,
       seoRecord: {
         select: {
-          authorsJson: true,
-          canonicalUrl: true,
-          keywordsJson: true,
-          metaDescription: true,
-          metaTitle: true,
+          authors_json: true,
+          canonical_url: true,
+          keywords_json: true,
+          meta_description: true,
+          meta_title: true,
           noindex: true,
-          ogDescription: true,
+          og_description: true,
           ogImage: {
             select: mediaAssetSelect,
           },
-          ogTitle: true,
-          twitterDescription: true,
-          twitterTitle: true,
+          og_title: true,
+          twitter_description: true,
+          twitter_title: true,
         },
       },
-      sourceAttribution: true,
-      structuredContentJson: true,
+      source_attribution: true,
+      structured_content_json: true,
       summary: true,
       title: true,
     },
   },
-  updatedAt: true,
+  updated_at: true,
 });
 
 function buildPublicSearchSelect(locale, { includeContentMd = true } = {}) {
@@ -739,24 +739,24 @@ function buildPublicSearchSelect(locale, { includeContentMd = true } = {}) {
       select: mediaAssetSelect,
     },
     id: true,
-    providerKey: true,
-    publishedAt: true,
+    provider_key: true,
+    published_at: true,
     slug: true,
     sourceArticle: {
       select: {
-        imageUrl: true,
+        image_url: true,
       },
     },
-    sourceName: true,
-    sourceUrl: true,
+    source_name: true,
+    source_url: true,
     translations: {
       orderBy: {
         locale: "asc",
       },
       select: {
-        ...(includeContentMd ? { contentMd: true } : {}),
+        ...(includeContentMd ? { content_md: true } : {}),
         locale: true,
-        structuredContentJson: true,
+        structured_content_json: true,
         summary: true,
         title: true,
       },
@@ -766,7 +766,7 @@ function buildPublicSearchSelect(locale, { includeContentMd = true } = {}) {
         },
       },
     },
-    updatedAt: true,
+    updated_at: true,
   };
 }
 
@@ -804,7 +804,7 @@ function buildSearchFieldFilters(locale, value, { includeBody = true } = {}) {
       },
     },
     {
-      sourceName: {
+      source_name: {
         contains: normalizedValue,
       },
     },
@@ -831,7 +831,7 @@ function buildSearchFieldFilters(locale, value, { includeBody = true } = {}) {
             ...(includeBody
               ? [
                   {
-                    contentMd: {
+                    content_md: {
                       contains: normalizedValue,
                     },
                   },
@@ -921,12 +921,12 @@ function rankPublishedSearchPost(post, locale, queryContext) {
     translation?.title,
     summary,
     post.slug ? post.slug.replace(/-/g, " ") : "",
-    post.sourceName,
+    post.source_name,
     ...(post.categories || []).flatMap(({ category }) => [category?.name, category?.slug]),
   ].join(" "));
   const combinedText = normalizePublicSearchRankingText([
     combinedStrongText,
-    translation?.contentMd || (bodyScoreFromDb > 0 ? queryContext.searchText : ""),
+    translation?.content_md || (bodyScoreFromDb > 0 ? queryContext.searchText : ""),
   ].join(" "), {
     maxLength: 9000,
   });
@@ -955,7 +955,7 @@ function rankPublishedSearchPost(post, locale, queryContext) {
     },
     {
       key: "source",
-      ...resolveSearchFieldScore(post.sourceName, queryContext, searchFieldWeights.source),
+      ...resolveSearchFieldScore(post.source_name, queryContext, searchFieldWeights.source),
     },
     {
       key: "body",
@@ -964,7 +964,7 @@ function rankPublishedSearchPost(post, locale, queryContext) {
             matchedTerms: queryContext.terms.length,
             score: bodyScoreFromDb,
           }
-        : resolveSearchFieldScore(translation?.contentMd, queryContext, searchFieldWeights.body)),
+        : resolveSearchFieldScore(translation?.content_md, queryContext, searchFieldWeights.body)),
     },
   ]
     .filter((entry) => entry.score > 0)
@@ -1025,8 +1025,8 @@ function compareRankedSearchPosts(left, right) {
   return (
     right.ranking.score - left.ranking.score
     || right.ranking.matchedTerms - left.ranking.matchedTerms
-    || resolveSortableDateValue(right.post.publishedAt) - resolveSortableDateValue(left.post.publishedAt)
-    || resolveSortableDateValue(right.post.updatedAt) - resolveSortableDateValue(left.post.updatedAt)
+    || resolveSortableDateValue(right.post.published_at) - resolveSortableDateValue(left.post.published_at)
+    || resolveSortableDateValue(right.post.updated_at) - resolveSortableDateValue(left.post.updated_at)
     || `${left.post.slug || ""}`.localeCompare(`${right.post.slug || ""}`)
   );
 }
@@ -1088,7 +1088,7 @@ async function getPaginatedPublishedListingSnapshot(
   const [totalItems, requestedPosts] = await Promise.all([
     db.post.count({ where }),
     db.post.findMany({
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
       select,
       skip: requestedSkip,
       take: publicListingPageSize,
@@ -1114,7 +1114,7 @@ async function getPaginatedPublishedListingSnapshot(
   }
 
   const posts = await db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
     select,
     skip: safeSkip,
     take: pagination.pageSize,
@@ -1158,7 +1158,7 @@ function buildSearchStrongMatchSql(queryContext) {
 
     expressions.push("LOWER(COALESCE(p.slug, '')) LIKE ?");
     params.push(slugPattern);
-    expressions.push("LOWER(COALESCE(p.sourceName, '')) LIKE ?");
+    expressions.push("LOWER(COALESCE(p.source_name, '')) LIKE ?");
     params.push(textPattern);
     expressions.push("LOWER(COALESCE(p.excerpt, '')) LIKE ?");
     params.push(textPattern);
@@ -1255,7 +1255,7 @@ async function hydrateSearchPageContent(db, posts, locale) {
     .filter((post) => {
       const translation = pickTranslation(post.translations || [], locale);
 
-      return !translation?.contentMd && (!buildPostCardSummary(post, translation) || Number(post?.searchBodyScore || 0) > 0);
+      return !translation?.content_md && (!buildPostCardSummary(post, translation) || Number(post?.searchBodyScore || 0) > 0);
     })
     .map((post) => post.id);
 
@@ -1271,7 +1271,7 @@ async function hydrateSearchPageContent(db, posts, locale) {
           locale: "asc",
         },
         select: {
-          contentMd: true,
+          content_md: true,
           locale: true,
         },
         where: {
@@ -1301,7 +1301,7 @@ async function hydrateSearchPageContent(db, posts, locale) {
 
       translationsByLocale.set(translation.locale, {
         ...existingTranslation,
-        contentMd: translation.contentMd,
+        content_md: translation.content_md,
       });
     }
 
@@ -1325,7 +1325,7 @@ async function searchPublishedStoriesOptimized(db, { country, locale, page, quer
   });
   const [strongCandidatePosts, bodyOnlySearchMatch] = await Promise.all([
     db.post.findMany({
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
       select: buildPublicSearchSelect(locale, {
         includeContentMd: false,
       }),
@@ -1390,7 +1390,7 @@ async function getPublishedCategoryCounts(db) {
       select: publicCategorySelect,
     }),
     db.postCategory.groupBy({
-      by: ["categoryId"],
+      by: ["category_id"],
       _count: {
         _all: true,
       },
@@ -1400,7 +1400,7 @@ async function getPublishedCategoryCounts(db) {
     }),
   ]);
   const countByCategoryId = new Map(
-    categoryPostCounts.map((entry) => [entry.categoryId, entry._count?._all || 0]),
+    categoryPostCounts.map((entry) => [entry.category_id, entry._count?._all || 0]),
   );
 
   return categories
@@ -1478,7 +1478,7 @@ async function queryPublishedCountryCounts(db, locale) {
 
   const publishedArticles = await db.fetchedArticle.findMany({
     select: {
-      providerCountriesJson: true,
+      provider_countries_json: true,
     },
     where: {
       posts: {
@@ -1489,7 +1489,7 @@ async function queryPublishedCountryCounts(db, locale) {
   const counts = new Map();
 
   for (const article of publishedArticles) {
-    const countryCodes = Array.isArray(article.providerCountriesJson) ? article.providerCountriesJson : [];
+    const countryCodes = Array.isArray(article.provider_countries_json) ? article.provider_countries_json : [];
 
     for (const countryCode of countryCodes) {
       const normalizedCountry = normalizeCountry(countryCode);
@@ -1544,7 +1544,7 @@ async function getLatestPublishedPosts(
   { skip = 0, take = publicHomeLatestInitialCount + 1 } = {},
 ) {
   return db.post.findMany({
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
     select: publicListingPostSelect,
     skip,
     take,
@@ -1795,7 +1795,7 @@ function buildSearchWhere(locale, search, country, { includeBody = true } = {}) 
     filters.push({
       sourceArticle: {
         is: {
-          providerCountriesJson: {
+          provider_countries_json: {
             array_contains: normalizedCountry,
           },
         },
@@ -1866,7 +1866,7 @@ export async function searchPublishedStories(
             includeBody: false,
           });
           const strongCandidatePosts = await db.post.findMany({
-            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+            orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
             select: buildPublicSearchSelect(locale),
             take: candidateLimit,
             where: strongWhere,
@@ -1875,7 +1875,7 @@ export async function searchPublishedStories(
 
           if (strongCandidatePosts.length < Math.min(totalItems, endIndex, candidateLimit)) {
             const fallbackCandidatePosts = await db.post.findMany({
-              orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+              orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
               select: buildPublicSearchSelect(locale),
               take: candidateLimit,
               where,
@@ -1892,7 +1892,7 @@ export async function searchPublishedStories(
             );
           } else {
             const pagePosts = await db.post.findMany({
-              orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+              orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
               select: buildPublicSearchSelect(locale),
               skip: startIndex,
               take: pagination.pageSize,
@@ -1976,7 +1976,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
       }
 
       const relatedPosts = await db.post.findMany({
-        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+        orderBy: [{ published_at: "desc" }, { updated_at: "desc" }],
         select: publicListingPostSelect,
         take: 4,
         where: buildPublishedWebsiteWhere({
@@ -1987,79 +1987,79 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
             {
               categories: {
                 some: {
-                  categoryId: {
-                    in: post.categories.map(({ categoryId }) => categoryId),
+                  category_id: {
+                    in: post.categories.map(({ category_id }) => category_id),
                   },
                 },
               },
             },
             {
-              sourceName: post.sourceName,
+              source_name: post.source_name,
             },
           ],
         }),
       });
-      const seoKeywords = normalizeSeoStringList(translation.seoRecord?.keywordsJson);
+      const seoKeywords = normalizeSeoStringList(translation.seoRecord?.keywords_json);
       const storyAuthors = resolveStoryAuthors(translation.seoRecord, post.sourceArticle?.author);
       const image = mapImage(post.featuredImage, translation.title)
-        || mapRemoteImage(post.sourceArticle?.imageUrl, translation.title);
+        || mapRemoteImage(post.sourceArticle?.image_url, translation.title);
       const seoImage = mapImage(translation.seoRecord?.ogImage, translation.title)
         || image;
-      const media = extractStructuredMedia(translation.structuredContentJson, translation.title);
+      const media = extractStructuredMedia(translation.structured_content_json, translation.title);
       const primaryMedia = media[0]
         || (image
-          ? { ...image, kind: "image", sourceUrl: image.url }
+          ? { ...image, kind: "image", source_url: image.url }
           : createFallbackPrimaryMedia({
               fallbackAlt: translation.title,
-              sourceName: post.sourceName,
-              sourceUrl: post.sourceUrl,
+              source_name: post.source_name,
+              source_url: post.source_url,
               summary: translation.summary,
             }));
       const article = {
-        canonicalUrl:
-          translation.seoRecord?.canonicalUrl ||
+        canonical_url:
+          translation.seoRecord?.canonical_url ||
           buildAbsoluteUrl(buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug))),
         categories: (post.categories || []).map(({ category }) => mapCategory(category, translation.locale)),
-        contentHtml: translation.contentHtml,
-        contentMd: translation.contentMd,
+        content_html: translation.content_html,
+        content_md: translation.content_md,
         id: post.id,
         image,
         media,
         authors: storyAuthors,
         keywords: seoKeywords,
         locale: translation.locale,
-        metaDescription: translation.seoRecord?.metaDescription || translation.summary,
-        metaTitle: translation.seoRecord?.metaTitle || translation.title,
+        meta_description: translation.seoRecord?.meta_description || translation.summary,
+        meta_title: translation.seoRecord?.meta_title || translation.title,
         noindex: Boolean(translation.seoRecord?.noindex),
         openGraphDescription:
-          translation.seoRecord?.ogDescription ||
-          translation.seoRecord?.metaDescription ||
+          translation.seoRecord?.og_description ||
+          translation.seoRecord?.meta_description ||
           translation.summary,
         openGraphTitle:
-          translation.seoRecord?.ogTitle ||
-          translation.seoRecord?.metaTitle ||
+          translation.seoRecord?.og_title ||
+          translation.seoRecord?.meta_title ||
           translation.title,
         path: buildLocalizedPath(translation.locale, publicRouteSegments.newsPost(post.slug)),
         primaryMedia,
-        providerKey: post.providerKey,
-        publishedAt: serializeDate(post.publishedAt),
+        provider_key: post.provider_key,
+        published_at: serializeDate(post.published_at),
         seoImage,
         slug: post.slug,
-        sourceAttribution: translation.sourceAttribution,
-        sourceName: post.sourceName,
-        sourceUrl: post.sourceUrl,
-        structuredContentJson: translation.structuredContentJson,
+        source_attribution: translation.source_attribution,
+        source_name: post.source_name,
+        source_url: post.source_url,
+        structured_content_json: translation.structured_content_json,
         summary: translation.summary,
         title: translation.title,
-        twitterDescription:
-          translation.seoRecord?.twitterDescription ||
-          translation.seoRecord?.metaDescription ||
+        twitter_description:
+          translation.seoRecord?.twitter_description ||
+          translation.seoRecord?.meta_description ||
           translation.summary,
-        twitterTitle:
-          translation.seoRecord?.twitterTitle ||
-          translation.seoRecord?.metaTitle ||
+        twitter_title:
+          translation.seoRecord?.twitter_title ||
+          translation.seoRecord?.meta_title ||
           translation.title,
-        updatedAt: serializeDate(post.updatedAt),
+        updated_at: serializeDate(post.updated_at),
       };
 
       return {
@@ -2075,35 +2075,35 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
         databaseUnavailable: true,
         article: {
           authors: [],
-          canonicalUrl: buildAbsoluteUrl(path),
+          canonical_url: buildAbsoluteUrl(path),
           categories: [],
-          contentHtml: "",
-          contentMd: "",
+          content_html: "",
+          content_md: "",
           id: null,
           image: null,
           keywords: [],
           locale,
           media: [],
-          metaDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
-          metaTitle: `${title} temporarily unavailable`,
+          meta_description: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          meta_title: `${title} temporarily unavailable`,
           noindex: true,
           openGraphDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
           openGraphTitle: `${title} temporarily unavailable`,
           path,
           primaryMedia: null,
-          providerKey: null,
-          publishedAt: null,
+          provider_key: null,
+          published_at: null,
           seoImage: null,
           slug: slug || "",
-          sourceAttribution: "",
-          sourceName: "",
-          sourceUrl: "",
-          structuredContentJson: null,
+          source_attribution: "",
+          source_name: "",
+          source_url: "",
+          structured_content_json: null,
           summary: "This story is temporarily unavailable because NewsPub could not reach the database.",
           title: `${title} temporarily unavailable`,
-          twitterDescription: "This story is temporarily unavailable because NewsPub could not reach the database.",
-          twitterTitle: `${title} temporarily unavailable`,
-          updatedAt: null,
+          twitter_description: "This story is temporarily unavailable because NewsPub could not reach the database.",
+          twitter_title: `${title} temporarily unavailable`,
+          updated_at: null,
         },
         relatedStories: [],
       };

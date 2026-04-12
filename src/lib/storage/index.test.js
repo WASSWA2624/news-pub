@@ -30,7 +30,7 @@ describe("storage adapters", () => {
         driver: "local",
         local: {
           basePath: tempDir,
-          baseUrl: "/uploads",
+          base_url: "/uploads",
         },
       });
 
@@ -42,9 +42,9 @@ describe("storage adapters", () => {
 
       expect(savedFile).toBe("example");
       expect(result).toEqual({
-        localPath: `${tempDir.replace(/\\/g, "/")}/media/2026/04/03/example.txt`,
-        publicUrl: "/uploads/media/2026/04/03/example.txt",
-        storageKey: "media/2026/04/03/example.txt",
+        local_path: `${tempDir.replace(/\\/g, "/")}/media/2026/04/03/example.txt`,
+        public_url: "/uploads/media/2026/04/03/example.txt",
+        storage_key: "media/2026/04/03/example.txt",
       });
     } finally {
       await fs.rm(tempDir, { force: true, recursive: true });
@@ -61,7 +61,7 @@ describe("storage adapters", () => {
         driver: "s3",
         s3: {
           accessKeyId: "key",
-          baseUrl: "https://cdn.example.com",
+          base_url: "https://cdn.example.com",
           bucket: "bucket",
           region: "us-east-1",
           secretAccessKey: "secret",
@@ -87,9 +87,9 @@ describe("storage adapters", () => {
       Key: "media/example.txt",
     });
     expect(result).toEqual({
-      localPath: null,
-      publicUrl: "https://cdn.example.com/media/example.txt",
-      storageKey: "media/example.txt",
+      local_path: null,
+      public_url: "https://cdn.example.com/media/example.txt",
+      storage_key: "media/example.txt",
     });
   });
 });

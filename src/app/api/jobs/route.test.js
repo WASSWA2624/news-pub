@@ -52,7 +52,7 @@ describe("jobs api route", () => {
             start: "2026-04-07T00:00:00.000Z",
             writeCheckpointOnSuccess: false,
           },
-          streamId: "stream_1",
+          stream_id: "stream_1",
         }),
         headers: {
           "content-type": "application/json",
@@ -71,12 +71,12 @@ describe("jobs api route", () => {
       success: true,
     });
     expect(runStreamFetch).toHaveBeenCalledWith("stream_1", {
-      actorId: "admin_1",
+      actor_id: "admin_1",
       fetchWindow: {
         end: "2026-04-07T12:00:00.000Z",
         start: "2026-04-07T00:00:00.000Z",
       },
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: false,
     });
     expect(runMultipleStreamFetches).not.toHaveBeenCalled();
@@ -130,9 +130,9 @@ describe("jobs api route", () => {
       success: true,
     });
     expect(runMultipleStreamFetches).toHaveBeenCalledWith(["stream_1", "stream_2"], {
-      actorId: "admin_1",
+      actor_id: "admin_1",
       fetchWindow: null,
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: null,
     });
     expect(runStreamFetch).not.toHaveBeenCalled();

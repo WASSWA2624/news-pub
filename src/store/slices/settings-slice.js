@@ -5,7 +5,7 @@ const settingsSlice = createSlice({
   initialState: {
     activeTab: "general",
     lastSavedAt: null,
-    providerConfigId: null,
+    provider_config_id: null,
   },
   reducers: {
     setSettingsState(state, action) {

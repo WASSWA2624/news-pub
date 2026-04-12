@@ -8,7 +8,7 @@ import {
 describe("publish diagnostics helpers", () => {
   it("extracts issue codes and messages from nested destination error payloads", () => {
     const attempt = {
-      diagnosticsJson: {
+      diagnostics_json: {
         errorDetails: {
           error: "destination_policy_guardrail_blocked",
           issues: [
@@ -19,9 +19,9 @@ describe("publish diagnostics helpers", () => {
           ],
         },
       },
-      errorCode: "destination_policy_guardrail_blocked",
-      errorMessage: "Meta publishing guardrails blocked this post.",
-      responseJson: {
+      last_error_code: "destination_policy_guardrail_blocked",
+      last_error_message: "Meta publishing guardrails blocked this post.",
+      response_json: {
         status: "destination_policy_guardrail_blocked",
       },
     };

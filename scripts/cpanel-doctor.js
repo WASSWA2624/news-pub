@@ -59,8 +59,8 @@ function parseEnvValue(value) {
   return trimmed.replace(/\s+#.*$/, "");
 }
 
-function loadEnvFile(fileName) {
-  const envPath = path.join(rootDir, fileName);
+function loadEnvFile(file_name) {
+  const envPath = path.join(rootDir, file_name);
 
   if (!fs.existsSync(envPath)) {
     return;
@@ -118,8 +118,8 @@ function getMigrationNames() {
     .sort();
 }
 
-function getPasswordHashParameters(passwordHash) {
-  const [algorithm, cost, blockSize, parallelization, salt, derivedKey] = `${passwordHash || ""}`.split("$");
+function getPasswordHashParameters(password_hash) {
+  const [algorithm, cost, blockSize, parallelization, salt, derivedKey] = `${password_hash || ""}`.split("$");
 
   if (algorithm !== "scrypt" || !cost || !blockSize || !parallelization || !salt || !derivedKey) {
     return null;
@@ -146,8 +146,8 @@ function getPasswordHashParameters(passwordHash) {
   };
 }
 
-function verifyPassword(password, passwordHash) {
-  const params = getPasswordHashParameters(passwordHash);
+function verifyPassword(password, password_hash) {
+  const params = getPasswordHashParameters(password_hash);
 
   if (!params) {
     return false;

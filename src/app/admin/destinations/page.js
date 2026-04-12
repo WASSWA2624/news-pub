@@ -209,9 +209,9 @@ function getDestinationCredentialSummary(destination) {
 }
 
 function buildDestinationConfigPreview(destination) {
-  const settings = normalizeSettings(destination.settingsJson);
+  const settings = normalizeSettings(destination.settings_json);
   const targetEntries = [
-    destination.externalAccountId ? `External account ${destination.externalAccountId}` : null,
+    destination.external_account_id ? `External account ${destination.external_account_id}` : null,
     settings.pageId ? `Page ${settings.pageId}` : null,
     settings.instagramUserId ? `Instagram ${settings.instagramUserId}` : null,
     settings.profileId ? `Profile ${settings.profileId}` : null,
@@ -295,7 +295,7 @@ export default async function DestinationsPage({ searchParams }) {
           <RecordStack>
             {snapshot.destinations.map((destination) => {
               const displayConnectionStatus =
-                destination.effectiveConnectionStatus || destination.connectionStatus;
+                destination.effectiveConnectionStatus || destination.connection_status;
 
               return (
                 <DestinationRecord key={destination.id}>
@@ -310,7 +310,7 @@ export default async function DestinationsPage({ searchParams }) {
                         </DestinationPlatformBadge>
                         <DestinationIdentity>
                           <RecordTitle>{destination.name}</RecordTitle>
-                          <SmallText>{destination.accountHandle || destination.slug}</SmallText>
+                          <SmallText>{destination.account_handle || destination.slug}</SmallText>
                         </DestinationIdentity>
                       </DestinationHeading>
                       <PillRow>
@@ -348,8 +348,8 @@ export default async function DestinationsPage({ searchParams }) {
                   {buildDestinationConfigPreview(destination) ? (
                     <SmallText>{buildDestinationConfigPreview(destination)}</SmallText>
                   ) : null}
-                  {destination.connectionError ? (
-                    <SmallText>{destination.connectionError}</SmallText>
+                  {destination.connection_error ? (
+                    <SmallText>{destination.connection_error}</SmallText>
                   ) : null}
                   <ButtonRow>
                     <AdminFormModal

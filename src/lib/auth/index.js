@@ -49,8 +49,8 @@ function getPasswordHashConfig() {
   };
 }
 
-function getPasswordHashParameters(passwordHash) {
-  const [algorithm, cost, blockSize, parallelization, salt, derivedKey] = passwordHash.split("$");
+function getPasswordHashParameters(password_hash) {
+  const [algorithm, cost, blockSize, parallelization, salt, derivedKey] = password_hash.split("$");
 
   if (
     algorithm !== PASSWORD_HASH_ALGORITHM ||
@@ -94,17 +94,17 @@ function getPublicAdminUser(user) {
 }
 
 function isAllowedAdminUser(user) {
-  return Boolean(user?.isActive && isAdminRole(user.role));
+  return Boolean(user?.is_active && isAdminRole(user.role));
 }
 
-async function createAuditEvent(db, { action, actorId = null, entityId, entityType, payloadJson }) {
+async function createAuditEvent(db, { action, actor_id = null, entity_id, entity_type, payload_json }) {
   return db.auditEvent.create({
     data: {
       action,
-      actorId,
-      entityId,
-      entityType,
-      payloadJson,
+      actor_id,
+      entity_id,
+      entity_type,
+      payload_json,
     },
   });
 }
@@ -112,16 +112,16 @@ async function createAuditEvent(db, { action, actorId = null, entityId, entityTy
 async function recordLoginFailure(db, normalizedEmail, reason) {
   await createAuditEvent(db, {
     action: "AUTH_LOGIN_FAILED",
-    entityId: normalizedEmail,
-    entityType: "auth_identity",
-    payloadJson: {
+    entity_id: normalizedEmail,
+    entity_type: "auth_identity",
+    payload_json: {
       reason,
     },
   });
 }
 
 async function invalidateStoredSession(db, session, reason) {
-  if (session.invalidatedAt) {
+  if (session.invalidated_at) {
     return session;
   }
 
@@ -129,14 +129,14 @@ async function invalidateStoredSession(db, session, reason) {
     const invalidatedSession = await tx.adminSession.update({
       where: { id: session.id },
       data: {
-        invalidatedAt: new Date(),
+        invalidated_at: new Date(),
       },
       include: {
         user: {
           select: {
             email: true,
             id: true,
-            isActive: true,
+            is_active: true,
             name: true,
             role: true,
           },
@@ -146,10 +146,10 @@ async function invalidateStoredSession(db, session, reason) {
 
     await createAuditEvent(tx, {
       action: "AUTH_SESSION_REJECTED",
-      actorId: session.userId,
-      entityId: session.id,
-      entityType: "auth_session",
-      payloadJson: {
+      actor_id: session.user_id,
+      entity_id: session.id,
+      entity_type: "auth_session",
+      payload_json: {
         reason,
       },
     });
@@ -163,14 +163,14 @@ async function getStoredSessionByToken(token) {
 
   return prisma.adminSession.findUnique({
     where: {
-      tokenHash: hashSessionToken(token),
+      token_hash: hashSessionToken(token),
     },
     include: {
       user: {
         select: {
           email: true,
           id: true,
-          isActive: true,
+          is_active: true,
           name: true,
           role: true,
         },
@@ -190,11 +190,11 @@ async function validateAdminSessionToken(token) {
     return { status: "invalid" };
   }
 
-  if (session.invalidatedAt) {
+  if (session.invalidated_at) {
     return { status: "invalidated" };
   }
 
-  if (session.expiresAt <= new Date()) {
+  if (session.expires_at <= new Date()) {
     await invalidateStoredSession(getPrismaClient(), session, "expired");
     return { status: "expired" };
   }
@@ -248,8 +248,8 @@ export function createPasswordHash(password) {
 /**
  * Verifies a plaintext password against the stored NewsPub admin password hash.
  */
-export function verifyPassword(password, passwordHash) {
-  const params = getPasswordHashParameters(passwordHash);
+export function verifyPassword(password, password_hash) {
+  const params = getPasswordHashParameters(password_hash);
 
   if (!params) {
     return false;
@@ -281,7 +281,7 @@ export function hashSessionToken(token) {
 /**
  * Authenticates admin credentials, creates a stored session, and records the login audit event.
  */
-export async function authenticateAdminCredentials({ email, password, userAgent = null }) {
+export async function authenticateAdminCredentials({ email, password, user_agent = null }) {
   const prisma = getPrismaClient();
   const normalizedEmail = normalizeEmail(email);
   const user = await prisma.user.findUnique({
@@ -298,7 +298,7 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
     };
   }
 
-  if (!user.isActive) {
+  if (!user.is_active) {
     await recordLoginFailure(prisma, normalizedEmail, "user_inactive");
     return {
       status: "user_inactive",
@@ -314,7 +314,7 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
     };
   }
 
-  if (!verifyPassword(password, user.passwordHash)) {
+  if (!verifyPassword(password, user.password_hash)) {
     await recordLoginFailure(prisma, normalizedEmail, "invalid_password");
     return {
       status: "invalid_password",
@@ -322,24 +322,24 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
     };
   }
 
-  const expiresAt = new Date(Date.now() + env.auth.session.maxAgeSeconds * 1000);
+  const expires_at = new Date(Date.now() + env.auth.session.maxAgeSeconds * 1000);
   const sessionToken = crypto.randomBytes(32).toString("base64url");
   const session = await prisma.$transaction(async (tx) => {
     const createdSession = await tx.adminSession.create({
       data: {
-        expiresAt,
-        tokenHash: hashSessionToken(sessionToken),
-        userAgent,
-        userId: user.id,
+        expires_at,
+        token_hash: hashSessionToken(sessionToken),
+        user_agent,
+        user_id: user.id,
       },
     });
 
     await createAuditEvent(tx, {
       action: "AUTH_LOGIN_SUCCEEDED",
-      actorId: user.id,
-      entityId: createdSession.id,
-      entityType: "auth_session",
-      payloadJson: {
+      actor_id: user.id,
+      entity_id: createdSession.id,
+      entity_type: "auth_session",
+      payload_json: {
         email: normalizedEmail,
       },
     });
@@ -348,7 +348,7 @@ export async function authenticateAdminCredentials({ email, password, userAgent 
   });
 
   return {
-    expiresAt,
+    expires_at,
     session,
     sessionToken,
     success: true,
@@ -367,7 +367,7 @@ export async function invalidateAdminSession(sessionToken, reason = "logout") {
   const prisma = getPrismaClient();
   const session = await getStoredSessionByToken(sessionToken);
 
-  if (!session || session.invalidatedAt) {
+  if (!session || session.invalidated_at) {
     return null;
   }
 
@@ -375,16 +375,16 @@ export async function invalidateAdminSession(sessionToken, reason = "logout") {
     const invalidatedSession = await tx.adminSession.update({
       where: { id: session.id },
       data: {
-        invalidatedAt: new Date(),
+        invalidated_at: new Date(),
       },
     });
 
     await createAuditEvent(tx, {
       action: "AUTH_LOGOUT_SUCCEEDED",
-      actorId: session.userId,
-      entityId: session.id,
-      entityType: "auth_session",
-      payloadJson: {
+      actor_id: session.user_id,
+      entity_id: session.id,
+      entity_type: "auth_session",
+      payload_json: {
         reason,
       },
     });
@@ -415,7 +415,7 @@ export async function validateRequestAdminSession(request) {
     .update({
       where: { id: validation.session.id },
       data: {
-        lastUsedAt: new Date(),
+        last_used_at: new Date(),
       },
     })
     .catch(() => {});
@@ -463,9 +463,9 @@ export async function requireAdminPageSession(nextPath = ADMIN_HOME_PATH) {
 /**
  * Builds the success payload returned after a NewsPub admin login.
  */
-export function buildLoginSuccessPayload(user, expiresAt) {
+export function buildLoginSuccessPayload(user, expires_at) {
   return {
-    expiresAt: expiresAt.toISOString(),
+    expires_at: expires_at.toISOString(),
     success: true,
     user,
   };

@@ -27,7 +27,7 @@ function createOptimizationFixture(overrides = {}) {
       id: "destination_1",
       kind: "WEBSITE",
       platform: "WEBSITE",
-      settingsJson: {},
+      settings_json: {},
       ...overrides.destination,
     },
     post: {
@@ -36,11 +36,11 @@ function createOptimizationFixture(overrides = {}) {
       slug: "verified-story",
       sourceArticle: {
         body: createLongSourceBody(),
-        imageUrl: null,
+        image_url: null,
         summary: "Verified source summary for editorial review.",
       },
-      sourceName: "Example Source",
-      sourceUrl: "https://example.com/source-story",
+      source_name: "Example Source",
+      source_url: "https://example.com/source-story",
       ...overrides.post,
     },
     stream: {
@@ -50,21 +50,21 @@ function createOptimizationFixture(overrides = {}) {
       ...overrides.stream,
     },
     template: {
-      bodyTemplate: "{{body}}",
-      hashtagsTemplate: "news update world desk visual bulletin",
-      summaryTemplate: "{{summary}}",
-      titleTemplate: "{{title}}",
+      body_template: "{{body}}",
+      hashtags_template: "news update world desk visual bulletin",
+      summary_template: "{{summary}}",
+      title_template: "{{title}}",
       ...overrides.template,
     },
     translation: {
-      contentMd: createLongSourceBody(),
+      content_md: createLongSourceBody(),
       locale: "en",
       seoRecord: {
-        canonicalUrl: "https://example.com/en/news/verified-story",
-        keywordsJson: ["news", "update", "world", "desk", "visual", "bulletin"],
+        canonical_url: "https://example.com/en/news/verified-story",
+        keywords_json: ["news", "update", "world", "desk", "visual", "bulletin"],
         ogImage: null,
       },
-      sourceAttribution: "Source: Example Source - https://example.com/source-story",
+      source_attribution: "Source: Example Source - https://example.com/source-story",
       summary: "Verified source summary for editorial review.",
       title: "Verified Source Story For Editorial Review",
       ...overrides.translation,
@@ -125,10 +125,10 @@ describe("destination optimization", () => {
       optimizationCache: {
         create: vi.fn(),
         findUnique: vi.fn().mockResolvedValue({
-          banRiskScore: 0,
+          ban_risk_score: 0,
           id: "cache_existing",
-          policyStatus: "PASS",
-          resultJson: cachedPayload,
+          policy_status: "PASS",
+          result_json: cachedPayload,
         }),
         update: vi.fn(),
       },
@@ -178,8 +178,8 @@ describe("destination optimization", () => {
     expect(countWords(result.payload.title)).toBeLessThan(15);
     expect(countWords(result.payload.body)).toBeGreaterThanOrEqual(100);
     expect(countWords(result.payload.body)).toBeLessThanOrEqual(500);
-    expect(result.payload.metaTitle).toBeTruthy();
-    expect(result.payload.metaDescription).toBeTruthy();
+    expect(result.payload.meta_title).toBeTruthy();
+    expect(result.payload.meta_description).toBeTruthy();
   });
 
   it("marks the optimization as skipped when AI is enabled but credentials are missing", async () => {
@@ -296,7 +296,7 @@ describe("destination optimization", () => {
       reasonCode: "ai_invalid_structured_output",
       status: "FALLBACK",
     });
-    expect(result.cacheRecord.errorMessage).toBe("AI response failed schema validation.");
+    expect(result.cacheRecord.last_error_message).toBe("AI response failed schema validation.");
     expect(result.payload.warnings).toEqual(
       expect.arrayContaining([
         expect.stringContaining("deterministic fallback formatter"),

@@ -94,7 +94,7 @@ export default async function PostEditorPage({ params }) {
   try {
     snapshot = await getPostEditorSnapshot({
       locale: defaultLocale,
-      postId: id,
+      post_id: id,
     });
   } catch (error) {
     if (error instanceof NewsPubError && error.status === "post_not_found") {
@@ -187,16 +187,16 @@ export default async function PostEditorPage({ params }) {
             <AdminSectionTitle icon="published">Story status</AdminSectionTitle>
             <ButtonRow>
               <StatusBadge $tone={getTone(snapshot.post.status)}>{snapshot.post.status}</StatusBadge>
-              <StatusBadge $tone={getTone(snapshot.post.editorialStage)}>{snapshot.post.editorialStage}</StatusBadge>
+              <StatusBadge $tone={getTone(snapshot.post.editorial_stage)}>{snapshot.post.editorial_stage}</StatusBadge>
               {defaultArticleMatch ? (
-                <StatusBadge $tone={getTone(defaultArticleMatch.workflowStage)}>
-                  {defaultArticleMatch.workflowStage}
+                <StatusBadge $tone={getTone(defaultArticleMatch.workflow_stage)}>
+                  {defaultArticleMatch.workflow_stage}
                 </StatusBadge>
               ) : null}
             </ButtonRow>
-            <SmallText>Published: {formatDateTime(snapshot.post.publishedAt)}</SmallText>
-            <SmallText>Scheduled: {formatDateTime(snapshot.post.scheduledPublishAt)}</SmallText>
-            <SmallText>Source: {snapshot.post.sourceName}</SmallText>
+            <SmallText>Published: {formatDateTime(snapshot.post.published_at)}</SmallText>
+            <SmallText>Scheduled: {formatDateTime(snapshot.post.scheduled_publish_at)}</SmallText>
+            <SmallText>Source: {snapshot.post.source_name}</SmallText>
             <LinkButton href={snapshot.post.websitePath} target="_blank">
               <ButtonIcon>
                 <ActionIcon name="external-link" />
@@ -212,8 +212,8 @@ export default async function PostEditorPage({ params }) {
             </CardDescription>
             {defaultArticleMatch ? (
               <form action={repostPostAction}>
-                <input name="articleMatchId" type="hidden" value={defaultArticleMatch.id} />
-                <input name="postId" type="hidden" value={snapshot.post.id} />
+                <input name="article_match_id" type="hidden" value={defaultArticleMatch.id} />
+                <input name="post_id" type="hidden" value={snapshot.post.id} />
                 <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
                 <PendingSubmitButton
                   icon="refresh"
@@ -247,8 +247,8 @@ export default async function PostEditorPage({ params }) {
               Canonical render artifacts stay linked to the originating normalized article.
             </CardDescription>
             <SmallText>{snapshot.post.sourceArticle?.title || "No source article linked."}</SmallText>
-            <SmallText>{snapshot.post.sourceArticle?.sourceName || "Unknown source"}</SmallText>
-            <SmallText>{snapshot.post.sourceArticle?.sourceUrl || "No source URL"}</SmallText>
+            <SmallText>{snapshot.post.sourceArticle?.source_name || "Unknown source"}</SmallText>
+            <SmallText>{snapshot.post.sourceArticle?.source_url || "No source URL"}</SmallText>
           </Card>
 
           <Card>
@@ -256,20 +256,20 @@ export default async function PostEditorPage({ params }) {
             {defaultArticleMatch ? (
               <>
                 <ButtonRow>
-                  <StatusBadge $tone={getTone(defaultArticleMatch.policyStatus)}>
-                    {defaultArticleMatch.policyStatus}
+                  <StatusBadge $tone={getTone(defaultArticleMatch.policy_status)}>
+                    {defaultArticleMatch.policy_status}
                   </StatusBadge>
-                  <StatusBadge $tone={getTone(defaultArticleMatch.optimizationStatus)}>
-                    {defaultArticleMatch.optimizationStatus}
+                  <StatusBadge $tone={getTone(defaultArticleMatch.optimization_status)}>
+                    {defaultArticleMatch.optimization_status}
                   </StatusBadge>
                 </ButtonRow>
-                <SmallText>Risk score: {defaultArticleMatch.banRiskScore ?? "Not scored yet"}</SmallText>
-                <SmallText>Optimized: {formatDateTime(defaultArticleMatch.lastOptimizedAt)}</SmallText>
+                <SmallText>Risk score: {defaultArticleMatch.ban_risk_score ?? "Not scored yet"}</SmallText>
+                <SmallText>Optimized: {formatDateTime(defaultArticleMatch.last_optimized_at)}</SmallText>
                 {defaultArticleMatch.optimizationDetails?.reasonMessage ? (
                   <SmallText>{defaultArticleMatch.optimizationDetails.reasonMessage}</SmallText>
                 ) : null}
                 {defaultArticleMatch.policyReasons.length ? (
-                  <NoticeBanner $tone={defaultArticleMatch.policyStatus === "BLOCK" ? "danger" : "warning"}>
+                  <NoticeBanner $tone={defaultArticleMatch.policy_status === "BLOCK" ? "danger" : "warning"}>
                     <NoticeTitle>Review findings</NoticeTitle>
                     <NoticeList>
                       {defaultArticleMatch.policyReasons.map((reason) => (
@@ -296,7 +296,7 @@ export default async function PostEditorPage({ params }) {
           <Card>
             <AdminSectionTitle icon="news">Canonical</AdminSectionTitle>
             <SmallText>{translation?.title || snapshot.post.slug}</SmallText>
-            <Textarea defaultValue={translation?.contentMd || snapshot.post.excerpt} readOnly style={{ minHeight: "220px" }} />
+            <Textarea defaultValue={translation?.content_md || snapshot.post.excerpt} readOnly style={{ minHeight: "220px" }} />
           </Card>
           <Card>
             <AdminSectionTitle icon="destinations">Destination preview</AdminSectionTitle>
@@ -344,10 +344,10 @@ export default async function PostEditorPage({ params }) {
                       <StatusBadge $tone={getTone(match.status)}>{match.status}</StatusBadge>
                     </td>
                     <td data-label="Workflow">
-                      <StatusBadge $tone={getTone(match.workflowStage)}>{match.workflowStage}</StatusBadge>
+                      <StatusBadge $tone={getTone(match.workflow_stage)}>{match.workflow_stage}</StatusBadge>
                     </td>
                     <td data-label="AI">
-                      <StatusBadge $tone={getTone(match.optimizationStatus)}>{match.optimizationStatus}</StatusBadge>
+                      <StatusBadge $tone={getTone(match.optimization_status)}>{match.optimization_status}</StatusBadge>
                       {match.optimizationDetails?.reasonCode ? (
                         <SmallText>{match.optimizationDetails.reasonCode}</SmallText>
                       ) : null}
@@ -356,10 +356,10 @@ export default async function PostEditorPage({ params }) {
                       ) : null}
                     </td>
                     <td data-label="Policy">
-                      <StatusBadge $tone={getTone(match.policyStatus)}>{match.policyStatus}</StatusBadge>
+                      <StatusBadge $tone={getTone(match.policy_status)}>{match.policy_status}</StatusBadge>
                     </td>
-                    <td data-label="Queued">{formatDateTime(match.queuedAt)}</td>
-                    <td data-label="Published">{formatDateTime(match.publishedAt)}</td>
+                    <td data-label="Queued">{formatDateTime(match.queued_at)}</td>
+                    <td data-label="Published">{formatDateTime(match.published_at)}</td>
                     <td data-label="Attempts">
                       <strong>{match.publishAttempts.length}</strong>
                       {match.publishAttempts[0]?.diagnosticReasonCode ? (
@@ -368,17 +368,17 @@ export default async function PostEditorPage({ params }) {
                       {match.publishAttempts[0]?.diagnosticReasonMessage ? (
                         <SmallText>{match.publishAttempts[0].diagnosticReasonMessage}</SmallText>
                       ) : null}
-                      {match.publishAttempts[0]?.errorMessage ? (
+                      {match.publishAttempts[0]?.last_error_message ? (
                         <SmallText>
-                          {match.publishAttempts[0].errorCode || "Failure"}: {match.publishAttempts[0].errorMessage}
+                          {match.publishAttempts[0].last_error_code || "Failure"}: {match.publishAttempts[0].last_error_message}
                         </SmallText>
                       ) : null}
                     </td>
                     <td data-label="Action">
                       <ButtonRow>
                         <form action={repostPostAction}>
-                          <input name="articleMatchId" type="hidden" value={match.id} />
-                          <input name="postId" type="hidden" value={snapshot.post.id} />
+                          <input name="article_match_id" type="hidden" value={match.id} />
+                          <input name="post_id" type="hidden" value={snapshot.post.id} />
                           <input name="returnTo" type="hidden" value={`/admin/posts/${snapshot.post.id}`} />
                           <PendingSubmitButton
                             icon="refresh"
@@ -437,11 +437,11 @@ export default async function PostEditorPage({ params }) {
                       <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
                     </td>
                     <td data-label="Entity">
-                      <strong>{event.entityType}</strong>
-                      <SmallText>{event.entityId}</SmallText>
+                      <strong>{event.entity_type}</strong>
+                      <SmallText>{event.entity_id}</SmallText>
                       {event.reasonMessage ? <SmallText>{event.reasonMessage}</SmallText> : null}
                     </td>
-                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
+                    <td data-label="Created">{formatDateTime(event.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

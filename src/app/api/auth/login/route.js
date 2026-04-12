@@ -25,6 +25,6 @@ export async function POST(request) {
   return createLoginResponse({
     email: result.data.email,
     password: result.data.password,
-    userAgent: request.headers.get("user-agent"),
+    user_agent: request.headers.get("user-agent"),
   });
 }

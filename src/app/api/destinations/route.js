@@ -12,11 +12,11 @@ import { createApiErrorResponse } from "@/lib/errors";
 import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const destinationSchema = z.object({
-  accountHandle: z.string().trim().optional().or(z.literal("")),
+  account_handle: z.string().trim().optional().or(z.literal("")),
   clearToken: z.boolean().optional(),
-  connectionError: z.string().trim().optional().or(z.literal("")),
-  connectionStatus: z.string().trim().min(1),
-  externalAccountId: z.string().trim().optional().or(z.literal("")),
+  connection_error: z.string().trim().optional().or(z.literal("")),
+  connection_status: z.string().trim().min(1),
+  external_account_id: z.string().trim().optional().or(z.literal("")),
   graphApiBaseUrl: z.string().trim().optional().or(z.literal("")),
   instagramUserId: z.string().trim().optional().or(z.literal("")),
   kind: z.string().trim().min(1),
@@ -36,7 +36,7 @@ const destinationSchema = z.object({
       minPostIntervalMinutes: z.union([z.number().int().positive(), z.string().trim(), z.null()]).optional(),
     })
     .optional(),
-  settingsJson: z.record(z.string(), z.any()).optional(),
+  settings_json: z.record(z.string(), z.any()).optional(),
   slug: z.string().trim().min(1),
   token: z.string().trim().optional().or(z.literal("")),
 });
@@ -81,7 +81,7 @@ export async function PUT(request) {
 
   try {
     const record = await saveDestinationRecord(result.data, {
-      actorId: auth.user.id,
+      actor_id: auth.user.id,
     });
 
     return NextResponse.json({

@@ -1472,16 +1472,16 @@ function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read m
       {items.map((item) => {
         const media = resolveCompactStoryMedia(item);
         const metaItems = [
-          item.publishedAt
+          item.published_at
             ? {
                 icon: "calendar",
-                label: formatDateTimeLabel(locale, item.publishedAt),
+                label: formatDateTimeLabel(locale, item.published_at),
               }
             : null,
-          item.sourceName
+          item.source_name
             ? {
                 icon: "news",
-                label: item.sourceName,
+                label: item.source_name,
               }
             : null,
         ].filter(Boolean);
@@ -1570,7 +1570,7 @@ export function PublicHomePage({ advertContactHref, locale, messages, pageConten
 
   return (
     <PageMain>
-      <PublicViewTracker eventType="WEBSITE_VIEW" locale={locale} />
+      <PublicViewTracker event_type="WEBSITE_VIEW" locale={locale} />
       <Hero>
         {pageContent.eyebrow ? <Eyebrow>{pageContent.eyebrow}</Eyebrow> : null}
         <Title>
@@ -1713,7 +1713,7 @@ export function PublicCollectionPage({
   return (
     <PageMain>
       <PublicViewTracker
-        eventType={showSearch ? "SEARCH_VIEW" : "PAGE_VIEW"}
+        event_type={showSearch ? "SEARCH_VIEW" : "PAGE_VIEW"}
         locale={locale}
       />
       <Hero>
@@ -1881,31 +1881,31 @@ export function PublicStoryPage({ locale, messages, pageData }) {
   const additionalMedia = (article.media || []).filter(
     (media) => getMediaIdentity(media) !== getMediaIdentity(primaryMedia),
   );
-  const publishedLabel = formatDateLabel(locale, article.publishedAt);
-  const updatedLabel = formatDateLabel(locale, article.updatedAt);
+  const publishedLabel = formatDateLabel(locale, article.published_at);
+  const updatedLabel = formatDateLabel(locale, article.updated_at);
   const showUpdatedLabel = Boolean(updatedLabel && updatedLabel !== publishedLabel);
-  const readingMinutes = estimateReadingMinutes(article.contentHtml || article.summary || article.title);
+  const readingMinutes = estimateReadingMinutes(article.content_html || article.summary || article.title);
   const newsPath = buildLocalizedPath(locale, publicRouteSegments.news);
   const articleTitle = formatDisplayText(article.title, article.slug);
   const articleSummary = formatDisplayText(article.summary);
-  const articleSourceName = formatDisplayText(article.sourceName, story.sourceFallback || "News source");
+  const articleSourceName = formatDisplayText(article.source_name, story.sourceFallback || "News source");
   const articlePrimaryCategory =
     article.categories?.[0]
       ? formatDisplayText(article.categories[0].name, article.categories[0].slug)
       : story.categoryFallback || "General";
   const articleSectionLabel = article.categories?.length ? articlePrimaryCategory : story.articleSectionLabel || "Story";
-  const storyBodyHtml = trimStoryContentHtml(article.contentHtml);
+  const storyBodyHtml = trimStoryContentHtml(article.content_html);
   const hasStoryBody = Boolean(storyBodyHtml || articleSummary);
-  const shareLinks = createShareLinks(articleTitle, article.canonicalUrl);
-  const sourceAttributionNote = buildSourceAttributionNote(article.sourceAttribution, {
-    sourceName: articleSourceName,
-    sourceUrl: article.sourceUrl,
+  const shareLinks = createShareLinks(articleTitle, article.canonical_url);
+  const sourceAttributionNote = buildSourceAttributionNote(article.source_attribution, {
+    source_name: articleSourceName,
+    source_url: article.source_url,
   });
   const readMoreLabel = common.readMoreAction || "Read more";
 
   return (
     <PageMain>
-      <PublicViewTracker eventType="POST_VIEW" locale={locale} postId={article.id} />
+      <PublicViewTracker event_type="POST_VIEW" locale={locale} post_id={article.id} />
       <StoryHero>
         <StoryHeroBar>
           <StoryBreadcrumbs aria-label={story.breadcrumbLabel || "Breadcrumb"}>
@@ -1955,8 +1955,8 @@ export function PublicStoryPage({ locale, messages, pageData }) {
             </StoryBylineRow>
 
             <StoryActionRow>
-              {article.sourceUrl ? (
-                <StoryActionLink href={article.sourceUrl} rel="noreferrer" target="_blank">
+              {article.source_url ? (
+                <StoryActionLink href={article.source_url} rel="noreferrer" target="_blank">
                   <AppIcon name="external-link" size={14} />
                   {story.readSourceAction || "Read original source"}
                 </StoryActionLink>
@@ -2063,17 +2063,17 @@ export function PublicStoryPage({ locale, messages, pageData }) {
                 </SectionTitleRow>
               </StoryRailTitle>
               <SidebarList>
-                {article.sourceUrl ? (
-                  <StorySourceLink href={article.sourceUrl} rel="noreferrer" target="_blank">
+                {article.source_url ? (
+                  <StorySourceLink href={article.source_url} rel="noreferrer" target="_blank">
                     <SidebarTitle>{articleSourceName}</SidebarTitle>
-                    <StorySourceUrl>{article.sourceUrl}</StorySourceUrl>
+                    <StorySourceUrl>{article.source_url}</StorySourceUrl>
                   </StorySourceLink>
                 ) : (
                   <SidebarTitle>{articleSourceName}</SidebarTitle>
                 )}
               </SidebarList>
               {sourceAttributionNote ? <StoryRailText>{sourceAttributionNote}</StoryRailText> : null}
-              {!article.sourceUrl && !sourceAttributionNote ? (
+              {!article.source_url && !sourceAttributionNote ? (
                 <StoryRailText>{story.sourceAttributionFallback || "Original source details for this article."}</StoryRailText>
               ) : null}
             </StoryRailSection>
@@ -2112,7 +2112,7 @@ export function PublicStoryPage({ locale, messages, pageData }) {
 export function PublicStaticPage({ locale, pageContent }) {
   return (
     <PageMain>
-      <PublicViewTracker eventType="PAGE_VIEW" locale={locale} />
+      <PublicViewTracker event_type="PAGE_VIEW" locale={locale} />
       <Hero>
         <Eyebrow>{pageContent.eyebrow}</Eyebrow>
         <Title>

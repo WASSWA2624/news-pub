@@ -51,8 +51,8 @@ function parseEnvValue(value) {
   return trimmed.replace(/\s+#.*$/, "");
 }
 
-function loadEnvFile(fileName) {
-  const envPath = path.join(rootDir, fileName);
+function loadEnvFile(file_name) {
+  const envPath = path.join(rootDir, file_name);
 
   if (!fs.existsSync(envPath)) {
     return;

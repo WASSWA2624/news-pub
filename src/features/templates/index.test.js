@@ -41,7 +41,7 @@ describe("template feature validation", () => {
     await expect(
       saveTemplateRecord(
         {
-          bodyTemplate: "{{title}}",
+          body_template: "{{title}}",
           id: "template_1",
           name: "Website Template",
           platform: "FACEBOOK",

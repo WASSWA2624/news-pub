@@ -276,15 +276,15 @@ function areProviderFormValuesEqual(leftValue, rightValue) {
 }
 
 function buildStreamProviderFilterSeedValues(provider, stream, providerId) {
-  if (stream?.activeProviderId === providerId) {
+  if (stream?.active_provider_id === providerId) {
     return getStreamProviderFormValues(stream);
   }
 
   return getProviderRequestDefaultValues(provider);
 }
 
-function getOfficialProviderDefaultValues(providerKey) {
-  return getProviderDefinition(providerKey)?.defaultRequestDefaults || {};
+function getOfficialProviderDefaultValues(provider_key) {
+  return getProviderDefinition(provider_key)?.defaultRequestDefaults || {};
 }
 
 const socialPostLinkPlacementOptions = [
@@ -326,8 +326,8 @@ export default function StreamFormCard({
   uiNowIso = "",
 }) {
   const socialPostSettings = getStreamSocialPostSettings(stream);
-  const initialActiveProviderId = stream?.activeProviderId || providerOptions[0]?.value || "";
-  const initialDestinationId = stream?.destinationId || destinationOptions[0]?.value || "";
+  const initialActiveProviderId = stream?.active_provider_id || providerOptions[0]?.value || "";
+  const initialDestinationId = stream?.destination_id || destinationOptions[0]?.value || "";
   const initialSelectedDestination =
     destinationOptions.find((option) => option.value === initialDestinationId) || null;
   const initialSelectedProvider =
@@ -355,12 +355,12 @@ export default function StreamFormCard({
   const initialModeWasEdited = Boolean(stream?.mode && stream.mode !== initialSuggestedMode);
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
-  const [activeProviderId, setActiveProviderId] = useState(initialActiveProviderId);
-  const [destinationId, setDestinationId] = useState(initialDestinationId);
-  const [defaultTemplateId, setDefaultTemplateId] = useState(stream?.defaultTemplateId || "");
+  const [active_provider_id, setActiveProviderId] = useState(initialActiveProviderId);
+  const [destination_id, setDestinationId] = useState(initialDestinationId);
+  const [default_template_id, setDefaultTemplateId] = useState(stream?.default_template_id || "");
   const [mode, setMode] = useState(stream?.mode || initialSuggestedMode);
   const [status, setStatus] = useState(stream?.status || "ACTIVE");
-  const [maxPostsPerRun, setMaxPostsPerRun] = useState(`${stream?.maxPostsPerRun ?? 5}`);
+  const [max_posts_per_run, setMaxPostsPerRun] = useState(`${stream?.max_posts_per_run ?? 5}`);
   const [postLinkPlacement, setPostLinkPlacement] = useState(socialPostSettings.linkPlacement);
   const [providerFormValues, setProviderFormValues] = useState(initialProviderFormValues);
   const [providerFiltersResetKey, setProviderFiltersResetKey] = useState(0);
@@ -374,16 +374,16 @@ export default function StreamFormCard({
   const formRef = useRef(null);
   const initialSeedRef = useRef(
     createStreamFormResetSeed({
-      activeProviderId: initialActiveProviderId,
-      defaultTemplateId: stream?.defaultTemplateId || "",
-      destinationId: initialDestinationId,
-      maxPostsPerRun: `${stream?.maxPostsPerRun ?? 5}`,
+      active_provider_id: initialActiveProviderId,
+      default_template_id: stream?.default_template_id || "",
+      destination_id: initialDestinationId,
+      max_posts_per_run: `${stream?.max_posts_per_run ?? 5}`,
       mode: stream?.mode || initialSuggestedMode,
       modeWasEdited: initialModeWasEdited,
       name: initialName,
       nameWasEdited: initialNameWasEdited,
       postLinkPlacement: socialPostSettings.linkPlacement,
-      providerKey: initialSelectedProvider?.providerKey,
+      provider_key: initialSelectedProvider?.provider_key,
       providerFormValues: initialProviderFormValues,
       runWindowState: initialRunWindowState,
       slug: initialSlug,
@@ -391,44 +391,44 @@ export default function StreamFormCard({
       status: stream?.status || "ACTIVE",
     }),
   );
-  const selectedDestination = destinationOptions.find((option) => option.value === destinationId) || null;
-  const selectedProvider = providerOptions.find((option) => option.value === activeProviderId) || null;
-  const selectedTemplate = templateOptions.find((option) => option.value === defaultTemplateId) || null;
-  const providerExecutionLimits = selectedProvider?.providerKey
-    ? getProviderExecutionLimits(selectedProvider.providerKey)
+  const selectedDestination = destinationOptions.find((option) => option.value === destination_id) || null;
+  const selectedProvider = providerOptions.find((option) => option.value === active_provider_id) || null;
+  const selectedTemplate = templateOptions.find((option) => option.value === default_template_id) || null;
+  const providerExecutionLimits = selectedProvider?.provider_key
+    ? getProviderExecutionLimits(selectedProvider.provider_key)
     : {};
-  const maxPostsPerRunLimit = providerExecutionLimits.maxPostsPerRun || null;
+  const maxPostsPerRunLimit = providerExecutionLimits.max_posts_per_run || null;
   const suggestedIdentity = buildSuggestedStreamIdentity(selectedDestination, selectedProvider);
   const suggestedMode = getSuggestedStreamMode(selectedDestination);
   const issues = getStreamValidationIssues({
     destination: selectedDestination || undefined,
-    maxPostsPerRun,
+    max_posts_per_run,
     mode,
     providerDefaults:
-      selectedProvider?.requestDefaultsJson
-      || stream?.activeProvider?.requestDefaultsJson
+      selectedProvider?.request_defaults_json
+      || stream?.activeProvider?.request_defaults_json
       || {},
     providerFilters: providerFormValues,
-    providerKey: selectedProvider?.providerKey,
+    provider_key: selectedProvider?.provider_key,
     template: selectedTemplate?.value ? selectedTemplate : undefined,
   });
   const resolvedTemplateOptions = buildTemplateOptions(templateOptions, selectedDestination);
   const resolvedModeOptions = buildModeOptions(modeOptions, selectedDestination);
-  const fetchWindowCapabilityDetails = selectedProvider?.providerKey
+  const fetchWindowCapabilityDetails = selectedProvider?.provider_key
     ? buildFetchWindowCapabilityDetails([
         {
           activeProvider: {
             label: selectedProvider.label,
-            providerKey: selectedProvider.providerKey,
-            requestDefaultsJson:
-              selectedProvider.requestDefaultsJson
-              || stream?.activeProvider?.requestDefaultsJson
+            provider_key: selectedProvider.provider_key,
+            request_defaults_json:
+              selectedProvider.request_defaults_json
+              || stream?.activeProvider?.request_defaults_json
               || {},
           },
-          countryAllowlistJson: stream?.countryAllowlistJson || [],
-          languageAllowlistJson: stream?.languageAllowlistJson || [],
+          country_allowlist_json: stream?.country_allowlist_json || [],
+          language_allowlist_json: stream?.language_allowlist_json || [],
           locale: stream?.locale || "en",
-          settingsJson: {
+          settings_json: {
             providerFilters: providerFormValues,
           },
         },
@@ -455,14 +455,14 @@ export default function StreamFormCard({
     const savedProviderDefaults = getProviderRequestDefaultValues(selectedProvider);
     const nextProviderFormValues = Object.keys(savedProviderDefaults).length
       ? savedProviderDefaults
-      : getOfficialProviderDefaultValues(selectedProvider?.providerKey);
+      : getOfficialProviderDefaultValues(selectedProvider?.provider_key);
 
     setProviderFormValues(nextProviderFormValues);
     setProviderFiltersResetKey((currentValue) => currentValue + 1);
   }
 
   function restoreProviderFiltersToOfficialDefaults() {
-    setProviderFormValues(getOfficialProviderDefaultValues(selectedProvider?.providerKey));
+    setProviderFormValues(getOfficialProviderDefaultValues(selectedProvider?.provider_key));
     setProviderFiltersResetKey((currentValue) => currentValue + 1);
   }
 
@@ -554,7 +554,7 @@ export default function StreamFormCard({
       onSubmit={handleSubmit}
       ref={formRef}
     >
-      {stream ? <input name="streamId" type="hidden" value={stream.id} /> : null}
+      {stream ? <input name="stream_id" type="hidden" value={stream.id} /> : null}
 
       <AdminValidationSummary
         items={issues.map((issue) => issue.message)}
@@ -640,7 +640,7 @@ export default function StreamFormCard({
             <SearchableSelect
               ariaLabel="Destination"
               invalid={issues.length > 0}
-              name="destinationId"
+              name="destination_id"
               onChange={(value) => {
                 const nextDestinationId = `${value || ""}`;
                 const nextDestination =
@@ -656,7 +656,7 @@ export default function StreamFormCard({
               }}
               options={destinationOptions}
               placeholder="Select a destination"
-              value={destinationId}
+              value={destination_id}
             />
             {selectedDestination ? (
               <HelperRow>
@@ -671,7 +671,7 @@ export default function StreamFormCard({
             <FieldLabel>Provider</FieldLabel>
             <SearchableSelect
               ariaLabel="Provider"
-              name="activeProviderId"
+              name="active_provider_id"
               onChange={(value) => {
                 const nextProviderId = `${value || ""}`;
                 const nextProvider =
@@ -685,7 +685,7 @@ export default function StreamFormCard({
               }}
               options={providerOptions}
               placeholder="Select a provider"
-              value={activeProviderId}
+              value={active_provider_id}
             />
             {selectedProvider?.docsUrl ? (
               <HelperRow>
@@ -743,11 +743,11 @@ export default function StreamFormCard({
             <SearchableSelect
               ariaLabel="Default template"
               invalid={issues.length > 0}
-              name="defaultTemplateId"
+              name="default_template_id"
               onChange={(value) => setDefaultTemplateId(`${value || ""}`)}
               options={resolvedTemplateOptions}
               placeholder="Select a template"
-              value={defaultTemplateId}
+              value={default_template_id}
             />
             {selectedDestination ? (
               <HelperRow>
@@ -816,11 +816,11 @@ export default function StreamFormCard({
         defaultOpen={false}
         meta={[
           {
-            label: `${stream?.scheduleIntervalMinutes ?? 60} min cadence`,
+            label: `${stream?.schedule_interval_minutes ?? 60} min cadence`,
             tone: "muted",
           },
           {
-            label: `${stream?.retryLimit ?? 3} retries`,
+            label: `${stream?.retry_limit ?? 3} retries`,
             tone: "muted",
           },
         ]}
@@ -831,9 +831,9 @@ export default function StreamFormCard({
           <Field>
             <FieldLabel>Schedule interval minutes</FieldLabel>
             <Input
-              defaultValue={stream?.scheduleIntervalMinutes ?? 60}
+              defaultValue={stream?.schedule_interval_minutes ?? 60}
               min="0"
-              name="scheduleIntervalMinutes"
+              name="schedule_interval_minutes"
               type="number"
             />
             <HelperRow>
@@ -846,11 +846,11 @@ export default function StreamFormCard({
             <Input
               max={maxPostsPerRunLimit?.max}
               min={maxPostsPerRunLimit?.min || 1}
-              name="maxPostsPerRun"
+              name="max_posts_per_run"
               onChange={(event) => setMaxPostsPerRun(event.target.value)}
               step="1"
               type="number"
-              value={maxPostsPerRun}
+              value={max_posts_per_run}
             />
             <FieldHint>
               {maxPostsPerRunLimit
@@ -861,9 +861,9 @@ export default function StreamFormCard({
           <Field>
             <FieldLabel>Duplicate window hours</FieldLabel>
             <Input
-              defaultValue={stream?.duplicateWindowHours ?? 48}
+              defaultValue={stream?.duplicate_window_hours ?? 48}
               min="1"
-              name="duplicateWindowHours"
+              name="duplicate_window_hours"
               step="1"
               type="number"
             />
@@ -871,15 +871,15 @@ export default function StreamFormCard({
           </Field>
           <Field>
             <FieldLabel>Retry limit</FieldLabel>
-            <Input defaultValue={stream?.retryLimit ?? 3} min="0" name="retryLimit" step="1" type="number" />
+            <Input defaultValue={stream?.retry_limit ?? 3} min="0" name="retry_limit" step="1" type="number" />
             <FieldHint>Retryable publish attempts stop once this limit is reached.</FieldHint>
           </Field>
           <Field>
             <FieldLabel>Retry backoff minutes</FieldLabel>
             <Input
-              defaultValue={stream?.retryBackoffMinutes ?? 15}
+              defaultValue={stream?.retry_backoff_minutes ?? 15}
               min="0"
-              name="retryBackoffMinutes"
+              name="retry_backoff_minutes"
               step="1"
               type="number"
             />
@@ -929,13 +929,13 @@ export default function StreamFormCard({
         </StreamFieldGrid>
       </AdminDisclosureSection>
 
-      {selectedProvider?.providerKey ? (
+      {selectedProvider?.provider_key ? (
         <AdminDisclosureSection
           completionLabel="Provider filters ready"
           defaultOpen={false}
           meta={[
             {
-              label: selectedProvider.providerKey,
+              label: selectedProvider.provider_key,
               tone: "accent",
             },
           ]}
@@ -966,11 +966,11 @@ export default function StreamFormCard({
             Reset uses the saved provider profile defaults and falls back to official defaults when none are saved. Restore official defaults always reloads the integration baseline.
           </FieldHint>
           <ProviderFilterFields
-            key={`stream-provider-filters-${selectedProvider.providerKey}-${providerFiltersResetKey}-${formResetKey}`}
+            key={`stream-provider-filters-${selectedProvider.provider_key}-${providerFiltersResetKey}-${formResetKey}`}
             hideManagedWindowFields
             namePrefix="providerFilter"
             onValuesChange={handleProviderFormValuesChange}
-            providerKey={selectedProvider.providerKey}
+            provider_key={selectedProvider.provider_key}
             scope="stream"
             values={providerFormValues}
           />
@@ -992,16 +992,16 @@ export default function StreamFormCard({
         <Field key={`stream-targeting-include-${formResetKey}`}>
           <FieldLabel>Include keywords</FieldLabel>
           <Textarea
-            defaultValue={(stream?.includeKeywordsJson || []).join(", ")}
-            name="includeKeywordsJson"
+            defaultValue={(stream?.include_keywords_json || []).join(", ")}
+            name="include_keywords_json"
           />
           <FieldHint>Use comma-separated terms that must appear in the normalized source article before the stream accepts it.</FieldHint>
         </Field>
         <Field key={`stream-targeting-exclude-${formResetKey}`}>
           <FieldLabel>Exclude keywords</FieldLabel>
           <Textarea
-            defaultValue={(stream?.excludeKeywordsJson || []).join(", ")}
-            name="excludeKeywordsJson"
+            defaultValue={(stream?.exclude_keywords_json || []).join(", ")}
+            name="exclude_keywords_json"
           />
           <FieldHint>Use comma-separated terms that should immediately disqualify a fetched story from this stream.</FieldHint>
         </Field>

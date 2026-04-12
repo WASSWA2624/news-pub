@@ -13,10 +13,10 @@ import { idParamSchema, validateJsonRequest, validateParams } from "@/lib/valida
 
 const updatePostSchema = z.object({
   action: z.string().trim().optional(),
-  articleMatchId: z.string().trim().optional(),
+  article_match_id: z.string().trim().optional(),
   categoryIds: z.array(z.string().trim().min(1)).optional(),
-  contentMd: z.string().optional(),
-  editorialStage: z.string().trim().optional(),
+  content_md: z.string().optional(),
+  editorial_stage: z.string().trim().optional(),
   locale: z.string().trim().optional(),
   publishAt: z.string().trim().optional(),
   slug: z.string().trim().optional(),
@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
   try {
     const snapshot = await getPostEditorSnapshot({
       locale: request.nextUrl.searchParams.get("locale") || undefined,
-      postId: validatedParams.data.id,
+      post_id: validatedParams.data.id,
     });
 
     return NextResponse.json({
@@ -97,11 +97,11 @@ export async function PATCH(request, { params }) {
   try {
     const record = await updatePostEditorialRecord(
       {
-        postId: validatedParams.data.id,
+        post_id: validatedParams.data.id,
         ...validatedBody.data,
       },
       {
-        actorId: auth.user.id,
+        actor_id: auth.user.id,
       },
     );
 

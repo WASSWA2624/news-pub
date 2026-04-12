@@ -15,16 +15,16 @@ describe("stream form reset helpers", () => {
 
   it("captures a stable reset seed without sharing nested object references", () => {
     const sourceValues = {
-      activeProviderId: "provider_1",
-      defaultTemplateId: "template_1",
-      destinationId: "destination_1",
-      maxPostsPerRun: 5,
+      active_provider_id: "provider_1",
+      default_template_id: "template_1",
+      destination_id: "destination_1",
+      max_posts_per_run: 5,
       mode: "AUTO_PUBLISH",
       modeWasEdited: true,
       name: "Daily Bulletin",
       nameWasEdited: true,
       postLinkPlacement: "END",
-      providerKey: "mediastack",
+      provider_key: "mediastack",
       providerFormValues: {
         category: ["technology"],
         endpoint: "latest",
@@ -45,10 +45,10 @@ describe("stream form reset helpers", () => {
     sourceValues.runWindowState.writeCheckpointOnSuccess = false;
 
     expect(seed).toMatchObject({
-      activeProviderId: "provider_1",
-      defaultTemplateId: "template_1",
-      destinationId: "destination_1",
-      maxPostsPerRun: "5",
+      active_provider_id: "provider_1",
+      default_template_id: "template_1",
+      destination_id: "destination_1",
+      max_posts_per_run: "5",
       mode: "AUTO_PUBLISH",
       modeWasEdited: true,
       name: "Daily Bulletin",
@@ -71,18 +71,18 @@ describe("stream form reset helpers", () => {
 
   it("applies a reset seed to every controlled stream form setter", () => {
     const seed = createStreamFormResetSeed({
-      activeProviderId: "provider_2",
-      defaultTemplateId: "template_2",
-      destinationId: "destination_2",
-      maxPostsPerRun: 50,
+      active_provider_id: "provider_2",
+      default_template_id: "template_2",
+      destination_id: "destination_2",
+      max_posts_per_run: 50,
       mode: "REVIEW_REQUIRED",
       modeWasEdited: false,
       name: "Regional Digest",
       nameWasEdited: false,
       postLinkPlacement: "BELOW_TITLE",
-      providerKey: "mediastack",
+      provider_key: "mediastack",
       providerFormValues: {
-        countryAllowlistJson: ["ug"],
+        country_allowlist_json: ["ug"],
         endpoint: "top-headlines",
       },
       runWindowState: {
@@ -129,7 +129,7 @@ describe("stream form reset helpers", () => {
     expect(setters.setSlugWasEdited).toHaveBeenCalledWith(false);
     expect(setters.setModeWasEdited).toHaveBeenCalledWith(false);
     expect(appliedProviderValues).toEqual({
-      countryAllowlistJson: ["ug"],
+      country_allowlist_json: ["ug"],
       endpoint: "top-headlines",
     });
     expect(appliedProviderValues).not.toBe(seed.providerFormValues);

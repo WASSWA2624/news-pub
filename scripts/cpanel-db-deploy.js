@@ -29,8 +29,8 @@ function parseEnvValue(value) {
   return trimmed.replace(/\s+#.*$/, "");
 }
 
-function loadEnvFile(fileName) {
-  const envPath = path.join(rootDir, fileName);
+function loadEnvFile(file_name) {
+  const envPath = path.join(rootDir, file_name);
 
   if (!fs.existsSync(envPath)) {
     return;
@@ -244,7 +244,7 @@ async function applyMigration(connection, migrationName) {
   const migrationSql = fs.readFileSync(migrationPath, "utf8");
   const statements = splitSqlStatements(migrationSql);
   const checksum = crypto.createHash("sha256").update(migrationSql).digest("hex");
-  const startedAt = new Date();
+  const started_at = new Date();
 
   console.log(`Applying migration ${migrationName} (${statements.length} statements)...`);
 
@@ -254,7 +254,7 @@ async function applyMigration(connection, migrationName) {
 
   await connection.query(
     "INSERT INTO `_prisma_migrations` (`id`, `checksum`, `finished_at`, `migration_name`, `logs`, `rolled_back_at`, `started_at`, `applied_steps_count`) VALUES (?, ?, NOW(3), ?, NULL, NULL, ?, ?)",
-    [crypto.randomUUID(), checksum, migrationName, startedAt, statements.length],
+    [crypto.randomUUID(), checksum, migrationName, started_at, statements.length],
   );
 }
 

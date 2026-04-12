@@ -11,20 +11,20 @@ function createPublishedPost() {
         status: "SUCCEEDED",
       },
     ],
-    publishedAt: new Date("2026-04-03T08:00:00.000Z"),
+    published_at: new Date("2026-04-03T08:00:00.000Z"),
     slug: "breaking-story",
     translations: [
       {
         locale: "en",
         seoRecord: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
-          metaDescription: "Breaking story meta description",
-          metaTitle: "Breaking story meta title",
+          canonical_url: "https://example.com/en/news/breaking-story",
+          meta_description: "Breaking story meta description",
+          meta_title: "Breaking story meta title",
         },
         title: "Breaking story",
       },
     ],
-    updatedAt: new Date("2026-04-03T09:00:00.000Z"),
+    updated_at: new Date("2026-04-03T09:00:00.000Z"),
   };
 }
 
@@ -52,7 +52,7 @@ describe("seo feature inventory", () => {
         {
           allow: "/",
           disallow: ["/admin", "/api"],
-          userAgent: "*",
+          user_agent: "*",
         },
       ],
       sitemap: "https://example.com/sitemap.xml",
@@ -80,7 +80,7 @@ describe("seo feature inventory", () => {
               },
             ],
             slug: "technology",
-            updatedAt: new Date("2026-04-03T09:30:00.000Z"),
+            updated_at: new Date("2026-04-03T09:30:00.000Z"),
           },
         ]),
       },
@@ -175,8 +175,8 @@ describe("seo feature inventory", () => {
       storyLocalesCount: 1,
     });
     expect(snapshot.stories[0]).toMatchObject({
-      canonicalUrl: "https://example.com/en/news/breaking-story",
-      metaTitle: "Breaking story meta title",
+      canonical_url: "https://example.com/en/news/breaking-story",
+      meta_title: "Breaking story meta title",
       slug: "breaking-story",
     });
   });

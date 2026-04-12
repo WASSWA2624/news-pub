@@ -42,7 +42,7 @@ describe("destinations api route", () => {
     const response = await PUT(
       new Request("https://example.com/api/destinations", {
         body: JSON.stringify({
-          connectionStatus: "ERROR",
+          connection_status: "ERROR",
           kind: "FACEBOOK_PAGE",
           name: "Example Facebook Page",
           platform: "FACEBOOK",
@@ -71,7 +71,7 @@ describe("destinations api route", () => {
         platform: "FACEBOOK",
       }),
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
   });

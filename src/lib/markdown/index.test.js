@@ -82,7 +82,7 @@ describe("markdown rendering", () => {
     expect(html).toContain("<p>Original sourcing is retained for publication compliance.</p>");
   });
 
-  it("renders image galleries from sourceUrl fallback fields", () => {
+  it("renders image galleries from source_url fallback fields", () => {
     const article = {
       excerpt: "Story excerpt",
       sections: [
@@ -92,7 +92,7 @@ describe("markdown rendering", () => {
             {
               alt: "Story image",
               caption: "Prepared for publication",
-              sourceUrl: "https://fixtures.example/images/story-image.jpg",
+              source_url: "https://fixtures.example/images/story-image.jpg",
             },
           ],
           kind: "image_gallery",

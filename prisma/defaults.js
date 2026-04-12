@@ -1,5 +1,5 @@
 const DEFAULT_LOCALES = Object.freeze([
-  { code: "en", isDefault: true, name: "English" },
+  { code: "en", is_default: true, name: "English" },
 ]);
 
 const LEGACY_COMPAT_CATEGORIES = Object.freeze([
@@ -110,14 +110,14 @@ const SUPPORTED_CATEGORY_PRESETS = Object.freeze([
 
 const DEFAULT_PROVIDERS = Object.freeze([
   {
-    baseUrl: "https://api.mediastack.com/v1/news",
+    base_url: "https://api.mediastack.com/v1/news",
     description: "Mediastack provider integration with official live news filters and seeded defaults.",
-    isDefault: true,
-    isEnabled: true,
-    isSelectable: true,
+    is_default: true,
+    is_enabled: true,
+    is_selectable: true,
     label: "Mediastack",
-    providerKey: "mediastack",
-    requestDefaultsJson: {
+    provider_key: "mediastack",
+    request_defaults_json: {
       categories: ["general"],
       countries: ["us"],
       languages: ["en"],
@@ -125,14 +125,14 @@ const DEFAULT_PROVIDERS = Object.freeze([
     },
   },
   {
-    baseUrl: "https://newsdata.io/api/1/latest",
+    base_url: "https://newsdata.io/api/1/latest",
     description: "NewsData provider integration with official Latest and Archive filters and seeded defaults.",
-    isDefault: false,
-    isEnabled: true,
-    isSelectable: true,
+    is_default: false,
+    is_enabled: true,
+    is_selectable: true,
     label: "NewsData",
-    providerKey: "newsdata",
-    requestDefaultsJson: {
+    provider_key: "newsdata",
+    request_defaults_json: {
       category: ["top"],
       country: ["us"],
       endpoint: "latest",
@@ -141,14 +141,14 @@ const DEFAULT_PROVIDERS = Object.freeze([
     },
   },
   {
-    baseUrl: "https://newsapi.org/v2/top-headlines",
+    base_url: "https://newsapi.org/v2/top-headlines",
     description: "NewsAPI provider integration for official Top Headlines and Everything filters.",
-    isDefault: false,
-    isEnabled: true,
-    isSelectable: true,
+    is_default: false,
+    is_enabled: true,
+    is_selectable: true,
     label: "NewsAPI",
-    providerKey: "newsapi",
-    requestDefaultsJson: {
+    provider_key: "newsapi",
+    request_defaults_json: {
       category: "general",
       country: "us",
       endpoint: "top-headlines",
@@ -158,35 +158,35 @@ const DEFAULT_PROVIDERS = Object.freeze([
 
 const DEFAULT_DESTINATIONS = Object.freeze([
   {
-    accountHandle: "website",
-    connectionStatus: "CONNECTED",
+    account_handle: "website",
+    connection_status: "CONNECTED",
     kind: "WEBSITE",
-    lastConnectedAt: new Date(),
+    last_connected_at: new Date(),
     name: "Website",
     platform: "WEBSITE",
-    settingsJson: {
+    settings_json: {
       canonicalDomain: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     },
     slug: "website",
   },
   {
-    accountHandle: "@newspub",
-    connectionStatus: "DISCONNECTED",
+    account_handle: "@newspub",
+    connection_status: "DISCONNECTED",
     kind: "FACEBOOK_PAGE",
     name: "Facebook Page",
     platform: "FACEBOOK",
-    settingsJson: {
+    settings_json: {
       publishLinkPosts: true,
     },
     slug: "facebook-page",
   },
   {
-    accountHandle: "@newspub",
-    connectionStatus: "DISCONNECTED",
+    account_handle: "@newspub",
+    connection_status: "DISCONNECTED",
     kind: "INSTAGRAM_BUSINESS",
     name: "Instagram Business",
     platform: "INSTAGRAM",
-    settingsJson: {
+    settings_json: {
       appendHashtags: true,
     },
     slug: "instagram-business",
@@ -195,57 +195,57 @@ const DEFAULT_DESTINATIONS = Object.freeze([
 
 const DEFAULT_TEMPLATES = Object.freeze([
   {
-    bodyTemplate:
-      "{{title}}\n\n{{summary}}\n\nRead more: {{canonicalUrl}}\n\nSource: {{sourceName}} - {{sourceUrl}}",
-    hashtagsTemplate: "",
-    isDefault: true,
+    body_template:
+      "{{title}}\n\n{{summary}}\n\nRead more: {{canonical_url}}\n\nSource: {{source_name}} - {{source_url}}",
+    hashtags_template: "",
+    is_default: true,
     locale: "en",
     name: "Website Default",
     platform: "WEBSITE",
-    summaryTemplate: "{{summary}}",
-    titleTemplate: "{{title}}",
+    summary_template: "{{summary}}",
+    title_template: "{{title}}",
   },
   {
-    bodyTemplate: "{{body}}",
-    hashtagsTemplate: "",
-    isDefault: true,
+    body_template: "{{body}}",
+    hashtags_template: "",
+    is_default: true,
     locale: "en",
     name: "Facebook Default",
     platform: "FACEBOOK",
-    summaryTemplate: "{{summary}}",
-    titleTemplate: "{{title}}",
+    summary_template: "{{summary}}",
+    title_template: "{{title}}",
   },
   {
-    bodyTemplate:
-      "{{title}}\n\n{{summary}}\n\nSource: {{sourceName}}\n{{hashtags}}",
-    hashtagsTemplate: "#news #newspub",
-    isDefault: true,
+    body_template:
+      "{{title}}\n\n{{summary}}\n\nSource: {{source_name}}\n{{hashtags}}",
+    hashtags_template: "#news #newspub",
+    is_default: true,
     locale: "en",
     name: "Instagram Default",
     platform: "INSTAGRAM",
-    summaryTemplate: "{{summary}}",
-    titleTemplate: "{{title}}",
+    summary_template: "{{summary}}",
+    title_template: "{{title}}",
   },
 ]);
 
 const DEFAULT_STREAMS = Object.freeze([
   {
     categorySlugs: ["world", "business", "technology", "policy"],
-    countryAllowlistJson: ["us"],
+    country_allowlist_json: ["us"],
     defaultTemplateName: "Website Default",
     destinationSlug: "website",
-    duplicateWindowHours: 72,
-    includeKeywordsJson: [],
-    languageAllowlistJson: ["en"],
+    duplicate_window_hours: 72,
+    include_keywords_json: [],
+    language_allowlist_json: ["en"],
     locale: "en",
-    maxPostsPerRun: 8,
+    max_posts_per_run: 8,
     mode: "AUTO_PUBLISH",
     name: "Website News Feed",
-    providerKey: "newsapi",
-    retryBackoffMinutes: 15,
-    retryLimit: 3,
-    scheduleIntervalMinutes: 60,
-    settingsJson: {
+    provider_key: "newsapi",
+    retry_backoff_minutes: 15,
+    retry_limit: 3,
+    schedule_interval_minutes: 60,
+    settings_json: {
       providerFilters: {
         categories: ["general"],
         countries: ["us"],
@@ -263,21 +263,21 @@ const DEFAULT_STREAMS = Object.freeze([
   },
   {
     categorySlugs: ["world", "business"],
-    countryAllowlistJson: ["us"],
+    country_allowlist_json: ["us"],
     defaultTemplateName: "Facebook Default",
     destinationSlug: "facebook-page",
-    duplicateWindowHours: 48,
-    includeKeywordsJson: [],
-    languageAllowlistJson: ["en"],
+    duplicate_window_hours: 48,
+    include_keywords_json: [],
+    language_allowlist_json: ["en"],
     locale: "en",
-    maxPostsPerRun: 4,
+    max_posts_per_run: 4,
     mode: "REVIEW_REQUIRED",
     name: "Facebook Headline Queue",
-    providerKey: "mediastack",
-    retryBackoffMinutes: 20,
-    retryLimit: 3,
-    scheduleIntervalMinutes: 60,
-    settingsJson: {
+    provider_key: "mediastack",
+    retry_backoff_minutes: 20,
+    retry_limit: 3,
+    schedule_interval_minutes: 60,
+    settings_json: {
       providerFilters: {
         categories: ["business"],
         countries: ["us"],
@@ -295,21 +295,21 @@ const DEFAULT_STREAMS = Object.freeze([
   },
   {
     categorySlugs: ["technology"],
-    countryAllowlistJson: ["us"],
+    country_allowlist_json: ["us"],
     defaultTemplateName: "Instagram Default",
     destinationSlug: "instagram-business",
-    duplicateWindowHours: 48,
-    includeKeywordsJson: ["visual", "photo", "image"],
-    languageAllowlistJson: ["en"],
+    duplicate_window_hours: 48,
+    include_keywords_json: ["visual", "photo", "image"],
+    language_allowlist_json: ["en"],
     locale: "en",
-    maxPostsPerRun: 2,
+    max_posts_per_run: 2,
     mode: "REVIEW_REQUIRED",
     name: "Instagram Visual Picks",
-    providerKey: "mediastack",
-    retryBackoffMinutes: 30,
-    retryLimit: 3,
-    scheduleIntervalMinutes: 120,
-    settingsJson: {
+    provider_key: "mediastack",
+    retry_backoff_minutes: 30,
+    retry_limit: 3,
+    schedule_interval_minutes: 120,
+    settings_json: {
       providerFilters: {
         categories: ["technology"],
         countries: ["us"],

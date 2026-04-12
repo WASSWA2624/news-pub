@@ -324,12 +324,12 @@ const serverEnvSchema = sharedEnvSchema
       );
     }
 
-    env.UPLOAD_ALLOWED_MIME_TYPES.forEach((mimeType, index) => {
-      if (!mimeTypePattern.test(mimeType)) {
+    env.UPLOAD_ALLOWED_MIME_TYPES.forEach((mime_type, index) => {
+      if (!mimeTypePattern.test(mime_type)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["UPLOAD_ALLOWED_MIME_TYPES", index],
-          message: `UPLOAD_ALLOWED_MIME_TYPES contains an invalid MIME type: ${mimeType}.`,
+          message: `UPLOAD_ALLOWED_MIME_TYPES contains an invalid MIME type: ${mime_type}.`,
         });
       }
     });
@@ -399,12 +399,12 @@ function mapServerEnv(parsedEnv) {
       driver: parsedEnv.MEDIA_DRIVER,
       local: {
         basePath: parsedEnv.LOCAL_MEDIA_BASE_PATH || null,
-        baseUrl: parsedEnv.LOCAL_MEDIA_BASE_URL || null,
+        base_url: parsedEnv.LOCAL_MEDIA_BASE_URL || null,
       },
       maxRemoteFileBytes: parsedEnv.MEDIA_MAX_REMOTE_FILE_BYTES,
       s3: {
         accessKeyId: parsedEnv.S3_ACCESS_KEY_ID || null,
-        baseUrl: parsedEnv.S3_MEDIA_BASE_URL || null,
+        base_url: parsedEnv.S3_MEDIA_BASE_URL || null,
         bucket: parsedEnv.S3_MEDIA_BUCKET || null,
         region: parsedEnv.S3_MEDIA_REGION || null,
         secretAccessKey: parsedEnv.S3_SECRET_ACCESS_KEY || null,

@@ -23,20 +23,20 @@ export function buildStoryPageMetadata({ locale, messages, pageData, slug }) {
 
   return buildPageMetadata({
     authors: pageData.article.authors,
-    canonicalUrl: pageData.article.canonicalUrl,
-    description: pageData.article.metaDescription || pageData.article.summary,
+    canonical_url: pageData.article.canonical_url,
+    description: pageData.article.meta_description || pageData.article.summary,
     image: pageData.article.seoImage || pageData.article.image,
     keywords: pageData.article.keywords,
     locale,
-    modifiedTime: pageData.article.updatedAt,
+    modifiedTime: pageData.article.updated_at,
     noindex: pageData.article.noindex,
     openGraphDescription: pageData.article.openGraphDescription,
-    openGraphTitle: pageData.article.openGraphTitle || pageData.article.metaTitle || pageData.article.title,
-    publishedTime: pageData.article.publishedAt,
+    openGraphTitle: pageData.article.openGraphTitle || pageData.article.meta_title || pageData.article.title,
+    publishedTime: pageData.article.published_at,
     segments: publicRouteSegments.newsPost(slug),
-    title: pageData.article.metaTitle || pageData.article.title,
-    twitterDescription: pageData.article.twitterDescription,
-    twitterTitle: pageData.article.twitterTitle,
+    title: pageData.article.meta_title || pageData.article.title,
+    twitter_description: pageData.article.twitter_description,
+    twitter_title: pageData.article.twitter_title,
     type: "article",
   });
 }

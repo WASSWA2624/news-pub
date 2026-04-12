@@ -396,12 +396,12 @@ export function getRequiredPermissionsForPostUpdate(payload = {}) {
 
   if (
     payload.categories !== undefined ||
-    payload.editorialStage !== undefined ||
+    payload.editorial_stage !== undefined ||
     payload.slug !== undefined ||
     payload.title !== undefined ||
     payload.summary !== undefined ||
-    payload.contentHtml !== undefined ||
-    payload.contentMd !== undefined ||
+    payload.content_html !== undefined ||
+    payload.content_md !== undefined ||
     payload.status === "DRAFT"
   ) {
     permissions.push(ADMIN_PERMISSIONS.EDIT_POSTS);

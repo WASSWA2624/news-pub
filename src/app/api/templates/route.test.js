@@ -41,7 +41,7 @@ describe("templates api route", () => {
     const response = await PUT(
       new Request("https://example.com/api/templates", {
         body: JSON.stringify({
-          bodyTemplate: "{{body}}",
+          body_template: "{{body}}",
           name: "Website default",
           platform: "WEBSITE",
         }),
@@ -63,12 +63,12 @@ describe("templates api route", () => {
     });
     expect(saveTemplateRecord).toHaveBeenCalledWith(
       {
-        bodyTemplate: "{{body}}",
+        body_template: "{{body}}",
         name: "Website default",
         platform: "WEBSITE",
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
   });

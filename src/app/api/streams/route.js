@@ -12,23 +12,23 @@ import { createApiErrorResponse } from "@/lib/errors";
 import { validateJsonRequest } from "@/lib/validation/api-request";
 
 const streamSchema = z.object({
-  activeProviderId: z.string().trim().min(1),
+  active_provider_id: z.string().trim().min(1),
   categoryIds: z.array(z.string().trim().min(1)).optional(),
-  defaultTemplateId: z.string().trim().optional().or(z.literal("")),
+  default_template_id: z.string().trim().optional().or(z.literal("")),
   description: z.string().trim().optional().or(z.literal("")),
-  destinationId: z.string().trim().min(1),
-  duplicateWindowHours: z.coerce.number().int().positive().optional(),
-  excludeKeywordsJson: z.union([z.string(), z.array(z.string())]).optional(),
-  includeKeywordsJson: z.union([z.string(), z.array(z.string())]).optional(),
+  destination_id: z.string().trim().min(1),
+  duplicate_window_hours: z.coerce.number().int().positive().optional(),
+  exclude_keywords_json: z.union([z.string(), z.array(z.string())]).optional(),
+  include_keywords_json: z.union([z.string(), z.array(z.string())]).optional(),
   locale: z.string().trim().min(1),
-  maxPostsPerRun: z.coerce.number().int().positive().optional(),
+  max_posts_per_run: z.coerce.number().int().positive().optional(),
   mode: z.string().trim().min(1),
   name: z.string().trim().min(1),
   postLinkPlacement: z.enum(["RANDOM", "BELOW_TITLE", "END"]).optional(),
   postLinkUrl: z.string().trim().optional().or(z.literal("")),
-  retryBackoffMinutes: z.coerce.number().int().nonnegative().optional(),
-  retryLimit: z.coerce.number().int().nonnegative().optional(),
-  scheduleIntervalMinutes: z.coerce.number().int().nonnegative().optional(),
+  retry_backoff_minutes: z.coerce.number().int().nonnegative().optional(),
+  retry_limit: z.coerce.number().int().nonnegative().optional(),
+  schedule_interval_minutes: z.coerce.number().int().nonnegative().optional(),
   slug: z.string().trim().optional().or(z.literal("")),
   status: z.string().trim().min(1),
   timezone: z.string().trim().min(1),
@@ -74,7 +74,7 @@ export async function PUT(request) {
 
   try {
     const record = await saveStreamRecord(result.data, {
-      actorId: auth.user.id,
+      actor_id: auth.user.id,
     });
 
     return NextResponse.json({

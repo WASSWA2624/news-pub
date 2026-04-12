@@ -77,11 +77,11 @@ describe("post editor api route", () => {
     expect(updatePostEditorialRecord).toHaveBeenCalledWith(
       {
         action: "optimize",
-        postId: "post_1",
+        post_id: "post_1",
         title: "Updated title",
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
   });

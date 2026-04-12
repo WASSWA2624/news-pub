@@ -19,14 +19,14 @@ function trimText(value) {
 const createManualPostSchema = z.object({
   action: z.string().trim().optional(),
   categoryIds: z.array(z.string().trim().min(1)).optional(),
-  contentMd: z.string().optional(),
+  content_md: z.string().optional(),
   locale: z.string().trim().optional(),
   publishAt: z.string().trim().optional(),
   slug: z.string().trim().optional(),
-  sourceName: z.string().trim().optional(),
-  sourceUrl: z.string().trim().optional(),
+  source_name: z.string().trim().optional(),
+  source_url: z.string().trim().optional(),
   status: z.string().trim().optional(),
-  streamId: z.string().trim().optional(),
+  stream_id: z.string().trim().optional(),
   summary: z.string().optional(),
   title: z.string().optional(),
 });
@@ -96,7 +96,7 @@ export async function POST(request) {
     const createdRecord = await createManualPostRecord(
       permissionPayload,
       {
-        actorId: auth.user.id,
+        actor_id: auth.user.id,
       },
     );
     const snapshot = await getPostEditorSnapshot(createdRecord);

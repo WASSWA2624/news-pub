@@ -134,15 +134,15 @@ export function getDestinationValidationIssues(destination = {}) {
 
 /** Validates stream settings that depend on the selected destination, template, and provider filters. */
 export function getStreamValidationIssues({
-  countryAllowlistJson,
+  country_allowlist_json,
   destination,
-  languageAllowlistJson,
+  language_allowlist_json,
   locale,
-  maxPostsPerRun,
+  max_posts_per_run,
   mode,
   providerDefaults,
   providerFilters,
-  providerKey,
+  provider_key,
   template,
 } = {}) {
   const issues = [];
@@ -194,10 +194,10 @@ export function getStreamValidationIssues({
     );
   }
 
-  if (providerKey) {
-    const providerExecutionLimits = getProviderExecutionLimits(providerKey);
-    const maxPostsLimit = providerExecutionLimits.maxPostsPerRun || null;
-    const parsedMaxPostsPerRun = Number.parseInt(`${maxPostsPerRun ?? ""}`, 10);
+  if (provider_key) {
+    const providerExecutionLimits = getProviderExecutionLimits(provider_key);
+    const maxPostsLimit = providerExecutionLimits.max_posts_per_run || null;
+    const parsedMaxPostsPerRun = Number.parseInt(`${max_posts_per_run ?? ""}`, 10);
 
     if (
       maxPostsLimit
@@ -210,14 +210,14 @@ export function getStreamValidationIssues({
       issues.push(
         createIssue(
           "provider_max_posts_per_run_out_of_range",
-          `Max posts per run must stay between ${maxPostsLimit.min} and ${maxPostsLimit.max} for ${formatEnumValue(providerKey)}. ${maxPostsLimit.reason}`,
+          `Max posts per run must stay between ${maxPostsLimit.min} and ${maxPostsLimit.max} for ${formatEnumValue(provider_key)}. ${maxPostsLimit.reason}`,
         ),
       );
     }
 
-    for (const issue of getProviderRequestValidationIssues(providerKey, {
-      countryAllowlistJson,
-      languageAllowlistJson,
+    for (const issue of getProviderRequestValidationIssues(provider_key, {
+      country_allowlist_json,
+      language_allowlist_json,
       locale,
       providerDefaults,
       providerFilters,
@@ -292,35 +292,35 @@ export function getConfigurationIssues({ destinations = [], streams = [], templa
     for (const issue of getDestinationValidationIssues(destination)) {
       issues.push({
         ...issue,
-        entityId: destination.id,
+        entity_id: destination.id,
         entityLabel: destination.name || destination.slug || "Destination",
-        entityType: "destination",
+        entity_type: "destination",
         location: "/admin/destinations",
       });
     }
   }
 
   for (const stream of streams || []) {
-    const destination = stream.destination || destinationById.get(stream.destinationId) || null;
-    const template = stream.defaultTemplate || templateById.get(stream.defaultTemplateId) || null;
+    const destination = stream.destination || destinationById.get(stream.destination_id) || null;
+    const template = stream.defaultTemplate || templateById.get(stream.default_template_id) || null;
 
     for (const issue of getStreamValidationIssues({
-      countryAllowlistJson: stream.countryAllowlistJson,
+      country_allowlist_json: stream.country_allowlist_json,
       destination,
-      languageAllowlistJson: stream.languageAllowlistJson,
+      language_allowlist_json: stream.language_allowlist_json,
       locale: stream.locale,
-      maxPostsPerRun: stream.maxPostsPerRun,
+      max_posts_per_run: stream.max_posts_per_run,
       mode: stream.mode,
-      providerDefaults: stream.activeProvider?.requestDefaultsJson,
-      providerFilters: stream.settingsJson?.providerFilters,
-      providerKey: stream.activeProvider?.providerKey,
+      providerDefaults: stream.activeProvider?.request_defaults_json,
+      providerFilters: stream.settings_json?.providerFilters,
+      provider_key: stream.activeProvider?.provider_key,
       template,
     })) {
       issues.push({
         ...issue,
-        entityId: stream.id,
+        entity_id: stream.id,
         entityLabel: stream.name || stream.slug || "Stream",
-        entityType: "stream",
+        entity_type: "stream",
         location: "/admin/streams",
       });
     }
@@ -330,9 +330,9 @@ export function getConfigurationIssues({ destinations = [], streams = [], templa
     for (const issue of getTemplateValidationIssues(template)) {
       issues.push({
         ...issue,
-        entityId: template.id,
+        entity_id: template.id,
         entityLabel: template.name || "Template",
-        entityType: "template",
+        entity_type: "template",
         location: "/admin/templates",
       });
     }

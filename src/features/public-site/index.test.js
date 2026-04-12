@@ -18,61 +18,61 @@ function createPublishedPost(overrides = {}) {
       alt: "Breaking story image",
       caption: "Story image",
       height: 900,
-      publicUrl: "https://cdn.example.com/story.jpg",
-      sourceUrl: null,
+      public_url: "https://cdn.example.com/story.jpg",
+      source_url: null,
       width: 1600,
     },
     id: "post_1",
-    providerKey: "mediastack",
+    provider_key: "mediastack",
     publishAttempts: [
       {
         platform: "WEBSITE",
         status: "SUCCEEDED",
       },
     ],
-    publishedAt: new Date("2026-04-03T08:00:00.000Z"),
+    published_at: new Date("2026-04-03T08:00:00.000Z"),
     slug: "breaking-story",
     sourceArticle: {
       author: "Casey Reporter",
-      imageUrl: null,
+      image_url: null,
     },
-    sourceName: "Example Source",
-    sourceUrl: "https://example.com/story",
+    source_name: "Example Source",
+    source_url: "https://example.com/story",
     status: "PUBLISHED",
     translations: [
       {
-        contentHtml: "<p>Breaking story body.</p>",
-        contentMd: "Breaking story body.",
+        content_html: "<p>Breaking story body.</p>",
+        content_md: "Breaking story body.",
         locale: "en",
         seoRecord: {
-          authorsJson: ["NewsPub Editorial"],
-          canonicalUrl: "https://example.com/en/news/breaking-story",
-          keywordsJson: ["breaking", "technology"],
-          metaDescription: "Breaking story meta description",
-          metaTitle: "Breaking story meta title",
+          authors_json: ["NewsPub Editorial"],
+          canonical_url: "https://example.com/en/news/breaking-story",
+          keywords_json: ["breaking", "technology"],
+          meta_description: "Breaking story meta description",
+          meta_title: "Breaking story meta title",
           noindex: false,
-          ogDescription: "Breaking story open graph description",
+          og_description: "Breaking story open graph description",
           ogImage: {
             alt: "Breaking story SEO image",
             caption: "SEO image",
             height: 630,
-            publicUrl: "https://cdn.example.com/story-seo.jpg",
-            sourceUrl: null,
+            public_url: "https://cdn.example.com/story-seo.jpg",
+            source_url: null,
             width: 1200,
           },
-          ogTitle: "Breaking story open graph title",
-          twitterDescription: "Breaking story twitter description",
-          twitterTitle: "Breaking story twitter title",
+          og_title: "Breaking story open graph title",
+          twitter_description: "Breaking story twitter description",
+          twitter_title: "Breaking story twitter title",
         },
-        sourceAttribution: "Source: Example Source - https://example.com/story",
-        structuredContentJson: {
+        source_attribution: "Source: Example Source - https://example.com/story",
+        structured_content_json: {
           sections: [],
         },
         summary: "Breaking story summary",
         title: "Breaking story",
       },
     ],
-    updatedAt: new Date("2026-04-03T09:00:00.000Z"),
+    updated_at: new Date("2026-04-03T09:00:00.000Z"),
     ...overrides,
   };
 }
@@ -97,16 +97,16 @@ describe("public site data", () => {
       createPublishedPost(),
       createPublishedPost({
         id: "post_2",
-        publishedAt: new Date("2026-04-02T08:00:00.000Z"),
+        published_at: new Date("2026-04-02T08:00:00.000Z"),
         slug: "follow-up-story",
         translations: [
           {
-            contentHtml: "<p>Follow-up body.</p>",
-            contentMd: "Follow-up body.",
+            content_html: "<p>Follow-up body.</p>",
+            content_md: "Follow-up body.",
             locale: "en",
             seoRecord: null,
-            sourceAttribution: "Source: Example Source - https://example.com/story",
-            structuredContentJson: {
+            source_attribution: "Source: Example Source - https://example.com/story",
+            structured_content_json: {
               sections: [],
             },
             summary: "Follow-up summary",
@@ -133,7 +133,7 @@ describe("public site data", () => {
       postCategory: {
         groupBy: vi.fn().mockResolvedValue([
           {
-            categoryId: "category_1",
+            category_id: "category_1",
             _count: {
               _all: 2,
             },
@@ -162,7 +162,7 @@ describe("public site data", () => {
     });
     expect(prisma.postCategory.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        by: ["categoryId"],
+        by: ["category_id"],
       }),
     );
     expect(prisma.category.findMany).toHaveBeenCalledWith(
@@ -176,16 +176,16 @@ describe("public site data", () => {
     const posts = Array.from({ length: 12 }, (_value, index) =>
       createPublishedPost({
         id: `post_${index + 1}`,
-        publishedAt: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
+        published_at: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
         slug: `story-${index + 1}`,
         translations: [
           {
-            contentHtml: `<p>Story ${index + 1} body.</p>`,
-            contentMd: `Story ${index + 1} body.`,
+            content_html: `<p>Story ${index + 1} body.</p>`,
+            content_md: `Story ${index + 1} body.`,
             locale: "en",
             seoRecord: null,
-            sourceAttribution: "Source: Example Source - https://example.com/story",
-            structuredContentJson: {
+            source_attribution: "Source: Example Source - https://example.com/story",
+            structured_content_json: {
               sections: [],
             },
             summary: `Story ${index + 1} summary`,
@@ -223,16 +223,16 @@ describe("public site data", () => {
     const posts = Array.from({ length: 12 }, (_value, index) =>
       createPublishedPost({
         id: `post_${index + 1}`,
-        publishedAt: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
+        published_at: new Date(`2026-04-${String(12 - index).padStart(2, "0")}T08:00:00.000Z`),
         slug: `story-${index + 1}`,
         translations: [
           {
-            contentHtml: `<p>Story ${index + 1} body.</p>`,
-            contentMd: `Story ${index + 1} body.`,
+            content_html: `<p>Story ${index + 1} body.</p>`,
+            content_md: `Story ${index + 1} body.`,
             locale: "en",
             seoRecord: null,
-            sourceAttribution: "Source: Example Source - https://example.com/story",
-            structuredContentJson: {
+            source_attribution: "Source: Example Source - https://example.com/story",
+            structured_content_json: {
               sections: [],
             },
             summary: `Story ${index + 1} summary`,
@@ -305,7 +305,7 @@ describe("public site data", () => {
     );
     expect(snapshot.items[0]).toMatchObject({
       path: "/en/news/breaking-story",
-      sourceName: "Example Source",
+      source_name: "Example Source",
       title: "Breaking story",
     });
   });
@@ -337,7 +337,7 @@ describe("public site data", () => {
             expect.objectContaining({
               sourceArticle: {
                 is: {
-                  providerCountriesJson: {
+                  provider_countries_json: {
                     array_contains: "us",
                   },
                 },
@@ -353,15 +353,15 @@ describe("public site data", () => {
     const posts = [
       createPublishedPost({
         id: "post_body",
-        publishedAt: new Date("2026-04-07T08:00:00.000Z"),
+        published_at: new Date("2026-04-07T08:00:00.000Z"),
         slug: "weekly-briefing",
-        sourceName: "Daily Ledger",
+        source_name: "Daily Ledger",
         translations: [
           {
-            contentMd: "This weekly briefing focuses on climate policy funding and implementation details.",
+            content_md: "This weekly briefing focuses on climate policy funding and implementation details.",
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: "Editorial roundup",
@@ -371,15 +371,15 @@ describe("public site data", () => {
       }),
       createPublishedPost({
         id: "post_source",
-        publishedAt: new Date("2026-04-06T08:00:00.000Z"),
+        published_at: new Date("2026-04-06T08:00:00.000Z"),
         slug: "market-wrap",
-        sourceName: "Climate Policy Daily",
+        source_name: "Climate Policy Daily",
         translations: [
           {
-            contentMd: "Global markets and regulation roundup.",
+            content_md: "Global markets and regulation roundup.",
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: "Market updates",
@@ -399,15 +399,15 @@ describe("public site data", () => {
           },
         ],
         id: "post_category",
-        publishedAt: new Date("2026-04-05T08:00:00.000Z"),
+        published_at: new Date("2026-04-05T08:00:00.000Z"),
         slug: "global-outlook",
-        sourceName: "World Desk",
+        source_name: "World Desk",
         translations: [
           {
-            contentMd: "International reporting and analysis.",
+            content_md: "International reporting and analysis.",
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: "Broader context",
@@ -417,15 +417,15 @@ describe("public site data", () => {
       }),
       createPublishedPost({
         id: "post_title",
-        publishedAt: new Date("2026-04-04T08:00:00.000Z"),
+        published_at: new Date("2026-04-04T08:00:00.000Z"),
         slug: "climate-policy-briefing",
-        sourceName: "Wire Desk",
+        source_name: "Wire Desk",
         translations: [
           {
-            contentMd: "Policy background and timeline.",
+            content_md: "Policy background and timeline.",
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: "The latest climate policy changes",
@@ -470,15 +470,15 @@ describe("public site data", () => {
     const titleMatches = Array.from({ length: 12 }, (_value, index) =>
       createPublishedPost({
         id: `post_title_${index + 1}`,
-        publishedAt: new Date(`2026-03-${String(20 - index).padStart(2, "0")}T08:00:00.000Z`),
+        published_at: new Date(`2026-03-${String(20 - index).padStart(2, "0")}T08:00:00.000Z`),
         slug: `election-brief-${index + 1}`,
-        sourceName: `Desk ${index + 1}`,
+        source_name: `Desk ${index + 1}`,
         translations: [
           {
-            contentMd: `Election body ${index + 1}.`,
+            content_md: `Election body ${index + 1}.`,
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: `Election summary ${index + 1}`,
@@ -490,15 +490,15 @@ describe("public site data", () => {
     const posts = [
       createPublishedPost({
         id: "post_body_only",
-        publishedAt: new Date("2026-04-08T08:00:00.000Z"),
+        published_at: new Date("2026-04-08T08:00:00.000Z"),
         slug: "most-recent-analysis",
-        sourceName: "Metro Desk",
+        source_name: "Metro Desk",
         translations: [
           {
-            contentMd: "This long analysis includes election context but not in the title.",
+            content_md: "This long analysis includes election context but not in the title.",
             locale: "en",
             seoRecord: null,
-            structuredContentJson: {
+            structured_content_json: {
               sections: [],
             },
             summary: "Analysis overview",
@@ -558,15 +558,15 @@ describe("public site data", () => {
             excerpt: "",
             featuredImage: null,
             sourceArticle: {
-              imageUrl: null,
+              image_url: null,
             },
-            sourceName: "",
+            source_name: "",
             translations: [
               {
-                contentMd: "Health policy coverage without a summary or image still needs a readable fallback.",
+                content_md: "Health policy coverage without a summary or image still needs a readable fallback.",
                 locale: "en",
                 seoRecord: null,
-                structuredContentJson: {
+                structured_content_json: {
                   sections: [],
                 },
                 summary: "",
@@ -590,7 +590,7 @@ describe("public site data", () => {
 
     expect(snapshot.items[0]).toMatchObject({
       categories: [],
-      sourceName: "",
+      source_name: "",
       title: "Coverage update",
     });
     expect(snapshot.items[0].summary).toContain("Health policy coverage without a summary");
@@ -602,10 +602,10 @@ describe("public site data", () => {
       fetchedArticle: {
         findMany: vi.fn().mockResolvedValue([
           {
-            providerCountriesJson: ["us", "gb"],
+            provider_countries_json: ["us", "gb"],
           },
           {
-            providerCountriesJson: ["us"],
+            provider_countries_json: ["us"],
           },
         ]),
       },
@@ -735,16 +735,16 @@ describe("public site data", () => {
         findMany: vi.fn().mockResolvedValue([
           createPublishedPost({
             id: "post_2",
-            publishedAt: new Date("2026-04-02T08:00:00.000Z"),
+            published_at: new Date("2026-04-02T08:00:00.000Z"),
             slug: "related-story",
             translations: [
               {
-                contentHtml: "<p>Related body.</p>",
-                contentMd: "Related body.",
+                content_html: "<p>Related body.</p>",
+                content_md: "Related body.",
                 locale: "en",
                 seoRecord: null,
-                sourceAttribution: "Source: Example Source - https://example.com/story",
-                structuredContentJson: {
+                source_attribution: "Source: Example Source - https://example.com/story",
+                structured_content_json: {
                   sections: [],
                 },
                 summary: "Related summary",
@@ -767,18 +767,18 @@ describe("public site data", () => {
 
     expect(pageData.article).toMatchObject({
       authors: ["NewsPub Editorial"],
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       openGraphDescription: "Breaking story open graph description",
       openGraphTitle: "Breaking story open graph title",
       path: "/en/news/breaking-story",
       seoImage: {
         url: "/api/media/proxy?url=https%3A%2F%2Fcdn.example.com%2Fstory-seo.jpg",
       },
-      sourceAttribution: "Source: Example Source - https://example.com/story",
-      sourceName: "Example Source",
+      source_attribution: "Source: Example Source - https://example.com/story",
+      source_name: "Example Source",
       title: "Breaking story",
-      twitterDescription: "Breaking story twitter description",
-      twitterTitle: "Breaking story twitter title",
+      twitter_description: "Breaking story twitter description",
+      twitter_title: "Breaking story twitter title",
     });
     expect(pageData.relatedStories[0]).toMatchObject({
       path: "/en/news/related-story",
@@ -792,31 +792,31 @@ describe("public site data", () => {
         findFirst: vi.fn().mockResolvedValue(createPublishedPost({
           translations: [
             {
-              contentHtml: "<p>Breaking story body.</p>",
-              contentMd: "Breaking story body.",
+              content_html: "<p>Breaking story body.</p>",
+              content_md: "Breaking story body.",
               locale: "en",
               seoRecord: {
-                authorsJson: [],
-                canonicalUrl: "https://example.com/en/news/breaking-story",
-                keywordsJson: ["breaking", "technology"],
-                metaDescription: "Breaking story meta description",
-                metaTitle: "Breaking story meta title",
+                authors_json: [],
+                canonical_url: "https://example.com/en/news/breaking-story",
+                keywords_json: ["breaking", "technology"],
+                meta_description: "Breaking story meta description",
+                meta_title: "Breaking story meta title",
                 noindex: true,
-                ogDescription: "Breaking story open graph description",
+                og_description: "Breaking story open graph description",
                 ogImage: {
                   alt: "Breaking story SEO image",
                   caption: "SEO image",
                   height: 630,
-                  publicUrl: "https://cdn.example.com/story-seo.jpg",
-                  sourceUrl: null,
+                  public_url: "https://cdn.example.com/story-seo.jpg",
+                  source_url: null,
                   width: 1200,
                 },
-                ogTitle: "Breaking story open graph title",
-                twitterDescription: "Breaking story twitter description",
-                twitterTitle: "Breaking story twitter title",
+                og_title: "Breaking story open graph title",
+                twitter_description: "Breaking story twitter description",
+                twitter_title: "Breaking story twitter title",
               },
-              sourceAttribution: "Source: Example Source - https://example.com/story",
-              structuredContentJson: {
+              source_attribution: "Source: Example Source - https://example.com/story",
+              structured_content_json: {
                 sections: [],
               },
               summary: "Breaking story summary",
@@ -850,31 +850,31 @@ describe("public site data", () => {
         findFirst: vi.fn().mockResolvedValue(createPublishedPost({
           featuredImage: null,
           sourceArticle: {
-            imageUrl: "https://cdn.example.com/source-fallback.jpg",
+            image_url: "https://cdn.example.com/source-fallback.jpg",
           },
           translations: [
             {
-              contentHtml: "<p>Story body with media.</p>",
-              contentMd: "Story body with media.",
+              content_html: "<p>Story body with media.</p>",
+              content_md: "Story body with media.",
               locale: "en",
               seoRecord: null,
-              sourceAttribution: "Source: Example Source - https://example.com/story",
-              structuredContentJson: {
+              source_attribution: "Source: Example Source - https://example.com/story",
+              structured_content_json: {
                 sections: [
                   {
                     images: [
                       {
                         alt: "Gallery image",
-                        sourceUrl: "https://cdn.example.com/gallery-image.jpg",
+                        source_url: "https://cdn.example.com/gallery-image.jpg",
                       },
                     ],
                     kind: "image_gallery",
                     title: "Gallery",
                     videos: [
                       {
-                        mimeType: "video/mp4",
+                        mime_type: "video/mp4",
                         posterUrl: "https://cdn.example.com/video-poster.jpg",
-                        sourceUrl: "https://cdn.example.com/story-video.mp4",
+                        source_url: "https://cdn.example.com/story-video.mp4",
                         title: "Story video",
                       },
                     ],
@@ -905,24 +905,24 @@ describe("public site data", () => {
           createPublishedPost({
             featuredImage: null,
             sourceArticle: {
-              imageUrl: "https://cdn.example.com/source-fallback.jpg",
+              image_url: "https://cdn.example.com/source-fallback.jpg",
             },
             translations: [
               {
-                contentHtml: "<p>Story body with media.</p>",
-                contentMd: "Story body with media.",
+                content_html: "<p>Story body with media.</p>",
+                content_md: "Story body with media.",
                 locale: "en",
                 seoRecord: null,
-                sourceAttribution: "Source: Example Source - https://example.com/story",
-                structuredContentJson: {
+                source_attribution: "Source: Example Source - https://example.com/story",
+                structured_content_json: {
                   sections: [
                     {
                       kind: "image_gallery",
                       title: "Gallery",
                       videos: [
                         {
-                          mimeType: "video/mp4",
-                          sourceUrl: "https://cdn.example.com/story-video.mp4",
+                          mime_type: "video/mp4",
+                          source_url: "https://cdn.example.com/story-video.mp4",
                           title: "Story video",
                         },
                       ],
@@ -967,16 +967,16 @@ describe("public site data", () => {
     const imagelessPost = createPublishedPost({
       featuredImage: null,
       sourceArticle: {
-        imageUrl: null,
+        image_url: null,
       },
       translations: [
         {
-          contentHtml: "<p>Imageless story body.</p>",
-          contentMd: "Imageless story body.",
+          content_html: "<p>Imageless story body.</p>",
+          content_md: "Imageless story body.",
           locale: "en",
           seoRecord: null,
-          sourceAttribution: "Source: Example Source - https://example.com/story",
-          structuredContentJson: {
+          source_attribution: "Source: Example Source - https://example.com/story",
+          structured_content_json: {
             sections: [],
           },
           summary: "Imageless story summary",

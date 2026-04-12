@@ -5,9 +5,9 @@ import { createNewsPubTestEnv } from "@/test/test-env";
 function createFetchRuns() {
   return [
     {
-      createdAt: new Date("2026-04-03T10:00:00.000Z"),
-      duplicateCount: 1,
-      executionDetailsJson: {
+      created_at: new Date("2026-04-03T10:00:00.000Z"),
+      duplicate_count: 1,
+      execution_details_json: {
         executionMode: "shared_batch",
         groupId: "shared_group_1",
         groupSize: 2,
@@ -16,52 +16,52 @@ function createFetchRuns() {
           start: "2026-04-03T06:00:00.000Z",
         },
       },
-      failedCount: 0,
-      fetchedCount: 12,
-      finishedAt: new Date("2026-04-03T10:05:00.000Z"),
-      heldCount: 2,
+      failed_count: 0,
+      fetched_count: 12,
+      finished_at: new Date("2026-04-03T10:05:00.000Z"),
+      held_count: 2,
       id: "fetch_1",
       providerConfig: {
         id: "provider_1",
         label: "Mediastack",
-        providerKey: "mediastack",
+        provider_key: "mediastack",
       },
-      publishableCount: 5,
-      publishedCount: 3,
-      skippedCount: 4,
-      startedAt: new Date("2026-04-03T10:00:00.000Z"),
+      publishable_count: 5,
+      published_count: 3,
+      skipped_count: 4,
+      started_at: new Date("2026-04-03T10:00:00.000Z"),
       status: "SUCCEEDED",
       stream: {
         id: "stream_1",
         mode: "AUTO_PUBLISH",
         name: "Website News Feed",
       },
-      triggerType: "scheduled",
+      trigger_type: "scheduled",
     },
     {
-      createdAt: new Date("2026-04-02T10:00:00.000Z"),
-      duplicateCount: 0,
-      failedCount: 1,
-      fetchedCount: 4,
-      finishedAt: new Date("2026-04-02T10:05:00.000Z"),
-      heldCount: 1,
+      created_at: new Date("2026-04-02T10:00:00.000Z"),
+      duplicate_count: 0,
+      failed_count: 1,
+      fetched_count: 4,
+      finished_at: new Date("2026-04-02T10:05:00.000Z"),
+      held_count: 1,
       id: "fetch_2",
       providerConfig: {
         id: "provider_1",
         label: "Mediastack",
-        providerKey: "mediastack",
+        provider_key: "mediastack",
       },
-      publishableCount: 2,
-      publishedCount: 0,
-      skippedCount: 1,
-      startedAt: new Date("2026-04-02T10:00:00.000Z"),
+      publishable_count: 2,
+      published_count: 0,
+      skipped_count: 1,
+      started_at: new Date("2026-04-02T10:00:00.000Z"),
       status: "FAILED",
       stream: {
         id: "stream_2",
         mode: "REVIEW_REQUIRED",
         name: "Instagram Queue",
       },
-      triggerType: "manual",
+      trigger_type: "manual",
     },
   ];
 }
@@ -69,24 +69,24 @@ function createFetchRuns() {
 function createPublishAttempts() {
   return [
     {
-      articleMatchId: "match_1",
-      createdAt: new Date("2026-04-03T10:06:00.000Z"),
+      article_match_id: "match_1",
+      created_at: new Date("2026-04-03T10:06:00.000Z"),
       destination: {
         id: "destination_1",
         name: "Website",
         platform: "WEBSITE",
       },
-      errorMessage: null,
+      last_error_message: null,
       id: "attempt_1",
       platform: "WEBSITE",
       post: {
         id: "post_1",
         slug: "breaking-story",
       },
-      publishedAt: new Date("2026-04-03T10:06:30.000Z"),
-      queuedAt: new Date("2026-04-03T10:06:00.000Z"),
-      remoteId: "website_123",
-      retryCount: 0,
+      published_at: new Date("2026-04-03T10:06:30.000Z"),
+      queued_at: new Date("2026-04-03T10:06:00.000Z"),
+      remote_id: "website_123",
+      retry_count: 0,
       status: "SUCCEEDED",
       stream: {
         id: "stream_1",
@@ -94,24 +94,24 @@ function createPublishAttempts() {
       },
     },
     {
-      articleMatchId: "match_2",
-      createdAt: new Date("2026-04-02T10:06:00.000Z"),
+      article_match_id: "match_2",
+      created_at: new Date("2026-04-02T10:06:00.000Z"),
       destination: {
         id: "destination_2",
         name: "Instagram Business",
         platform: "INSTAGRAM",
       },
-      errorMessage: "Destination is not connected.",
+      last_error_message: "Destination is not connected.",
       id: "attempt_2",
       platform: "INSTAGRAM",
       post: {
         id: "post_2",
         slug: "held-story",
       },
-      publishedAt: null,
-      queuedAt: new Date("2026-04-02T10:06:00.000Z"),
-      remoteId: null,
-      retryCount: 2,
+      published_at: null,
+      queued_at: new Date("2026-04-02T10:06:00.000Z"),
+      remote_id: null,
+      retry_count: 2,
       status: "FAILED",
       stream: {
         id: "stream_2",
@@ -127,7 +127,7 @@ function createMockPrisma() {
   const posts = [
     {
       id: "post_1",
-      publishedAt: new Date("2026-04-03T10:06:30.000Z"),
+      published_at: new Date("2026-04-03T10:06:30.000Z"),
       slug: "breaking-story",
       status: "PUBLISHED",
       translations: [
@@ -144,12 +144,12 @@ function createMockPrisma() {
   const auditEvents = [
     {
       action: "AI_OPTIMIZATION_SKIPPED",
-      actorId: null,
-      createdAt: new Date("2026-04-03T10:07:00.000Z"),
-      entityId: "match_1",
-      entityType: "article_match",
+      actor_id: null,
+      created_at: new Date("2026-04-03T10:07:00.000Z"),
+      entity_id: "match_1",
+      entity_type: "article_match",
       id: "audit_ai_skip",
-      payloadJson: {
+      payload_json: {
         level: "warn",
         reasonCode: "ai_credentials_missing",
         reasonMessage: "AI credentials are missing, so NewsPub kept deterministic content.",
@@ -157,12 +157,12 @@ function createMockPrisma() {
     },
     {
       action: "AI_OPTIMIZATION_FALLBACK_USED",
-      actorId: null,
-      createdAt: new Date("2026-04-03T10:06:00.000Z"),
-      entityId: "match_2",
-      entityType: "article_match",
+      actor_id: null,
+      created_at: new Date("2026-04-03T10:06:00.000Z"),
+      entity_id: "match_2",
+      entity_type: "article_match",
       id: "audit_ai_fallback",
-      payloadJson: {
+      payload_json: {
         level: "warn",
         reasonCode: "ai_timeout",
         reasonMessage: "AI timed out, so NewsPub fell back to deterministic formatting.",
@@ -170,24 +170,24 @@ function createMockPrisma() {
     },
     {
       action: "FETCH_RUN_COMPLETED",
-      actorId: null,
-      createdAt: new Date("2026-04-03T10:05:00.000Z"),
-      entityId: "fetch_1",
-      entityType: "fetch_run",
+      actor_id: null,
+      created_at: new Date("2026-04-03T10:05:00.000Z"),
+      entity_id: "fetch_1",
+      entity_type: "fetch_run",
       id: "audit_1",
-      payloadJson: null,
+      payload_json: null,
     },
   ];
   const viewEvents = [
     {
-      createdAt: new Date(),
-      eventType: "POST_VIEW",
-      postId: "post_1",
+      created_at: new Date(),
+      event_type: "POST_VIEW",
+      post_id: "post_1",
     },
     {
-      createdAt: new Date(),
-      eventType: "WEBSITE_VIEW",
-      postId: null,
+      created_at: new Date(),
+      event_type: "WEBSITE_VIEW",
+      post_id: null,
     },
   ];
 
@@ -212,13 +212,13 @@ function createMockPrisma() {
     destination: {
       groupBy: vi.fn(async () => [
         {
-          connectionStatus: "CONNECTED",
+          connection_status: "CONNECTED",
           _count: {
             _all: 1,
           },
         },
         {
-          connectionStatus: "ERROR",
+          connection_status: "ERROR",
           _count: {
             _all: 1,
           },
@@ -229,22 +229,22 @@ function createMockPrisma() {
       findMany: vi.fn(async () => [
         {
           id: "provider_1",
-          isDefault: true,
-          isEnabled: true,
-          isSelectable: true,
+          is_default: true,
+          is_enabled: true,
+          is_selectable: true,
           label: "Mediastack",
-          providerKey: "mediastack",
+          provider_key: "mediastack",
           _count: {
             streams: 2,
           },
         },
         {
           id: "provider_2",
-          isDefault: false,
-          isEnabled: true,
-          isSelectable: true,
+          is_default: false,
+          is_enabled: true,
+          is_selectable: true,
           label: "NewsAPI",
-          providerKey: "newsapi",
+          provider_key: "newsapi",
           _count: {
             streams: 0,
           },
@@ -283,10 +283,10 @@ function createMockPrisma() {
     viewEvent: {
       count: vi.fn(async ({ where } = {}) =>
         viewEvents.filter((event) => {
-          const gte = where?.createdAt?.gte;
-          const lt = where?.createdAt?.lt;
+          const gte = where?.created_at?.gte;
+          const lt = where?.created_at?.lt;
 
-          return (!gte || event.createdAt >= gte) && (!lt || event.createdAt < lt);
+          return (!gte || event.created_at >= gte) && (!lt || event.created_at < lt);
         }).length,
       ),
     },
@@ -354,7 +354,7 @@ describe("analytics feature snapshots", () => {
     expect(snapshot.providerStatus.providers[0]).toMatchObject({
       activeStreamCount: 2,
       credentialState: "configured",
-      providerKey: "mediastack",
+      provider_key: "mediastack",
     });
     expect(snapshot.recentFailures[0]).toMatchObject({
       status: "FAILED",

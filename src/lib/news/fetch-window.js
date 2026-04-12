@@ -155,7 +155,7 @@ export function resolveExecutionFetchWindow({
   const resolvedNow = normalizeDateBoundary(now) || new Date();
   const explicitStart = normalizeDateBoundary(requestedWindow?.start);
   const explicitEnd = normalizeDateBoundary(requestedWindow?.end);
-  const checkpointStart = normalizeDateBoundary(checkpoint?.lastSuccessfulFetchAt);
+  const checkpointStart = normalizeDateBoundary(checkpoint?.last_successful_fetch_at);
   const fallbackStart = new Date(
     resolvedNow.getTime() - Math.max(1, defaultWindowHours) * 60 * 60 * 1000,
   );
@@ -237,7 +237,7 @@ export function isArticleInsideFetchWindow(article, fetchWindow) {
     return true;
   }
 
-  const articlePublishedAt = normalizeDateBoundary(article?.publishedAt);
+  const articlePublishedAt = normalizeDateBoundary(article?.published_at);
 
   if (!articlePublishedAt) {
     return true;

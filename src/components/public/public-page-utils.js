@@ -217,7 +217,7 @@ function trimStoryContentHtml(value) {
  * @returns {string} Stable identity string used for React keys and dedupe checks.
  */
 function getMediaIdentity(media) {
-  return `${media?.kind || "unknown"}:${media?.embedUrl || media?.url || media?.sourceUrl || ""}`;
+  return `${media?.kind || "unknown"}:${media?.embedUrl || media?.url || media?.source_url || ""}`;
 }
 
 /**
@@ -255,10 +255,10 @@ function resolveCompactStoryMedia(item) {
  * Hides source-attribution copy that only repeats the already-visible source name or URL.
  *
  * @param {string} value - Stored attribution copy.
- * @param {{sourceName?: string, sourceUrl?: string}} [context={}] - Source values already rendered elsewhere on the page.
+ * @param {{source_name?: string, source_url?: string}} [context={}] - Source values already rendered elsewhere on the page.
  * @returns {string} Distinct attribution text or an empty string when the value is redundant.
  */
-function buildSourceAttributionNote(value, { sourceName = "", sourceUrl = "" } = {}) {
+function buildSourceAttributionNote(value, { source_name = "", source_url = "" } = {}) {
   const note = formatDisplayText(stripHtmlTags(value));
 
   if (!note) {
@@ -270,8 +270,8 @@ function buildSourceAttributionNote(value, { sourceName = "", sourceUrl = "" } =
     .replace(/^source:\s*/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  const normalizedSourceName = formatDisplayText(sourceName).toLowerCase();
-  const normalizedSourceUrl = formatDisplayText(sourceUrl).toLowerCase();
+  const normalizedSourceName = formatDisplayText(source_name).toLowerCase();
+  const normalizedSourceUrl = formatDisplayText(source_url).toLowerCase();
   const redundantValues = new Set(
     [
       normalizedSourceName,

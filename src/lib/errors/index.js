@@ -18,28 +18,28 @@ export function normalizeAppError(error, fallbackMessage = "A NewsPub error occu
   if (error instanceof NewsPubError) {
     return {
       details: null,
-      errorCode: trimText(error.status) || "news_pub_error",
+      last_error_code: trimText(error.status) || "news_pub_error",
       message: trimText(error.message) || fallbackMessage,
       retryable: false,
       statusCode: error.statusCode || 500,
     };
   }
 
-  const responseJson =
-    error && typeof error === "object" && !Array.isArray(error) && error.responseJson
-      ? error.responseJson
+  const response_json =
+    error && typeof error === "object" && !Array.isArray(error) && error.response_json
+      ? error.response_json
       : null;
-  const errorCode =
+  const last_error_code =
     trimText(error?.status)
-    || trimText(error?.errorCode)
-    || trimText(responseJson?.error)
+    || trimText(error?.last_error_code)
+    || trimText(response_json?.error)
     || "internal_error";
 
   return {
-    details: responseJson || null,
-    errorCode,
+    details: response_json || null,
+    last_error_code,
     message: trimText(error?.message) || fallbackMessage,
-    retryable: Boolean(error?.retryable || responseJson?.retryable),
+    retryable: Boolean(error?.retryable || response_json?.retryable),
     statusCode: Number.isInteger(error?.statusCode) ? error.statusCode : 500,
   };
 }
@@ -55,7 +55,7 @@ export function createApiErrorPayload(error, fallbackMessage) {
       details: normalizedError.details,
       message: normalizedError.message,
       retryable: normalizedError.retryable,
-      status: normalizedError.errorCode,
+      status: normalizedError.last_error_code,
       success: false,
     },
     statusCode: normalizedError.statusCode,

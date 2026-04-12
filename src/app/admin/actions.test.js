@@ -69,7 +69,7 @@ describe("admin actions", () => {
 
     const { saveProviderAction } = await import("./actions");
     const formData = new FormData();
-    formData.set("providerKey", "newsapi");
+    formData.set("provider_key", "newsapi");
     formData.set("label", "News API");
     formData.set("requestDefault.category", "technology");
 
@@ -79,19 +79,19 @@ describe("admin actions", () => {
     });
     expect(saveProviderRecord).toHaveBeenCalledWith(
       {
-        baseUrl: null,
+        base_url: null,
         description: null,
-        isDefault: false,
-        isEnabled: false,
-        isSelectable: false,
+        is_default: false,
+        is_enabled: false,
+        is_selectable: false,
         label: "News API",
-        providerKey: "newsapi",
-        requestDefaultsJson: {
+        provider_key: "newsapi",
+        request_defaults_json: {
           category: "technology",
         },
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
     expect(revalidatePath).toHaveBeenCalledWith("/admin/providers");
@@ -148,7 +148,7 @@ describe("admin actions", () => {
 
     const { saveProviderAction } = await import("./actions");
     const formData = new FormData();
-    formData.set("providerKey", "newsapi");
+    formData.set("provider_key", "newsapi");
     formData.set("label", "News API");
     formData.set("requestDefault.endpoint", "everything");
 
@@ -209,7 +209,7 @@ describe("admin actions", () => {
 
     await expect(deleteStreamAction(formData)).rejects.toThrow("NEXT_REDIRECT");
     expect(deleteStreamRecord).toHaveBeenCalledWith("stream_1", {
-      actorId: "admin_1",
+      actor_id: "admin_1",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/streams");
     expect(redirect).toHaveBeenCalledWith("/admin/streams?error=Stream%20is%20still%20referenced.");
@@ -265,7 +265,7 @@ describe("admin actions", () => {
 
     await expect(retryPublishAttemptAction(formData)).rejects.toThrow("NEXT_REDIRECT");
     expect(retryPublishAttempt).toHaveBeenCalledWith("attempt_1", {
-      actorId: "admin_1",
+      actor_id: "admin_1",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/jobs?tab=failed");
     expect(redirect).toHaveBeenCalledWith("/admin/jobs?tab=failed");
@@ -324,21 +324,21 @@ describe("admin actions", () => {
     formData.set("file", file);
     formData.set("alt", "Story image");
     formData.set("caption", "Front page image");
-    formData.set("attributionText", "Photo desk");
-    formData.set("sourceUrl", "https://example.com/image");
+    formData.set("attribution_text", "Photo desk");
+    formData.set("source_url", "https://example.com/image");
 
     await expect(uploadMediaAction(formData)).rejects.toThrow("NEXT_REDIRECT");
     expect(uploadMediaAsset).toHaveBeenCalledWith(
       expect.objectContaining({
         alt: "Story image",
-        attributionText: "Photo desk",
+        attribution_text: "Photo desk",
         caption: "Front page image",
-        fileName: "story-image.png",
-        mimeType: "image/png",
-        sourceUrl: "https://example.com/image",
+        file_name: "story-image.png",
+        mime_type: "image/png",
+        source_url: "https://example.com/image",
       }),
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
     );
     expect(uploadMediaAsset.mock.calls[0][0].buffer).toBeInstanceOf(Buffer);

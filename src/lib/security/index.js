@@ -81,7 +81,7 @@ function sanitizeStructuredSection(section) {
   if (Array.isArray(section.images)) {
     nextSection.images = section.images
       .map((image) => {
-        const safeUrl = sanitizeMediaUrl(image?.url || image?.publicUrl || image?.sourceUrl);
+        const safeUrl = sanitizeMediaUrl(image?.url || image?.public_url || image?.source_url);
 
         if (!safeUrl) {
           return null;
@@ -89,8 +89,8 @@ function sanitizeStructuredSection(section) {
 
         return {
           ...image,
-          publicUrl: image?.publicUrl ? sanitizeMediaUrl(image.publicUrl) : image?.publicUrl,
-          sourceUrl: image?.sourceUrl ? sanitizeMediaUrl(image.sourceUrl) : image?.sourceUrl,
+          public_url: image?.public_url ? sanitizeMediaUrl(image.public_url) : image?.public_url,
+          source_url: image?.source_url ? sanitizeMediaUrl(image.source_url) : image?.source_url,
           url: safeUrl,
         };
       })

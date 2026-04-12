@@ -31,7 +31,7 @@ describe("news publishers", () => {
         "",
         "Source: Example Source - https://example.com/story",
       ].join("\n"),
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       sourceReference: "Source: Example Source - https://example.com/story",
       summary: "Breaking story summary",
       title: "Breaking story",
@@ -45,7 +45,7 @@ describe("news publishers", () => {
 
     const message = buildFacebookMessage({
       body: "Rendered body copy from the template.",
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       extraLinkPlacement: "BELOW_TITLE",
       extraLinkUrl: "https://example.com/promo",
       sourceReference: "Source: Example Source - https://example.com/story",
@@ -61,7 +61,7 @@ describe("news publishers", () => {
 
     const message = buildFacebookMessage({
       body: "Rendered body copy from the template.",
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       extraLinkPlacement: "END",
       extraLinkUrl: "https://example.com/promo",
       sourceReference: "Source: Example Source - https://example.com/story",
@@ -79,7 +79,7 @@ describe("news publishers", () => {
 
     const message = buildFacebookMessage({
       body: "Rendered body copy from the template.",
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       extraLinkPlacement: "RANDOM",
       extraLinkUrl: "https://example.com/promo",
       sourceReference: "Source: Example Source - https://example.com/story",
@@ -95,7 +95,7 @@ describe("news publishers", () => {
 
     const message = buildFacebookMessage({
       body: "\n\nBreaking story summary\n\n",
-      canonicalUrl: "https://example.com/en/news/breaking-story",
+      canonical_url: "https://example.com/en/news/breaking-story",
       extraLinkPlacement: "END",
       extraLinkUrl: "https://example.com/en/news/breaking-story",
       sourceReference: "Source: Example Source - https://example.com/story",
@@ -123,16 +123,16 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "123456",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "123456",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         mediaUrl: "https://cdn.example.com/story.jpg",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -144,8 +144,8 @@ describe("news publishers", () => {
     expect(`${fetch.mock.calls[0][0]}`).toContain("/123456");
     expect(`${fetch.mock.calls[1][0]}`).toContain("/123456/photos");
     expect(result).toMatchObject({
-      remoteId: "page_post_1",
-      responseJson: expect.objectContaining({
+      remote_id: "page_post_1",
+      response_json: expect.objectContaining({
         channel: "facebook_photo",
       }),
     });
@@ -173,16 +173,16 @@ describe("news publishers", () => {
 
     await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "123456",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "123456",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         mediaUrl: "/uploads/media/story.jpg",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -221,16 +221,16 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "123456",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "123456",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         mediaUrl: "https://cdn.example.com/story.jpg",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -241,8 +241,8 @@ describe("news publishers", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(`${fetch.mock.calls[2][0]}`).toContain("/123456/feed");
     expect(result).toMatchObject({
-      remoteId: "feed_post_1",
-      responseJson: expect.objectContaining({
+      remote_id: "feed_post_1",
+      response_json: expect.objectContaining({
         channel: "facebook_feed_fallback",
       }),
     });
@@ -280,16 +280,16 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "789012",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "789012",
         kind: "INSTAGRAM_BUSINESS",
         platform: "INSTAGRAM",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         hashtags: "#breaking #technology",
         mediaUrl: "https://cdn.example.com/story.jpg",
         sourceReference: "Source: Example Source - https://example.com/story",
@@ -302,8 +302,8 @@ describe("news publishers", () => {
     expect(`${fetch.mock.calls[1][0]}`).toContain("/789012/media");
     expect(`${fetch.mock.calls[2][0]}`).toContain("/789012/media_publish");
     expect(result).toMatchObject({
-      remoteId: "ig_media_1",
-      responseJson: expect.objectContaining({
+      remote_id: "ig_media_1",
+      response_json: expect.objectContaining({
         channel: "instagram_media_publish",
       }),
     });
@@ -330,16 +330,16 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "123456789012345",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "123456789012345",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         mediaUrl: null,
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -351,8 +351,8 @@ describe("news publishers", () => {
     expect(`${fetch.mock.calls[0][0]}`).toContain("/123456789012345");
     expect(`${fetch.mock.calls[1][0]}`).toContain("/123456789012345/feed");
     expect(result).toMatchObject({
-      remoteId: "feed_post_1",
-      responseJson: expect.objectContaining({
+      remote_id: "feed_post_1",
+      response_json: expect.objectContaining({
         channel: "facebook_feed",
         targetId: "123456789012345",
       }),
@@ -389,16 +389,16 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        encryptedTokenCiphertext: encryptedToken.ciphertext,
-        encryptedTokenIv: encryptedToken.iv,
-        encryptedTokenTag: encryptedToken.tag,
-        externalAccountId: "123456789012345",
+        encrypted_token_ciphertext: encryptedToken.ciphertext,
+        encrypted_token_iv: encryptedToken.iv,
+        encrypted_token_tag: encryptedToken.tag,
+        external_account_id: "123456789012345",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "http://localhost:3000/en/news/breaking-story",
+        canonical_url: "http://localhost:3000/en/news/breaking-story",
         mediaUrl: "/uploads/media/story.jpg",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -411,8 +411,8 @@ describe("news publishers", () => {
     expect(fetchMock.mock.calls[1][1].body.get("link")).toBeNull();
     expect(fetchMock.mock.calls[1][1].body.get("message")).toBe(["**Breaking story**", "Breaking story summary"].join("\n\n"));
     expect(result).toMatchObject({
-      remoteId: "feed_post_local_1",
-      responseJson: expect.objectContaining({
+      remote_id: "feed_post_local_1",
+      response_json: expect.objectContaining({
         channel: "facebook_feed",
         targetId: "123456789012345",
       }),
@@ -464,14 +464,14 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        connectionStatus: "DISCONNECTED",
-        externalAccountId: "123456789012345",
+        connection_status: "DISCONNECTED",
+        external_account_id: "123456789012345",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {},
+        settings_json: {},
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         mediaUrl: null,
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
@@ -483,13 +483,13 @@ describe("news publishers", () => {
     expect(fetch.mock.calls[0][0].searchParams.get("access_token")).toBe("env-user-token");
     expect(fetch.mock.calls[2][1].body.get("access_token")).toBe("fresh-page-token");
     expect(result).toMatchObject({
-      remoteId: "feed_post_env_1",
-      responseJson: expect.objectContaining({
+      remote_id: "feed_post_env_1",
+      response_json: expect.objectContaining({
         channel: "facebook_feed",
         targetId: "123456789012345",
       }),
     });
-    expect(JSON.stringify(result.responseJson)).not.toContain("fresh-page-token");
+    expect(JSON.stringify(result.response_json)).not.toContain("fresh-page-token");
   });
 
   it("publishes facebook page posts with META_SYSTEM_USER_ACCESS_TOKEN and no stored destination token", async () => {
@@ -521,15 +521,15 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        externalAccountId: "123456789012345",
+        external_account_id: "123456789012345",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {
+        settings_json: {
           pageId: "123456789012345",
         },
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
         title: "Breaking story",
@@ -539,7 +539,7 @@ describe("news publishers", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch.mock.calls[0][0].searchParams.get("access_token")).toBe("system-user-token");
     expect(fetch.mock.calls[1][1].body.get("access_token")).toBe("system-user-token");
-    expect(result.remoteId).toBe("feed_post_system_1");
+    expect(result.remote_id).toBe("feed_post_system_1");
   });
 
   it("re-resolves facebook credentials after a token-expired verify failure and retries once", async () => {
@@ -606,17 +606,17 @@ describe("news publishers", () => {
 
     const result = await publishExternalDestination({
       destination: {
-        externalAccountId: "123456789012345",
+        external_account_id: "123456789012345",
         id: "destination_retry_1",
         kind: "FACEBOOK_PAGE",
         platform: "FACEBOOK",
-        settingsJson: {
+        settings_json: {
           metaCredentialSourceKey: "env:meta-user-access-token",
           pageId: "123456789012345",
         },
       },
       payload: {
-        canonicalUrl: "https://example.com/en/news/breaking-story",
+        canonical_url: "https://example.com/en/news/breaking-story",
         sourceReference: "Source: Example Source - https://example.com/story",
         summary: "Breaking story summary",
         title: "Breaking story",
@@ -625,7 +625,7 @@ describe("news publishers", () => {
 
     expect(fetch).toHaveBeenCalledTimes(5);
     expect(fetch.mock.calls[4][1].body.get("access_token")).toBe("fresh-page-token");
-    expect(result.remoteId).toBe("feed_post_retry_1");
+    expect(result.remote_id).toBe("feed_post_retry_1");
   });
 
   it("returns a precise actionable error when facebook credential refresh is impossible", async () => {
@@ -634,15 +634,15 @@ describe("news publishers", () => {
     await expect(
       publishExternalDestination({
         destination: {
-          externalAccountId: "123456789012345",
+          external_account_id: "123456789012345",
           kind: "FACEBOOK_PAGE",
           platform: "FACEBOOK",
-          settingsJson: {
+          settings_json: {
             pageId: "123456789012345",
           },
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
+          canonical_url: "https://example.com/en/news/breaking-story",
           sourceReference: "Source: Example Source - https://example.com/story",
           summary: "Breaking story summary",
           title: "Breaking story",
@@ -664,18 +664,18 @@ describe("news publishers", () => {
     await expect(
       publishExternalDestination({
         destination: {
-          encryptedTokenCiphertext: encryptedToken.ciphertext,
-          encryptedTokenIv: encryptedToken.iv,
-          encryptedTokenTag: encryptedToken.tag,
-          externalAccountId: "me",
+          encrypted_token_ciphertext: encryptedToken.ciphertext,
+          encrypted_token_iv: encryptedToken.iv,
+          encrypted_token_tag: encryptedToken.tag,
+          external_account_id: "me",
           kind: "FACEBOOK_PROFILE",
           platform: "FACEBOOK",
-          settingsJson: {
+          settings_json: {
             profileId: "me",
           },
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
+          canonical_url: "https://example.com/en/news/breaking-story",
           sourceReference: "Source: Example Source - https://example.com/story",
           summary: "Breaking story summary",
           title: "Breaking story",
@@ -710,16 +710,16 @@ describe("news publishers", () => {
     await expect(
       publishExternalDestination({
         destination: {
-          encryptedTokenCiphertext: encryptedToken.ciphertext,
-          encryptedTokenIv: encryptedToken.iv,
-          encryptedTokenTag: encryptedToken.tag,
-          externalAccountId: "789012",
+          encrypted_token_ciphertext: encryptedToken.ciphertext,
+          encrypted_token_iv: encryptedToken.iv,
+          encrypted_token_tag: encryptedToken.tag,
+          external_account_id: "789012",
           kind: "INSTAGRAM_BUSINESS",
           platform: "INSTAGRAM",
-          settingsJson: {},
+          settings_json: {},
         },
         payload: {
-          canonicalUrl: "https://example.com/en/news/breaking-story",
+          canonical_url: "https://example.com/en/news/breaking-story",
           hashtags: "#breaking #technology",
           mediaUrl: "https://cdn.example.com/story.jpg",
           sourceReference: "Source: Example Source - https://example.com/story",

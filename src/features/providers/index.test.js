@@ -12,10 +12,10 @@ function createPrismaStub(overrides = {}) {
       }),
       upsert: vi.fn().mockResolvedValue({
         id: "provider_1",
-        isDefault: true,
-        isEnabled: true,
+        is_default: true,
+        is_enabled: true,
         label: "News API",
-        providerKey: "newsapi",
+        provider_key: "newsapi",
       }),
       ...(overrides.newsProviderConfig || {}),
     },
@@ -51,56 +51,56 @@ describe("provider feature validation", () => {
 
     const record = await saveProviderRecord(
       {
-        baseUrl: " https://newsapi.org/v2/top-headlines ",
+        base_url: " https://newsapi.org/v2/top-headlines ",
         description: " Official News API config ",
-        isDefault: true,
+        is_default: true,
         label: " News API ",
-        providerKey: "newsapi",
-        requestDefaultsJson: {
+        provider_key: "newsapi",
+        request_defaults_json: {
           category: "technology",
           endpoint: "top-headlines",
           q: "",
         },
       },
       {
-        actorId: "admin_1",
+        actor_id: "admin_1",
       },
       prisma,
     );
 
     expect(prisma.newsProviderConfig.upsert).toHaveBeenCalledWith({
       create: {
-        baseUrl: "https://newsapi.org/v2/top-headlines",
+        base_url: "https://newsapi.org/v2/top-headlines",
         description: "Official News API config",
-        isDefault: true,
-        isEnabled: true,
-        isSelectable: true,
+        is_default: true,
+        is_enabled: true,
+        is_selectable: true,
         label: "News API",
-        providerKey: "newsapi",
-        requestDefaultsJson: {
+        provider_key: "newsapi",
+        request_defaults_json: {
           category: "technology",
           endpoint: "top-headlines",
         },
       },
       update: {
-        baseUrl: "https://newsapi.org/v2/top-headlines",
+        base_url: "https://newsapi.org/v2/top-headlines",
         description: "Official News API config",
-        isDefault: true,
-        isEnabled: true,
-        isSelectable: true,
+        is_default: true,
+        is_enabled: true,
+        is_selectable: true,
         label: "News API",
-        requestDefaultsJson: {
+        request_defaults_json: {
           category: "technology",
           endpoint: "top-headlines",
         },
       },
       where: {
-        providerKey: "newsapi",
+        provider_key: "newsapi",
       },
     });
     expect(prisma.newsProviderConfig.updateMany).toHaveBeenCalledWith({
       data: {
-        isDefault: false,
+        is_default: false,
       },
       where: {
         id: {
@@ -111,20 +111,20 @@ describe("provider feature validation", () => {
     expect(analytics.createAuditEventRecord).toHaveBeenCalledWith(
       {
         action: "PROVIDER_CONFIG_SAVED",
-        actorId: "admin_1",
-        entityId: "provider_1",
-        entityType: "provider_config",
-        payloadJson: {
-          isDefault: true,
-          isEnabled: true,
-          providerKey: "newsapi",
+        actor_id: "admin_1",
+        entity_id: "provider_1",
+        entity_type: "provider_config",
+        payload_json: {
+          is_default: true,
+          is_enabled: true,
+          provider_key: "newsapi",
         },
       },
       prisma,
     );
     expect(record).toMatchObject({
       id: "provider_1",
-      providerKey: "newsapi",
+      provider_key: "newsapi",
     });
   });
 
@@ -136,8 +136,8 @@ describe("provider feature validation", () => {
       saveProviderRecord(
         {
           label: "News API",
-          providerKey: "newsapi",
-          requestDefaultsJson: {
+          provider_key: "newsapi",
+          request_defaults_json: {
             endpoint: "everything",
           },
         },

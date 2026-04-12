@@ -44,12 +44,12 @@ function getViewportWidth() {
   return window.innerWidth;
 }
 
-function getPrimaryKeysForViewport(viewportWidth) {
-  if (viewportWidth < MOBILE_BREAKPOINT) {
+function getPrimaryKeysForViewport(viewport_width) {
+  if (viewport_width < MOBILE_BREAKPOINT) {
     return MOBILE_PRIMARY_KEYS;
   }
 
-  if (viewportWidth < DESKTOP_BREAKPOINT) {
+  if (viewport_width < DESKTOP_BREAKPOINT) {
     return TABLET_PRIMARY_KEYS;
   }
 

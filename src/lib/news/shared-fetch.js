@@ -145,8 +145,8 @@ function normalizeComparableValue(value, type = "scalar") {
   return normalizeScalar(value);
 }
 
-function getProviderStrategy(providerKey, endpoint) {
-  const strategy = PROVIDER_SHARED_FETCH_STRATEGIES[providerKey];
+function getProviderStrategy(provider_key, endpoint) {
+  const strategy = PROVIDER_SHARED_FETCH_STRATEGIES[provider_key];
   const resolvedEndpoint = endpoint || strategy?.defaultEndpoint || "default";
 
   if (!strategy) {
@@ -270,18 +270,18 @@ function buildPartitionReasonCodes({
  */
 export function planSharedFetchGroups(streamExecutions = []) {
   const decoratedExecutions = streamExecutions.map((execution, index) => {
-    const providerKey = `${execution.stream?.activeProvider?.providerKey || ""}`.trim().toLowerCase();
-    const requestValues = resolveStreamProviderRequestValues(providerKey, {
-      countryAllowlistJson: execution.stream?.countryAllowlistJson,
-      languageAllowlistJson: execution.stream?.languageAllowlistJson,
+    const provider_key = `${execution.stream?.activeProvider?.provider_key || ""}`.trim().toLowerCase();
+    const requestValues = resolveStreamProviderRequestValues(provider_key, {
+      country_allowlist_json: execution.stream?.country_allowlist_json,
+      language_allowlist_json: execution.stream?.language_allowlist_json,
       locale: execution.stream?.locale,
-      providerDefaults: execution.stream?.activeProvider?.requestDefaultsJson,
-      providerFilters: execution.stream?.settingsJson?.providerFilters || {},
+      providerDefaults: execution.stream?.activeProvider?.request_defaults_json,
+      providerFilters: execution.stream?.settings_json?.providerFilters || {},
     });
-    const endpoint = getProviderEndpointShape(providerKey, requestValues);
-    const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, requestValues);
-    const strategy = getProviderStrategy(providerKey, endpoint);
-    const credentialSource = PROVIDER_CREDENTIAL_SOURCES[providerKey] || "unknown_credential_source";
+    const endpoint = getProviderEndpointShape(provider_key, requestValues);
+    const timeBoundarySupport = getProviderTimeBoundarySupport(provider_key, requestValues);
+    const strategy = getProviderStrategy(provider_key, endpoint);
+    const credentialSource = PROVIDER_CREDENTIAL_SOURCES[provider_key] || "unknown_credential_source";
 
     return {
       ...execution,
@@ -291,7 +291,7 @@ export function planSharedFetchGroups(streamExecutions = []) {
       credentialSource,
       endpoint,
       inputIndex: index,
-      providerKey,
+      provider_key,
       requestValues,
       strategy,
       timeBoundarySupport,
@@ -299,7 +299,7 @@ export function planSharedFetchGroups(streamExecutions = []) {
   });
   const providerFamilies = groupBy(
     decoratedExecutions,
-    (execution) => `${execution.providerKey}::${execution.credentialSource}`,
+    (execution) => `${execution.provider_key}::${execution.credentialSource}`,
   );
   const plannedGroups = [];
 
@@ -343,9 +343,9 @@ export function planSharedFetchGroups(streamExecutions = []) {
             credentialSource: firstExecution.credentialSource,
             endpoint: firstExecution.endpoint,
             executionMode: signatureFamily.length > 1 ? "shared_batch" : "single",
-            id: `shared_fetch_${firstExecution.providerKey}_${firstExecution.endpoint}_${plannedGroups.length + 1}`,
+            id: `shared_fetch_${firstExecution.provider_key}_${firstExecution.endpoint}_${plannedGroups.length + 1}`,
             partitionReasonCodes,
-            providerKey: firstExecution.providerKey,
+            provider_key: firstExecution.provider_key,
             sharedFetchWindow: mergedFetchWindow,
             sharedRequestValues,
             streamExecutions: signatureFamily.sort((left, right) => left.inputIndex - right.inputIndex),
@@ -375,7 +375,7 @@ export function serializeSharedFetchGroup(group) {
     executionMode: group.executionMode,
     groupId: group.id,
     partitionReasonCodes: group.partitionReasonCodes || [],
-    providerKey: group.providerKey,
+    provider_key: group.provider_key,
     requestValues: group.sharedRequestValues || {},
     streamIds: group.streamIds || [],
     timeBoundarySupport: group.timeBoundarySupport

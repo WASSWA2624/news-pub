@@ -20,11 +20,11 @@ const fetchWindowSchema = z.object({
 const streamRunSchema = z
   .object({
     fetchWindow: fetchWindowSchema.optional(),
-    streamId: z.string().trim().min(1).optional(),
+    stream_id: z.string().trim().min(1).optional(),
     streamIds: z.array(z.string().trim().min(1)).min(1).optional(),
   })
   .superRefine((value, ctx) => {
-    if (!value.streamId && !value.streamIds?.length) {
+    if (!value.stream_id && !value.streamIds?.length) {
       ctx.addIssue({
         code: "custom",
         message: "Provide at least one stream id.",
@@ -52,8 +52,8 @@ export async function POST(request) {
   try {
     const requestedStreamIds = result.data.streamIds?.length
       ? result.data.streamIds
-      : result.data.streamId
-        ? [result.data.streamId]
+      : result.data.stream_id
+        ? [result.data.stream_id]
         : [];
     const requestedFetchWindow = result.data.fetchWindow
       ? {
@@ -64,9 +64,9 @@ export async function POST(request) {
 
     if (requestedStreamIds.length === 1) {
       const run = await runStreamFetch(requestedStreamIds[0], {
-        actorId: auth.user.id,
+        actor_id: auth.user.id,
         fetchWindow: requestedFetchWindow,
-        triggerType: "manual",
+        trigger_type: "manual",
         writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
       });
 
@@ -79,9 +79,9 @@ export async function POST(request) {
     }
 
     const batch = await runMultipleStreamFetches(requestedStreamIds, {
-      actorId: auth.user.id,
+      actor_id: auth.user.id,
       fetchWindow: requestedFetchWindow,
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: result.data.fetchWindow?.writeCheckpointOnSuccess ?? null,
     });
 

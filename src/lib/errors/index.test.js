@@ -30,7 +30,7 @@ describe("error normalization", () => {
 
     expect(normalized).toEqual({
       details: null,
-      errorCode: "destination_validation_failed",
+      last_error_code: "destination_validation_failed",
       message: "Destination token is invalid.",
       retryable: false,
       statusCode: 400,
@@ -42,7 +42,7 @@ describe("error normalization", () => {
     const payload = createApiErrorPayload(
       {
         message: "Graph API returned 190.",
-        responseJson: {
+        response_json: {
           error: "meta_auth_invalid",
           retryable: true,
         },

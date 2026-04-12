@@ -98,7 +98,7 @@ function parsePositiveIntegerFlag(value, fallbackValue) {
 }
 
 function getFetchRunExecutionDetails(run) {
-  const executionDetails = run?.executionDetailsJson || null;
+  const executionDetails = run?.execution_details_json || null;
 
   if (!executionDetails || typeof executionDetails !== "object" || Array.isArray(executionDetails)) {
     return null;
@@ -111,84 +111,84 @@ function mapFetchRun(run) {
   const executionDetails = getFetchRunExecutionDetails(run);
 
   return {
-    aiCacheHitCount: run.aiCacheHitCount || 0,
-    blockedCount: run.blockedCount || 0,
-    duplicateCount: run.duplicateCount || 0,
-    errorMessage: run.errorMessage || null,
+    ai_cache_hit_count: run.ai_cache_hit_count || 0,
+    blocked_count: run.blocked_count || 0,
+    duplicate_count: run.duplicate_count || 0,
+    last_error_message: run.last_error_message || null,
     executionDetails,
-    failedCount: run.failedCount || 0,
-    fetchedCount: run.fetchedCount || 0,
-    finishedAt: serializeDate(run.finishedAt),
-    heldCount: run.heldCount || 0,
+    failed_count: run.failed_count || 0,
+    fetched_count: run.fetched_count || 0,
+    finished_at: serializeDate(run.finished_at),
+    held_count: run.held_count || 0,
     id: run.id,
-    optimizedCount: run.optimizedCount || 0,
-    publishableCount: run.publishableCount || 0,
-    publishedCount: run.publishedCount || 0,
-    queuedCount: run.queuedCount || 0,
-    skippedCount: run.skippedCount || 0,
-    startedAt: serializeDate(run.startedAt),
+    optimized_count: run.optimized_count || 0,
+    publishable_count: run.publishable_count || 0,
+    published_count: run.published_count || 0,
+    queued_count: run.queued_count || 0,
+    skipped_count: run.skipped_count || 0,
+    started_at: serializeDate(run.started_at),
     status: run.status,
-    triggerType: run.triggerType || null,
+    trigger_type: run.trigger_type || null,
   };
 }
 
 function getCurrentProviderCheckpoint(stream) {
-  return (stream?.checkpoints || []).find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
+  return (stream?.checkpoints || []).find((entry) => entry.provider_config_id === stream.active_provider_id) || null;
 }
 
-function getLatestRunByTrigger(fetchRuns = [], triggerType) {
-  return fetchRuns.find((run) => run.triggerType === triggerType) || null;
+function getLatestRunByTrigger(fetchRuns = [], trigger_type) {
+  return fetchRuns.find((run) => run.trigger_type === trigger_type) || null;
 }
 
 function getLatestStreamActivityAt(stream) {
-  return [stream?.lastRunCompletedAt, stream?.lastFailureAt, stream?.lastRunStartedAt]
+  return [stream?.last_run_completed_at, stream?.last_failure_at, stream?.last_run_started_at]
     .filter((value) => value instanceof Date)
     .sort((left, right) => right.getTime() - left.getTime())[0] || null;
 }
 
 function buildEffectiveProviderRequest(stream) {
-  const providerKey = stream?.activeProvider?.providerKey || "";
+  const provider_key = stream?.activeProvider?.provider_key || "";
 
-  if (!providerKey) {
+  if (!provider_key) {
     return {};
   }
 
-  return resolveStreamProviderRequestValues(providerKey, {
-    countryAllowlistJson: stream?.countryAllowlistJson || [],
-    languageAllowlistJson: stream?.languageAllowlistJson || [],
+  return resolveStreamProviderRequestValues(provider_key, {
+    country_allowlist_json: stream?.country_allowlist_json || [],
+    language_allowlist_json: stream?.language_allowlist_json || [],
     locale: stream?.locale || "",
-    providerDefaults: stream?.activeProvider?.requestDefaultsJson || {},
-    providerFilters: stream?.settingsJson?.providerFilters || {},
+    providerDefaults: stream?.activeProvider?.request_defaults_json || {},
+    providerFilters: stream?.settings_json?.providerFilters || {},
   });
 }
 
 function buildScheduleSnapshot(stream, latestRun, latestScheduledRun, now) {
-  const scheduleEnabled = (stream?.scheduleIntervalMinutes || 0) > 0;
+  const scheduleEnabled = (stream?.schedule_interval_minutes || 0) > 0;
   const active = stream?.status === "ACTIVE";
   const running = isStreamExecutionInProgress(stream);
-  const nextRunAt = getStreamNextScheduledRunAt(stream);
+  const next_run_at = getStreamNextScheduledRunAt(stream);
   const due = active ? isStreamDueForScheduledRun(stream, now) : false;
   const overdueMinutes =
-    due && nextRunAt instanceof Date ? Math.max(0, Math.floor((now.getTime() - nextRunAt.getTime()) / 60000)) : 0;
+    due && next_run_at instanceof Date ? Math.max(0, Math.floor((now.getTime() - next_run_at.getTime()) / 60000)) : 0;
   const latestActivityAt = getLatestStreamActivityAt(stream);
 
   return {
-    intervalMinutes: stream?.scheduleIntervalMinutes || 0,
-    isActive: active,
+    intervalMinutes: stream?.schedule_interval_minutes || 0,
+    is_active: active,
     isDue: due,
-    isEnabled: scheduleEnabled,
+    is_enabled: scheduleEnabled,
     isOverdue: due && overdueMinutes > 0,
     isRunning: active && running,
     lastActivityAt: serializeDate(latestActivityAt),
-    lastFailureAt: serializeDate(stream?.lastFailureAt),
-    lastRunCompletedAt: serializeDate(stream?.lastRunCompletedAt),
-    lastRunStartedAt: serializeDate(stream?.lastRunStartedAt),
+    last_failure_at: serializeDate(stream?.last_failure_at),
+    last_run_completed_at: serializeDate(stream?.last_run_completed_at),
+    last_run_started_at: serializeDate(stream?.last_run_started_at),
     latestRunId: latestRun?.id || null,
     latestRunStatus: latestRun?.status || null,
     latestScheduledRunId: latestScheduledRun?.id || null,
-    latestScheduledRunStartedAt: latestScheduledRun?.startedAt || null,
-    latestTriggerType: latestRun?.triggerType || null,
-    nextRunAt: serializeDate(nextRunAt),
+    latestScheduledRunStartedAt: latestScheduledRun?.started_at || null,
+    latestTriggerType: latestRun?.trigger_type || null,
+    next_run_at: serializeDate(next_run_at),
     overdueMinutes,
   };
 }
@@ -210,8 +210,8 @@ export async function getStreamManagementSnapshot(prisma) {
           select: {
             id: true,
             label: true,
-            providerKey: true,
-            requestDefaultsJson: true,
+            provider_key: true,
+            request_defaults_json: true,
           },
         },
         categories: {
@@ -228,9 +228,9 @@ export async function getStreamManagementSnapshot(prisma) {
         checkpoints: {
           select: {
             id: true,
-            lastSuccessfulFetchAt: true,
-            providerConfigId: true,
-            updatedAt: true,
+            last_successful_fetch_at: true,
+            provider_config_id: true,
+            updated_at: true,
           },
         },
         defaultTemplate: {
@@ -250,26 +250,26 @@ export async function getStreamManagementSnapshot(prisma) {
           },
         },
         fetchRuns: {
-          orderBy: [{ startedAt: "desc" }],
+          orderBy: [{ started_at: "desc" }],
           select: {
-            aiCacheHitCount: true,
-            blockedCount: true,
-            duplicateCount: true,
-            errorMessage: true,
-            executionDetailsJson: true,
-            failedCount: true,
-            fetchedCount: true,
-            finishedAt: true,
-            heldCount: true,
+            ai_cache_hit_count: true,
+            blocked_count: true,
+            duplicate_count: true,
+            last_error_message: true,
+            execution_details_json: true,
+            failed_count: true,
+            fetched_count: true,
+            finished_at: true,
+            held_count: true,
             id: true,
-            optimizedCount: true,
-            publishableCount: true,
-            publishedCount: true,
-            queuedCount: true,
-            skippedCount: true,
-            startedAt: true,
+            optimized_count: true,
+            publishable_count: true,
+            published_count: true,
+            queued_count: true,
+            skipped_count: true,
+            started_at: true,
             status: true,
-            triggerType: true,
+            trigger_type: true,
           },
           take: 4,
         },
@@ -300,13 +300,13 @@ export async function getStreamManagementSnapshot(prisma) {
       },
     }),
     db.newsProviderConfig.findMany({
-      orderBy: [{ isDefault: "desc" }, { label: "asc" }],
+      orderBy: [{ is_default: "desc" }, { label: "asc" }],
       select: {
         id: true,
-        isDefault: true,
+        is_default: true,
         label: true,
-        providerKey: true,
-        requestDefaultsJson: true,
+        provider_key: true,
+        request_defaults_json: true,
       },
     }),
     db.destinationTemplate.findMany({
@@ -340,9 +340,9 @@ export async function getStreamManagementSnapshot(prisma) {
     const latestRun = recentRuns[0] || null;
     const latestScheduledRun = getLatestRunByTrigger(recentRuns, "scheduled");
     const effectiveProviderRequestValues = buildEffectiveProviderRequest(stream);
-    const providerEndpoint = getProviderEndpointShape(stream.activeProvider?.providerKey, effectiveProviderRequestValues);
+    const providerEndpoint = getProviderEndpointShape(stream.activeProvider?.provider_key, effectiveProviderRequestValues);
     const timeBoundarySupport = getProviderTimeBoundarySupport(
-      stream.activeProvider?.providerKey,
+      stream.activeProvider?.provider_key,
       effectiveProviderRequestValues,
     );
     const currentCheckpoint = getCurrentProviderCheckpoint(stream);
@@ -351,21 +351,21 @@ export async function getStreamManagementSnapshot(prisma) {
       checkpoint: currentCheckpoint
         ? {
             id: currentCheckpoint.id,
-            lastSuccessfulFetchAt: serializeDate(currentCheckpoint.lastSuccessfulFetchAt),
-            providerConfigId: currentCheckpoint.providerConfigId,
-            updatedAt: serializeDate(currentCheckpoint.updatedAt),
+            last_successful_fetch_at: serializeDate(currentCheckpoint.last_successful_fetch_at),
+            provider_config_id: currentCheckpoint.provider_config_id,
+            updated_at: serializeDate(currentCheckpoint.updated_at),
           }
         : null,
-      countryAllowlistJson: stream.countryAllowlistJson || [],
+      country_allowlist_json: stream.country_allowlist_json || [],
       effectiveFilters: {
         categories: stream.categories.map((entry) => entry.category),
-        countryAllowlistJson: stream.countryAllowlistJson || [],
-        excludeKeywordsJson: stream.excludeKeywordsJson || [],
-        includeKeywordsJson: stream.includeKeywordsJson || [],
-        languageAllowlistJson: stream.languageAllowlistJson || [],
+        country_allowlist_json: stream.country_allowlist_json || [],
+        exclude_keywords_json: stream.exclude_keywords_json || [],
+        include_keywords_json: stream.include_keywords_json || [],
+        language_allowlist_json: stream.language_allowlist_json || [],
         providerEndpoint,
         providerRequestValues: effectiveProviderRequestValues,
-        regionAllowlistJson: stream.regionAllowlistJson || [],
+        region_allowlist_json: stream.region_allowlist_json || [],
         timeBoundarySupport: timeBoundarySupport
           ? {
               endpoint: timeBoundarySupport.endpoint,
@@ -375,23 +375,23 @@ export async function getStreamManagementSnapshot(prisma) {
             }
           : null,
       },
-      excludeKeywordsJson: stream.excludeKeywordsJson || [],
-      includeKeywordsJson: stream.includeKeywordsJson || [],
+      exclude_keywords_json: stream.exclude_keywords_json || [],
+      include_keywords_json: stream.include_keywords_json || [],
       latestRun,
       latestScheduledRun,
       recentRuns,
       schedule: buildScheduleSnapshot(stream, latestRun, latestScheduledRun, now),
       streamCategories: stream.categories.map((entry) => entry.category),
       validationIssues: getStreamValidationIssues({
-        countryAllowlistJson: stream.countryAllowlistJson,
+        country_allowlist_json: stream.country_allowlist_json,
         destination: stream.destination,
-        languageAllowlistJson: stream.languageAllowlistJson,
+        language_allowlist_json: stream.language_allowlist_json,
         locale: stream.locale,
-        maxPostsPerRun: stream.maxPostsPerRun,
+        max_posts_per_run: stream.max_posts_per_run,
         mode: stream.mode,
-        providerDefaults: stream.activeProvider?.requestDefaultsJson,
-        providerFilters: stream.settingsJson?.providerFilters,
-        providerKey: stream.activeProvider?.providerKey,
+        providerDefaults: stream.activeProvider?.request_defaults_json,
+        providerFilters: stream.settings_json?.providerFilters,
+        provider_key: stream.activeProvider?.provider_key,
         template: stream.defaultTemplate,
       }),
     };
@@ -402,19 +402,19 @@ export async function getStreamManagementSnapshot(prisma) {
     return streamRecord;
   });
   const latestScheduledRunAt = mappedStreams
-    .map((stream) => stream.latestScheduledRun?.startedAt)
+    .map((stream) => stream.latestScheduledRun?.started_at)
     .filter(Boolean)
     .sort((left, right) => `${right}`.localeCompare(`${left}`))[0] || null;
-  const scheduledStreamCount = mappedStreams.filter((stream) => stream.schedule.isEnabled).length;
+  const scheduledStreamCount = mappedStreams.filter((stream) => stream.schedule.is_enabled).length;
   const dueStreamCount = mappedStreams.filter((stream) => stream.schedule.isDue).length;
   const overdueStreamCount = mappedStreams.filter((stream) => stream.schedule.isOverdue).length;
   const runningStreamCount = mappedStreams.filter((stream) => stream.schedule.isRunning).length;
   const neverRunCount = mappedStreams.filter(
     (stream) =>
-      stream.schedule.isEnabled
-      && !stream.schedule.lastRunCompletedAt
-      && !stream.schedule.lastFailureAt
-      && !stream.schedule.lastRunStartedAt,
+      stream.schedule.is_enabled
+      && !stream.schedule.last_run_completed_at
+      && !stream.schedule.last_failure_at
+      && !stream.schedule.last_run_started_at,
   ).length;
 
   return {
@@ -464,16 +464,16 @@ export async function getStreamManagementSnapshot(prisma) {
  *
  * @param {object} input - Submitted stream data.
  * @param {object} [options] - Save options.
- * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {string|null} [options.actor_id] - Acting admin id.
  * @param {object} [prisma] - Optional Prisma client override.
  * @returns {Promise<object>} Saved stream record.
  */
-export async function saveStreamRecord(input, { actorId } = {}, prisma) {
+export async function saveStreamRecord(input, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const name = trimText(input.name);
   const slug = trimText(input.slug) || createSlug(name, "stream");
 
-  if (!name || !input.destinationId || !input.activeProviderId || !input.locale) {
+  if (!name || !input.destination_id || !input.active_provider_id || !input.locale) {
     throw new NewsPubError("Stream name, destination, provider, and locale are required.", {
       status: "stream_validation_failed",
       statusCode: 400,
@@ -490,10 +490,10 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
         slug: true,
       },
       where: {
-        id: input.destinationId,
+        id: input.destination_id,
       },
     }),
-    input.defaultTemplateId
+    input.default_template_id
       ? db.destinationTemplate.findUnique({
           select: {
             id: true,
@@ -501,7 +501,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
             platform: true,
           },
           where: {
-            id: input.defaultTemplateId,
+            id: input.default_template_id,
           },
         })
       : Promise.resolve(null),
@@ -510,11 +510,11 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
   const activeProvider = await db.newsProviderConfig.findUnique({
     select: {
       id: true,
-      providerKey: true,
-      requestDefaultsJson: true,
+      provider_key: true,
+      request_defaults_json: true,
     },
     where: {
-      id: input.activeProviderId,
+      id: input.active_provider_id,
     },
   });
 
@@ -532,7 +532,7 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     });
   }
 
-  if (input.defaultTemplateId && !defaultTemplate) {
+  if (input.default_template_id && !defaultTemplate) {
     throw new NewsPubError("The selected default template could not be found.", {
       status: "stream_validation_failed",
       statusCode: 400,
@@ -540,29 +540,29 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
   }
 
   const providerFilters = sanitizeProviderFieldValues(
-    activeProvider.providerKey,
+    activeProvider.provider_key,
     input.providerFilters,
     {
       preserveEmpty: true,
     },
   );
-  const explicitCountryAllowlist = normalizeKeywordList(input.countryAllowlistJson);
-  const explicitLanguageAllowlist = normalizeKeywordList(input.languageAllowlistJson);
-  const fallbackCountryAllowlist = normalizeKeywordList(providerFilters.countryAllowlistJson);
-  const fallbackLanguageAllowlist = normalizeKeywordList(providerFilters.languageAllowlistJson);
-  const countryAllowlistJson = (
+  const explicitCountryAllowlist = normalizeKeywordList(input.country_allowlist_json);
+  const explicitLanguageAllowlist = normalizeKeywordList(input.language_allowlist_json);
+  const fallbackCountryAllowlist = normalizeKeywordList(providerFilters.country_allowlist_json);
+  const fallbackLanguageAllowlist = normalizeKeywordList(providerFilters.language_allowlist_json);
+  const country_allowlist_json = (
     explicitCountryAllowlist.length
       ? explicitCountryAllowlist
       : fallbackCountryAllowlist
   ).map((value) => value.toLowerCase());
-  const languageAllowlistJson = (
+  const language_allowlist_json = (
     explicitLanguageAllowlist.length
       ? explicitLanguageAllowlist
       : fallbackLanguageAllowlist
   ).map((value) => value.toLowerCase());
 
-  delete providerFilters.countryAllowlistJson;
-  delete providerFilters.languageAllowlistJson;
+  delete providerFilters.country_allowlist_json;
+  delete providerFilters.language_allowlist_json;
   const socialPost = normalizeSocialPostSettings({
     linkPlacement: normalizeSocialPostLinkPlacement(input.postLinkPlacement),
     linkUrl: input.postLinkUrl,
@@ -573,15 +573,15 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
     linkUrl: normalizeOptionalSocialPostLinkUrl(socialPost.linkUrl),
   };
   const validationIssues = getStreamValidationIssues({
-    countryAllowlistJson,
+    country_allowlist_json,
     destination,
-    languageAllowlistJson,
+    language_allowlist_json,
     locale: trimText(input.locale),
-    maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
+    max_posts_per_run: normalizePositiveInteger(input.max_posts_per_run, 5),
     mode: resolvedMode,
-    providerDefaults: activeProvider.requestDefaultsJson,
+    providerDefaults: activeProvider.request_defaults_json,
     providerFilters,
-    providerKey: activeProvider.providerKey,
+    provider_key: activeProvider.provider_key,
     template: defaultTemplate,
   });
 
@@ -597,24 +597,24 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       slug,
     },
     update: {
-      activeProviderId: input.activeProviderId,
-      defaultTemplateId: input.defaultTemplateId || null,
+      active_provider_id: input.active_provider_id,
+      default_template_id: input.default_template_id || null,
       description: trimText(input.description) || null,
-      destinationId: input.destinationId,
-      duplicateWindowHours: normalizePositiveInteger(input.duplicateWindowHours, 48),
-      excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
-      includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
-      countryAllowlistJson,
-      languageAllowlistJson,
+      destination_id: input.destination_id,
+      duplicate_window_hours: normalizePositiveInteger(input.duplicate_window_hours, 48),
+      exclude_keywords_json: normalizeKeywordList(input.exclude_keywords_json),
+      include_keywords_json: normalizeKeywordList(input.include_keywords_json),
+      country_allowlist_json,
+      language_allowlist_json,
       locale: trimText(input.locale),
-      maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
+      max_posts_per_run: normalizePositiveInteger(input.max_posts_per_run, 5),
       mode: resolvedMode,
       name,
-      retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
-      retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
-      scheduleExpression: null,
-      scheduleIntervalMinutes: normalizeNonNegativeInteger(input.scheduleIntervalMinutes, 60),
-      settingsJson: {
+      retry_backoff_minutes: normalizeNonNegativeInteger(input.retry_backoff_minutes, 15),
+      retry_limit: normalizeNonNegativeInteger(input.retry_limit, 3),
+      schedule_expression: null,
+      schedule_interval_minutes: normalizeNonNegativeInteger(input.schedule_interval_minutes, 60),
+      settings_json: {
         providerFilters,
         socialPost: normalizedSocialPost,
       },
@@ -622,25 +622,25 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
       timezone: trimText(input.timezone) || "UTC",
     },
     create: {
-      activeProviderId: input.activeProviderId,
-      defaultTemplateId: input.defaultTemplateId || null,
+      active_provider_id: input.active_provider_id,
+      default_template_id: input.default_template_id || null,
       description: trimText(input.description) || null,
-      destinationId: input.destinationId,
-      duplicateWindowHours: normalizePositiveInteger(input.duplicateWindowHours, 48),
-      excludeKeywordsJson: normalizeKeywordList(input.excludeKeywordsJson),
-      includeKeywordsJson: normalizeKeywordList(input.includeKeywordsJson),
-      countryAllowlistJson,
-      languageAllowlistJson,
+      destination_id: input.destination_id,
+      duplicate_window_hours: normalizePositiveInteger(input.duplicate_window_hours, 48),
+      exclude_keywords_json: normalizeKeywordList(input.exclude_keywords_json),
+      include_keywords_json: normalizeKeywordList(input.include_keywords_json),
+      country_allowlist_json,
+      language_allowlist_json,
       locale: trimText(input.locale),
-      maxPostsPerRun: normalizePositiveInteger(input.maxPostsPerRun, 5),
+      max_posts_per_run: normalizePositiveInteger(input.max_posts_per_run, 5),
       mode: resolvedMode,
       name,
-      retryBackoffMinutes: normalizeNonNegativeInteger(input.retryBackoffMinutes, 15),
-      retryLimit: normalizeNonNegativeInteger(input.retryLimit, 3),
-      scheduleExpression: null,
-      scheduleIntervalMinutes: normalizeNonNegativeInteger(input.scheduleIntervalMinutes, 60),
+      retry_backoff_minutes: normalizeNonNegativeInteger(input.retry_backoff_minutes, 15),
+      retry_limit: normalizeNonNegativeInteger(input.retry_limit, 3),
+      schedule_expression: null,
+      schedule_interval_minutes: normalizeNonNegativeInteger(input.schedule_interval_minutes, 60),
       slug,
-      settingsJson: {
+      settings_json: {
         providerFilters,
         socialPost: normalizedSocialPost,
       },
@@ -651,43 +651,43 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
 
   await db.streamCategory.deleteMany({
     where: {
-      streamId: stream.id,
+      stream_id: stream.id,
     },
   });
 
-  for (const categoryId of input.categoryIds || []) {
+  for (const category_id of input.categoryIds || []) {
     await db.streamCategory.create({
       data: {
-        categoryId,
-        streamId: stream.id,
+        category_id,
+        stream_id: stream.id,
       },
     });
   }
 
   await db.providerFetchCheckpoint.upsert({
     where: {
-      streamId_providerConfigId: {
-        providerConfigId: input.activeProviderId,
-        streamId: stream.id,
+      stream_id_provider_config_id: {
+        provider_config_id: input.active_provider_id,
+        stream_id: stream.id,
       },
     },
     update: {},
     create: {
-      providerConfigId: input.activeProviderId,
-      streamId: stream.id,
+      provider_config_id: input.active_provider_id,
+      stream_id: stream.id,
     },
   });
 
   await createAuditEventRecord(
     {
       action: "STREAM_SAVED",
-      actorId,
-      entityId: stream.id,
-      entityType: "publishing_stream",
-      payloadJson: {
-        destinationId: stream.destinationId,
+      actor_id,
+      entity_id: stream.id,
+      entity_type: "publishing_stream",
+      payload_json: {
+        destination_id: stream.destination_id,
         mode: stream.mode,
-        providerConfigId: stream.activeProviderId,
+        provider_config_id: stream.active_provider_id,
         status: stream.status,
       },
     },
@@ -702,16 +702,16 @@ export async function saveStreamRecord(input, { actorId } = {}, prisma) {
  *
  * @param {string} id - Stream id.
  * @param {object} [options] - Delete options.
- * @param {string|null} [options.actorId] - Acting admin id.
+ * @param {string|null} [options.actor_id] - Acting admin id.
  * @param {object} [prisma] - Optional Prisma client override.
  * @returns {Promise<object>} Deleted stream record.
  */
-export async function deleteStreamRecord(id, { actorId } = {}, prisma) {
+export async function deleteStreamRecord(id, { actor_id } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const existingStream = await db.publishingStream.findUnique({
     select: {
-      activeProviderId: true,
-      destinationId: true,
+      active_provider_id: true,
+      destination_id: true,
       id: true,
       name: true,
       slug: true,
@@ -737,12 +737,12 @@ export async function deleteStreamRecord(id, { actorId } = {}, prisma) {
   await createAuditEventRecord(
     {
       action: "STREAM_DELETED",
-      actorId,
-      entityId: deletedStream.id,
-      entityType: "publishing_stream",
-      payloadJson: {
-        destinationId: deletedStream.destinationId,
-        providerConfigId: deletedStream.activeProviderId,
+      actor_id,
+      entity_id: deletedStream.id,
+      entity_type: "publishing_stream",
+      payload_json: {
+        destination_id: deletedStream.destination_id,
+        provider_config_id: deletedStream.active_provider_id,
         slug: deletedStream.slug,
       },
     },

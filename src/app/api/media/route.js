@@ -77,15 +77,15 @@ export async function POST(request) {
   const asset = await uploadMediaAsset(
     {
       alt: getFormDataText(formData, "alt"),
-      attributionText: getFormDataText(formData, "attributionText"),
+      attribution_text: getFormDataText(formData, "attribution_text"),
       buffer: Buffer.from(await file.arrayBuffer()),
       caption: getFormDataText(formData, "caption"),
-      fileName: file.name || "upload",
-      mimeType: file.type || "application/octet-stream",
-      sourceUrl: getFormDataText(formData, "sourceUrl"),
+      file_name: file.name || "upload",
+      mime_type: file.type || "application/octet-stream",
+      source_url: getFormDataText(formData, "source_url"),
     },
     {
-      actorId: auth.user.id,
+      actor_id: auth.user.id,
     },
   );
 

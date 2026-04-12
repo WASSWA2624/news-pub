@@ -176,11 +176,11 @@ export default async function AdminDashboardPage() {
                           <SmallText>{run.executionDetails.partitionReasonCodes.join(", ")}</SmallText>
                         ) : null}
                       </td>
-                      <td data-label="Fetched">{run.fetchedCount}</td>
-                      <td data-label="Publishable">{run.publishableCount}</td>
-                      <td data-label="Optimized">{run.optimizedCount}</td>
-                      <td data-label="Published">{run.publishedCount}</td>
-                      <td data-label="Started">{formatDateTime(run.startedAt)}</td>
+                      <td data-label="Fetched">{run.fetched_count}</td>
+                      <td data-label="Publishable">{run.publishable_count}</td>
+                      <td data-label="Optimized">{run.optimized_count}</td>
+                      <td data-label="Published">{run.published_count}</td>
+                      <td data-label="Started">{formatDateTime(run.started_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -225,7 +225,7 @@ export default async function AdminDashboardPage() {
                     <tr key={provider.id}>
                       <td data-label="Provider">
                         <strong>{provider.label}</strong>
-                        <SmallText>{provider.providerKey}</SmallText>
+                        <SmallText>{provider.provider_key}</SmallText>
                       </td>
                       <td data-label="Credentials">
                         <StatusBadge
@@ -235,8 +235,8 @@ export default async function AdminDashboardPage() {
                         </StatusBadge>
                       </td>
                       <td data-label="Availability">
-                        <MetaPill>{provider.isEnabled ? "Enabled" : "Disabled"}</MetaPill>
-                        {provider.isDefault ? <MetaPill>Default</MetaPill> : null}
+                        <MetaPill>{provider.is_enabled ? "Enabled" : "Disabled"}</MetaPill>
+                        {provider.is_default ? <MetaPill>Default</MetaPill> : null}
                       </td>
                       <td data-label="Streams">{provider.activeStreamCount}</td>
                     </tr>
@@ -273,7 +273,7 @@ export default async function AdminDashboardPage() {
                       <td data-label="Status">
                         <StatusBadge $tone="danger">{failure.status}</StatusBadge>
                       </td>
-                      <td data-label="Created">{formatDateTime(failure.createdAt)}</td>
+                      <td data-label="Created">{formatDateTime(failure.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -311,9 +311,9 @@ export default async function AdminDashboardPage() {
                         <StatusBadge $tone={getTone(attempt.status)}>{attempt.status}</StatusBadge>
                       </td>
                       <td data-label="AI">
-                        {attempt.optimizationStatus ? (
-                          <StatusBadge $tone={getTone(attempt.optimizationStatus)}>
-                            {attempt.optimizationStatus}
+                        {attempt.optimization_status ? (
+                          <StatusBadge $tone={getTone(attempt.optimization_status)}>
+                            {attempt.optimization_status}
                           </StatusBadge>
                         ) : (
                           <SmallText>Not recorded</SmallText>
@@ -322,8 +322,8 @@ export default async function AdminDashboardPage() {
                           <SmallText>{attempt.aiResolution.reasonMessage}</SmallText>
                         ) : null}
                       </td>
-                      <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
-                      <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
+                      <td data-label="Remote id">{attempt.remote_id || "Pending"}</td>
+                      <td data-label="Queued">{formatDateTime(attempt.queued_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -353,7 +353,7 @@ export default async function AdminDashboardPage() {
                         <strong>{story.title}</strong>
                         <SmallText>{story.slug}</SmallText>
                       </td>
-                      <td data-label="Published">{formatDateTime(story.publishedAt)}</td>
+                      <td data-label="Published">{formatDateTime(story.published_at)}</td>
                       {snapshot.canViewAnalytics ? <td data-label="Views">{story.viewCount}</td> : null}
                     </tr>
                   ))}
@@ -393,11 +393,11 @@ export default async function AdminDashboardPage() {
                       <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
                     </td>
                     <td data-label="Entity">
-                      <strong>{event.entityType}</strong>
-                      <SmallText>{event.entityId}</SmallText>
+                      <strong>{event.entity_type}</strong>
+                      <SmallText>{event.entity_id}</SmallText>
                       {event.reasonMessage ? <SmallText>{event.reasonMessage}</SmallText> : null}
                     </td>
-                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
+                    <td data-label="Created">{formatDateTime(event.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

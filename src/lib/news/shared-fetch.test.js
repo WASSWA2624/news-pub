@@ -6,25 +6,25 @@ function createExecution({
   fetchWindow,
   providerDefaults = {},
   providerFilters = {},
-  providerKey = "newsdata",
-  streamId,
+  provider_key = "newsdata",
+  stream_id,
 } = {}) {
   return {
     checkpoint: null,
     fetchRun: {
-      id: `fetch_run_${streamId}`,
+      id: `fetch_run_${stream_id}`,
     },
     fetchWindow,
     stream: {
       activeProvider: {
-        providerKey,
-        requestDefaultsJson: providerDefaults,
+        provider_key,
+        request_defaults_json: providerDefaults,
       },
-      countryAllowlistJson: [],
-      id: streamId,
-      languageAllowlistJson: [],
+      country_allowlist_json: [],
+      id: stream_id,
+      language_allowlist_json: [],
       locale: "en",
-      settingsJson: {
+      settings_json: {
         providerFilters,
       },
     },
@@ -49,7 +49,7 @@ describe("shared fetch planner", () => {
         providerFilters: {
           category: ["business"],
         },
-        streamId: "stream_1",
+        stream_id: "stream_1",
       }),
       createExecution({
         fetchWindow: {
@@ -66,7 +66,7 @@ describe("shared fetch planner", () => {
         providerFilters: {
           category: ["technology"],
         },
-        streamId: "stream_2",
+        stream_id: "stream_2",
       }),
     ]);
 
@@ -74,7 +74,7 @@ describe("shared fetch planner", () => {
     expect(groups[0]).toMatchObject({
       endpoint: "latest",
       executionMode: "shared_batch",
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       sharedRequestValues: {
         category: ["business", "technology"],
         endpoint: "latest",
@@ -88,7 +88,7 @@ describe("shared fetch planner", () => {
     });
     expect(serializeSharedFetchGroup(groups[0])).toMatchObject({
       executionMode: "shared_batch",
-      providerKey: "newsdata",
+      provider_key: "newsdata",
       streamIds: ["stream_1", "stream_2"],
       window: {
         end: "2026-04-07T12:00:00.000Z",
@@ -107,7 +107,7 @@ describe("shared fetch planner", () => {
         providerDefaults: {
           endpoint: "latest",
         },
-        streamId: "stream_latest",
+        stream_id: "stream_latest",
       }),
       createExecution({
         fetchWindow: {
@@ -117,7 +117,7 @@ describe("shared fetch planner", () => {
         providerDefaults: {
           endpoint: "archive",
         },
-        streamId: "stream_archive",
+        stream_id: "stream_archive",
       }),
     ]);
 
@@ -137,8 +137,8 @@ describe("shared fetch planner", () => {
         providerFilters: {
           q: "climate",
         },
-        providerKey: "newsapi",
-        streamId: "stream_climate",
+        provider_key: "newsapi",
+        stream_id: "stream_climate",
       }),
       createExecution({
         fetchWindow: {
@@ -152,8 +152,8 @@ describe("shared fetch planner", () => {
         providerFilters: {
           q: "markets",
         },
-        providerKey: "newsapi",
-        streamId: "stream_markets",
+        provider_key: "newsapi",
+        stream_id: "stream_markets",
       }),
     ]);
 

@@ -45,7 +45,7 @@ describe("environment runtime schema", () => {
       driver: "local",
       local: {
         basePath: "public/uploads",
-        baseUrl: "/uploads",
+        base_url: "/uploads",
       },
       maxRemoteFileBytes: 5242880,
       uploadAllowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],

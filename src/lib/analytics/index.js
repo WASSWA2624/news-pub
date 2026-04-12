@@ -46,28 +46,28 @@ export const observabilityWarningActionValues = Object.freeze([
 ]);
 
 export const captureViewEventSchema = z.object({
-  eventType: z.enum(viewEventTypeValues),
+  event_type: z.enum(viewEventTypeValues),
   locale: z.string().trim().min(1),
   path: z.string().trim().min(1).max(2048),
-  postId: z.string().trim().min(1).optional(),
+  post_id: z.string().trim().min(1).optional(),
   referrer: z.string().trim().max(2048).optional(),
 });
 
 export const captureWebVitalSchema = z.object({
   attribution: z.record(z.any()).optional(),
-  buildId: z.string().trim().max(128).optional(),
-  connectionType: z.string().trim().max(32).optional(),
+  build_id: z.string().trim().max(128).optional(),
+  connection_type: z.string().trim().max(32).optional(),
   delta: z.number().finite().optional(),
-  formFactor: z.string().trim().max(16).optional(),
+  form_factor: z.string().trim().max(16).optional(),
   id: z.string().trim().min(1).max(128),
   label: z.string().trim().max(32).optional(),
   name: z.enum(webVitalMetricNameValues),
-  navigationType: z.string().trim().max(32).optional(),
+  navigation_type: z.string().trim().max(32).optional(),
   path: z.string().trim().min(1).max(2048),
   rating: z.string().trim().min(1).max(16),
   value: z.number().finite(),
-  viewportHeight: z.number().int().positive().optional(),
-  viewportWidth: z.number().int().positive().optional(),
+  viewport_height: z.number().int().positive().optional(),
+  viewport_width: z.number().int().positive().optional(),
 });
 
 function trimToNull(value, maxLength) {
@@ -120,19 +120,19 @@ function normalizeWebVitalRating(value) {
     : "good";
 }
 
-function normalizeWebVitalFormFactor(value, viewportWidth) {
+function normalizeWebVitalFormFactor(value, viewport_width) {
   const normalizedValue = `${value || ""}`.trim().toLowerCase();
 
   if (["desktop", "mobile", "tablet"].includes(normalizedValue)) {
     return normalizedValue;
   }
 
-  if (Number.isFinite(viewportWidth)) {
-    if (viewportWidth < 760) {
+  if (Number.isFinite(viewport_width)) {
+    if (viewport_width < 760) {
       return "mobile";
     }
 
-    if (viewportWidth < 1040) {
+    if (viewport_width < 1040) {
       return "tablet";
     }
   }
@@ -189,13 +189,13 @@ function serializeDate(value) {
 function buildErrorPayload(error) {
   if (!(error instanceof Error)) {
     return {
-      errorMessage: `${error}`,
+      last_error_message: `${error}`,
       errorName: "UnknownError",
     };
   }
 
   return {
-    errorMessage: error.message,
+    last_error_message: error.message,
     errorName: error.name,
   };
 }
@@ -214,8 +214,8 @@ function extractRequestUserAgent(request) {
 
 function buildConsoleLogEntry({
   action,
-  entityId,
-  entityType,
+  entity_id,
+  entity_type,
   error,
   level = "info",
   message = null,
@@ -223,20 +223,20 @@ function buildConsoleLogEntry({
 }) {
   return {
     action,
-    entityId: entityId ? `${entityId}` : null,
-    entityType: entityType || "observability",
+    entity_id: entity_id ? `${entity_id}` : null,
+    entity_type: entity_type || "observability",
     level,
     message: message || null,
     occurredAt: new Date().toISOString(),
     ...(error instanceof Error
       ? {
-          errorMessage: error.message,
+          last_error_message: error.message,
           errorName: error.name,
           errorStack: error.stack || null,
         }
       : error
         ? {
-            errorMessage: `${error}`,
+            last_error_message: `${error}`,
             errorName: "UnknownError",
           }
         : {}),
@@ -291,8 +291,8 @@ export function writeStructuredLog(input) {
   const level = ["error", "info", "warn"].includes(input?.level) ? input.level : "info";
   const entry = buildConsoleLogEntry({
     action: input?.action || "OBSERVABILITY_EVENT",
-    entityId: input?.entityId,
-    entityType: input?.entityType,
+    entity_id: input?.entity_id,
+    entity_type: input?.entity_type,
     error: input?.error,
     level,
     message: input?.message || null,
@@ -316,17 +316,17 @@ export async function createAuditEventRecord(input, prisma) {
   return db.auditEvent.create({
     data: {
       action: input.action,
-      actorId: input.actorId || null,
-      entityId: `${input.entityId || input.action}`,
-      entityType: input.entityType || "observability",
-      payloadJson: input.payloadJson || null,
+      actor_id: input.actor_id || null,
+      entity_id: `${input.entity_id || input.action}`,
+      entity_type: input.entity_type || "observability",
+      payload_json: input.payload_json || null,
     },
   });
 }
 
 /** Records an operational failure or warning in both audit storage and structured logs. */
 export async function recordObservabilityEvent(input, prisma) {
-  const payloadJson = {
+  const payload_json = {
     ...((input?.payload && typeof input.payload === "object" && !Array.isArray(input.payload))
       ? input.payload
       : {}),
@@ -339,10 +339,10 @@ export async function recordObservabilityEvent(input, prisma) {
   const auditEvent = await createAuditEventRecord(
     {
       action: input?.action || "OBSERVABILITY_EVENT",
-      actorId: input?.actorId || null,
-      entityId: input?.entityId || input?.action || "observability_event",
-      entityType: input?.entityType || "observability",
-      payloadJson,
+      actor_id: input?.actor_id || null,
+      entity_id: input?.entity_id || input?.action || "observability_event",
+      entity_type: input?.entity_type || "observability",
+      payload_json,
     },
     prisma,
   ).catch(() => null);
@@ -350,18 +350,18 @@ export async function recordObservabilityEvent(input, prisma) {
   if (input?.writeToConsole !== false) {
     writeStructuredLog({
       action: input?.action || "OBSERVABILITY_EVENT",
-      entityId: input?.entityId,
-      entityType: input?.entityType || "observability",
+      entity_id: input?.entity_id,
+      entity_type: input?.entity_type || "observability",
       error: input?.error,
       level: input?.level || "error",
       message: input?.message || null,
-      payload: payloadJson,
+      payload: payload_json,
     });
   }
 
   return {
     auditEvent,
-    payloadJson,
+    payload_json,
   };
 }
 
@@ -372,21 +372,21 @@ export async function recordViewEvent(input, options = {}, prisma) {
 
   return db.viewEvent.create({
     data: {
-      eventType: normalizeViewEventType(input?.eventType),
-      ipHash: hashAnalyticsValue(clientIp, env.auth.session.secret, "view-ip"),
+      event_type: normalizeViewEventType(input?.event_type),
+      ip_hash: hashAnalyticsValue(clientIp, env.auth.session.secret, "view-ip"),
       locale: normalizeLocale(input?.locale),
       path: normalizePathname(input?.path),
-      postId: trimToNull(input?.postId, 191),
+      post_id: trimToNull(input?.post_id, 191),
       referrer: trimToNull(input?.referrer, 2048),
-      userAgent: trimToNull(options.userAgent || extractRequestUserAgent(options.request), 512),
+      user_agent: trimToNull(options.user_agent || extractRequestUserAgent(options.request), 512),
     },
     select: {
-      createdAt: true,
-      eventType: true,
+      created_at: true,
+      event_type: true,
       id: true,
       locale: true,
       path: true,
-      postId: true,
+      post_id: true,
     },
   });
 }
@@ -404,35 +404,35 @@ export async function recordWebVitalMetric(input, prisma) {
   }
 
   const path = normalizeWebVitalPath(input?.path);
-  const viewportWidth = Number.isFinite(input?.viewportWidth) ? Math.trunc(input.viewportWidth) : null;
-  const viewportHeight = Number.isFinite(input?.viewportHeight) ? Math.trunc(input.viewportHeight) : null;
+  const viewport_width = Number.isFinite(input?.viewport_width) ? Math.trunc(input.viewport_width) : null;
+  const viewport_height = Number.isFinite(input?.viewport_height) ? Math.trunc(input.viewport_height) : null;
 
   return db.webVitalMetric.create({
     data: {
-      attributionJson: trimStructuredObject(input?.attribution),
-      buildId: trimToNull(input?.buildId, 128),
-      connectionType: trimToNull(input?.connectionType, 32),
+      attribution_json: trimStructuredObject(input?.attribution),
+      build_id: trimToNull(input?.build_id, 128),
+      connection_type: trimToNull(input?.connection_type, 32),
       delta: Number.isFinite(input?.delta) ? input.delta : null,
-      formFactor: normalizeWebVitalFormFactor(input?.formFactor, viewportWidth),
+      form_factor: normalizeWebVitalFormFactor(input?.form_factor, viewport_width),
       label: trimToNull(input?.label, 32),
       locale: inferLocaleFromPath(path),
-      metricId: trimToNull(input?.id, 128) || "unknown",
+      metric_id: trimToNull(input?.id, 128) || "unknown",
       name: normalizeWebVitalMetricName(input?.name),
-      navigationType: trimToNull(input?.navigationType, 32),
+      navigation_type: trimToNull(input?.navigation_type, 32),
       path,
       rating: normalizeWebVitalRating(input?.rating),
-      routeGroup: classifyPublicRoute(path),
+      route_group: classifyPublicRoute(path),
       value: Number.isFinite(input?.value) ? input.value : 0,
-      viewportHeight,
-      viewportWidth,
+      viewport_height,
+      viewport_width,
     },
     select: {
-      buildId: true,
-      createdAt: true,
+      build_id: true,
+      created_at: true,
       id: true,
       name: true,
       path: true,
-      routeGroup: true,
+      route_group: true,
       value: true,
     },
   });
@@ -444,12 +444,12 @@ export async function recordWebVitalMetric(input, prisma) {
 export function serializeAuditEvent(event) {
   return {
     action: event.action,
-    actorId: event.actorId || null,
-    createdAt: serializeDate(event.createdAt),
-    entityId: event.entityId,
-    entityType: event.entityType,
+    actor_id: event.actor_id || null,
+    created_at: serializeDate(event.created_at),
+    entity_id: event.entity_id,
+    entity_type: event.entity_type,
     id: event.id,
-    payload: event.payloadJson || null,
+    payload: event.payload_json || null,
   };
 }
 /**

@@ -95,11 +95,11 @@ export default async function MediaPage() {
                 {snapshot.assets.map((asset) => (
                   <tr key={asset.id}>
                     <td data-label="Asset">
-                      <strong>{asset.fileName || asset.id}</strong>
+                      <strong>{asset.file_name || asset.id}</strong>
                       <SmallText>{asset.alt || asset.caption || "No descriptive text"}</SmallText>
                     </td>
-                    <td data-label="Source">{asset.sourceDomain || asset.storageDriver}</td>
-                    <td data-label="Size">{asset.fileSizeBytes || 0} bytes</td>
+                    <td data-label="Source">{asset.source_domain || asset.storage_driver}</td>
+                    <td data-label="Size">{asset.file_size_bytes || 0} bytes</td>
                     <td data-label="Variants">{asset.variantCount}</td>
                   </tr>
                 ))}

@@ -22,7 +22,7 @@ export class DestinationPublishError extends NewsPubError {
   constructor(
     message,
     {
-      responseJson = null,
+      response_json = null,
       retryable = false,
       status = "destination_publish_failed",
       statusCode = 502,
@@ -33,7 +33,7 @@ export class DestinationPublishError extends NewsPubError {
       statusCode,
     });
     this.name = "DestinationPublishError";
-    this.responseJson = responseJson;
+    this.response_json = response_json;
     this.retryable = retryable;
   }
 }
@@ -147,7 +147,7 @@ function createMetaPublicUrlError(platformLabel, fieldLabel, resolution) {
     : `${platformLabel} publishing requires a valid public ${fieldLabel}.`;
 
   return new DestinationPublishError(message, {
-    responseJson: {
+    response_json: {
       error: "destination_publish_public_url_required",
       field: fieldLabel,
       host: host || null,
@@ -240,7 +240,7 @@ export function formatFacebookTitle(value) {
 function extractFacebookBodySections(payload) {
   const summaryKey = normalizeSectionKey(payload.summary);
   const sourceReferenceKey = normalizeSectionKey(payload.sourceReference);
-  const canonicalUrl = trimText(payload.canonicalUrl);
+  const canonical_url = trimText(payload.canonical_url);
   const extraLinkUrl = trimText(payload.extraLinkUrl);
 
   return splitBodySections(payload.body).filter((section) => {
@@ -261,7 +261,7 @@ function extractFacebookBodySections(payload) {
       return false;
     }
 
-    if (sectionContainsValue(section, canonicalUrl) || sectionContainsValue(section, extraLinkUrl)) {
+    if (sectionContainsValue(section, canonical_url) || sectionContainsValue(section, extraLinkUrl)) {
       return false;
     }
 
@@ -298,8 +298,8 @@ async function parseJsonResponse(response) {
 }
 
 async function getGraphJson(runtimeConnection, path, values) {
-  const baseUrl = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
-  const url = new URL(path.replace(/^\/+/, ""), baseUrl);
+  const base_url = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
+  const url = new URL(path.replace(/^\/+/, ""), base_url);
 
   Object.entries(values || {}).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") {
@@ -322,7 +322,7 @@ async function getGraphJson(runtimeConnection, path, values) {
     throw new DestinationPublishError(
       `Destination publish request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
       {
-        responseJson: {
+        response_json: {
           error: "destination_publish_network_failed",
         },
         retryable: true,
@@ -338,7 +338,7 @@ async function getGraphJson(runtimeConnection, path, values) {
     throw new DestinationPublishError(
       payload?.error?.message || `Destination publish failed with status ${response.status}.`,
       {
-        responseJson: payload,
+        response_json: payload,
         retryable: isRetryableGraphFailure(response, payload),
         status: "destination_publish_failed",
         statusCode: response.status || 502,
@@ -350,7 +350,7 @@ async function getGraphJson(runtimeConnection, path, values) {
 }
 
 async function postGraphForm(runtimeConnection, path, values) {
-  const baseUrl = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
+  const base_url = normalizeBaseUrl(runtimeConnection?.graphApiBaseUrl || defaultGraphApiBaseUrl);
   const body = new URLSearchParams();
 
   Object.entries(values || {}).forEach(([key, value]) => {
@@ -364,7 +364,7 @@ async function postGraphForm(runtimeConnection, path, values) {
   let response;
 
   try {
-    response = await fetchWithTimeoutAndRetry(new URL(path.replace(/^\/+/, ""), baseUrl), {
+    response = await fetchWithTimeoutAndRetry(new URL(path.replace(/^\/+/, ""), base_url), {
       body,
       headers: {
         accept: "application/json",
@@ -376,7 +376,7 @@ async function postGraphForm(runtimeConnection, path, values) {
     throw new DestinationPublishError(
       `Destination publish request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
       {
-        responseJson: {
+        response_json: {
           error: "destination_publish_network_failed",
         },
         retryable: true,
@@ -392,7 +392,7 @@ async function postGraphForm(runtimeConnection, path, values) {
     throw new DestinationPublishError(
       payload?.error?.message || `Destination publish failed with status ${response.status}.`,
       {
-        responseJson: payload,
+        response_json: payload,
         retryable: isRetryableGraphFailure(response, payload),
         status: "destination_publish_failed",
         statusCode: response.status || 502,
@@ -406,7 +406,7 @@ async function postGraphForm(runtimeConnection, path, values) {
 function requireRuntimeAccessToken(runtimeConnection) {
   if (!runtimeConnection?.accessToken) {
     throw new DestinationPublishError("Destination token is missing or unreadable.", {
-      responseJson: {
+      response_json: {
         error: "destination_token_missing",
       },
       retryable: false,
@@ -419,7 +419,7 @@ function requireRuntimeAccessToken(runtimeConnection) {
 }
 
 function classifyMetaPublishFailure(error) {
-  const responseError = error?.responseJson?.error || error?.responseJson || {};
+  const responseError = error?.response_json?.error || error?.response_json || {};
   const responseMessage = trimText(responseError?.message || error?.message).toLowerCase();
   const responseCode = Number(responseError?.code || 0);
 
@@ -473,7 +473,7 @@ function createActionableMetaPublishError(error) {
   const classification = classifyMetaPublishFailure(error);
 
   return new DestinationPublishError(error.message, {
-    responseJson: error.responseJson,
+    response_json: error.response_json,
     retryable: error.retryable,
     status: classification.status,
     statusCode: classification.statusCode,
@@ -496,12 +496,12 @@ async function verifyInstagramDestination(runtimeConnection, accessToken) {
 
 async function executeFacebookPublish(runtimeConnection, accessToken, destination, payload) {
   const targetId = runtimeConnection.accountId;
-  const canonicalUrlResolution = resolveMetaPublishUrl(payload.canonicalUrl);
+  const canonicalUrlResolution = resolveMetaPublishUrl(payload.canonical_url);
   const mediaUrlResolution = resolveMetaPublishUrl(payload.mediaUrl);
   const verifiedDestination = await verifyFacebookDestination(runtimeConnection, accessToken);
   const normalizedPayload = {
     ...payload,
-    canonicalUrl: canonicalUrlResolution.normalizedUrl || trimText(payload.canonicalUrl) || null,
+    canonical_url: canonicalUrlResolution.normalizedUrl || trimText(payload.canonical_url) || null,
     mediaUrl: mediaUrlResolution.issue ? null : mediaUrlResolution.normalizedUrl,
   };
   const linkUrl = canonicalUrlResolution.issue ? null : canonicalUrlResolution.normalizedUrl;
@@ -517,9 +517,9 @@ async function executeFacebookPublish(runtimeConnection, accessToken, destinatio
       });
 
       return {
-        publishedAt: new Date(),
-        remoteId: photoPayload.post_id || photoPayload.id || null,
-        responseJson: {
+        published_at: new Date(),
+        remote_id: photoPayload.post_id || photoPayload.id || null,
+        response_json: {
           channel: "facebook_photo",
           targetId: verifiedDestination?.id || targetId,
           ...photoPayload,
@@ -545,13 +545,13 @@ async function executeFacebookPublish(runtimeConnection, accessToken, destinatio
       );
 
       return {
-        publishedAt: new Date(),
-        remoteId: feedPayload.id || null,
-        responseJson: {
+        published_at: new Date(),
+        remote_id: feedPayload.id || null,
+        response_json: {
           channel: "facebook_feed_fallback",
           fallbackReason: error.message,
           fallbackResponse: feedPayload,
-          photoError: error.responseJson,
+          photoError: error.response_json,
           targetId: verifiedDestination?.id || targetId,
         },
       };
@@ -569,9 +569,9 @@ async function executeFacebookPublish(runtimeConnection, accessToken, destinatio
   );
 
   return {
-    publishedAt: new Date(),
-    remoteId: feedPayload.id || null,
-    responseJson: {
+    published_at: new Date(),
+    remote_id: feedPayload.id || null,
+    response_json: {
       channel: "facebook_feed",
       targetId: verifiedDestination?.id || targetId,
       ...feedPayload,
@@ -597,8 +597,8 @@ function buildInstagramCaption(payload) {
   return joinPublishText(
     [
       payload.caption || payload.body || payload.summary || payload.title,
-      payload.sourceAttribution || payload.sourceReference,
-      payload.canonicalUrl || payload.extraLinkUrl,
+      payload.source_attribution || payload.sourceReference,
+      payload.canonical_url || payload.extraLinkUrl,
       payload.hashtags,
     ],
     2200,
@@ -614,7 +614,7 @@ async function publishFacebookDestination(destination, payload, prisma) {
     throw new DestinationPublishError(
       "Facebook profile destinations cannot be published automatically. Use a Facebook page destination instead.",
       {
-        responseJson: {
+        response_json: {
           error: "facebook_profile_not_supported",
         },
         retryable: false,
@@ -629,7 +629,7 @@ async function publishFacebookDestination(destination, payload, prisma) {
 
   if (!targetId) {
     throw new DestinationPublishError("Facebook destinations require an external account or page ID.", {
-      responseJson: {
+      response_json: {
         error: "destination_account_missing",
       },
       retryable: false,
@@ -682,7 +682,7 @@ async function publishInstagramDestination(destination, payload) {
     throw new DestinationPublishError(
       "Instagram personal destinations cannot be published automatically. Use a business destination instead.",
       {
-        responseJson: {
+        response_json: {
           error: "instagram_personal_not_supported",
         },
         retryable: false,
@@ -696,7 +696,7 @@ async function publishInstagramDestination(destination, payload) {
     throw new DestinationPublishError(
       "Instagram publication requires a media asset URL. Attach a usable image before retrying.",
       {
-        responseJson: {
+        response_json: {
           error: "instagram_media_required",
         },
         retryable: false,
@@ -717,7 +717,7 @@ async function publishInstagramDestination(destination, payload) {
 
   if (!targetId) {
     throw new DestinationPublishError("Instagram destinations require an external account ID.", {
-      responseJson: {
+      response_json: {
         error: "destination_account_missing",
       },
       retryable: false,
@@ -734,7 +734,7 @@ async function publishInstagramDestination(destination, payload) {
     throw new DestinationPublishError(
       "Instagram publishing requires a Meta-verified professional account. Connect a business or creator account before retrying.",
       {
-        responseJson: {
+        response_json: {
           accountType: verifiedDestination?.account_type || null,
           error: "instagram_professional_account_required",
         },
@@ -757,9 +757,9 @@ async function publishInstagramDestination(destination, payload) {
   });
 
   return {
-    publishedAt: new Date(),
-    remoteId: publishPayload.id || creationPayload.id || null,
-    responseJson: {
+    published_at: new Date(),
+    remote_id: publishPayload.id || creationPayload.id || null,
+    response_json: {
       channel: "instagram_media_publish",
       creation: creationPayload,
       publish: publishPayload,
@@ -779,7 +779,7 @@ export async function publishExternalDestination({ destination, payload, prisma 
 
   if (validationIssues.length) {
     throw new DestinationPublishError(validationIssues[0].message, {
-      responseJson: {
+      response_json: {
         error: "destination_configuration_invalid",
         issues: validationIssues,
       },
@@ -798,7 +798,7 @@ export async function publishExternalDestination({ destination, payload, prisma 
   }
 
   throw new DestinationPublishError(`Unsupported external destination platform "${destination?.platform || "unknown"}".`, {
-    responseJson: {
+    response_json: {
       error: "destination_platform_unsupported",
       platform: destination?.platform || null,
     },

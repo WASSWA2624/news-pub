@@ -49,12 +49,12 @@ export function isSupportedLocale(locale) {
 }
 
 function compareLocaleDefinitions(left, right) {
-  if (left.isDefault !== right.isDefault) {
-    return left.isDefault ? -1 : 1;
+  if (left.is_default !== right.is_default) {
+    return left.is_default ? -1 : 1;
   }
 
-  if (left.isActive !== right.isActive) {
-    return left.isActive ? -1 : 1;
+  if (left.is_active !== right.is_active) {
+    return left.is_active ? -1 : 1;
   }
 
   return left.code.localeCompare(right.code);
@@ -65,8 +65,8 @@ function createLocaleMetadata(code, definition) {
     code,
     flagEmoji: formatLanguageFlagEmoji(code),
     flagImageUrl: formatLanguageFlagImageUrl(code),
-    isActive: isSupportedLocale(code),
-    isDefault: code === defaultLocale,
+    is_active: isSupportedLocale(code),
+    is_default: code === defaultLocale,
     label: definition.label,
     loadMessages: definition.loadMessages,
   };
@@ -92,12 +92,12 @@ export function getRegisteredLocaleDefinitions() {
  */
 
 export function getSupportedLocaleDefinitions() {
-  return getRegisteredLocaleDefinitions().filter((definition) => definition.isActive);
+  return getRegisteredLocaleDefinitions().filter((definition) => definition.is_active);
 }
 /**
  * Returns the locale definitions that are registered but not currently active.
  */
 
 export function getInactiveLocaleDefinitions() {
-  return getRegisteredLocaleDefinitions().filter((definition) => !definition.isActive);
+  return getRegisteredLocaleDefinitions().filter((definition) => !definition.is_active);
 }

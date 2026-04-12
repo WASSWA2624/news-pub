@@ -19,8 +19,8 @@ async function findDefaultAdminAccount(prisma, rawEnv = process.env) {
     select: {
       email: true,
       id: true,
-      isActive: true,
-      passwordHash: true,
+      is_active: true,
+      password_hash: true,
       role: true,
     },
     where: {
@@ -41,7 +41,7 @@ async function assertDefaultAdminAccountSeeded(prisma, rawEnv = process.env) {
 
   const issues = [];
 
-  if (!user.isActive) {
+  if (!user.is_active) {
     issues.push("the account is inactive");
   }
 
@@ -49,7 +49,7 @@ async function assertDefaultAdminAccountSeeded(prisma, rawEnv = process.env) {
     issues.push(`the role is ${user.role} instead of SUPER_ADMIN`);
   }
 
-  if (!`${user.passwordHash || ""}`.trim()) {
+  if (!`${user.password_hash || ""}`.trim()) {
     issues.push("the password hash is missing");
   }
 

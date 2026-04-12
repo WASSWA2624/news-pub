@@ -76,9 +76,9 @@ export function evaluateDestinationPolicy({
   const resolvedPlatform = trimText(platform || destination.platform).toUpperCase();
   const title = trimText(payload.title);
   const body = trimText(payload.body || payload.caption || payload.summary);
-  const sourceAttribution = trimText(payload.sourceAttribution || payload.sourceReference);
+  const source_attribution = trimText(payload.source_attribution || payload.sourceReference);
   const hashtags = normalizeHashtags(payload.hashtags);
-  const normalizedBody = normalizeSearchText([title, body, sourceAttribution].join(" "));
+  const normalizedBody = normalizeSearchText([title, body, source_attribution].join(" "));
   const blocklist = dedupeStrings(env.policy.blocklist || []).map((value) => normalizeSearchText(value));
   const reasons = [];
   const warnings = [];
@@ -111,7 +111,7 @@ export function evaluateDestinationPolicy({
     riskScore += 12;
   }
 
-  if (!sourceAttribution) {
+  if (!source_attribution) {
     reasons.push(
       createReason(
         "source_attribution_missing",
@@ -216,7 +216,7 @@ export function evaluateDestinationPolicy({
 
   return {
     readinessChecks: [
-      buildReadinessCheck("Source attribution", Boolean(sourceAttribution), sourceAttribution || "Required"),
+      buildReadinessCheck("Source attribution", Boolean(source_attribution), source_attribution || "Required"),
       buildReadinessCheck(
         "Media validation",
         !mediaValidation || mediaValidation.ok,

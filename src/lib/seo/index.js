@@ -202,7 +202,7 @@ export function buildAbsoluteUrl(pathOrUrl = "/") {
 /** Builds Next.js metadata for locale-aware NewsPub pages. */
 export function buildPageMetadata({
   authors,
-  canonicalUrl,
+  canonical_url,
   description,
   image,
   keywords,
@@ -216,12 +216,12 @@ export function buildPageMetadata({
   query,
   segments = [],
   title,
-  twitterDescription,
-  twitterTitle,
+  twitter_description,
+  twitter_title,
   type = "website",
 } = {}) {
   const canonical = buildAbsoluteUrl(
-    appendQueryToPath(canonicalUrl || buildCanonicalPath(locale, segments), query),
+    appendQueryToPath(canonical_url || buildCanonicalPath(locale, segments), query),
   );
   const metadataAuthors = normalizeMetadataAuthors(authors);
   const normalizedKeywords = dedupeStrings(keywords);
@@ -271,9 +271,9 @@ export function buildPageMetadata({
     title,
     twitter: {
       card: twitterImages.length ? "summary_large_image" : "summary",
-      description: twitterDescription || openGraphDescription || description,
+      description: twitter_description || openGraphDescription || description,
       images: twitterImages.map((entry) => entry.url),
-      title: twitterTitle || openGraphTitle || title,
+      title: twitter_title || openGraphTitle || title,
     },
   };
 }
@@ -323,15 +323,15 @@ export function buildBreadcrumbJsonLd(items = []) {
 
 /** Builds article structured data for published story pages. */
 export function buildArticleJsonLd({ article } = {}) {
-  if (!article?.title || !article?.canonicalUrl) {
+  if (!article?.title || !article?.canonical_url) {
     return null;
   }
 
-  const canonicalUrl = buildAbsoluteUrl(article.canonicalUrl);
-  const imageUrl = article.seoImage?.url || article.image?.url;
+  const canonical_url = buildAbsoluteUrl(article.canonical_url);
+  const image_url = article.seoImage?.url || article.image?.url;
   const categoryNames = getArticleCategoryNames(article);
   const keywordList = dedupeStrings(article.keywords);
-  const wordCount = countWords(article.contentHtml || article.contentMd);
+  const wordCount = countWords(article.content_html || article.content_md);
 
   return {
     "@context": "https://schema.org",
@@ -345,35 +345,35 @@ export function buildArticleJsonLd({ article } = {}) {
           articleSection: categoryNames[0],
         }
       : {}),
-    ...(article.metaTitle && article.metaTitle !== article.title
+    ...(article.meta_title && article.meta_title !== article.title
       ? {
-          alternativeHeadline: article.metaTitle,
+          alternativeHeadline: article.meta_title,
         }
       : {}),
     author: buildArticleAuthorEntries(article),
-    dateModified: article.updatedAt || article.publishedAt || undefined,
-    datePublished: article.publishedAt || undefined,
-    description: article.metaDescription || article.summary || undefined,
+    dateModified: article.updated_at || article.published_at || undefined,
+    datePublished: article.published_at || undefined,
+    description: article.meta_description || article.summary || undefined,
     headline: article.title,
-    image: imageUrl ? [buildAbsoluteUrl(imageUrl)] : undefined,
+    image: image_url ? [buildAbsoluteUrl(image_url)] : undefined,
     inLanguage: article.locale || defaultLocale,
     ...(keywordList.length
       ? {
           keywords: keywordList.join(", "),
         }
       : {}),
-    mainEntityOfPage: canonicalUrl,
+    mainEntityOfPage: canonical_url,
     publisher: {
       "@type": "Organization",
       name: siteName,
       url: buildAbsoluteUrl(buildLocalizedPath(article.locale || defaultLocale, publicRouteSegments.home)),
     },
-    ...(imageUrl
+    ...(image_url
       ? {
-          thumbnailUrl: buildAbsoluteUrl(imageUrl),
+          thumbnailUrl: buildAbsoluteUrl(image_url),
         }
       : {}),
-    url: canonicalUrl,
+    url: canonical_url,
     ...(wordCount
       ? {
           wordCount,

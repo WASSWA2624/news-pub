@@ -15,7 +15,7 @@ import { NewsPubError, createContentHash, dedupeStrings, normalizeDisplayText } 
 
 const providerRuntimeCatalog = Object.freeze({
   mediastack: {
-    baseUrl: "https://api.mediastack.com/v1/news",
+    base_url: "https://api.mediastack.com/v1/news",
     credentialEnv: "MEDIASTACK_API_KEY",
     description: "Mediastack provider integration with the official live news filters.",
     maxBatchSize: 100,
@@ -111,7 +111,7 @@ function getMultiValue(values = {}, key) {
 }
 
 function getMaxPostsPerRun(stream) {
-  return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 10}`, 10) || 10);
+  return Math.max(1, Number.parseInt(`${stream?.max_posts_per_run || 10}`, 10) || 10);
 }
 
 function getProviderFetchBatchSize({ maxArticlesHint = null, stream = null } = {}) {
@@ -123,8 +123,8 @@ function getProviderFetchBatchSize({ maxArticlesHint = null, stream = null } = {
   return Math.max(resolvedHint * 3, 25);
 }
 
-function getConfiguredProviderBatchSizeCap(providerKey) {
-  const normalizedProviderKey = normalizeProviderKey(providerKey);
+function getConfiguredProviderBatchSizeCap(provider_key) {
+  const normalizedProviderKey = normalizeProviderKey(provider_key);
   const envBatchCapName =
     normalizedProviderKey === "newsdata"
       ? "NEWS_PUB_NEWSDATA_MAX_BATCH_SIZE"
@@ -141,9 +141,9 @@ function getConfiguredProviderBatchSizeCap(providerKey) {
     || normalizePositiveInteger(providerRuntimeCatalog[normalizedProviderKey]?.maxBatchSize, null);
 }
 
-function getProviderRequestSizing(providerKey, options = {}) {
+function getProviderRequestSizing(provider_key, options = {}) {
   const requestedBatchSize = getProviderFetchBatchSize(options);
-  const providerBatchCap = getConfiguredProviderBatchSizeCap(providerKey);
+  const providerBatchCap = getConfiguredProviderBatchSizeCap(provider_key);
 
   return {
     cappedByProvider: Number.isInteger(providerBatchCap) && providerBatchCap > 0 && requestedBatchSize > providerBatchCap,
@@ -156,8 +156,8 @@ function getProviderRequestSizing(providerKey, options = {}) {
   };
 }
 
-function getCappedProviderFetchBatchSize(providerKey, options = {}) {
-  return getProviderRequestSizing(providerKey, options).runtimeBatchSize;
+function getCappedProviderFetchBatchSize(provider_key, options = {}) {
+  return getProviderRequestSizing(provider_key, options).runtimeBatchSize;
 }
 
 function normalizeDateValue(value) {
@@ -201,11 +201,11 @@ function formatProviderDateWindowValue(value, precision) {
 
 /** Convenience wrapper for applying the normalized automatic window to a provider request. */
 export function applyAutomaticDateWindowToRequestValues(
-  providerKey,
+  provider_key,
   requestValues = {},
   { checkpoint, now } = {},
 ) {
-  return applyFetchWindowToRequestValues(providerKey, requestValues, {
+  return applyFetchWindowToRequestValues(provider_key, requestValues, {
     checkpoint,
     now,
   });
@@ -235,7 +235,7 @@ function resolveRelativeWindowHours(fetchWindow, now = new Date()) {
  * Applies the normalized NewsPub fetch window to provider-native request
  * values while keeping provider-specific parameter names inside the adapter.
  *
- * @param {string} providerKey - Provider catalog key.
+ * @param {string} provider_key - Provider catalog key.
  * @param {object} requestValues - Sanitized provider request values.
  * @param {object} [options] - Window resolution inputs.
  * @param {object|null} [options.checkpoint] - Provider checkpoint metadata.
@@ -244,11 +244,11 @@ function resolveRelativeWindowHours(fetchWindow, now = new Date()) {
  * @returns {object} Provider request values with time-boundary inputs applied.
  */
 export function applyFetchWindowToRequestValues(
-  providerKey,
+  provider_key,
   requestValues = {},
   { checkpoint, fetchWindow = null, now } = {},
 ) {
-  const timeBoundarySupport = getProviderTimeBoundarySupport(providerKey, requestValues);
+  const timeBoundarySupport = getProviderTimeBoundarySupport(provider_key, requestValues);
   const resolvedFetchWindow =
     fetchWindow
     || resolveExecutionFetchWindow({
@@ -323,9 +323,9 @@ function appendIncludeExcludeListParam(url, key, includeValues, excludeValues) {
   }
 }
 
-function getCheckpointCursorValue(cursorJson) {
-  if (typeof cursorJson === "string" || typeof cursorJson === "number") {
-    return `${cursorJson}`;
+function getCheckpointCursorValue(cursor_json) {
+  if (typeof cursor_json === "string" || typeof cursor_json === "number") {
+    return `${cursor_json}`;
   }
 
   return "";
@@ -343,18 +343,18 @@ function serializeProviderRequestUrl(url, redactParams = []) {
   return diagnosticUrl.toString();
 }
 
-function getProviderArticleTargetCount(providerKey, options = {}) {
-  const batchSize = getProviderRequestSizing(providerKey, options).runtimeBatchSize;
+function getProviderArticleTargetCount(provider_key, options = {}) {
+  const batchSize = getProviderRequestSizing(provider_key, options).runtimeBatchSize;
 
   return Math.min(Math.max(batchSize, batchSize * maxProviderPageCount), 500);
 }
 
-function createProviderDiagnostics(providerKey, { endpoint = null, requestValues = {}, requestSizing = null } = {}) {
+function createProviderDiagnostics(provider_key, { endpoint = null, requestValues = {}, requestSizing = null } = {}) {
   return {
     endpoint,
     pageLimit: maxProviderPageCount,
     pages: [],
-    providerKey,
+    provider_key,
     requestSizing: requestSizing || null,
     requestValues: requestValues || {},
     retryEvents: [],
@@ -400,31 +400,31 @@ function createRetryEventRecorder(retryEvents = [], context = {}) {
       ...context,
       attempt: event.attempt,
       delayMs: event.delayMs,
-      errorMessage: event.errorMessage || null,
+      last_error_message: event.last_error_message || null,
       kind: event.kind,
       status: event.status,
     });
   };
 }
 
-function createNormalizedArticle(article, providerKey) {
+function createNormalizedArticle(article, provider_key) {
   const normalizedTitle = normalizeDisplayText(article.title);
-  const normalizedSourceUrl = normalizeDisplayText(article.sourceUrl);
-  const publishedAt = article.publishedAt || new Date().toISOString();
+  const normalizedSourceUrl = normalizeDisplayText(article.source_url);
+  const published_at = article.published_at || new Date().toISOString();
 
   return {
     ...article,
-    dedupeFingerprint: createContentHash(
-      providerKey,
-      article.providerArticleId,
+    dedupe_fingerprint: createContentHash(
+      provider_key,
+      article.provider_article_id,
       normalizedSourceUrl,
       normalizedTitle,
-      publishedAt,
+      published_at,
     ).slice(0, 40),
-    fetchTimestamp: new Date().toISOString(),
-    normalizedTitleHash: createContentHash(normalizedTitle),
-    providerKey,
-    sourceUrlHash: normalizedSourceUrl ? createContentHash(normalizedSourceUrl) : null,
+    fetch_timestamp: new Date().toISOString(),
+    normalized_title_hash: createContentHash(normalizedTitle),
+    provider_key,
+    source_url_hash: normalizedSourceUrl ? createContentHash(normalizedSourceUrl) : null,
     tags: dedupeStrings(article.tags),
   };
 }
@@ -434,16 +434,16 @@ function normalizeMediastackArticle(article) {
     {
       author: article.author || null,
       body: article.description || article.snippet || null,
-      imageUrl: article.image || null,
+      image_url: article.image || null,
       language: normalizeLowerScalar(article.language) || null,
-      providerArticleId: article.url || article.title || null,
+      provider_article_id: article.url || article.title || null,
       providerCategories: normalizeList([article.category], { lowerCase: true }),
       providerCountries: normalizeList([article.country], { lowerCase: true }),
       providerRegions: [],
-      publishedAt: article.published_at || null,
-      rawPayloadJson: article,
-      sourceName: article.source || "Unknown Source",
-      sourceUrl: article.url || null,
+      published_at: article.published_at || null,
+      raw_payload_json: article,
+      source_name: article.source || "Unknown Source",
+      source_url: article.url || null,
       summary: article.description || article.title || "",
       tags: dedupeStrings([article.category, article.source]),
       title: article.title || "Untitled story",
@@ -457,16 +457,16 @@ function normalizeNewsDataArticle(article) {
     {
       author: Array.isArray(article.creator) ? article.creator.join(", ") : article.creator || null,
       body: article.content || article.description || null,
-      imageUrl: article.image_url || null,
+      image_url: article.image_url || null,
       language: normalizeLowerScalar(article.language) || null,
-      providerArticleId: article.article_id || article.link || article.title || null,
+      provider_article_id: article.article_id || article.link || article.title || null,
       providerCategories: normalizeList(article.category || [], { lowerCase: true }),
       providerCountries: normalizeList(article.country || [], { lowerCase: true }),
       providerRegions: [],
-      publishedAt: article.pubDate || null,
-      rawPayloadJson: article,
-      sourceName: article.source_id || "Unknown Source",
-      sourceUrl: article.link || null,
+      published_at: article.pubDate || null,
+      raw_payload_json: article,
+      source_name: article.source_id || "Unknown Source",
+      source_url: article.link || null,
       summary: article.description || article.title || "",
       tags: dedupeStrings([...(article.category || []), ...(article.keywords || [])]),
       title: article.title || "Untitled story",
@@ -487,16 +487,16 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
     {
       author: article.author || null,
       body: article.content || article.description || null,
-      imageUrl: article.urlToImage || null,
+      image_url: article.urlToImage || null,
       language: requestedLanguage,
-      providerArticleId: article.url || article.title || null,
+      provider_article_id: article.url || article.title || null,
       providerCategories: requestedCategory ? [requestedCategory] : [],
       providerCountries: requestedCountry ? [requestedCountry] : [],
       providerRegions: [],
-      publishedAt: article.publishedAt || null,
-      rawPayloadJson: article,
-      sourceName: article.source?.name || "Unknown Source",
-      sourceUrl: article.url || null,
+      published_at: article.published_at || null,
+      raw_payload_json: article,
+      source_name: article.source?.name || "Unknown Source",
+      source_url: article.url || null,
       summary: article.description || article.title || "",
       tags: dedupeStrings([article.source?.name, requestedCategory]),
       title: article.title || "Untitled story",
@@ -505,7 +505,7 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
   );
 }
 
-function buildFallbackProviderArticles(stream, providerKey, now = new Date()) {
+function buildFallbackProviderArticles(stream, provider_key, now = new Date()) {
   const streamLocale = stream?.locale || "en";
   const streamName = stream?.name || "Shared verification stream";
   const streamSlug = stream?.slug || "shared-verification";
@@ -516,31 +516,31 @@ function buildFallbackProviderArticles(stream, providerKey, now = new Date()) {
         author: "NewsPub system",
         body:
           "This fallback article demonstrates the full NewsPub ingest pipeline when provider credentials are not configured in a local environment.",
-        imageUrl: null,
+        image_url: null,
         language: streamLocale,
-        providerArticleId: `${streamSlug}-${now.toISOString()}`,
+        provider_article_id: `${streamSlug}-${now.toISOString()}`,
         providerCategories: ["technology"],
         providerCountries: ["us"],
         providerRegions: [],
-        publishedAt: now.toISOString(),
-        rawPayloadJson: {
+        published_at: now.toISOString(),
+        raw_payload_json: {
           fallback: true,
           generatedAt: now.toISOString(),
         },
-        sourceName: "Local Development Feed",
-        sourceUrl: `${env.app.url}/${streamLocale}/about`,
+        source_name: "Local Development Feed",
+        source_url: `${env.app.url}/${streamLocale}/about`,
         summary:
           "Fallback local article used to verify filters, templates, scheduling, and publication flows when live provider access is unavailable.",
         tags: ["newspub", "local", "fallback"],
         title: `${streamName} local verification article`,
       },
-      providerKey,
+      provider_key,
     ),
   ];
 }
 
-function getOfficialProviderCatalogEntry(providerKey) {
-  const normalizedKey = normalizeProviderKey(providerKey);
+function getOfficialProviderCatalogEntry(provider_key) {
+  const normalizedKey = normalizeProviderKey(provider_key);
   const definition = listProviderDefinitions().find((provider) => provider.key === normalizedKey);
   const runtimeDefinition = providerRuntimeCatalog[normalizedKey];
 
@@ -549,8 +549,8 @@ function getOfficialProviderCatalogEntry(providerKey) {
   }
 
   return {
-    baseUrl:
-      runtimeDefinition.baseUrl
+    base_url:
+      runtimeDefinition.base_url
       || runtimeDefinition.baseUrlByEndpoint?.[
         definition.defaultRequestDefaults?.endpoint
           || Object.keys(runtimeDefinition.baseUrlByEndpoint || {})[0]
@@ -562,17 +562,17 @@ function getOfficialProviderCatalogEntry(providerKey) {
     docsUrl: definition.docsUrl,
     key: definition.key,
     label: definition.label,
-    providerKey: definition.key,
+    provider_key: definition.key,
   };
 }
 
-function resolveProviderRequestValues(providerKey, stream) {
-  return resolveStreamProviderRequestValues(providerKey, {
-    countryAllowlistJson: stream?.countryAllowlistJson,
-    languageAllowlistJson: stream?.languageAllowlistJson,
+function resolveProviderRequestValues(provider_key, stream) {
+  return resolveStreamProviderRequestValues(provider_key, {
+    country_allowlist_json: stream?.country_allowlist_json,
+    language_allowlist_json: stream?.language_allowlist_json,
     locale: stream?.locale,
-    providerDefaults: stream?.activeProvider?.requestDefaultsJson,
-    providerFilters: stream?.settingsJson?.providerFilters || {},
+    providerDefaults: stream?.activeProvider?.request_defaults_json,
+    providerFilters: stream?.settings_json?.providerFilters || {},
   });
 }
 
@@ -583,7 +583,7 @@ function buildMediastackRequest({
   requestValues,
   stream,
 }) {
-  const url = new URL(providerRuntimeCatalog.mediastack.baseUrl);
+  const url = new URL(providerRuntimeCatalog.mediastack.base_url);
   const limit = getCappedProviderFetchBatchSize("mediastack", { maxArticlesHint, stream });
   const sources = formatDelimitedValues(requestValues.sources, { lowerCase: true });
 
@@ -748,14 +748,14 @@ async function readJsonResponse(response) {
 }
 
 function createProviderResponseError(providerLabel, payload, fallbackMessage) {
-  const errorMessage =
+  const last_error_message =
     payload?.error?.message
     || payload?.message
     || payload?.results?.message
     || payload?.status
     || fallbackMessage;
 
-  return new NewsPubError(`${providerLabel} request failed: ${errorMessage}`, {
+  return new NewsPubError(`${providerLabel} request failed: ${last_error_message}`, {
     status: "provider_response_invalid",
     statusCode: 502,
   });
@@ -797,13 +797,13 @@ export function listNewsProviders() {
 }
 
 /** Returns one provider catalog entry by key. */
-export function getNewsProviderDefinition(providerKey) {
-  return getOfficialProviderCatalogEntry(providerKey);
+export function getNewsProviderDefinition(provider_key) {
+  return getOfficialProviderCatalogEntry(provider_key);
 }
 
 /** Resolves the configured credential value for one provider key. */
-export function resolveNewsProviderCredential(providerKey) {
-  const normalizedKey = normalizeProviderKey(providerKey);
+export function resolveNewsProviderCredential(provider_key) {
+  const normalizedKey = normalizeProviderKey(provider_key);
 
   if (normalizedKey === "mediastack") {
     return env.providers.credentials.mediastack;
@@ -821,8 +821,8 @@ export function resolveNewsProviderCredential(providerKey) {
 }
 
 /** Returns whether the given provider currently has credentials configured. */
-export function getProviderCredentialState(providerKey) {
-  return resolveNewsProviderCredential(providerKey) ? "configured" : "missing";
+export function getProviderCredentialState(provider_key) {
+  return resolveNewsProviderCredential(provider_key) ? "configured" : "missing";
 }
 
 /**
@@ -834,7 +834,7 @@ export function getProviderCredentialState(providerKey) {
  * @param {object|null} [options.fetchWindow] - Normalized NewsPub fetch window.
  * @param {number|null} [options.maxArticlesHint] - Shared request sizing hint.
  * @param {Date} [options.now] - Execution timestamp.
- * @param {string} options.providerKey - Provider catalog key.
+ * @param {string} options.provider_key - Provider catalog key.
  * @param {object|null} [options.requestValues] - Precomputed provider request values.
  * @param {object|null} [options.stream] - Stream-like runtime context.
  * @returns {Promise<object>} Normalized provider result payload.
@@ -844,11 +844,11 @@ export async function fetchProviderArticles({
   fetchWindow = null,
   maxArticlesHint = null,
   now = new Date(),
-  providerKey,
+  provider_key,
   requestValues: requestValuesOverride = null,
   stream,
 }) {
-  const normalizedKey = normalizeProviderKey(providerKey);
+  const normalizedKey = normalizeProviderKey(provider_key);
   const providerDefinition = getNewsProviderDefinition(normalizedKey);
   const credential = resolveNewsProviderCredential(normalizedKey);
 
@@ -862,18 +862,18 @@ export async function fetchProviderArticles({
   if (process.env.NODE_ENV === "test" || process.env.NEWS_PUB_PROVIDER_FIXTURES === "true") {
     return {
       articles: buildFallbackProviderArticles(stream, normalizedKey, now),
-      cursor: checkpoint?.cursorJson || null,
+      cursor: checkpoint?.cursor_json || null,
       diagnostics: {
         endpoint: getSingleValue(requestValuesOverride || {}, "endpoint", null),
         pageCount: 0,
         pages: [],
-        providerKey: normalizedKey,
+        provider_key: normalizedKey,
         requestValues: requestValuesOverride || {},
         retryEvents: [],
         stopReason: "fixture_mode",
         totalFetchedArticles: 1,
       },
-      fetchedCount: 1,
+      fetched_count: 1,
     };
   }
 
@@ -1006,7 +1006,7 @@ export async function fetchProviderArticles({
         articleCount: Math.min(articles.length, targetCount),
         stopReason,
       }),
-      fetchedCount: Math.min(articles.length, targetCount),
+      fetched_count: Math.min(articles.length, targetCount),
     };
   }
 
@@ -1021,7 +1021,7 @@ export async function fetchProviderArticles({
     const seenCursors = new Set();
     const articles = [];
     let cursor = null;
-    let pageCursor = getCheckpointCursorValue(checkpoint?.cursorJson);
+    let pageCursor = getCheckpointCursorValue(checkpoint?.cursor_json);
     let stopReason = "page_limit_reached";
 
     for (let pageIndex = 0; pageIndex < maxProviderPageCount; pageIndex += 1) {
@@ -1131,7 +1131,7 @@ export async function fetchProviderArticles({
         articleCount: Math.min(articles.length, targetCount),
         stopReason,
       }),
-      fetchedCount: Math.min(articles.length, targetCount),
+      fetched_count: Math.min(articles.length, targetCount),
     };
   }
 
@@ -1266,7 +1266,7 @@ export async function fetchProviderArticles({
         articleCount: Math.min(articles.length, targetCount),
         stopReason,
       }),
-      fetchedCount: Math.min(articles.length, targetCount),
+      fetched_count: Math.min(articles.length, targetCount),
     };
   }
 

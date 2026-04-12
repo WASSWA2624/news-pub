@@ -108,11 +108,11 @@ function hasExpectedDelegates(prisma) {
   const fetchedArticleFields = new Set(getModelFieldNames(prisma, "FetchedArticle"));
 
   return (
-    providerFields.has("providerKey") &&
-    providerFields.has("requestDefaultsJson") &&
-    streamFields.has("destinationId") &&
-    streamFields.has("activeProviderId") &&
-    fetchedArticleFields.has("dedupeFingerprint")
+    providerFields.has("provider_key") &&
+    providerFields.has("request_defaults_json") &&
+    streamFields.has("destination_id") &&
+    streamFields.has("active_provider_id") &&
+    fetchedArticleFields.has("dedupe_fingerprint")
   );
 }
 

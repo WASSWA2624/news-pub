@@ -163,7 +163,7 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td data-label="Mode">
                         <SmallText>{describeFetchRunMode(run)}</SmallText>
-                        <SmallText>Trigger: {formatEnumLabel(run.triggerType || "manual")}</SmallText>
+                        <SmallText>Trigger: {formatEnumLabel(run.trigger_type || "manual")}</SmallText>
                         {run.executionDetails?.partitionReasonCodes?.length ? (
                           <SmallText>{run.executionDetails.partitionReasonCodes.join(", ")}</SmallText>
                         ) : null}
@@ -171,9 +171,9 @@ export default async function JobsPage({ searchParams }) {
                           <SmallText>{describeFetchRunRequest(run)}</SmallText>
                         ) : null}
                       </td>
-                      <td data-label="Fetched">{run.fetchedCount}</td>
-                      <td data-label="Published">{run.publishedCount}</td>
-                      <td data-label="Started">{formatDateTime(run.startedAt)}</td>
+                      <td data-label="Fetched">{run.fetched_count}</td>
+                      <td data-label="Published">{run.published_count}</td>
+                      <td data-label="Started">{formatDateTime(run.started_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -216,9 +216,9 @@ export default async function JobsPage({ searchParams }) {
                         ) : null}
                       </td>
                       <td data-label="AI">
-                        {attempt.optimizationStatus ? (
-                          <StatusBadge $tone={getTone(attempt.optimizationStatus)}>
-                            {attempt.optimizationStatus}
+                        {attempt.optimization_status ? (
+                          <StatusBadge $tone={getTone(attempt.optimization_status)}>
+                            {attempt.optimization_status}
                           </StatusBadge>
                         ) : (
                           <SmallText>Not recorded</SmallText>
@@ -227,14 +227,14 @@ export default async function JobsPage({ searchParams }) {
                           <SmallText>{attempt.aiResolution.reasonMessage}</SmallText>
                         ) : null}
                       </td>
-                      <td data-label="Remote id">{attempt.remoteId || "Pending"}</td>
-                      <td data-label="Queued">{formatDateTime(attempt.queuedAt)}</td>
+                      <td data-label="Remote id">{attempt.remote_id || "Pending"}</td>
+                      <td data-label="Queued">{formatDateTime(attempt.queued_at)}</td>
                       <td data-label="Actions">
                         <ButtonRow>
                           {attempt.post?.id ? (
                             <form action={repostPostAction}>
-                              <input name="articleMatchId" type="hidden" value={attempt.articleMatchId} />
-                              <input name="postId" type="hidden" value={attempt.post.id} />
+                              <input name="article_match_id" type="hidden" value={attempt.article_match_id} />
+                              <input name="post_id" type="hidden" value={attempt.post.id} />
                               <input name="returnTo" type="hidden" value="/admin/jobs" />
                               <PendingSubmitButton
                                 icon="refresh"
@@ -299,13 +299,13 @@ export default async function JobsPage({ searchParams }) {
                       <StatusBadge $tone={getAuditTone(event.level)}>{event.level}</StatusBadge>
                     </td>
                     <td data-label="Entity">
-                      <strong>{event.entityType}</strong>
-                      <SmallText>{event.entityId}</SmallText>
+                      <strong>{event.entity_type}</strong>
+                      <SmallText>{event.entity_id}</SmallText>
                       {event.reasonMessage ? (
                         <SmallText>{event.reasonMessage}</SmallText>
                       ) : null}
                     </td>
-                    <td data-label="Created">{formatDateTime(event.createdAt)}</td>
+                    <td data-label="Created">{formatDateTime(event.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

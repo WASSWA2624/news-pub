@@ -35,9 +35,9 @@ function createStoredTokenDecryptionError() {
 }
 
 function readStoredDestinationToken(destination) {
-  const ciphertext = destination?.encryptedTokenCiphertext;
-  const iv = destination?.encryptedTokenIv;
-  const tag = destination?.encryptedTokenTag;
+  const ciphertext = destination?.encrypted_token_ciphertext;
+  const iv = destination?.encrypted_token_iv;
+  const tag = destination?.encrypted_token_tag;
 
   if (!ciphertext || !iv || !tag) {
     return {
@@ -66,23 +66,23 @@ function readStoredDestinationToken(destination) {
 }
 
 function getDestinationGraphApiBaseUrl(destination) {
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
 
   return trimText(settings.graphApiBaseUrl) || trimText(env.meta.graphApiBaseUrl) || defaultGraphApiBaseUrl;
 }
 
 function getFacebookAccountId(destination) {
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
 
   return (
     trimText(settings.pageId)
-    || trimText(destination?.externalAccountId)
+    || trimText(destination?.external_account_id)
     || null
   );
 }
 
 function getMetaCredentialSourceKey(destination) {
-  const settings = normalizeSettings(destination?.settingsJson);
+  const settings = normalizeSettings(destination?.settings_json);
 
   return trimText(settings.metaCredentialSourceKey) || buildCredentialSourceKey("meta-user-access-token");
 }
@@ -160,7 +160,7 @@ function createMisconfiguredMetaEnvError() {
  * Returns whether a Meta API failure is the token-expired condition that should trigger credential refresh handling.
  */
 export function isMetaTokenExpiredError(error) {
-  const responseError = error?.responseJson?.error || error?.responseJson || {};
+  const responseError = error?.response_json?.error || error?.response_json || {};
 
   return Number(responseError?.code) === 190;
 }
@@ -169,7 +169,7 @@ export function isMetaTokenExpiredError(error) {
  * Persists refreshed Meta credential metadata back onto the destination record when possible.
  */
 export async function persistResolvedMetaCredential(destination, metadata = {}, prisma) {
-  const currentSettings = normalizeSettings(destination?.settingsJson);
+  const currentSettings = normalizeSettings(destination?.settings_json);
   const nextSettingsJson = getMetaCredentialMetadataPatch(currentSettings, metadata);
 
   if (!destination?.id || !prisma?.destination?.update) {
@@ -181,11 +181,11 @@ export async function persistResolvedMetaCredential(destination, metadata = {}, 
       id: destination.id,
     },
     data: {
-      settingsJson: nextSettingsJson,
+      settings_json: nextSettingsJson,
     },
   });
 
-  destination.settingsJson = nextSettingsJson;
+  destination.settings_json = nextSettingsJson;
 
   return nextSettingsJson;
 }

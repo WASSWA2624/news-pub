@@ -31,14 +31,14 @@ function createPreviewLabel({ alt, caption }) {
   return (label || "Generated image preview").slice(0, 90);
 }
 
-function createPreviewDescription({ caption, sourceUrl }) {
+function createPreviewDescription({ caption, source_url }) {
   const description = trimText(caption);
 
   if (description) {
     return description.slice(0, 150);
   }
 
-  if (trimText(sourceUrl)) {
+  if (trimText(source_url)) {
     return "The original source could not be loaded here, so a placeholder preview is shown instead.";
   }
 
@@ -126,7 +126,7 @@ export function createImagePlaceholderDataUrl(options = {}) {
   let sourceHost = "";
 
   try {
-    sourceHost = options.sourceUrl ? new URL(options.sourceUrl).hostname : "";
+    sourceHost = options.source_url ? new URL(options.source_url).hostname : "";
   } catch {
     sourceHost = "";
   }
@@ -176,7 +176,7 @@ export function getRenderableImageUrl(url, options = {}) {
   if (isReservedFixtureImageUrl(normalizedUrl)) {
     return createImagePlaceholderDataUrl({
       ...options,
-      sourceUrl: normalizedUrl,
+      source_url: normalizedUrl,
     });
   }
 
@@ -361,7 +361,7 @@ export async function validateRemoteMediaUrl(url, options = {}) {
 
   if (!safeUrl) {
     return {
-      errorCode: "media_url_invalid",
+      last_error_code: "media_url_invalid",
       message: "The media URL is missing or invalid.",
       ok: false,
       url: null,
@@ -371,7 +371,7 @@ export async function validateRemoteMediaUrl(url, options = {}) {
   if (safeUrl.startsWith("data:image/")) {
     return {
       contentLength: null,
-      mimeType: "image/data-url",
+      mime_type: "image/data-url",
       ok: true,
       url: safeUrl,
     };
@@ -388,12 +388,12 @@ export async function validateRemoteMediaUrl(url, options = {}) {
       : undefined;
 
   async function inspectResponse(response) {
-    const mimeType = trimText(response.headers.get("content-type") || "").toLowerCase();
+    const mime_type = trimText(response.headers.get("content-type") || "").toLowerCase();
     const contentLength = Number.parseInt(response.headers.get("content-length") || "", 10);
 
     if (!response.ok) {
       return {
-        errorCode: "media_unreachable",
+        last_error_code: "media_unreachable",
         message: `The media URL returned ${response.status}.`,
         ok: false,
         statusCode: response.status,
@@ -401,12 +401,12 @@ export async function validateRemoteMediaUrl(url, options = {}) {
       };
     }
 
-    if (mimeType && !mimeType.startsWith("image/")) {
+    if (mime_type && !mime_type.startsWith("image/")) {
       return {
         contentLength: Number.isFinite(contentLength) ? contentLength : null,
-        errorCode: "media_type_invalid",
-        message: `Expected an image response but received "${mimeType}".`,
-        mimeType,
+        last_error_code: "media_type_invalid",
+        message: `Expected an image response but received "${mime_type}".`,
+        mime_type,
         ok: false,
         url: safeUrl,
       };
@@ -415,9 +415,9 @@ export async function validateRemoteMediaUrl(url, options = {}) {
     if (Number.isFinite(contentLength) && contentLength > maxBytes) {
       return {
         contentLength,
-        errorCode: "media_too_large",
+        last_error_code: "media_too_large",
         message: `The media file exceeds the ${maxBytes}-byte limit.`,
-        mimeType: mimeType || null,
+        mime_type: mime_type || null,
         ok: false,
         url: safeUrl,
       };
@@ -425,7 +425,7 @@ export async function validateRemoteMediaUrl(url, options = {}) {
 
     return {
       contentLength: Number.isFinite(contentLength) ? contentLength : null,
-      mimeType: mimeType || null,
+      mime_type: mime_type || null,
       ok: true,
       statusCode: response.status,
       url: safeUrl,
@@ -444,7 +444,7 @@ export async function validateRemoteMediaUrl(url, options = {}) {
     });
     const inspectedHead = await inspectResponse(headResponse);
 
-    if (inspectedHead.ok || inspectedHead.errorCode === "media_type_invalid" || inspectedHead.errorCode === "media_too_large") {
+    if (inspectedHead.ok || inspectedHead.last_error_code === "media_type_invalid" || inspectedHead.last_error_code === "media_too_large") {
       return inspectedHead;
     }
   } catch {
@@ -468,7 +468,7 @@ export async function validateRemoteMediaUrl(url, options = {}) {
     return inspectResponse(getResponse);
   } catch {
     return {
-      errorCode: "media_unreachable",
+      last_error_code: "media_unreachable",
       message: "The media URL could not be reached.",
       ok: false,
       url: safeUrl,

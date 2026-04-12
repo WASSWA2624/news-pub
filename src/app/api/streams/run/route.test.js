@@ -42,7 +42,7 @@ describe("stream run api route", () => {
     const response = await POST(
       new Request("https://example.com/api/streams/run", {
         body: JSON.stringify({
-          streamId: "stream_1",
+          stream_id: "stream_1",
         }),
         headers: {
           "content-type": "application/json",
@@ -63,9 +63,9 @@ describe("stream run api route", () => {
       success: true,
     });
     expect(runStreamFetch).toHaveBeenCalledWith("stream_1", {
-      actorId: "admin_1",
+      actor_id: "admin_1",
       fetchWindow: null,
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: null,
     });
   });
@@ -78,7 +78,7 @@ describe("stream run api route", () => {
           run: {
             id: "fetch_run_1",
             status: "SUCCEEDED",
-            streamId: "stream_1",
+            stream_id: "stream_1",
           },
           stream: {
             id: "stream_1",
@@ -88,7 +88,7 @@ describe("stream run api route", () => {
           run: {
             id: "fetch_run_2",
             status: "SUCCEEDED",
-            streamId: "stream_2",
+            stream_id: "stream_2",
           },
           stream: {
             id: "stream_2",
@@ -135,7 +135,7 @@ describe("stream run api route", () => {
               run: {
                 id: "fetch_run_1",
                 status: "SUCCEEDED",
-                streamId: "stream_1",
+                stream_id: "stream_1",
               },
               stream: {
                 id: "stream_1",
@@ -145,7 +145,7 @@ describe("stream run api route", () => {
               run: {
                 id: "fetch_run_2",
                 status: "SUCCEEDED",
-                streamId: "stream_2",
+                stream_id: "stream_2",
               },
               stream: {
                 id: "stream_2",
@@ -158,9 +158,9 @@ describe("stream run api route", () => {
       success: true,
     });
     expect(runMultipleStreamFetches).toHaveBeenCalledWith(["stream_1", "stream_2"], {
-      actorId: "admin_1",
+      actor_id: "admin_1",
       fetchWindow: null,
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: null,
     });
     expect(runStreamFetch).not.toHaveBeenCalled();
@@ -194,7 +194,7 @@ describe("stream run api route", () => {
             start: "2026-04-07T12:00:00.000Z",
             writeCheckpointOnSuccess: true,
           },
-          streamId: "stream_1",
+          stream_id: "stream_1",
         }),
         headers: {
           "content-type": "application/json",
@@ -205,12 +205,12 @@ describe("stream run api route", () => {
 
     expect(response.status).toBe(200);
     expect(runStreamFetch).toHaveBeenCalledWith("stream_1", {
-      actorId: "admin_1",
+      actor_id: "admin_1",
       fetchWindow: {
         end: "2026-04-08T12:00:00.000Z",
         start: "2026-04-07T12:00:00.000Z",
       },
-      triggerType: "manual",
+      trigger_type: "manual",
       writeCheckpointOnSuccess: true,
     });
     expect(runMultipleStreamFetches).not.toHaveBeenCalled();

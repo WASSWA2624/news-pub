@@ -136,8 +136,8 @@ export function normalizeStringList(value) {
 export function buildStoryStructuredArticle({
   body,
   categoryNames = [],
-  sourceName,
-  sourceUrl,
+  source_name,
+  source_url,
   summary,
   title,
 }) {
@@ -163,8 +163,8 @@ export function buildStoryStructuredArticle({
   sections.push({
     items: [
       {
-        title: sourceName || "Source",
-        url: sourceUrl || null,
+        title: source_name || "Source",
+        url: source_url || null,
       },
     ],
     kind: "references",
@@ -179,8 +179,8 @@ export function buildStoryStructuredArticle({
 
   return {
     article,
-    contentHtml: buildHtmlFromStructuredArticle(article),
-    contentMd: buildMarkdownFromStructuredArticle(article),
+    content_html: buildHtmlFromStructuredArticle(article),
+    content_md: buildMarkdownFromStructuredArticle(article),
   };
 }
 

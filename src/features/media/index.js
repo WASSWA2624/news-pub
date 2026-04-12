@@ -27,31 +27,31 @@ const sharpConcurrency = Math.max(1, Number.parseInt(process.env.SHARP_CONCURREN
 
 sharp.concurrency(sharpConcurrency);
 
-function guessFileExtension(mimeType) {
-  if (mimeType === "image/jpeg") {
+function guessFileExtension(mime_type) {
+  if (mime_type === "image/jpeg") {
     return "jpg";
   }
 
-  if (mimeType === "image/png") {
+  if (mime_type === "image/png") {
     return "png";
   }
 
-  if (mimeType === "image/webp") {
+  if (mime_type === "image/webp") {
     return "webp";
   }
 
   return "bin";
 }
 
-function getStorageKey(prefix, mimeType, source) {
-  const extension = guessFileExtension(mimeType);
+function getStorageKey(prefix, mime_type, source) {
+  const extension = guessFileExtension(mime_type);
   const date = new Date();
   const datePrefix = `${date.getUTCFullYear()}/${`${date.getUTCMonth() + 1}`.padStart(2, "0")}`;
 
   return `${prefix}/${datePrefix}/${createContentHash(source, date.toISOString()).slice(0, 24)}.${extension}`;
 }
 
-async function createMediaVariants(storageAdapter, buffer, mimeType, storageKeyBase, assetId) {
+async function createMediaVariants(storageAdapter, buffer, mime_type, storageKeyBase, assetId) {
   const image = sharp(buffer);
   const metadata = await image.metadata();
   const width = metadata.width || null;
@@ -73,23 +73,23 @@ async function createMediaVariants(storageAdapter, buffer, mimeType, storageKeyB
       .toBuffer({
         resolveWithObject: true,
       });
-    const nextStorageKey = storageKeyBase.replace(/\.[^.]+$/, `-${definition.key}.${guessFileExtension(mimeType)}`);
+    const nextStorageKey = storageKeyBase.replace(/\.[^.]+$/, `-${definition.key}.${guessFileExtension(mime_type)}`);
     const storedVariant = await storageAdapter.writeObject({
       body: nextBuffer,
-      contentType: mimeType,
+      contentType: mime_type,
       key: nextStorageKey,
     });
 
     variants.push({
-      fileSizeBytes: nextBuffer.length,
-      format: nextInfo.format || guessFileExtension(mimeType),
+      file_size_bytes: nextBuffer.length,
+      format: nextInfo.format || guessFileExtension(mime_type),
       height: nextInfo.height || height || definition.width,
-      localPath: storedVariant.localPath,
-      mediaAssetId: assetId,
-      mimeType,
-      publicUrl: storedVariant.publicUrl,
-      storageKey: storedVariant.storageKey,
-      variantKey: definition.key,
+      local_path: storedVariant.local_path,
+      media_asset_id: assetId,
+      mime_type,
+      public_url: storedVariant.public_url,
+      storage_key: storedVariant.storage_key,
+      variant_key: definition.key,
       width: nextInfo.width || definition.width,
     });
   }
@@ -102,46 +102,46 @@ async function createMediaVariants(storageAdapter, buffer, mimeType, storageKeyB
 }
 
 async function storeMediaAssetRecord({
-  actorId,
+  actor_id,
   alt,
-  attributionText,
+  attribution_text,
   buffer,
   caption,
-  fileName,
-  mimeType,
+  file_name,
+  mime_type,
   prisma,
-  sourceUrl,
+  source_url,
 }) {
   const db = await resolvePrismaClient(prisma);
   const storageAdapter = createStorageAdapter();
-  const safeSourceUrl = sourceUrl ? sanitizeExternalUrl(sourceUrl) : null;
-  const storageKey = getStorageKey("media", mimeType, safeSourceUrl || fileName || mimeType);
+  const safeSourceUrl = source_url ? sanitizeExternalUrl(source_url) : null;
+  const storage_key = getStorageKey("media", mime_type, safeSourceUrl || file_name || mime_type);
   const storedFile = await storageAdapter.writeObject({
     body: buffer,
-    contentType: mimeType,
-    key: storageKey,
+    contentType: mime_type,
+    key: storage_key,
   });
   const asset = await db.mediaAsset.create({
     data: {
       alt: trimText(alt) || null,
-      attributionText: trimText(attributionText) || null,
+      attribution_text: trimText(attribution_text) || null,
       caption: trimText(caption) || null,
-      fileName: trimText(fileName) || path.basename(storageKey),
-      fileSizeBytes: buffer.length,
-      localPath: storedFile.localPath,
-      mimeType,
-      publicUrl: storedFile.publicUrl,
-      sourceDomain: safeSourceUrl ? new URL(safeSourceUrl).hostname : null,
-      sourceUrl: safeSourceUrl,
-      storageDriver: storageAdapter.driver,
-      storageKey: storedFile.storageKey,
+      file_name: trimText(file_name) || path.basename(storage_key),
+      file_size_bytes: buffer.length,
+      local_path: storedFile.local_path,
+      mime_type,
+      public_url: storedFile.public_url,
+      source_domain: safeSourceUrl ? new URL(safeSourceUrl).hostname : null,
+      source_url: safeSourceUrl,
+      storage_driver: storageAdapter.driver,
+      storage_key: storedFile.storage_key,
     },
   });
   const { height, variants, width } = await createMediaVariants(
     storageAdapter,
     buffer,
-    mimeType,
-    storageKey,
+    mime_type,
+    storage_key,
     asset.id,
   );
 
@@ -165,12 +165,12 @@ async function storeMediaAssetRecord({
   await createAuditEventRecord(
     {
       action: "MEDIA_ASSET_STORED",
-      actorId,
-      entityId: updatedAsset.id,
-      entityType: "media_asset",
-      payloadJson: {
-        sourceUrl: updatedAsset.sourceUrl,
-        storageKey: updatedAsset.storageKey,
+      actor_id,
+      entity_id: updatedAsset.id,
+      entity_type: "media_asset",
+      payload_json: {
+        source_url: updatedAsset.source_url,
+        storage_key: updatedAsset.storage_key,
         variantCount: updatedAsset.variants.length,
       },
     },
@@ -180,9 +180,9 @@ async function storeMediaAssetRecord({
   return updatedAsset;
 }
 
-function ensureAllowedMimeType(mimeType) {
-  if (!env.media.uploadAllowedMimeTypes.includes(mimeType)) {
-    throw new NewsPubError(`Unsupported media type "${mimeType}".`, {
+function ensureAllowedMimeType(mime_type) {
+  if (!env.media.uploadAllowedMimeTypes.includes(mime_type)) {
+    throw new NewsPubError(`Unsupported media type "${mime_type}".`, {
       status: "media_type_not_allowed",
       statusCode: 400,
     });
@@ -262,7 +262,7 @@ async function readResponseBodyWithLimit(response, maxBytes) {
  */
 
 export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
-  const safeUrl = sanitizeExternalUrl(input.sourceUrl);
+  const safeUrl = sanitizeExternalUrl(input.source_url);
 
   if (!safeUrl) {
     throw new NewsPubError("Remote media URL must use http or https.", {
@@ -302,20 +302,20 @@ export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
     });
   }
 
-  const mimeType = trimText(response.headers.get("content-type") || "").split(";")[0];
-  ensureAllowedMimeType(mimeType);
+  const mime_type = trimText(response.headers.get("content-type") || "").split(";")[0];
+  ensureAllowedMimeType(mime_type);
   const buffer = await readResponseBodyWithLimit(response, env.media.maxRemoteFileBytes);
 
   return storeMediaAssetRecord(
     {
-      actorId: options.actorId,
+      actor_id: options.actor_id,
       alt: input.alt,
-      attributionText: input.attributionText,
+      attribution_text: input.attribution_text,
       buffer,
       caption: input.caption,
-      fileName: input.fileName || path.basename(new URL(safeUrl).pathname) || "remote-image",
-      mimeType,
-      sourceUrl: safeUrl,
+      file_name: input.file_name || path.basename(new URL(safeUrl).pathname) || "remote-image",
+      mime_type,
+      source_url: safeUrl,
     },
     options,
     prisma,
@@ -324,22 +324,22 @@ export async function ingestRemoteMediaAsset(input, options = {}, prisma) {
 
 /** Stores a locally uploaded media asset and derives responsive variants. */
 export async function uploadMediaAsset(input, options = {}, prisma) {
-  const mimeType = trimText(input.mimeType);
+  const mime_type = trimText(input.mime_type);
   const buffer = input.buffer instanceof Buffer ? input.buffer : Buffer.from(input.buffer || []);
 
-  ensureAllowedMimeType(mimeType);
+  ensureAllowedMimeType(mime_type);
   ensureSafeMediaSize(buffer.length);
 
   return storeMediaAssetRecord(
     {
-      actorId: options.actorId,
+      actor_id: options.actor_id,
       alt: input.alt,
-      attributionText: input.attributionText,
+      attribution_text: input.attribution_text,
       buffer,
       caption: input.caption,
-      fileName: input.fileName || "upload",
-      mimeType,
-      sourceUrl: input.sourceUrl || null,
+      file_name: input.file_name || "upload",
+      mime_type,
+      source_url: input.source_url || null,
     },
     options,
     prisma,
@@ -351,7 +351,7 @@ export async function getMediaLibrarySnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
   const [assets, totalCount, variantCount] = await Promise.all([
     db.mediaAsset.findMany({
-      orderBy: [{ createdAt: "desc" }],
+      orderBy: [{ created_at: "desc" }],
       select: {
         _count: {
           select: {
@@ -360,17 +360,17 @@ export async function getMediaLibrarySnapshot(prisma) {
         },
         alt: true,
         caption: true,
-        createdAt: true,
-        fileName: true,
-        fileSizeBytes: true,
+        created_at: true,
+        file_name: true,
+        file_size_bytes: true,
         id: true,
-        mimeType: true,
-        publicUrl: true,
-        sourceDomain: true,
-        sourceUrl: true,
-        storageDriver: true,
-        storageKey: true,
-        updatedAt: true,
+        mime_type: true,
+        public_url: true,
+        source_domain: true,
+        source_url: true,
+        storage_driver: true,
+        storage_key: true,
+        updated_at: true,
       },
       take: mediaLibrarySnapshotLimit,
     }),
@@ -405,8 +405,8 @@ export async function safeIngestRemoteMediaAsset(input, options = {}, prisma) {
     await recordObservabilityEvent(
       {
         action: "MEDIA_LIBRARY_FAILURE",
-        entityId: input.sourceUrl || input.fileName || "remote_media",
-        entityType: "media_asset",
+        entity_id: input.source_url || input.file_name || "remote_media",
+        entity_type: "media_asset",
         error,
         message: error instanceof Error ? error.message : "Media ingestion failed.",
       },

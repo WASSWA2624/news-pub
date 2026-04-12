@@ -12,6 +12,29 @@ function normalizeWhitespace(value) {
   return `${value || ""}`.trim();
 }
 
+function snakeCaseToCamelCase(value) {
+  const normalizedValue = normalizeWhitespace(value);
+
+  if (!normalizedValue.includes("_")) {
+    return normalizedValue;
+  }
+
+  return normalizedValue.replace(/_([a-z0-9])/g, (_, token) => token.toUpperCase());
+}
+
+function createLegacyIdentifierCandidates(canonicalName, explicitLegacyNames = []) {
+  const legacyNames = new Set(
+    (explicitLegacyNames || []).map((value) => normalizeWhitespace(value)).filter(Boolean),
+  );
+  const camelCaseName = snakeCaseToCamelCase(canonicalName);
+
+  if (camelCaseName && camelCaseName !== canonicalName) {
+    legacyNames.add(camelCaseName);
+  }
+
+  return [...legacyNames];
+}
+
 function extractQuotedValue(source, marker) {
   const match = source.match(new RegExp(`${marker}\\("([^"]+)"\\)`));
 
@@ -20,6 +43,7 @@ function extractQuotedValue(source, marker) {
 
 function parsePrismaSchemaNamingMetadata(schemaSource) {
   const tables = [];
+  const compositeSelectors = [];
   const modelPattern = /model\s+(\w+)\s+\{([\s\S]*?)\n\}/g;
   const modelNames = new Set(
     [...schemaSource.matchAll(/model\s+(\w+)\s+\{/g)].map((match) => match[1]),
@@ -78,7 +102,56 @@ function parsePrismaSchemaNamingMetadata(schemaSource) {
       columns.push({
         canonicalName,
         fieldName,
-        legacyNames: mappedName ? [fieldName] : [],
+        legacyNames: createLegacyIdentifierCandidates(
+          canonicalName,
+          mappedName && fieldName !== canonicalName ? [fieldName] : [],
+        ),
+      });
+    }
+
+    const fieldNameToCanonicalName = new Map(
+      columns.map((column) => [column.fieldName, column.canonicalName]),
+    );
+
+    for (const rawLine of body.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      const compositeMatch = line.match(/^@@(?:id|unique)\(\[([^\]]+)\]/);
+
+      if (!compositeMatch) {
+        continue;
+      }
+
+      const originalFields = compositeMatch[1]
+        .split(",")
+        .map((value) => normalizeWhitespace(value))
+        .filter(Boolean);
+
+      if (originalFields.length < 2) {
+        continue;
+      }
+
+      const canonicalFields = originalFields.map((fieldName) =>
+        fieldNameToCanonicalName.get(fieldName) || fieldName,
+      );
+      const canonicalName = canonicalFields.join("_");
+      const camelCaseSelectorName = canonicalFields.map((fieldName) =>
+        snakeCaseToCamelCase(fieldName),
+      ).join("_");
+
+      compositeSelectors.push({
+        canonicalName,
+        legacyNames: createLegacyIdentifierCandidates(
+          canonicalName,
+          originalFields.join("_") !== canonicalName ? [originalFields.join("_")] : [],
+        ).filter((legacyName) => legacyName !== canonicalName && legacyName !== camelCaseSelectorName)
+          .concat(
+            camelCaseSelectorName && camelCaseSelectorName !== canonicalName
+              ? [camelCaseSelectorName]
+              : [],
+          )
+          .filter((legacyName, index, values) => legacyName && values.indexOf(legacyName) === index),
+        modelName,
+        tableName,
       });
     }
 
@@ -91,6 +164,7 @@ function parsePrismaSchemaNamingMetadata(schemaSource) {
   }
 
   return {
+    compositeSelectors,
     tables,
   };
 }

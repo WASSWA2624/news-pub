@@ -40,13 +40,13 @@ describe("stream management run-window helpers", () => {
       {
         activeProvider: {
           label: "NewsData",
-          providerKey: "newsdata",
-          requestDefaultsJson: {
+          provider_key: "newsdata",
+          request_defaults_json: {
             endpoint: "latest",
           },
         },
         locale: "en",
-        settingsJson: {
+        settings_json: {
           providerFilters: {
             endpoint: "latest",
           },
@@ -55,13 +55,13 @@ describe("stream management run-window helpers", () => {
       {
         activeProvider: {
           label: "NewsAPI",
-          providerKey: "newsapi",
-          requestDefaultsJson: {
+          provider_key: "newsapi",
+          request_defaults_json: {
             endpoint: "top-headlines",
           },
         },
         locale: "en",
-        settingsJson: {
+        settings_json: {
           providerFilters: {
             endpoint: "top-headlines",
           },
@@ -70,11 +70,11 @@ describe("stream management run-window helpers", () => {
       {
         activeProvider: {
           label: "Mediastack",
-          providerKey: "mediastack",
-          requestDefaultsJson: {},
+          provider_key: "mediastack",
+          request_defaults_json: {},
         },
         locale: "en",
-        settingsJson: {
+        settings_json: {
           providerFilters: {},
         },
       },
