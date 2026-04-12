@@ -132,6 +132,16 @@ function copyPackageLockFile() {
   fs.copyFileSync(packageLockPath, path.join(outputDir, "package-lock.json"));
 }
 
+function stripBundledEnvFiles() {
+  for (const entry of fs.readdirSync(outputDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !/^\.env(?:\..+)?$/i.test(entry.name)) {
+      continue;
+    }
+
+    fs.rmSync(path.join(outputDir, entry.name), { force: true });
+  }
+}
+
 function updatePackageManifest() {
   const sourcePackage = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
   const packagePath = path.join(outputDir, "package.json");
@@ -320,6 +330,7 @@ function writeDeploymentNotes() {
     "",
     "Environment variables:",
     "- Add production env keys in the cPanel environment panel whenever possible. Existing process env wins over .env.production, and .env is only a final fallback.",
+    "- This package intentionally strips any local .env files from the build output. Add production values in cPanel or create .env.production on the server after upload.",
     "- Required keys include DATABASE_URL, SESSION_SECRET, DESTINATION_TOKEN_ENCRYPTION_KEY, REVALIDATE_SECRET, and CRON_SECRET.",
     "- Also set NEXT_PUBLIC_APP_URL to your live domain, NEXT_IMAGE_REMOTE_HOSTS for trusted CDN/image hosts, and configure any provider, Meta, OpenAI, and storage credentials you use.",
     "- Optional single-instance fallback: set INTERNAL_SCHEDULER_ENABLED=true to let the app self-trigger scheduled publishing every INTERNAL_SCHEDULER_INTERVAL_SECONDS seconds. Do not enable that if you already run an external cron for the same endpoint.",
@@ -415,6 +426,7 @@ function main() {
   copyDatabaseDeploymentFiles();
   updatePackageManifest();
   copyPackageLockFile();
+  stripBundledEnvFiles();
 
   if (fs.existsSync(publicDir)) {
     copyDirectory(publicDir, path.join(outputDir, "public"));

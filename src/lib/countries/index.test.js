@@ -15,7 +15,9 @@ describe("country helpers", () => {
   it("builds country flag metadata for two-letter codes", () => {
     expect(formatCountryFlagEmoji("us")).toBe("🇺🇸");
     expect(formatCountryFlagEmoji("all")).toBe("");
+    expect(formatCountryFlagEmoji("wo")).toBe("🌍");
     expect(formatCountryFlagImageUrl("us")).toBe("https://flagcdn.com/24x18/us.png");
     expect(formatCountryFlagImageUrl("usa")).toBe("");
+    expect(formatCountryFlagImageUrl("wo")).toBe("");
   });
 });

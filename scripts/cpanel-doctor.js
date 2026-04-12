@@ -85,6 +85,73 @@ function getEnvValue(name) {
   return `${process.env[name] || ""}`.trim();
 }
 
+function isPrivateIpv4Hostname(hostname) {
+  const octets = hostname.split(".").map((part) => Number.parseInt(part, 10));
+
+  if (
+    octets.length !== 4 ||
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+  ) {
+    return false;
+  }
+
+  return (
+    octets[0] === 0 ||
+    octets[0] === 10 ||
+    octets[0] === 127 ||
+    (octets[0] === 169 && octets[1] === 254) ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
+
+function isPrivateIpv6Hostname(hostname) {
+  const normalizedHostname = hostname.toLowerCase();
+
+  return (
+    normalizedHostname === "::1" ||
+    normalizedHostname.startsWith("fc") ||
+    normalizedHostname.startsWith("fd") ||
+    normalizedHostname.startsWith("fe80:")
+  );
+}
+
+function validatePublicAppUrl(appUrl, failures) {
+  const normalizedUrl = `${appUrl || ""}`.trim();
+
+  if (!normalizedUrl) {
+    return;
+  }
+
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(normalizedUrl);
+  } catch {
+    failures.push("NEXT_PUBLIC_APP_URL must be a valid http or https URL.");
+    return;
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    failures.push("NEXT_PUBLIC_APP_URL must use http:// or https://.");
+    return;
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal") ||
+    isPrivateIpv4Hostname(hostname) ||
+    isPrivateIpv6Hostname(hostname)
+  ) {
+    failures.push(
+      `NEXT_PUBLIC_APP_URL must point to your public site, not "${parsedUrl.origin}". Update the cPanel environment or .env.production.`,
+    );
+  }
+}
+
 function parseDatabaseUrl(databaseUrl) {
   const parsedUrl = new URL(databaseUrl);
   const database = parsedUrl.pathname.replace(/^\//, "");
@@ -413,6 +480,8 @@ async function main() {
       failures.push(`${name} is missing. Add it to cPanel environment variables, .env.production, or .env.`);
     }
   }
+
+  validatePublicAppUrl(getEnvValue("NEXT_PUBLIC_APP_URL"), failures);
 
   if (getEnvValue("MEDIA_DRIVER") === "local") {
     for (const name of ["LOCAL_MEDIA_BASE_PATH", "LOCAL_MEDIA_BASE_URL"]) {

@@ -5,6 +5,10 @@
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
+
+const pseudoCountryEmojiByCode = Object.freeze({
+  wo: "🌍",
+});
 /**
  * Normalizes a country code into the compact format NewsPub uses internally.
  */
@@ -47,6 +51,10 @@ export function formatCountryLabel(countryCode, locale = "en") {
 export function formatCountryFlagEmoji(countryCode) {
   const normalizedCountry = normalizeCountryCode(countryCode).toUpperCase();
 
+  if (pseudoCountryEmojiByCode[normalizedCountry.toLowerCase()]) {
+    return pseudoCountryEmojiByCode[normalizedCountry.toLowerCase()];
+  }
+
   if (!/^[A-Z]{2}$/.test(normalizedCountry)) {
     return "";
   }
@@ -61,6 +69,10 @@ export function formatCountryFlagEmoji(countryCode) {
 
 export function formatCountryFlagImageUrl(countryCode, size = "24x18") {
   const normalizedCountry = normalizeCountryCode(countryCode);
+
+  if (normalizedCountry in pseudoCountryEmojiByCode) {
+    return "";
+  }
 
   if (!/^[a-z]{2}$/.test(normalizedCountry)) {
     return "";
