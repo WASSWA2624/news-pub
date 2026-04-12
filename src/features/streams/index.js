@@ -612,7 +612,6 @@ export async function saveStreamRecord(input, { actor_id } = {}, prisma) {
       name,
       retry_backoff_minutes: normalizeNonNegativeInteger(input.retry_backoff_minutes, 15),
       retry_limit: normalizeNonNegativeInteger(input.retry_limit, 3),
-      schedule_expression: null,
       schedule_interval_minutes: normalizeNonNegativeInteger(input.schedule_interval_minutes, 60),
       settings_json: {
         providerFilters,
@@ -637,7 +636,6 @@ export async function saveStreamRecord(input, { actor_id } = {}, prisma) {
       name,
       retry_backoff_minutes: normalizeNonNegativeInteger(input.retry_backoff_minutes, 15),
       retry_limit: normalizeNonNegativeInteger(input.retry_limit, 3),
-      schedule_expression: null,
       schedule_interval_minutes: normalizeNonNegativeInteger(input.schedule_interval_minutes, 60),
       slug,
       settings_json: {

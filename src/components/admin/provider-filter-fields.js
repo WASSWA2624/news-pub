@@ -20,6 +20,7 @@ import {
   SmallText,
 } from "@/components/admin/news-admin-ui";
 import CheckboxSearchField from "@/components/admin/checkbox-search-field";
+import ProviderSourceField from "@/components/admin/provider-source-field";
 import SearchableSelect from "@/components/common/searchable-select";
 import { formatFetchWindowInputValue } from "@/lib/news/fetch-window";
 import { getProviderFormDefinition } from "@/lib/news/provider-definitions";
@@ -70,6 +71,10 @@ function getFieldName(field, namePrefix = "") {
 
 function readFieldValue(field, values = {}) {
   const rawValue = values?.[field.key];
+
+  if (field.key === "sources" && Array.isArray(rawValue)) {
+    return rawValue.join(",");
+  }
 
   if (field.input === "checkboxes") {
     return Array.isArray(rawValue) ? rawValue : [];
@@ -172,7 +177,22 @@ export default function ProviderFilterFields({
                         ? "Upstream + local"
                         : "Upstream request"}
                     </ScopeBadge>
-                    {field.input === "single-select" ? (
+                    {field.sourceCatalog?.available ? (
+                      <ProviderSourceField
+                        defaultValue={readFieldInputValue(field, dynamicValues)}
+                        field={field}
+                        name={getFieldName(field, namePrefix)}
+                        onValueChange={(value) =>
+                          setDynamicOverrides((currentValues) => ({
+                            ...currentValues,
+                            [field.key]: value,
+                          }))
+                        }
+                        provider_key={provider_key}
+                        scope={scope}
+                        values={dynamicValues}
+                      />
+                    ) : field.input === "single-select" ? (
                       <SearchableSelect
                         ariaLabel={field.label}
                         name={getFieldName(field, namePrefix)}
@@ -190,6 +210,12 @@ export default function ProviderFilterFields({
                       <Input
                         defaultValue={readFieldInputValue(field, values)}
                         name={getFieldName(field, namePrefix)}
+                        onChange={(event) =>
+                          setDynamicOverrides((currentValues) => ({
+                            ...currentValues,
+                            [field.key]: event.target.value,
+                          }))
+                        }
                         placeholder={field.placeholder || ""}
                         type={
                           field.input === "date"

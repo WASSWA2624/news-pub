@@ -524,7 +524,6 @@ describe("stream feature validation", () => {
     expect(prisma.publishingStream.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
-          schedule_expression: null,
           schedule_interval_minutes: 0,
           settings_json: {
             providerFilters: {},

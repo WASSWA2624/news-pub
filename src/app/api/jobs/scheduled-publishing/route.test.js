@@ -20,15 +20,15 @@ describe("scheduled publishing job api route", () => {
   });
 
   it("runs scheduled streams when the cron secret is valid", async () => {
-    const runScheduledStreams = vi.fn().mockResolvedValue({
+    const runNewsWorkerCycle = vi.fn().mockResolvedValue({
       executedStreamCount: 2,
     });
 
     vi.doMock("@/lib/auth/internal", () => ({
       hasRequestSecret: vi.fn().mockReturnValue(true),
     }));
-    vi.doMock("@/lib/news/workflows", () => ({
-      runScheduledStreams,
+    vi.doMock("@/lib/news/worker-runtime", () => ({
+      runNewsWorkerCycle,
     }));
     vi.doMock("@/lib/auth/api", () => ({
       requireAdminApiPermission: vi.fn(),
@@ -45,6 +45,8 @@ describe("scheduled publishing job api route", () => {
       },
       success: true,
     });
-    expect(runScheduledStreams).toHaveBeenCalled();
+    expect(runNewsWorkerCycle).toHaveBeenCalledWith({
+      trigger: "cron",
+    });
   });
 });

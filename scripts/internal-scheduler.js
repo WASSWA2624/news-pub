@@ -3,6 +3,7 @@
 const DEFAULT_INTERVAL_SECONDS = 60;
 const DEFAULT_ENDPOINT_PATH = "/api/jobs/scheduled-publishing";
 const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_STARTUP_DELAY_SECONDS = 1;
 
 function parseBooleanFlag(value) {
   return ["1", "true", "yes", "on"].includes(`${value || ""}`.trim().toLowerCase());
@@ -12,6 +13,12 @@ function parsePositiveInteger(value, fallbackValue) {
   const parsedValue = Number.parseInt(`${value || ""}`, 10);
 
   return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallbackValue;
+}
+
+function parseNonNegativeInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(`${value ?? ""}`, 10);
+
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : fallbackValue;
 }
 
 function buildSchedulerUrl() {
@@ -47,6 +54,10 @@ function startInternalScheduler({
   const intervalSeconds = parsePositiveInteger(
     process.env.INTERNAL_SCHEDULER_INTERVAL_SECONDS,
     DEFAULT_INTERVAL_SECONDS,
+  );
+  const startupDelaySeconds = parseNonNegativeInteger(
+    process.env.INTERNAL_SCHEDULER_STARTUP_DELAY_SECONDS,
+    DEFAULT_STARTUP_DELAY_SECONDS,
   );
   const schedulerUrl = buildSchedulerUrl();
   let stopped = false;
@@ -102,9 +113,9 @@ function startInternalScheduler({
   }
 
   logger.info(
-    `[news-pub:scheduler] enabled; polling ${schedulerUrl} every ${intervalSeconds} seconds.`,
+    `[news-pub:scheduler] enabled; first cycle in ${startupDelaySeconds} seconds, then polling ${schedulerUrl} every ${intervalSeconds} seconds.`,
   );
-  scheduleNext(Math.min(intervalSeconds, 30) * 1000);
+  scheduleNext(startupDelaySeconds * 1000);
 
   return {
     stop() {

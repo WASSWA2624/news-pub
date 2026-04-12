@@ -266,6 +266,50 @@ export function getProviderDateWindowConfig(provider_key, values = {}) {
   return null;
 }
 
+/**
+ * Returns source-catalog discovery support for provider request shapes that
+ * expose documented source discovery endpoints.
+ */
+export function getProviderSourceCatalogSupport(provider_key, values = {}) {
+  const normalizedProviderKey = normalizeKey(provider_key);
+  const endpoint = getProviderEndpointShape(normalizedProviderKey, values);
+
+  if (normalizedProviderKey === "mediastack") {
+    return {
+      available: true,
+      field_key: "sources",
+      minimumQueryLength: 2,
+      mode: "remote_search",
+      provider_key: normalizedProviderKey,
+      summary:
+        "Mediastack exposes a documented source catalog endpoint. Search by source name or id to avoid guessing source identifiers.",
+    };
+  }
+
+  if (normalizedProviderKey === "newsapi") {
+    return {
+      available: true,
+      endpoint,
+      field_key: "sources",
+      minimumQueryLength: 0,
+      mode: "prefetch",
+      provider_key: normalizedProviderKey,
+      summary:
+        endpoint === "top-headlines"
+          ? "NewsAPI exposes a documented source catalog that can be filtered by country, category, and language."
+          : "NewsAPI source ids come from the documented Sources catalog and can be reused when configuring Everything requests.",
+    };
+  }
+
+  return {
+    available: false,
+    field_key: "sources",
+    mode: "unsupported",
+    provider_key: normalizedProviderKey,
+    summary: "This provider request shape does not expose a documented source catalog.",
+  };
+}
+
 const NEWSDATA_LANGUAGE_ROWS = Object.freeze([
   ["Afrikaans", "af"],
   ["Albanian", "sq"],
@@ -1628,9 +1672,17 @@ export function getProviderFormDefinition(provider_key, scope, values = {}) {
     sections: definition.sections
       .map((section) => ({
         ...section,
-        fields: definition.fields.filter((field) =>
-          field.section === section.key && isFieldVisible(field, scope, values),
-        ),
+        fields: definition.fields
+          .filter((field) =>
+            field.section === section.key && isFieldVisible(field, scope, values),
+          )
+          .map((field) => ({
+            ...field,
+            sourceCatalog:
+              field.key === "sources"
+                ? getProviderSourceCatalogSupport(provider_key, values)
+                : null,
+          })),
       }))
       .filter((section) => section.fields.length > 0),
   };

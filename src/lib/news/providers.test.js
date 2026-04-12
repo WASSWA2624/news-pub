@@ -75,6 +75,122 @@ describe("news providers", () => {
     );
   });
 
+  it("loads NewsAPI source catalog options from the documented sources endpoint", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          sources: [
+            {
+              category: "technology",
+              country: "us",
+              id: "techcrunch",
+              language: "en",
+              name: "TechCrunch",
+              url: "https://techcrunch.com",
+            },
+            {
+              category: "general",
+              country: "gb",
+              id: "bbc-news",
+              language: "en",
+              name: "BBC News",
+              url: "https://www.bbc.co.uk/news",
+            },
+          ],
+        }),
+      ),
+    );
+
+    const { fetchProviderSourceCatalog } = await import("./providers");
+    const result = await fetchProviderSourceCatalog({
+      provider_key: "newsapi",
+      query: "tech",
+      requestValues: {
+        category: "technology",
+        country: "us",
+        endpoint: "top-headlines",
+        language: "en",
+      },
+    });
+    const requestedUrl = getRequestedUrl();
+    const requestInit = fetch.mock.calls[0][1];
+
+    expect(requestedUrl.pathname).toBe("/v2/top-headlines/sources");
+    expect(requestedUrl.searchParams.get("category")).toBe("technology");
+    expect(requestedUrl.searchParams.get("country")).toBe("us");
+    expect(requestedUrl.searchParams.get("language")).toBe("en");
+    expect(requestInit.headers["x-api-key"]).toBe("newsapi-key");
+    expect(result).toMatchObject({
+      options: [
+        expect.objectContaining({
+          label: "TechCrunch",
+          value: "techcrunch",
+        }),
+      ],
+      supported: true,
+    });
+  });
+
+  it("loads Mediastack source catalog options only after a search query is present", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          data: [
+            {
+              category: "general",
+              country: "gb",
+              id: "bbc",
+              language: "en",
+              name: "BBC",
+              url: "https://www.bbc.co.uk",
+            },
+          ],
+        }),
+      ),
+    );
+
+    const { fetchProviderSourceCatalog } = await import("./providers");
+
+    await expect(
+      fetchProviderSourceCatalog({
+        provider_key: "mediastack",
+      }),
+    ).resolves.toMatchObject({
+      options: [],
+      requires_query: true,
+      supported: true,
+    });
+
+    const result = await fetchProviderSourceCatalog({
+      provider_key: "mediastack",
+      query: "bbc",
+      requestValues: {
+        categories: ["general"],
+        countries: ["gb"],
+        languages: ["en"],
+      },
+    });
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.pathname).toBe("/v1/sources");
+    expect(requestedUrl.searchParams.get("access_key")).toBe("mediastack-key");
+    expect(requestedUrl.searchParams.get("search")).toBe("bbc");
+    expect(requestedUrl.searchParams.get("categories")).toBe("general");
+    expect(requestedUrl.searchParams.get("countries")).toBe("gb");
+    expect(requestedUrl.searchParams.get("languages")).toBe("en");
+    expect(result).toMatchObject({
+      options: [
+        expect.objectContaining({
+          label: "BBC",
+          value: "bbc",
+        }),
+      ],
+      supported: true,
+    });
+  });
+
   it("builds Mediastack requests from seeded defaults, stream filters, allowlists, and an automatic date window", async () => {
     vi.stubGlobal(
       "fetch",
@@ -468,9 +584,25 @@ describe("news providers", () => {
     });
     expect(result.articles[0]).toMatchObject({
       language: "fr",
+      metadata_provenance: {
+        language: {
+          inferred: true,
+          source: "request_context",
+        },
+      },
       providerCategories: [],
       providerCountries: [],
       provider_key: "newsapi",
+      raw_payload_json: {
+        _newspub_normalization: {
+          metadata_provenance: {
+            language: {
+              inferred: true,
+              source: "request_context",
+            },
+          },
+        },
+      },
       source_name: "Example Wire",
       title: "Climate policy feature",
     });

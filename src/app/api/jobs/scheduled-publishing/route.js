@@ -8,7 +8,7 @@ import { requireAdminApiPermission } from "@/lib/auth/api";
 import { hasRequestSecret } from "@/lib/auth/internal";
 import { ADMIN_PERMISSIONS } from "@/lib/auth/rbac";
 import { env } from "@/lib/env/server";
-import { runScheduledStreams } from "@/lib/news/workflows";
+import { runNewsWorkerCycle } from "@/lib/news/worker-runtime";
 
 function hasCronAuthorization(request) {
   return hasRequestSecret(request, env.cron.secret, {
@@ -28,7 +28,9 @@ export async function POST(request) {
     }
   }
 
-  const summary = await runScheduledStreams();
+  const summary = await runNewsWorkerCycle({
+    trigger: hasCronAuthorization(request) ? "cron" : "admin",
+  });
 
   return NextResponse.json({
     data: summary,

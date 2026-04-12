@@ -19,6 +19,7 @@ const providerRuntimeCatalog = Object.freeze({
     credentialEnv: "MEDIASTACK_API_KEY",
     description: "Mediastack provider integration with the official live news filters.",
     maxBatchSize: 100,
+    sourceCatalogUrl: "https://api.mediastack.com/v1/sources",
   },
   newsapi: {
     baseUrlByEndpoint: Object.freeze({
@@ -28,6 +29,7 @@ const providerRuntimeCatalog = Object.freeze({
     credentialEnv: "NEWSAPI_API_KEY",
     description: "NewsAPI provider integration with official Top Headlines and Everything filters.",
     maxBatchSize: 100,
+    sourceCatalogUrl: "https://newsapi.org/v2/top-headlines/sources",
   },
   newsdata: {
     baseUrlByEndpoint: Object.freeze({
@@ -411,6 +413,14 @@ function createNormalizedArticle(article, provider_key) {
   const normalizedTitle = normalizeDisplayText(article.title);
   const normalizedSourceUrl = normalizeDisplayText(article.source_url);
   const published_at = article.published_at || new Date().toISOString();
+  const metadata_provenance = article.metadata_provenance
+    ? Object.fromEntries(
+        Object.entries(article.metadata_provenance).map(([key, value]) => [
+          key,
+          createMetadataProvenance(value),
+        ]),
+      )
+    : null;
 
   return {
     ...article,
@@ -422,10 +432,30 @@ function createNormalizedArticle(article, provider_key) {
       published_at,
     ).slice(0, 40),
     fetch_timestamp: new Date().toISOString(),
+    metadata_provenance,
     normalized_title_hash: createContentHash(normalizedTitle),
     provider_key,
     source_url_hash: normalizedSourceUrl ? createContentHash(normalizedSourceUrl) : null,
     tags: dedupeStrings(article.tags),
+  };
+}
+
+function createMetadataProvenance(entry) {
+  return {
+    inferred: entry?.source === "request_context",
+    reason: entry?.reason || null,
+    source: entry?.source || "provider_response",
+  };
+}
+
+function annotateRawPayload(article, metadata_provenance = {}) {
+  return {
+    ...(article && typeof article === "object" ? article : {}),
+    _newspub_normalization: {
+      metadata_provenance: Object.fromEntries(
+        Object.entries(metadata_provenance).map(([key, value]) => [key, createMetadataProvenance(value)]),
+      ),
+    },
   };
 }
 
@@ -441,7 +471,28 @@ function normalizeMediastackArticle(article) {
       providerCountries: normalizeList([article.country], { lowerCase: true }),
       providerRegions: [],
       published_at: article.published_at || null,
-      raw_payload_json: article,
+      metadata_provenance: {
+        language: {
+          source: "provider_response",
+        },
+        providerCategories: {
+          source: "provider_response",
+        },
+        providerCountries: {
+          source: "provider_response",
+        },
+      },
+      raw_payload_json: annotateRawPayload(article, {
+        language: {
+          source: "provider_response",
+        },
+        providerCategories: {
+          source: "provider_response",
+        },
+        providerCountries: {
+          source: "provider_response",
+        },
+      }),
       source_name: article.source || "Unknown Source",
       source_url: article.url || null,
       summary: article.description || article.title || "",
@@ -464,7 +515,28 @@ function normalizeNewsDataArticle(article) {
       providerCountries: normalizeList(article.country || [], { lowerCase: true }),
       providerRegions: [],
       published_at: article.pubDate || null,
-      raw_payload_json: article,
+      metadata_provenance: {
+        language: {
+          source: "provider_response",
+        },
+        providerCategories: {
+          source: "provider_response",
+        },
+        providerCountries: {
+          source: "provider_response",
+        },
+      },
+      raw_payload_json: annotateRawPayload(article, {
+        language: {
+          source: "provider_response",
+        },
+        providerCategories: {
+          source: "provider_response",
+        },
+        providerCountries: {
+          source: "provider_response",
+        },
+      }),
       source_name: article.source_id || "Unknown Source",
       source_url: article.link || null,
       summary: article.description || article.title || "",
@@ -482,6 +554,26 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
     normalizeScalar(requestValues.language)
     || normalizeLowerScalar(stream?.locale)
     || null;
+  const metadata_provenance = {
+    language: {
+      reason: requestedLanguage
+        ? "NewsAPI articles do not consistently include a top-level language field, so NewsPub records the effective request language when present."
+        : "Language is unavailable in the provider payload.",
+      source: requestedLanguage ? "request_context" : "provider_response",
+    },
+    providerCategories: {
+      reason: requestedCategory
+        ? "NewsAPI category is request-scoped rather than article-scoped, so NewsPub records the selected request category as inferred metadata."
+        : "Category is unavailable in the provider payload.",
+      source: requestedCategory ? "request_context" : "provider_response",
+    },
+    providerCountries: {
+      reason: requestedCountry
+        ? "NewsAPI country is request-scoped rather than article-scoped, so NewsPub records the selected request country as inferred metadata."
+        : "Country is unavailable in the provider payload.",
+      source: requestedCountry ? "request_context" : "provider_response",
+    },
+  };
 
   return createNormalizedArticle(
     {
@@ -494,7 +586,8 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
       providerCountries: requestedCountry ? [requestedCountry] : [],
       providerRegions: [],
       published_at: article.published_at || null,
-      raw_payload_json: article,
+      metadata_provenance,
+      raw_payload_json: annotateRawPayload(article, metadata_provenance),
       source_name: article.source?.name || "Unknown Source",
       source_url: article.url || null,
       summary: article.description || article.title || "",
@@ -524,6 +617,22 @@ function buildFallbackProviderArticles(stream, provider_key, now = new Date()) {
         providerRegions: [],
         published_at: now.toISOString(),
         raw_payload_json: {
+          _newspub_normalization: {
+            metadata_provenance: {
+              language: createMetadataProvenance({
+                reason: "Local fallback articles are generated by NewsPub, not an upstream provider.",
+                source: "fallback_fixture",
+              }),
+              providerCategories: createMetadataProvenance({
+                reason: "Local fallback articles are generated by NewsPub, not an upstream provider.",
+                source: "fallback_fixture",
+              }),
+              providerCountries: createMetadataProvenance({
+                reason: "Local fallback articles are generated by NewsPub, not an upstream provider.",
+                source: "fallback_fixture",
+              }),
+            },
+          },
           fallback: true,
           generatedAt: now.toISOString(),
         },
@@ -733,6 +842,79 @@ function buildNewsApiRequest({
   };
 }
 
+function normalizeSourceCatalogOption(value) {
+  if (!value?.id) {
+    return null;
+  }
+
+  return {
+    description: [value.category, value.country, value.language].filter(Boolean).join(" | ") || null,
+    keywords: [value.name, value.id, value.category, value.country, value.language, value.url].filter(Boolean),
+    label: value.name || value.id,
+    metadata: {
+      category: value.category || null,
+      country: value.country || null,
+      language: value.language || null,
+      url: value.url || null,
+    },
+    value: value.id,
+  };
+}
+
+function filterSourceCatalogOptions(options = [], query = "") {
+  const normalizedQuery = normalizeLowerScalar(query);
+
+  if (!normalizedQuery) {
+    return options;
+  }
+
+  return options.filter((option) =>
+    [option.label, option.value, option.description, ...(option.keywords || [])]
+      .filter(Boolean)
+      .some((entry) => normalizeLowerScalar(entry).includes(normalizedQuery)),
+  );
+}
+
+function buildMediastackSourceCatalogRequest({ credential, query = "", requestValues = {} }) {
+  const url = new URL(providerRuntimeCatalog.mediastack.sourceCatalogUrl);
+
+  url.searchParams.set("access_key", credential);
+  appendScalarParam(url, "search", query);
+  appendIncludeExcludeListParam(url, "countries", requestValues.countries, requestValues.excludeCountries);
+  appendIncludeExcludeListParam(url, "languages", requestValues.languages, requestValues.excludeLanguages);
+  appendIncludeExcludeListParam(url, "categories", requestValues.categories, requestValues.excludeCategories);
+
+  return {
+    providerLabel: "Mediastack",
+    responseShape: "data",
+    url,
+  };
+}
+
+function buildNewsApiSourceCatalogRequest({ credential, requestValues = {} }) {
+  const endpoint = getSingleValue(requestValues, "endpoint", "top-headlines") === "everything"
+    ? "everything"
+    : "top-headlines";
+  const url = new URL(providerRuntimeCatalog.newsapi.sourceCatalogUrl);
+
+  if (endpoint === "top-headlines") {
+    appendScalarParam(url, "category", requestValues.category);
+    appendScalarParam(url, "country", requestValues.country);
+  }
+
+  appendScalarParam(url, "language", requestValues.language);
+
+  return {
+    endpoint,
+    headers: {
+      "x-api-key": credential,
+    },
+    providerLabel: "NewsAPI",
+    responseShape: "sources",
+    url,
+  };
+}
+
 async function readJsonResponse(response) {
   const responseText = await response.text();
 
@@ -823,6 +1005,89 @@ export function resolveNewsProviderCredential(provider_key) {
 /** Returns whether the given provider currently has credentials configured. */
 export function getProviderCredentialState(provider_key) {
   return resolveNewsProviderCredential(provider_key) ? "configured" : "missing";
+}
+
+/**
+ * Fetches a documented provider source catalog where the upstream API exposes
+ * source discovery support.
+ */
+export async function fetchProviderSourceCatalog({
+  limit = 100,
+  provider_key,
+  query = "",
+  requestValues = {},
+} = {}) {
+  const normalizedKey = normalizeProviderKey(provider_key);
+  const credential = resolveNewsProviderCredential(normalizedKey);
+
+  if (!credential) {
+    throw new NewsPubError(
+      `Missing credential for provider "${normalizedKey}". Configure the provider API key before loading source catalogs.`,
+      { status: "provider_credential_missing", statusCode: 400 },
+    );
+  }
+
+  if (normalizedKey === "newsdata") {
+    return {
+      options: [],
+      supported: false,
+    };
+  }
+
+  if (normalizedKey === "mediastack" && normalizeScalar(query).length < 2) {
+    return {
+      options: [],
+      query: normalizeScalar(query),
+      requires_query: true,
+      supported: true,
+    };
+  }
+
+  const request =
+    normalizedKey === "mediastack"
+      ? buildMediastackSourceCatalogRequest({
+          credential,
+          query,
+          requestValues,
+        })
+      : normalizedKey === "newsapi"
+        ? buildNewsApiSourceCatalogRequest({
+            credential,
+            requestValues,
+          })
+        : null;
+
+  if (!request) {
+    return {
+      options: [],
+      supported: false,
+    };
+  }
+
+  const response = await fetchProviderResponse(
+    request.providerLabel,
+    request.url,
+    getFetchRequestInit(request.headers),
+  );
+  const payload = await readJsonResponse(response);
+
+  if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
+    throw createProviderResponseError(request.providerLabel, payload, "Invalid source catalog response shape.");
+  }
+
+  const options = filterSourceCatalogOptions(
+    payload[request.responseShape]
+      .map(normalizeSourceCatalogOption)
+      .filter(Boolean),
+    query,
+  ).slice(0, Math.max(1, Number.parseInt(`${limit || 100}`, 10) || 100));
+
+  return {
+    options,
+    query: normalizeScalar(query),
+    requires_query: false,
+    supported: true,
+  };
 }
 
 /**
