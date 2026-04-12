@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { startInternalScheduler } = require("./internal-scheduler");
 
 const rootDir = path.resolve(__dirname, "..");
 const buildDir = path.join(rootDir, ".next");
@@ -12,6 +13,7 @@ const staticSourcePath = path.join(buildDir, "static");
 const staticTargetPath = path.join(standaloneDir, ".next", "static");
 const publicSourcePath = path.join(rootDir, "public");
 const publicTargetPath = path.join(standaloneDir, "public");
+let internalSchedulerHandle = null;
 
 function assertInsideDirectory(targetPath, directoryPath) {
   const relativePath = path.relative(path.resolve(directoryPath), path.resolve(targetPath));
@@ -84,6 +86,10 @@ fs.writeFileSync(standalonePidPath, `${process.pid}`, "utf8");
 
 function clearStandalonePidFile() {
   fs.rmSync(standalonePidPath, { force: true });
+
+  if (internalSchedulerHandle?.stop) {
+    internalSchedulerHandle.stop();
+  }
 }
 
 ["exit", "SIGINT", "SIGTERM", "SIGBREAK"].forEach((eventName) => {
@@ -98,3 +104,4 @@ function clearStandalonePidFile() {
 
 loadLocalStandaloneEnv();
 require(standaloneServerPath);
+internalSchedulerHandle = startInternalScheduler();

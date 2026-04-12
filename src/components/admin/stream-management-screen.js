@@ -36,6 +36,7 @@ import {
   StickySideCardHeader,
   StickySideCardScrollArea,
   StatusBadge,
+  formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import AdminFormModal from "@/components/admin/admin-form-modal";
@@ -661,6 +662,77 @@ const StreamIdentityCopy = styled.div`
 
 const StreamInlineMeta = styled(InlineMetaText)``;
 
+const StreamDetailGrid = styled.div`
+  display: grid;
+  gap: 0.55rem;
+
+  @media (min-width: 920px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+const StreamDetailCard = styled.div`
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94));
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.68rem 0.74rem;
+`;
+
+const StreamDetailTitle = styled.strong`
+  color: #162744;
+  font-size: 0.76rem;
+  letter-spacing: -0.01em;
+`;
+
+const StreamDetailPills = styled(PillRow)``;
+
+const StreamDisclosure = styled.details`
+  background:
+    linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(248, 251, 255, 0.94));
+  border: 1px solid rgba(16, 32, 51, 0.08);
+  padding: 0.64rem 0.74rem;
+`;
+
+const StreamDisclosureSummary = styled.summary`
+  color: #162744;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+`;
+
+const StreamDisclosureBody = styled.div`
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.6rem;
+`;
+
+const RunHistoryList = styled.div`
+  display: grid;
+  gap: 0.45rem;
+`;
+
+const RunHistoryItem = styled.div`
+  border: 1px solid rgba(16, 32, 51, 0.07);
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.58rem 0.62rem;
+`;
+
+const RunHistoryHeader = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: space-between;
+`;
+
 const {
   compareDestinationGroupKeys,
   describeCompletedRun,
@@ -683,6 +755,162 @@ function getDestinationPlatformTone(platform) {
   }
 
   return "website";
+}
+
+function formatCompactKey(value) {
+  return `${value || ""}`
+    .replace(/Json$/i, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatValueList(values = [], fallbackValue = "Any") {
+  const items = [...new Set((Array.isArray(values) ? values : [values]).map((value) => `${value || ""}`.trim()).filter(Boolean))];
+
+  return items.length ? items.join(", ") : fallbackValue;
+}
+
+function formatRequestValue(value) {
+  if (Array.isArray(value)) {
+    return formatValueList(value, "Any");
+  }
+
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return `${value ?? ""}`.trim() || "Any";
+}
+
+function getRequestEntries(requestValues = {}) {
+  return Object.entries(requestValues || {})
+    .filter(([, value]) => {
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+
+      return `${value ?? ""}`.trim() !== "";
+    })
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => ({
+      key,
+      label: formatCompactKey(key),
+      value: formatRequestValue(value),
+    }));
+}
+
+function formatIntervalLabel(minutes) {
+  const normalizedMinutes = Number(minutes || 0);
+
+  if (!normalizedMinutes) {
+    return "Manual only";
+  }
+
+  if (normalizedMinutes % 60 === 0) {
+    const hours = normalizedMinutes / 60;
+
+    return `${hours}h cadence`;
+  }
+
+  return `${normalizedMinutes}m cadence`;
+}
+
+function getRunStatusTone(status) {
+  if (status === "SUCCEEDED") {
+    return "success";
+  }
+
+  if (status === "FAILED") {
+    return "danger";
+  }
+
+  if (status === "RUNNING" || status === "PENDING") {
+    return "warning";
+  }
+
+  return undefined;
+}
+
+function describeScheduleStatus(stream, scheduler) {
+  const schedule = stream.schedule || {};
+
+  if (!schedule.isActive) {
+    return "This stream is paused. Its cadence and filters are saved, but automatic runs stay off until you reactivate it.";
+  }
+
+  if (!schedule.isEnabled) {
+    return "Automatic runs are disabled for this stream. It only runs manually.";
+  }
+
+  if (schedule.isRunning) {
+    return schedule.lastRunStartedAt
+      ? `This stream is running now. Current execution started ${formatDateTime(schedule.lastRunStartedAt)}.`
+      : "This stream is running now.";
+  }
+
+  if (schedule.isDue) {
+    if (scheduler?.usesExternalCron) {
+      return schedule.nextRunAt
+        ? `This stream became due at ${formatDateTime(schedule.nextRunAt)} and is waiting for the scheduler endpoint to be triggered.`
+        : "This stream is due and is waiting for the scheduler endpoint to be triggered.";
+    }
+
+    return schedule.nextRunAt
+      ? `This stream became due at ${formatDateTime(schedule.nextRunAt)} and will run on the next internal scheduler poll.`
+      : "This stream is due and will run on the next internal scheduler poll.";
+  }
+
+  if (schedule.nextRunAt) {
+    return `Next automatic run is scheduled for ${formatDateTime(schedule.nextRunAt)}.`;
+  }
+
+  if (!schedule.lastRunCompletedAt && !schedule.lastFailureAt) {
+    return "This stream has not completed an automatic run yet and is ready for its first scheduled pass.";
+  }
+
+  return "This stream is waiting for its next calculated interval.";
+}
+
+function describeLatestRun(stream) {
+  const run = stream.latestRun;
+
+  if (!run) {
+    return "No fetch runs have been recorded for this stream yet.";
+  }
+
+  const runWindow = run.executionDetails?.streamFetchWindow;
+  const fragments = [
+    `${formatEnumLabel(run.triggerType || "manual")} run`,
+    run.startedAt ? `started ${formatDateTime(run.startedAt)}` : "",
+    run.finishedAt ? `finished ${formatDateTime(run.finishedAt)}` : "",
+  ].filter(Boolean);
+
+  if (runWindow?.start && runWindow?.end) {
+    fragments.push(
+      `${runWindow.source || "window"} ${formatDateTime(runWindow.start)} to ${formatDateTime(runWindow.end)}`,
+    );
+  }
+
+  return fragments.join(" | ");
+}
+
+function getRecentRunLabel(run) {
+  const triggerLabel = formatEnumLabel(run.triggerType || "manual");
+
+  if (run.startedAt && run.finishedAt) {
+    return `${triggerLabel} | ${formatDateTime(run.startedAt)} to ${formatDateTime(run.finishedAt)}`;
+  }
+
+  if (run.startedAt) {
+    return `${triggerLabel} | started ${formatDateTime(run.startedAt)}`;
+  }
+
+  return triggerLabel;
 }
 
 function RunProgressModal({ runState, onClose }) {
@@ -945,6 +1173,7 @@ export default function StreamManagementScreen({
   modeOptions,
   providerOptions,
   saveStreamAction,
+  scheduler,
   statusOptions,
   streams,
   templateOptions,
@@ -1122,6 +1351,17 @@ export default function StreamManagementScreen({
           ? `Create or review streams for ${selectedDestination.label}. Each destination keeps using its own saved publishing settings.`
           : `Create or review streams for ${selectedDestinationCount} selected destinations across ${selectedDestinationGroupCount} group${selectedDestinationGroupCount === 1 ? "" : "s"}. Each destination keeps using its own saved publishing settings.`;
   const isRunInProgress = runState?.phase === "running";
+  const schedulerStatusText = scheduler?.internalEnabled
+    ? scheduler.latestScheduledRunAt
+      ? `Internal scheduler is polling every ${scheduler.internalIntervalSeconds} seconds. Latest scheduled activity: ${formatDateTime(
+          scheduler.latestScheduledRunAt,
+        )}.`
+      : `Internal scheduler is polling every ${scheduler.internalIntervalSeconds} seconds. No scheduled fetch runs have completed yet.`
+    : scheduler?.latestScheduledRunAt
+      ? `External cron is expected to trigger ${scheduler.endpointPath}. Latest scheduled activity: ${formatDateTime(
+          scheduler.latestScheduledRunAt,
+        )}.`
+      : `External cron is expected to trigger ${scheduler?.endpointPath || "/api/jobs/scheduled-publishing"}. No scheduled fetch runs have completed yet.`;
 
   function closeRunReport() {
     if (isRunInProgress) {
@@ -1480,6 +1720,10 @@ export default function StreamManagementScreen({
               <NoteText>{activeScopeText}</NoteText>
             </NoteCard>
             <NoteCard>
+              <NoteLabel>Scheduler</NoteLabel>
+              <NoteText>{schedulerStatusText}</NoteText>
+            </NoteCard>
+            <NoteCard>
               <NoteLabel>How settings apply</NoteLabel>
               <NoteText>
                 Saved destination, template, and publishing settings stay attached to each selected target.
@@ -1497,7 +1741,14 @@ export default function StreamManagementScreen({
           </CardHeader>
           <RecordStack>
             {filteredStreams.length ? (
-              filteredStreams.map((stream) => (
+              filteredStreams.map((stream) => {
+                const currentRequestEntries = getRequestEntries(stream.effectiveFilters?.providerRequestValues);
+                const latestRunRequestEntries = getRequestEntries(
+                  stream.latestRun?.executionDetails?.sharedRequest?.requestValues,
+                );
+                const recentRuns = stream.recentRuns || [];
+
+                return (
                 <StreamRecord key={stream.id}>
                   <RecordHeader>
                     <RecordTitleBlock>
@@ -1543,8 +1794,149 @@ export default function StreamManagementScreen({
                     <AppIcon name="clock" size={12} />
                     Locale {stream.locale} | {stream.timezone}
                   </StreamInlineMeta>
+                  <StreamDetailGrid>
+                    <StreamDetailCard>
+                      <StreamDetailTitle>Automation status</StreamDetailTitle>
+                      <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
+                      <StreamDetailPills>
+                        <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
+                          <AppIcon name="clock" size={11} />
+                          {formatIntervalLabel(stream.schedule?.intervalMinutes)}
+                        </MetaPill>
+                        {stream.schedule?.isRunning ? (
+                          <MetaPill $tone="accent">Running now</MetaPill>
+                        ) : null}
+                        {stream.schedule?.isDue && !stream.schedule?.isRunning ? (
+                          <MetaPill $tone="warning">
+                            {stream.schedule?.isOverdue
+                              ? `Overdue ${stream.schedule.overdueMinutes}m`
+                              : "Due now"}
+                          </MetaPill>
+                        ) : null}
+                        {stream.schedule?.nextRunAt ? (
+                          <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
+                        ) : null}
+                        {stream.schedule?.latestTriggerType ? (
+                          <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
+                        ) : null}
+                        {stream.checkpoint?.lastSuccessfulFetchAt ? (
+                          <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
+                        ) : null}
+                      </StreamDetailPills>
+                      <SmallText>{describeLatestRun(stream)}</SmallText>
+                    </StreamDetailCard>
+
+                    <StreamDetailCard>
+                      <StreamDetailTitle>Filters in effect</StreamDetailTitle>
+                      <SmallText>
+                        {stream.effectiveFilters?.timeBoundarySupport?.summary
+                          || "Provider defaults and this stream's overrides are merged before each run."}
+                      </SmallText>
+                      <StreamDetailPills>
+                        {stream.effectiveFilters?.categories?.length ? (
+                          stream.effectiveFilters.categories.map((category) => (
+                            <MetaPill key={`category-${stream.id}-${category.id}`}>
+                              Category: {category.name}
+                            </MetaPill>
+                          ))
+                        ) : (
+                          <MetaPill>Categories: Any</MetaPill>
+                        )}
+                        <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
+                        <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
+                        <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
+                        {(stream.includeKeywordsJson || []).length ? (
+                          stream.includeKeywordsJson.map((keyword) => (
+                            <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
+                          ))
+                        ) : (
+                          <MetaPill>Include keywords: Any</MetaPill>
+                        )}
+                        {(stream.excludeKeywordsJson || []).length ? (
+                          stream.excludeKeywordsJson.map((keyword) => (
+                            <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
+                              Exclude: {keyword}
+                            </MetaPill>
+                          ))
+                        ) : (
+                          <MetaPill>Exclude keywords: None</MetaPill>
+                        )}
+                        <MetaPill>Endpoint: {formatCompactKey(stream.effectiveFilters?.providerEndpoint || "default")}</MetaPill>
+                      </StreamDetailPills>
+                    </StreamDetailCard>
+                  </StreamDetailGrid>
+
+                  <StreamDisclosure open={Boolean(stream.schedule?.isRunning || stream.schedule?.isDue)}>
+                    <StreamDisclosureSummary>Current provider request</StreamDisclosureSummary>
+                    <StreamDisclosureBody>
+                      <StreamDetailGrid>
+                        <StreamDetailCard>
+                          <StreamDetailTitle>Merged request values</StreamDetailTitle>
+                          <SmallText>
+                            These are the provider-facing filters NewsPub will use if this stream runs now.
+                          </SmallText>
+                          <StreamDetailPills>
+                            {currentRequestEntries.length ? (
+                              currentRequestEntries.map((entry) => (
+                                <MetaPill key={`request-${stream.id}-${entry.key}`}>
+                                  {entry.label}: {entry.value}
+                                </MetaPill>
+                              ))
+                            ) : (
+                              <MetaPill>No provider overrides</MetaPill>
+                            )}
+                          </StreamDetailPills>
+                        </StreamDetailCard>
+                        <StreamDetailCard>
+                          <StreamDetailTitle>Last executed request</StreamDetailTitle>
+                          <SmallText>
+                            Shared-batch runs can widen safe provider filters upstream and then apply stream-level rules locally.
+                          </SmallText>
+                          <StreamDetailPills>
+                            {latestRunRequestEntries.length ? (
+                              latestRunRequestEntries.map((entry) => (
+                                <MetaPill key={`last-request-${stream.id}-${entry.key}`}>
+                                  {entry.label}: {entry.value}
+                                </MetaPill>
+                              ))
+                            ) : (
+                              <MetaPill>Not recorded yet</MetaPill>
+                            )}
+                          </StreamDetailPills>
+                        </StreamDetailCard>
+                      </StreamDetailGrid>
+                    </StreamDisclosureBody>
+                  </StreamDisclosure>
+
+                  {recentRuns.length ? (
+                    <StreamDisclosure open={Boolean(stream.schedule?.isRunning)}>
+                      <StreamDisclosureSummary>Recent runs</StreamDisclosureSummary>
+                      <StreamDisclosureBody>
+                        <RunHistoryList>
+                          {recentRuns.map((run) => (
+                            <RunHistoryItem key={run.id}>
+                              <RunHistoryHeader>
+                                <SmallText>{getRecentRunLabel(run)}</SmallText>
+                                <StatusBadge $tone={getRunStatusTone(run.status)}>{run.status}</StatusBadge>
+                              </RunHistoryHeader>
+                              <SmallText>{describeCompletedRun(run)}</SmallText>
+                              {run.executionDetails?.streamFetchWindow?.start && run.executionDetails?.streamFetchWindow?.end ? (
+                                <SmallText>
+                                  Window: {formatDateTime(run.executionDetails.streamFetchWindow.start)}
+                                  {" | "}
+                                  {formatDateTime(run.executionDetails.streamFetchWindow.end)}
+                                </SmallText>
+                              ) : null}
+                              {run.errorMessage ? <SmallText>{run.errorMessage}</SmallText> : null}
+                            </RunHistoryItem>
+                          ))}
+                        </RunHistoryList>
+                      </StreamDisclosureBody>
+                    </StreamDisclosure>
+                  ) : null}
+
                   <SmallText>
-                    Scheduling, targeting rules, provider filters, and template selection now open in a full-workspace modal.
+                    Scheduling, targeting rules, provider filters, and template selection are still editable in the full-workspace modal.
                   </SmallText>
                   <ButtonRow>
                     <AdminFormModal
@@ -1581,7 +1973,8 @@ export default function StreamManagementScreen({
                     </form>
                   </ButtonRow>
                 </StreamRecord>
-              ))
+                );
+              })
             ) : selectedDestinationCount ? (
               <SmallText>
                 No streams are configured for the selected destinations yet. Tick another destination or create one from the panel on the right.

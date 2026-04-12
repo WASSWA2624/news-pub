@@ -19,6 +19,7 @@ const runtimeScriptFileNames = [
   "cpanel-db-seed.js",
   "cpanel-db-utils.js",
   "cpanel-doctor.js",
+  "internal-scheduler.js",
   "prisma-runtime.js",
 ];
 
@@ -39,6 +40,7 @@ function writeRuntimeEntryPoint() {
   const appEntryPath = path.join(outputDir, "app.js");
   const appEntryContents = `const fs = require("node:fs");
 const path = require("node:path");
+const { startInternalScheduler } = require("./scripts/internal-scheduler.js");
 
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 // Next standalone may reuse HOSTNAME for internal self-fetches. 0.0.0.0 is
@@ -54,6 +56,7 @@ function assertRequiredRuntimeFiles() {
     "scripts/cpanel-db-seed.js",
     "scripts/cpanel-db-utils.js",
     "scripts/cpanel-doctor.js",
+    "scripts/internal-scheduler.js",
   ].filter((relativePath) => !fs.existsSync(path.join(__dirname, relativePath)));
 
   if (missingPaths.length > 0) {
@@ -99,6 +102,7 @@ function loadEnvFile(fileName) {
 [".env.production", ".env"].forEach(loadEnvFile);
 assertRequiredRuntimeFiles();
 require("./server.js");
+startInternalScheduler();
 `;
 
   fs.writeFileSync(appEntryPath, appEntryContents, "utf8");
@@ -219,6 +223,7 @@ function assertRuntimeArtifactIntegrity() {
     "scripts/cpanel-db-seed.js",
     "scripts/cpanel-db-utils.js",
     "scripts/cpanel-doctor.js",
+    "scripts/internal-scheduler.js",
     "scripts/prisma-runtime.js",
     "server.js",
     "node_modules/.prisma/client/default.js",
@@ -317,6 +322,7 @@ function writeDeploymentNotes() {
     "- Add production env keys in the cPanel environment panel whenever possible. Existing process env wins over .env.production, and .env is only a final fallback.",
     "- Required keys include DATABASE_URL, SESSION_SECRET, DESTINATION_TOKEN_ENCRYPTION_KEY, REVALIDATE_SECRET, and CRON_SECRET.",
     "- Also set NEXT_PUBLIC_APP_URL to your live domain, NEXT_IMAGE_REMOTE_HOSTS for trusted CDN/image hosts, and configure any provider, Meta, OpenAI, and storage credentials you use.",
+    "- Optional single-instance fallback: set INTERNAL_SCHEDULER_ENABLED=true to let the app self-trigger scheduled publishing every INTERNAL_SCHEDULER_INTERVAL_SECONDS seconds. Do not enable that if you already run an external cron for the same endpoint.",
     "- Do not upload .env*.local files; they are intentionally ignored and package checks fail if they appear.",
     "",
     "Media storage:",

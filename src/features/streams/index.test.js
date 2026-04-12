@@ -69,6 +69,163 @@ function createPrismaStub(overrides = {}) {
   };
 }
 
+function createStreamSnapshotPrisma(now = new Date()) {
+  const lastScheduledRunAt = new Date(now.getTime() - 45 * 60 * 1000);
+
+  return {
+    category: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: "category_1",
+          name: "Technology",
+          slug: "technology",
+        },
+      ]),
+    },
+    destination: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          _count: {
+            streams: 1,
+          },
+          id: "destination_1",
+          kind: "WEBSITE",
+          name: "Website",
+          platform: "WEBSITE",
+          slug: "website",
+        },
+      ]),
+    },
+    destinationTemplate: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    newsProviderConfig: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: "provider_1",
+          isDefault: true,
+          label: "NewsAPI",
+          providerKey: "newsapi",
+          requestDefaultsJson: {
+            category: "general",
+            endpoint: "top-headlines",
+          },
+        },
+      ]),
+    },
+    publishingStream: {
+      count: vi.fn().mockResolvedValue(1),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          activeProvider: {
+            id: "provider_1",
+            label: "NewsAPI",
+            providerKey: "newsapi",
+            requestDefaultsJson: {
+              category: "general",
+              endpoint: "top-headlines",
+            },
+          },
+          activeProviderId: "provider_1",
+          categories: [
+            {
+              category: {
+                id: "category_1",
+                name: "Technology",
+                slug: "technology",
+              },
+            },
+          ],
+          checkpoints: [
+            {
+              id: "checkpoint_1",
+              lastSuccessfulFetchAt: lastScheduledRunAt,
+              providerConfigId: "provider_1",
+              updatedAt: lastScheduledRunAt,
+            },
+          ],
+          countryAllowlistJson: ["ug"],
+          defaultTemplate: null,
+          destination: {
+            id: "destination_1",
+            kind: "WEBSITE",
+            name: "Website",
+            platform: "WEBSITE",
+            slug: "website",
+          },
+          excludeKeywordsJson: ["rumor"],
+          fetchRuns: [
+            {
+              aiCacheHitCount: 0,
+              blockedCount: 0,
+              duplicateCount: 0,
+              errorMessage: null,
+              executionDetailsJson: {
+                executionMode: "single",
+                sharedRequest: {
+                  requestValues: {
+                    category: "general",
+                    country: "ug",
+                    endpoint: "top-headlines",
+                    q: "uganda tech",
+                  },
+                },
+                streamFetchWindow: {
+                  end: now.toISOString(),
+                  source: "checkpoint",
+                  start: lastScheduledRunAt.toISOString(),
+                },
+              },
+              failedCount: 0,
+              fetchedCount: 6,
+              finishedAt: new Date(now.getTime() - 40 * 60 * 1000),
+              heldCount: 0,
+              id: "run_1",
+              optimizedCount: 4,
+              publishableCount: 4,
+              publishedCount: 4,
+              queuedCount: 0,
+              skippedCount: 2,
+              startedAt: lastScheduledRunAt,
+              status: "SUCCEEDED",
+              triggerType: "scheduled",
+            },
+          ],
+          id: "stream_1",
+          includeKeywordsJson: ["uganda", "ai"],
+          languageAllowlistJson: ["en"],
+          lastFailureAt: null,
+          lastRunCompletedAt: lastScheduledRunAt,
+          lastRunStartedAt: lastScheduledRunAt,
+          locale: "en",
+          maxPostsPerRun: 5,
+          mode: "AUTO_PUBLISH",
+          name: "Website auto stream",
+          regionAllowlistJson: [],
+          scheduleIntervalMinutes: 30,
+          settingsJson: {
+            providerFilters: {
+              countryAllowlistJson: ["ug"],
+              endpoint: "top-headlines",
+              q: "uganda tech",
+            },
+          },
+          status: "ACTIVE",
+          timezone: "Africa/Kampala",
+        },
+      ]),
+      groupBy: vi.fn().mockResolvedValue([
+        {
+          _count: {
+            _all: 1,
+          },
+          status: "ACTIVE",
+        },
+      ]),
+    },
+  };
+}
+
 describe("stream feature validation", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -442,6 +599,49 @@ describe("stream feature validation", () => {
         }),
       }),
     );
+  });
+
+  it("builds scheduler and effective-filter details for the stream management snapshot", async () => {
+    const { getStreamManagementSnapshot } = await import("./index");
+    const now = new Date();
+    const prisma = createStreamSnapshotPrisma(now);
+
+    const snapshot = await getStreamManagementSnapshot(prisma);
+
+    expect(snapshot.summary).toMatchObject({
+      activeCount: 1,
+      dueCount: 1,
+      scheduledCount: 1,
+      totalCount: 1,
+    });
+    expect(snapshot.scheduler).toMatchObject({
+      dueStreamCount: 1,
+      mode: "EXTERNAL_CRON",
+      scheduledStreamCount: 1,
+      usesExternalCron: true,
+    });
+    expect(snapshot.streams[0]).toMatchObject({
+      checkpoint: {
+        id: "checkpoint_1",
+      },
+      effectiveFilters: {
+        providerEndpoint: "top-headlines",
+        providerRequestValues: {
+          category: "general",
+          country: "ug",
+          endpoint: "top-headlines",
+          q: "uganda tech",
+        },
+      },
+      latestRun: {
+        id: "run_1",
+        triggerType: "scheduled",
+      },
+      schedule: {
+        isDue: true,
+        isEnabled: true,
+      },
+    });
   });
 
   it("deletes streams and records the audit event payload", async () => {

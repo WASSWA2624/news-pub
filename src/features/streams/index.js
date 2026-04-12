@@ -5,12 +5,22 @@
 import { createAuditEventRecord } from "@/lib/analytics";
 import { env } from "@/lib/env/server";
 import { createSlug, normalizeDisplayText } from "@/lib/normalization";
-import { sanitizeProviderFieldValues } from "@/lib/news/provider-definitions";
+import {
+  getProviderEndpointShape,
+  getProviderTimeBoundarySupport,
+  resolveStreamProviderRequestValues,
+  sanitizeProviderFieldValues,
+} from "@/lib/news/provider-definitions";
 import {
   normalizeSocialPostLinkPlacement,
   normalizeSocialPostSettings,
 } from "@/lib/news/social-post";
 import { NewsPubError, resolvePrismaClient, trimText } from "@/lib/news/shared";
+import {
+  getStreamNextScheduledRunAt,
+  isStreamDueForScheduledRun,
+  isStreamExecutionInProgress,
+} from "@/lib/news/workflows";
 import { getStreamValidationIssues } from "@/lib/validation/configuration";
 
 const streamSnapshotLimit = 200;
@@ -73,6 +83,116 @@ function getStatusCount(rows, status) {
     .reduce((total, row) => total + (row._count?._all || 0), 0);
 }
 
+function serializeDate(value) {
+  return value instanceof Date ? value.toISOString() : null;
+}
+
+function parseBooleanFlag(value) {
+  return ["1", "true", "yes", "on"].includes(`${value ?? ""}`.trim().toLowerCase());
+}
+
+function parsePositiveIntegerFlag(value, fallbackValue) {
+  const parsedValue = Number.parseInt(`${value ?? ""}`, 10);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallbackValue;
+}
+
+function getFetchRunExecutionDetails(run) {
+  const executionDetails = run?.executionDetailsJson || null;
+
+  if (!executionDetails || typeof executionDetails !== "object" || Array.isArray(executionDetails)) {
+    return null;
+  }
+
+  return executionDetails;
+}
+
+function mapFetchRun(run) {
+  const executionDetails = getFetchRunExecutionDetails(run);
+
+  return {
+    aiCacheHitCount: run.aiCacheHitCount || 0,
+    blockedCount: run.blockedCount || 0,
+    duplicateCount: run.duplicateCount || 0,
+    errorMessage: run.errorMessage || null,
+    executionDetails,
+    failedCount: run.failedCount || 0,
+    fetchedCount: run.fetchedCount || 0,
+    finishedAt: serializeDate(run.finishedAt),
+    heldCount: run.heldCount || 0,
+    id: run.id,
+    optimizedCount: run.optimizedCount || 0,
+    publishableCount: run.publishableCount || 0,
+    publishedCount: run.publishedCount || 0,
+    queuedCount: run.queuedCount || 0,
+    skippedCount: run.skippedCount || 0,
+    startedAt: serializeDate(run.startedAt),
+    status: run.status,
+    triggerType: run.triggerType || null,
+  };
+}
+
+function getCurrentProviderCheckpoint(stream) {
+  return (stream?.checkpoints || []).find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
+}
+
+function getLatestRunByTrigger(fetchRuns = [], triggerType) {
+  return fetchRuns.find((run) => run.triggerType === triggerType) || null;
+}
+
+function getLatestStreamActivityAt(stream) {
+  return [stream?.lastRunCompletedAt, stream?.lastFailureAt, stream?.lastRunStartedAt]
+    .filter((value) => value instanceof Date)
+    .sort((left, right) => right.getTime() - left.getTime())[0] || null;
+}
+
+function buildEffectiveProviderRequest(stream) {
+  const providerKey = stream?.activeProvider?.providerKey || "";
+
+  if (!providerKey) {
+    return {};
+  }
+
+  return resolveStreamProviderRequestValues(providerKey, {
+    countryAllowlistJson: stream?.countryAllowlistJson || [],
+    languageAllowlistJson: stream?.languageAllowlistJson || [],
+    locale: stream?.locale || "",
+    providerDefaults: stream?.activeProvider?.requestDefaultsJson || {},
+    providerFilters: stream?.settingsJson?.providerFilters || {},
+  });
+}
+
+function buildScheduleSnapshot(stream, latestRun, latestScheduledRun, now) {
+  const scheduleEnabled = (stream?.scheduleIntervalMinutes || 0) > 0;
+  const active = stream?.status === "ACTIVE";
+  const running = isStreamExecutionInProgress(stream);
+  const nextRunAt = getStreamNextScheduledRunAt(stream);
+  const due = active ? isStreamDueForScheduledRun(stream, now) : false;
+  const overdueMinutes =
+    due && nextRunAt instanceof Date ? Math.max(0, Math.floor((now.getTime() - nextRunAt.getTime()) / 60000)) : 0;
+  const latestActivityAt = getLatestStreamActivityAt(stream);
+
+  return {
+    intervalMinutes: stream?.scheduleIntervalMinutes || 0,
+    isActive: active,
+    isDue: due,
+    isEnabled: scheduleEnabled,
+    isOverdue: due && overdueMinutes > 0,
+    isRunning: active && running,
+    lastActivityAt: serializeDate(latestActivityAt),
+    lastFailureAt: serializeDate(stream?.lastFailureAt),
+    lastRunCompletedAt: serializeDate(stream?.lastRunCompletedAt),
+    lastRunStartedAt: serializeDate(stream?.lastRunStartedAt),
+    latestRunId: latestRun?.id || null,
+    latestRunStatus: latestRun?.status || null,
+    latestScheduledRunId: latestScheduledRun?.id || null,
+    latestScheduledRunStartedAt: latestScheduledRun?.startedAt || null,
+    latestTriggerType: latestRun?.triggerType || null,
+    nextRunAt: serializeDate(nextRunAt),
+    overdueMinutes,
+  };
+}
+
 /**
  * Returns the stream-management snapshot used by the admin workspace,
  * including related destination, provider, template, and validation data.
@@ -82,6 +202,7 @@ function getStatusCount(rows, status) {
  */
 export async function getStreamManagementSnapshot(prisma) {
   const db = await resolvePrismaClient(prisma);
+  const now = new Date();
   const [streams, totalCount, statusCounts, rawDestinations, providers, templates, categories] = await Promise.all([
     db.publishingStream.findMany({
       include: {
@@ -104,6 +225,14 @@ export async function getStreamManagementSnapshot(prisma) {
             },
           },
         },
+        checkpoints: {
+          select: {
+            id: true,
+            lastSuccessfulFetchAt: true,
+            providerConfigId: true,
+            updatedAt: true,
+          },
+        },
         defaultTemplate: {
           select: {
             id: true,
@@ -119,6 +248,30 @@ export async function getStreamManagementSnapshot(prisma) {
             platform: true,
             slug: true,
           },
+        },
+        fetchRuns: {
+          orderBy: [{ startedAt: "desc" }],
+          select: {
+            aiCacheHitCount: true,
+            blockedCount: true,
+            duplicateCount: true,
+            errorMessage: true,
+            executionDetailsJson: true,
+            failedCount: true,
+            fetchedCount: true,
+            finishedAt: true,
+            heldCount: true,
+            id: true,
+            optimizedCount: true,
+            publishableCount: true,
+            publishedCount: true,
+            queuedCount: true,
+            skippedCount: true,
+            startedAt: true,
+            status: true,
+            triggerType: true,
+          },
+          take: 4,
         },
       },
       orderBy: [{ status: "asc" }, { name: "asc" }],
@@ -178,15 +331,56 @@ export async function getStreamManagementSnapshot(prisma) {
     ...destination,
     streamCount: _count.streams,
   }));
-
-  return {
-    categories,
-    destinations,
-    providers,
-    streams: streams.map((stream) => ({
+  const internalSchedulerEnabled = parseBooleanFlag(process.env.INTERNAL_SCHEDULER_ENABLED);
+  const internalSchedulerIntervalSeconds = internalSchedulerEnabled
+    ? parsePositiveIntegerFlag(process.env.INTERNAL_SCHEDULER_INTERVAL_SECONDS, 60)
+    : null;
+  const mappedStreams = streams.map((stream) => {
+    const recentRuns = (stream.fetchRuns || []).map(mapFetchRun);
+    const latestRun = recentRuns[0] || null;
+    const latestScheduledRun = getLatestRunByTrigger(recentRuns, "scheduled");
+    const effectiveProviderRequestValues = buildEffectiveProviderRequest(stream);
+    const providerEndpoint = getProviderEndpointShape(stream.activeProvider?.providerKey, effectiveProviderRequestValues);
+    const timeBoundarySupport = getProviderTimeBoundarySupport(
+      stream.activeProvider?.providerKey,
+      effectiveProviderRequestValues,
+    );
+    const currentCheckpoint = getCurrentProviderCheckpoint(stream);
+    const streamRecord = {
       ...stream,
-      includeKeywordsJson: stream.includeKeywordsJson || [],
+      checkpoint: currentCheckpoint
+        ? {
+            id: currentCheckpoint.id,
+            lastSuccessfulFetchAt: serializeDate(currentCheckpoint.lastSuccessfulFetchAt),
+            providerConfigId: currentCheckpoint.providerConfigId,
+            updatedAt: serializeDate(currentCheckpoint.updatedAt),
+          }
+        : null,
+      countryAllowlistJson: stream.countryAllowlistJson || [],
+      effectiveFilters: {
+        categories: stream.categories.map((entry) => entry.category),
+        countryAllowlistJson: stream.countryAllowlistJson || [],
+        excludeKeywordsJson: stream.excludeKeywordsJson || [],
+        includeKeywordsJson: stream.includeKeywordsJson || [],
+        languageAllowlistJson: stream.languageAllowlistJson || [],
+        providerEndpoint,
+        providerRequestValues: effectiveProviderRequestValues,
+        regionAllowlistJson: stream.regionAllowlistJson || [],
+        timeBoundarySupport: timeBoundarySupport
+          ? {
+              endpoint: timeBoundarySupport.endpoint,
+              mode: timeBoundarySupport.mode,
+              precision: timeBoundarySupport.precision,
+              summary: timeBoundarySupport.summary,
+            }
+          : null,
+      },
       excludeKeywordsJson: stream.excludeKeywordsJson || [],
+      includeKeywordsJson: stream.includeKeywordsJson || [],
+      latestRun,
+      latestScheduledRun,
+      recentRuns,
+      schedule: buildScheduleSnapshot(stream, latestRun, latestScheduledRun, now),
       streamCategories: stream.categories.map((entry) => entry.category),
       validationIssues: getStreamValidationIssues({
         countryAllowlistJson: stream.countryAllowlistJson,
@@ -200,11 +394,60 @@ export async function getStreamManagementSnapshot(prisma) {
         providerKey: stream.activeProvider?.providerKey,
         template: stream.defaultTemplate,
       }),
-    })),
+    };
+
+    delete streamRecord.fetchRuns;
+    delete streamRecord.checkpoints;
+
+    return streamRecord;
+  });
+  const latestScheduledRunAt = mappedStreams
+    .map((stream) => stream.latestScheduledRun?.startedAt)
+    .filter(Boolean)
+    .sort((left, right) => `${right}`.localeCompare(`${left}`))[0] || null;
+  const scheduledStreamCount = mappedStreams.filter((stream) => stream.schedule.isEnabled).length;
+  const dueStreamCount = mappedStreams.filter((stream) => stream.schedule.isDue).length;
+  const overdueStreamCount = mappedStreams.filter((stream) => stream.schedule.isOverdue).length;
+  const runningStreamCount = mappedStreams.filter((stream) => stream.schedule.isRunning).length;
+  const neverRunCount = mappedStreams.filter(
+    (stream) =>
+      stream.schedule.isEnabled
+      && !stream.schedule.lastRunCompletedAt
+      && !stream.schedule.lastFailureAt
+      && !stream.schedule.lastRunStartedAt,
+  ).length;
+
+  return {
+    categories,
+    destinations,
+    providers,
+    scheduler: {
+      endpointPath: "/api/jobs/scheduled-publishing",
+      headerName: "x-cron-secret",
+      internalEnabled: internalSchedulerEnabled,
+      internalIntervalSeconds: internalSchedulerIntervalSeconds,
+      latestScheduledRunAt,
+      mode: internalSchedulerEnabled ? "INTERNAL" : "EXTERNAL_CRON",
+      modeLabel: internalSchedulerEnabled
+        ? `Internal scheduler every ${internalSchedulerIntervalSeconds} seconds`
+        : "External cron required",
+      neverRunCount,
+      runningStreamCount,
+      scheduledStreamCount,
+      dueStreamCount,
+      overdueStreamCount,
+      usesExternalCron: !internalSchedulerEnabled,
+    },
+    streams: mappedStreams,
     summary: {
       activeCount: getStatusCount(statusCounts, "ACTIVE"),
+      autoPublishCount: mappedStreams.filter((stream) => stream.mode === "AUTO_PUBLISH").length,
+      dueCount: dueStreamCount,
+      overdueCount: overdueStreamCount,
       pausedCount: getStatusCount(statusCounts, "PAUSED"),
+      runningCount: runningStreamCount,
       returnedCount: streams.length,
+      scheduledCount: scheduledStreamCount,
       totalCount,
     },
     templates,

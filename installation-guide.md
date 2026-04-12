@@ -63,6 +63,10 @@ ADMIN_SEED_PASSWORD="replace-with-a-strong-initial-admin-password"
 DESTINATION_TOKEN_ENCRYPTION_KEY="replace-with-a-long-random-production-encryption-key"
 REVALIDATE_SECRET="replace-with-a-long-random-production-revalidate-secret"
 CRON_SECRET="replace-with-a-long-random-production-cron-secret"
+# Optional single-instance fallback when you do not have a host-level cron hitting
+# /api/jobs/scheduled-publishing. Do not enable this if you already run external cron.
+# INTERNAL_SCHEDULER_ENABLED="false"
+# INTERNAL_SCHEDULER_INTERVAL_SECONDS="60"
 MEDIA_DRIVER="s3"
 S3_MEDIA_BUCKET="your-production-bucket"
 S3_MEDIA_REGION="your-region"
@@ -151,6 +155,8 @@ This applies Prisma migrations only. It is safe to rerun; applied migrations are
 The latest package uses lowercase Prisma table names by default and normalizes legacy mixed-case tables from older uploads before seeding.
 
 If you intentionally want one-step migration plus seed, set `RUN_DB_SEED_ON_DEPLOY=1` before you run the deploy command. `SKIP_DB_SEED_ON_DEPLOY=1` always prevents deploy-time seeding.
+
+Automatic stream publishing also needs a scheduler trigger. By default, configure your host or cPanel cron to `POST` to `/api/jobs/scheduled-publishing` with the `x-cron-secret` header set to `CRON_SECRET`. On a single-instance deployment where that is not available, you can set `INTERNAL_SCHEDULER_ENABLED=true` and optionally `INTERNAL_SCHEDULER_INTERVAL_SECONDS=60` so the app self-triggers the same endpoint. Do not enable the internal scheduler alongside an external cron for the same site.
 
 If the database tables already exist and you only want to seed default data:
 

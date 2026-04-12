@@ -19,6 +19,7 @@ import {
   StatusBadge,
   SummaryGrid,
   formatDateTime,
+  formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import { PendingSubmitButton } from "@/components/admin/pending-action";
 import { getAdminJobLogsSnapshot } from "@/features/analytics";
@@ -70,6 +71,34 @@ function describeFetchRunWindow(run) {
   }
 
   return `${streamWindow.source || "window"} | ${formatDateTime(streamWindow.start)} to ${formatDateTime(streamWindow.end)}`;
+}
+
+function formatRequestValue(value) {
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return `${value ?? ""}`.trim();
+}
+
+function describeFetchRunRequest(run) {
+  const requestValues = run.executionDetails?.sharedRequest?.requestValues || {};
+  const entries = Object.entries(requestValues)
+    .filter(([, value]) => {
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+
+      return `${value ?? ""}`.trim() !== "";
+    })
+    .slice(0, 4)
+    .map(([key, value]) => `${key}: ${formatRequestValue(value)}`);
+
+  return entries.length ? entries.join(" | ") : "";
 }
 
 /**
@@ -134,8 +163,12 @@ export default async function JobsPage({ searchParams }) {
                       </td>
                       <td data-label="Mode">
                         <SmallText>{describeFetchRunMode(run)}</SmallText>
+                        <SmallText>Trigger: {formatEnumLabel(run.triggerType || "manual")}</SmallText>
                         {run.executionDetails?.partitionReasonCodes?.length ? (
                           <SmallText>{run.executionDetails.partitionReasonCodes.join(", ")}</SmallText>
+                        ) : null}
+                        {describeFetchRunRequest(run) ? (
+                          <SmallText>{describeFetchRunRequest(run)}</SmallText>
                         ) : null}
                       </td>
                       <td data-label="Fetched">{run.fetchedCount}</td>

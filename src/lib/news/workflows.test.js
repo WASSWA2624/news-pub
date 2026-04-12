@@ -632,7 +632,7 @@ describe("stream selection and scheduling helpers", () => {
   });
 
   it("treats interval 0 as disabled and positive intervals as schedulable", async () => {
-    const { isStreamDueForScheduledRun } = await import("./workflows");
+    const { getStreamNextScheduledRunAt, isStreamDueForScheduledRun, isStreamExecutionInProgress } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");
 
     expect(
@@ -654,6 +654,31 @@ describe("stream selection and scheduling helpers", () => {
         now,
       ),
     ).toBe(true);
+
+    expect(
+      isStreamExecutionInProgress({
+        lastFailureAt: new Date("2026-04-05T10:00:00.000Z"),
+        lastRunStartedAt: new Date("2026-04-05T12:20:00.000Z"),
+      }),
+    ).toBe(true);
+
+    expect(
+      isStreamDueForScheduledRun(
+        {
+          lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
+          lastRunStartedAt: new Date("2026-04-05T12:20:00.000Z"),
+          scheduleIntervalMinutes: 30,
+        },
+        now,
+      ),
+    ).toBe(false);
+
+    expect(
+      getStreamNextScheduledRunAt({
+        lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
+        scheduleIntervalMinutes: 30,
+      }),
+    ).toEqual(new Date("2026-04-05T11:30:00.000Z"));
   });
 
   it("audits manual repost requests before executing a fresh publish attempt", async () => {

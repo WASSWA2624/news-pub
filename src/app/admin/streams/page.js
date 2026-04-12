@@ -12,6 +12,7 @@ import {
   NoticeTitle,
   SmallText,
   SummaryGrid,
+  formatDateTime,
   formatEnumLabel,
 } from "@/components/admin/news-admin-ui";
 import { getStreamManagementSnapshot } from "@/features/streams";
@@ -112,9 +113,32 @@ export default async function StreamsPage({ searchParams }) {
         </NoticeBanner>
       ) : null}
 
+      {snapshot.scheduler.usesExternalCron ? (
+        <NoticeBanner $tone="warning">
+          <NoticeTitle>Automatic stream runs need a scheduler trigger.</NoticeTitle>
+          <SmallText>
+            NewsPub only auto-runs due streams when something posts to
+            {" "}
+            <code>{snapshot.scheduler.endpointPath}</code>
+            {" "}
+            with the
+            {" "}
+            <code>{snapshot.scheduler.headerName}</code>
+            {" "}
+            secret.
+            {snapshot.scheduler.latestScheduledRunAt
+              ? ` Latest scheduled activity: ${formatDateTime(snapshot.scheduler.latestScheduledRunAt)}.`
+              : " No scheduled activity has been recorded yet."}
+          </SmallText>
+        </NoticeBanner>
+      ) : null}
+
       <SummaryGrid>
         <AdminMetricCard icon="streams" label="Total streams" value={snapshot.summary.totalCount} />
         <AdminMetricCard icon="badge-check" label="Active streams" value={snapshot.summary.activeCount} />
+        <AdminMetricCard icon="clock" label="Scheduled" tone="accent" value={snapshot.summary.scheduledCount} />
+        <AdminMetricCard icon="warning" label="Due now" tone="warning" value={snapshot.summary.dueCount} />
+        <AdminMetricCard icon="refresh" label="Running now" value={snapshot.summary.runningCount} />
         <AdminMetricCard icon="clock" label="Paused streams" tone="accent" value={snapshot.summary.pausedCount} />
       </SummaryGrid>
 
@@ -125,6 +149,7 @@ export default async function StreamsPage({ searchParams }) {
         modeOptions={modeOptions}
         providerOptions={providerOptions}
         saveStreamAction={saveStreamAction}
+        scheduler={snapshot.scheduler}
         statusOptions={statusOptions}
         streams={snapshot.streams}
         templateOptions={templateOptions}

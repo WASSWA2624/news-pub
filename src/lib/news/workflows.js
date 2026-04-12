@@ -1884,10 +1884,20 @@ async function loadStreamExecutionContext(
     data: {
       providerConfigId: stream.activeProviderId,
       requestedById: actorId,
+      status: "RUNNING",
       streamId: stream.id,
       triggerType,
       windowEnd: fetchWindow.end,
       windowStart: fetchWindow.start,
+    },
+  });
+
+  await db.publishingStream.update({
+    where: {
+      id: stream.id,
+    },
+    data: {
+      lastRunStartedAt: fetchRun.startedAt,
     },
   });
 
@@ -1897,6 +1907,55 @@ async function loadStreamExecutionContext(
     fetchWindow,
     stream,
   };
+}
+
+function getLatestStreamOutcomeTimestamp(stream) {
+  const timestamps = [stream?.lastRunCompletedAt, stream?.lastFailureAt]
+    .filter((value) => value instanceof Date)
+    .map((value) => value.getTime());
+
+  if (!timestamps.length) {
+    return null;
+  }
+
+  return new Date(Math.max(...timestamps));
+}
+
+/**
+ * Returns whether a NewsPub stream currently has an execution in flight.
+ */
+export function isStreamExecutionInProgress(stream) {
+  if (!(stream?.lastRunStartedAt instanceof Date)) {
+    return false;
+  }
+
+  const latestOutcomeAt = getLatestStreamOutcomeTimestamp(stream);
+
+  if (!(latestOutcomeAt instanceof Date)) {
+    return true;
+  }
+
+  return stream.lastRunStartedAt > latestOutcomeAt;
+}
+
+/**
+ * Returns the next scheduled execution time for a stream, when one can be
+ * derived from the current schedule and latest completed run.
+ */
+export function getStreamNextScheduledRunAt(stream) {
+  if ((stream?.scheduleIntervalMinutes || 0) <= 0) {
+    return null;
+  }
+
+  if (isStreamExecutionInProgress(stream)) {
+    return null;
+  }
+
+  if (!(stream?.lastRunCompletedAt instanceof Date)) {
+    return null;
+  }
+
+  return new Date(stream.lastRunCompletedAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000);
 }
 
 function getSharedFetchCursorForCheckpoint(executionGroup, providerResult) {
@@ -2510,13 +2569,19 @@ export function isStreamDueForScheduledRun(stream, now = new Date()) {
     return false;
   }
 
+  if (isStreamExecutionInProgress(stream)) {
+    return false;
+  }
+
   if (!(stream?.lastRunCompletedAt instanceof Date)) {
     return true;
   }
 
-  const nextRunAt = new Date(
-    stream.lastRunCompletedAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000,
-  );
+  const nextRunAt = getStreamNextScheduledRunAt(stream);
+
+  if (!(nextRunAt instanceof Date)) {
+    return false;
+  }
 
   return nextRunAt <= now;
 }
