@@ -1234,6 +1234,7 @@ export default function StreamManagementScreen({
   const [selectedDestinationIds, setSelectedDestinationIds] = useState(() =>
     destinationOptions.map((destination) => destination.value).filter(Boolean),
   );
+  const [openWorkspaceDisclosure, setOpenWorkspaceDisclosure] = useState(null);
   const [runState, setRunState] = useState(null);
   const [runConfiguration, setRunConfiguration] = useState(null);
   const [openStreamDisclosureById, setOpenStreamDisclosureById] = useState({});
@@ -1363,6 +1364,10 @@ export default function StreamManagementScreen({
       ...currentState,
       [streamId]: currentState[streamId] === disclosureKey ? null : disclosureKey,
     }));
+  }
+
+  function toggleWorkspaceDisclosure(disclosureKey) {
+    setOpenWorkspaceDisclosure((currentKey) => (currentKey === disclosureKey ? null : disclosureKey));
   }
 
   const filteredDestinationOptions = useMemo(() => {
@@ -1663,110 +1668,122 @@ export default function StreamManagementScreen({
                 </PrimaryActionButton>
               </ScopeActions>
             </ActionRow>
-            <ScopeHeader>
-              <ScopeActionsBar>
-                <ScopeActions>
-                  <ScopeActionButton
-                    disabled={!hasConfiguredDestinations || allDestinationsSelected}
-                    onClick={selectAllDestinations}
-                    type="button"
-                  >
-                    Select all
-                  </ScopeActionButton>
-                  <ScopeActionButton
-                    disabled={!selectedDestinationCount}
-                    onClick={deselectAllDestinations}
-                    type="button"
-                  >
-                    Deselect all
-                  </ScopeActionButton>
-                </ScopeActions>
-                <SmallText>
-                  {selectedDestinationCount} of {allDestinationIds.length} destinations selected
-                </SmallText>
-              </ScopeActionsBar>
-              {destinationGroups.length ? (
-                <ScopeGroupGrid>
-                  {destinationGroups.map((group) => {
-                    const groupDestinationIds = group.destinations.map((destination) => destination.value);
-                    const selectedGroupCount = groupDestinationIds.filter((destinationId) =>
-                      selectedDestinationSet.has(destinationId),
-                    ).length;
+            <StreamDisclosure open={openWorkspaceDisclosure === "scope-controls"}>
+              <StreamDisclosureSummary
+                onClick={(event) => {
+                  event.preventDefault();
+                  toggleWorkspaceDisclosure("scope-controls");
+                }}
+              >
+                Destination scope controls
+              </StreamDisclosureSummary>
+              <StreamDisclosureBody>
+                <ScopeHeader>
+                  <ScopeActionsBar>
+                    <ScopeActions>
+                      <ScopeActionButton
+                        disabled={!hasConfiguredDestinations || allDestinationsSelected}
+                        onClick={selectAllDestinations}
+                        type="button"
+                      >
+                        Select all
+                      </ScopeActionButton>
+                      <ScopeActionButton
+                        disabled={!selectedDestinationCount}
+                        onClick={deselectAllDestinations}
+                        type="button"
+                      >
+                        Deselect all
+                      </ScopeActionButton>
+                    </ScopeActions>
+                    <SmallText>
+                      {selectedDestinationCount} of {allDestinationIds.length} destinations selected
+                    </SmallText>
+                  </ScopeActionsBar>
+                  {destinationGroups.length ? (
+                    <ScopeGroupGrid>
+                      {destinationGroups.map((group) => {
+                        const groupDestinationIds = group.destinations.map((destination) => destination.value);
+                        const selectedGroupCount = groupDestinationIds.filter((destinationId) =>
+                          selectedDestinationSet.has(destinationId),
+                        ).length;
 
-                    return (
-                      <ScopeGroupCard key={group.platform}>
-                        <ScopeGroupHeader>
-                          <ScopeGroupTitleBlock>
-                            <ScopeGroupTitle>
-                              <TitleWithIcon>
-                                <AppIcon name={getDestinationPlatformIcon(group.platform)} size={14} />
-                                {formatEnumLabel(group.platform)} destinations
-                              </TitleWithIcon>
-                            </ScopeGroupTitle>
-                            <ScopeGroupMeta>
-                              {selectedGroupCount} of {group.destinations.length} selected
-                              {" | "}
-                              {group.totalStreamCount} stream{group.totalStreamCount === 1 ? "" : "s"}
-                            </ScopeGroupMeta>
-                          </ScopeGroupTitleBlock>
-                          <ScopeActions>
-                            <ScopeActionButton
-                              disabled={selectedGroupCount === group.destinations.length}
-                              onClick={() => selectDestinationGroup(groupDestinationIds)}
-                              type="button"
-                            >
-                              Select all
-                            </ScopeActionButton>
-                            <ScopeActionButton
-                              disabled={!selectedGroupCount}
-                              onClick={() => deselectDestinationGroup(groupDestinationIds)}
-                              type="button"
-                            >
-                              Deselect all
-                            </ScopeActionButton>
-                          </ScopeActions>
-                        </ScopeGroupHeader>
-                        <ScopeRail>
-                          {group.destinations.map((destination) => {
-                            const isActive = selectedDestinationSet.has(destination.value);
+                        return (
+                          <ScopeGroupCard key={group.platform}>
+                            <ScopeGroupHeader>
+                              <ScopeGroupTitleBlock>
+                                <ScopeGroupTitle>
+                                  <TitleWithIcon>
+                                    <AppIcon name={getDestinationPlatformIcon(group.platform)} size={14} />
+                                    {formatEnumLabel(group.platform)} destinations
+                                  </TitleWithIcon>
+                                </ScopeGroupTitle>
+                                <ScopeGroupMeta>
+                                  {selectedGroupCount} of {group.destinations.length} selected
+                                  {" | "}
+                                  {group.totalStreamCount} stream{group.totalStreamCount === 1 ? "" : "s"}
+                                </ScopeGroupMeta>
+                              </ScopeGroupTitleBlock>
+                              <ScopeActions>
+                                <ScopeActionButton
+                                  disabled={selectedGroupCount === group.destinations.length}
+                                  onClick={() => selectDestinationGroup(groupDestinationIds)}
+                                  type="button"
+                                >
+                                  Select all
+                                </ScopeActionButton>
+                                <ScopeActionButton
+                                  disabled={!selectedGroupCount}
+                                  onClick={() => deselectDestinationGroup(groupDestinationIds)}
+                                  type="button"
+                                >
+                                  Deselect all
+                                </ScopeActionButton>
+                              </ScopeActions>
+                            </ScopeGroupHeader>
+                            <ScopeRail>
+                              {group.destinations.map((destination) => {
+                                const isActive = selectedDestinationSet.has(destination.value);
 
-                            return (
-                              <ScopeCheckbox $active={isActive} key={destination.value}>
-                                <ScopeCheckboxLeading>
-                              <input
-                                    checked={isActive}
-                                    onChange={() => toggleDestination(destination.value)}
-                                    type="checkbox"
-                                  />
-                                  <ScopeDestinationBadge $tone={getDestinationPlatformTone(destination.platform)}>
-                                    <AppIcon
-                                      name={getDestinationPlatformIcon(destination.platform)}
-                                      size={14}
-                                    />
-                                  </ScopeDestinationBadge>
-                                  <ScopeCheckboxBody>
-                                    <ScopeCheckboxLabel>{destination.label}</ScopeCheckboxLabel>
-                                    <ScopeCheckboxMeta $active={isActive}>
-                                      {formatEnumLabel(destination.kind)}
-                                      {destination.slug ? ` | ${destination.slug}` : ""}
-                                    </ScopeCheckboxMeta>
-                                  </ScopeCheckboxBody>
-                                </ScopeCheckboxLeading>
-                                <ScopeCount $active={isActive}>{destination.streamCount}</ScopeCount>
-                              </ScopeCheckbox>
-                            );
-                          })}
-                        </ScopeRail>
-                      </ScopeGroupCard>
-                    );
-                  })}
-                </ScopeGroupGrid>
-              ) : (
-                <SmallText>
-                  No destinations are configured yet. Add a website or social destination to start grouping streams here.
-                </SmallText>
-              )}
-            </ScopeHeader>
+                                return (
+                                  <ScopeCheckbox $active={isActive} key={destination.value}>
+                                    <ScopeCheckboxLeading>
+                                      <input
+                                        checked={isActive}
+                                        onChange={() => toggleDestination(destination.value)}
+                                        type="checkbox"
+                                      />
+                                      <ScopeDestinationBadge $tone={getDestinationPlatformTone(destination.platform)}>
+                                        <AppIcon
+                                          name={getDestinationPlatformIcon(destination.platform)}
+                                          size={14}
+                                        />
+                                      </ScopeDestinationBadge>
+                                      <ScopeCheckboxBody>
+                                        <ScopeCheckboxLabel>{destination.label}</ScopeCheckboxLabel>
+                                        <ScopeCheckboxMeta $active={isActive}>
+                                          {formatEnumLabel(destination.kind)}
+                                          {destination.slug ? ` | ${destination.slug}` : ""}
+                                        </ScopeCheckboxMeta>
+                                      </ScopeCheckboxBody>
+                                    </ScopeCheckboxLeading>
+                                    <ScopeCount $active={isActive}>{destination.streamCount}</ScopeCount>
+                                  </ScopeCheckbox>
+                                );
+                              })}
+                            </ScopeRail>
+                          </ScopeGroupCard>
+                        );
+                      })}
+                    </ScopeGroupGrid>
+                  ) : (
+                    <SmallText>
+                      No destinations are configured yet. Add a website or social destination to start grouping streams here.
+                    </SmallText>
+                  )}
+                </ScopeHeader>
+              </StreamDisclosureBody>
+            </StreamDisclosure>
           </TargetingCopy>
 
           <TargetingNotes>
@@ -1849,77 +1866,99 @@ export default function StreamManagementScreen({
                     <AppIcon name="clock" size={12} />
                     Locale {stream.locale} | {stream.timezone}
                   </StreamInlineMeta>
-                  <StreamDetailGrid>
-                    <StreamDetailCard>
-                      <StreamDetailTitle>Automation status</StreamDetailTitle>
-                      <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
-                      <StreamDetailPills>
-                        <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
-                          <AppIcon name="clock" size={11} />
-                          {formatIntervalLabel(stream.schedule?.intervalMinutes)}
-                        </MetaPill>
-                        {stream.schedule?.isRunning ? (
-                          <MetaPill $tone="accent">Running now</MetaPill>
-                        ) : null}
-                        {stream.schedule?.isDue && !stream.schedule?.isRunning ? (
-                          <MetaPill $tone="warning">
-                            {stream.schedule?.isOverdue
-                              ? `Overdue ${stream.schedule.overdueMinutes}m`
-                              : "Due now"}
+                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "automation-status"}>
+                    <StreamDisclosureSummary
+                      onClick={(event) => {
+                        event.preventDefault();
+                        toggleStreamDisclosure(stream.id, "automation-status");
+                      }}
+                    >
+                      Automation status
+                    </StreamDisclosureSummary>
+                    <StreamDisclosureBody>
+                      <StreamDetailCard>
+                        <StreamDetailTitle>Automation status</StreamDetailTitle>
+                        <SmallText>{describeScheduleStatus(stream, scheduler)}</SmallText>
+                        <StreamDetailPills>
+                          <MetaPill $tone={stream.schedule?.isEnabled ? "accent" : undefined}>
+                            <AppIcon name="clock" size={11} />
+                            {formatIntervalLabel(stream.schedule?.intervalMinutes)}
                           </MetaPill>
-                        ) : null}
-                        {stream.schedule?.nextRunAt ? (
-                          <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
-                        ) : null}
-                        {stream.schedule?.latestTriggerType ? (
-                          <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
-                        ) : null}
-                        {stream.checkpoint?.lastSuccessfulFetchAt ? (
-                          <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
-                        ) : null}
-                      </StreamDetailPills>
-                      <SmallText>{describeLatestRun(stream)}</SmallText>
-                    </StreamDetailCard>
+                          {stream.schedule?.isRunning ? (
+                            <MetaPill $tone="accent">Running now</MetaPill>
+                          ) : null}
+                          {stream.schedule?.isDue && !stream.schedule?.isRunning ? (
+                            <MetaPill $tone="warning">
+                              {stream.schedule?.isOverdue
+                                ? `Overdue ${stream.schedule.overdueMinutes}m`
+                                : "Due now"}
+                            </MetaPill>
+                          ) : null}
+                          {stream.schedule?.nextRunAt ? (
+                            <MetaPill>Next {formatDateTime(stream.schedule.nextRunAt)}</MetaPill>
+                          ) : null}
+                          {stream.schedule?.latestTriggerType ? (
+                            <MetaPill>{formatEnumLabel(stream.schedule.latestTriggerType)}</MetaPill>
+                          ) : null}
+                          {stream.checkpoint?.lastSuccessfulFetchAt ? (
+                            <MetaPill>Checkpoint {formatDateTime(stream.checkpoint.lastSuccessfulFetchAt)}</MetaPill>
+                          ) : null}
+                        </StreamDetailPills>
+                        <SmallText>{describeLatestRun(stream)}</SmallText>
+                      </StreamDetailCard>
+                    </StreamDisclosureBody>
+                  </StreamDisclosure>
 
-                    <StreamDetailCard>
-                      <StreamDetailTitle>Filters in effect</StreamDetailTitle>
-                      <SmallText>
-                        {stream.effectiveFilters?.timeBoundarySupport?.summary
-                          || "Provider defaults and this stream's overrides are merged before each run."}
-                      </SmallText>
-                      <StreamDetailPills>
-                        {stream.effectiveFilters?.categories?.length ? (
-                          stream.effectiveFilters.categories.map((category) => (
-                            <MetaPill key={`category-${stream.id}-${category.id}`}>
-                              Category: {category.name}
-                            </MetaPill>
-                          ))
-                        ) : (
-                          <MetaPill>Categories: Any</MetaPill>
-                        )}
-                        <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
-                        <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
-                        <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
-                        {(stream.includeKeywordsJson || []).length ? (
-                          stream.includeKeywordsJson.map((keyword) => (
-                            <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
-                          ))
-                        ) : (
-                          <MetaPill>Include keywords: Any</MetaPill>
-                        )}
-                        {(stream.excludeKeywordsJson || []).length ? (
-                          stream.excludeKeywordsJson.map((keyword) => (
-                            <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
-                              Exclude: {keyword}
-                            </MetaPill>
-                          ))
-                        ) : (
-                          <MetaPill>Exclude keywords: None</MetaPill>
-                        )}
-                        <MetaPill>Endpoint: {formatCompactKey(stream.effectiveFilters?.providerEndpoint || "default")}</MetaPill>
-                      </StreamDetailPills>
-                    </StreamDetailCard>
-                  </StreamDetailGrid>
+                  <StreamDisclosure open={openStreamDisclosureById[stream.id] === "filters-in-effect"}>
+                    <StreamDisclosureSummary
+                      onClick={(event) => {
+                        event.preventDefault();
+                        toggleStreamDisclosure(stream.id, "filters-in-effect");
+                      }}
+                    >
+                      Filters in effect
+                    </StreamDisclosureSummary>
+                    <StreamDisclosureBody>
+                      <StreamDetailCard>
+                        <StreamDetailTitle>Filters in effect</StreamDetailTitle>
+                        <SmallText>
+                          {stream.effectiveFilters?.timeBoundarySupport?.summary
+                            || "Provider defaults and this stream's overrides are merged before each run."}
+                        </SmallText>
+                        <StreamDetailPills>
+                          {stream.effectiveFilters?.categories?.length ? (
+                            stream.effectiveFilters.categories.map((category) => (
+                              <MetaPill key={`category-${stream.id}-${category.id}`}>
+                                Category: {category.name}
+                              </MetaPill>
+                            ))
+                          ) : (
+                            <MetaPill>Categories: Any</MetaPill>
+                          )}
+                          <MetaPill>Languages: {formatValueList(stream.languageAllowlistJson)}</MetaPill>
+                          <MetaPill>Countries: {formatValueList(stream.countryAllowlistJson)}</MetaPill>
+                          <MetaPill>Regions: {formatValueList(stream.regionAllowlistJson)}</MetaPill>
+                          {(stream.includeKeywordsJson || []).length ? (
+                            stream.includeKeywordsJson.map((keyword) => (
+                              <MetaPill key={`include-${stream.id}-${keyword}`}>Include: {keyword}</MetaPill>
+                            ))
+                          ) : (
+                            <MetaPill>Include keywords: Any</MetaPill>
+                          )}
+                          {(stream.excludeKeywordsJson || []).length ? (
+                            stream.excludeKeywordsJson.map((keyword) => (
+                              <MetaPill key={`exclude-${stream.id}-${keyword}`} $tone="warning">
+                                Exclude: {keyword}
+                              </MetaPill>
+                            ))
+                          ) : (
+                            <MetaPill>Exclude keywords: None</MetaPill>
+                          )}
+                          <MetaPill>Endpoint: {formatCompactKey(stream.effectiveFilters?.providerEndpoint || "default")}</MetaPill>
+                        </StreamDetailPills>
+                      </StreamDetailCard>
+                    </StreamDisclosureBody>
+                  </StreamDisclosure>
 
                   <StreamDisclosure open={openStreamDisclosureById[stream.id] === "provider-request"}>
                     <StreamDisclosureSummary
