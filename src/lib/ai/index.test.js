@@ -296,7 +296,7 @@ describe("destination optimization", () => {
       reasonCode: "ai_invalid_structured_output",
       status: "FALLBACK",
     });
-    expect(result.cacheRecord.last_error_message).toBe("AI response failed schema validation.");
+    expect(result.cacheRecord.error_message).toBe("AI response failed schema validation.");
     expect(result.payload.warnings).toEqual(
       expect.arrayContaining([
         expect.stringContaining("deterministic fallback formatter"),

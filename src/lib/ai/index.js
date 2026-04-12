@@ -334,7 +334,7 @@ function buildCachedAiResolution(cacheRecord) {
 
   if (cacheRecord?.status === "FALLBACK") {
     return buildAiResolution({
-      last_error_message: cacheRecord?.last_error_message || null,
+      last_error_message: cacheRecord?.error_message || cacheRecord?.last_error_message || null,
       model: cacheRecord?.model || null,
       provider: cacheRecord?.provider || "fallback",
       reasonCode: "cached_ai_fallback",
@@ -571,7 +571,7 @@ export async function optimizeDestinationPayload(
           id: existingCache.id,
         },
         data: {
-          last_error_message: null,
+          error_message: null,
           status: "PENDING",
         },
       })
@@ -670,7 +670,7 @@ export async function optimizeDestinationPayload(
         },
         data: {
           ban_risk_score: policy.riskScore,
-          last_error_message,
+          error_message: last_error_message,
           model,
           policy_status: policy.status,
           provider,
@@ -683,7 +683,7 @@ export async function optimizeDestinationPayload(
     : {
         ...pendingCache,
         ban_risk_score: policy.riskScore,
-        last_error_message,
+        error_message: last_error_message,
         model,
         policy_status: policy.status,
         provider,

@@ -30,6 +30,7 @@ function createWorkflowArticle(id, overrides = {}) {
 }
 
 function createWorkflowStream({
+  categories = [],
   destinationPlatform = "FACEBOOK",
   id,
   max_posts_per_run = 1,
@@ -44,6 +45,11 @@ function createWorkflowStream({
   const destination_kind =
     destinationPlatform === "WEBSITE" ? "WEBSITE" : `${destinationPlatform}_PAGE`;
   const provider_config_id = `provider_config_${provider_key}`;
+  const streamCategories = categories.map((category, index) => ({
+    id: category.id || `category_${id}_${index + 1}`,
+    name: category.name,
+    slug: category.slug,
+  }));
 
   return {
     activeProvider: {
@@ -51,7 +57,9 @@ function createWorkflowStream({
       request_defaults_json,
     },
     active_provider_id: provider_config_id,
-    categories: [],
+    categories: streamCategories.map((category) => ({
+      category,
+    })),
     checkpoints: [
       {
         cursor_json: {
@@ -94,11 +102,83 @@ function createWorkflowExecutionPrisma(streamsById) {
   let articleMatchCounter = 0;
   let fetchRunCounter = 0;
   let postCounter = 0;
+  let publishAttemptCounter = 0;
   let translationCounter = 0;
 
   const articleMatches = new Map();
   const fetchRuns = new Map();
   const posts = new Map();
+  const publishAttempts = new Map();
+
+  function getPostRecord(articleMatch) {
+    const stream = streamsById[articleMatch.stream_id];
+
+    return posts.get(articleMatch.canonical_post_id) || {
+      excerpt: "Story summary",
+      featuredImage: null,
+      featured_image_id: null,
+      id: articleMatch.canonical_post_id,
+      slug: "story-title",
+      sourceArticle: {
+        body: "Story body",
+        image_url: null,
+        summary: "Story summary",
+      },
+      source_name: "Example Source",
+      source_url: "https://example.com/story",
+      translations: [
+        {
+          content_md: "Story body",
+          locale: stream.locale,
+          seoRecord: null,
+          summary: "Story summary",
+          title: "Story title",
+        },
+      ],
+    };
+  }
+
+  function hydrateArticleMatch(articleMatch) {
+    if (!articleMatch) {
+      return null;
+    }
+
+    const stream = streamsById[articleMatch.stream_id];
+
+    return {
+      ...articleMatch,
+      canonicalPost: getPostRecord(articleMatch),
+      destination: stream.destination,
+      destination_id: stream.destination_id,
+      stream: {
+        ...stream,
+        default_template_id: stream.default_template_id || null,
+        destination: stream.destination,
+        destination_id: stream.destination_id,
+        id: stream.id,
+        locale: stream.locale,
+        mode: stream.mode,
+      },
+      stream_id: stream.id,
+    };
+  }
+
+  function hydratePublishAttempt(attempt) {
+    if (!attempt) {
+      return null;
+    }
+
+    const articleMatch = articleMatches.get(attempt.article_match_id);
+    const stream = streamsById[attempt.stream_id];
+
+    return {
+      ...attempt,
+      articleMatch: hydrateArticleMatch(articleMatch),
+      destination: stream.destination,
+      post: getPostRecord(articleMatch),
+      stream,
+    };
+  }
 
   return {
     articleMatch: {
@@ -131,53 +211,22 @@ function createWorkflowExecutionPrisma(streamsById) {
           return Promise.resolve(null);
         }
 
-        const stream = streamsById[articleMatch.stream_id];
-        const post = posts.get(articleMatch.canonical_post_id) || {
-          excerpt: "Story summary",
-          featuredImage: null,
-          featured_image_id: null,
-          id: articleMatch.canonical_post_id,
-          slug: "story-title",
-          sourceArticle: {
-            body: "Story body",
-            image_url: null,
-            summary: "Story summary",
-          },
-          source_name: "Example Source",
-          source_url: "https://example.com/story",
-          translations: [
-            {
-              content_md: "Story body",
-              locale: stream.locale,
-              seoRecord: null,
-              summary: "Story summary",
-              title: "Story title",
-            },
-          ],
+        return Promise.resolve(hydrateArticleMatch(articleMatch));
+      }),
+      update: vi.fn(({ where, data }) => {
+        const existingMatch = articleMatches.get(where.id);
+        const updatedMatch = {
+          ...(existingMatch || { id: where.id }),
+          ...data,
         };
 
+        articleMatches.set(where.id, updatedMatch);
+
         return Promise.resolve({
-          canonicalPost: post,
-          canonical_post_id: articleMatch.canonical_post_id,
-          destination: stream.destination,
-          destination_id: stream.destination_id,
-          id: articleMatch.id,
-          stream: {
-            default_template_id: null,
-            destination: stream.destination,
-            destination_id: stream.destination_id,
-            id: stream.id,
-            locale: stream.locale,
-            mode: stream.mode,
-          },
-          stream_id: stream.id,
-        });
-      }),
-      update: vi.fn(({ where, data }) =>
-        Promise.resolve({
           id: where.id,
           ...data,
-        })),
+        });
+      }),
     },
     category: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -278,6 +327,71 @@ function createWorkflowExecutionPrisma(streamsById) {
     },
     providerFetchCheckpoint: {
       upsert: vi.fn().mockResolvedValue(null),
+    },
+    publishAttempt: {
+      count: vi.fn(({ where }) =>
+        Promise.resolve(
+          [...publishAttempts.values()].filter((attempt) => attempt.article_match_id === where.article_match_id).length,
+        )),
+      create: vi.fn(({ data }) => {
+        const attempt = {
+          id: `attempt_${++publishAttemptCounter}`,
+          created_at: new Date("2026-04-07T12:00:00.000Z"),
+          updated_at: new Date("2026-04-07T12:00:00.000Z"),
+          ...data,
+        };
+
+        publishAttempts.set(attempt.id, attempt);
+
+        return Promise.resolve(attempt);
+      }),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(({ where, select }) => {
+        const attempt = publishAttempts.get(where.id);
+
+        if (!attempt) {
+          return Promise.resolve(null);
+        }
+
+        if (select) {
+          return Promise.resolve(
+            Object.fromEntries(
+              Object.keys(select).map((key) => [key, attempt[key]]),
+            ),
+          );
+        }
+
+        return Promise.resolve(hydratePublishAttempt(attempt));
+      }),
+      update: vi.fn(({ where, data }) => {
+        const updatedAttempt = {
+          ...(publishAttempts.get(where.id) || { id: where.id }),
+          ...data,
+        };
+
+        publishAttempts.set(where.id, updatedAttempt);
+
+        return Promise.resolve(updatedAttempt);
+      }),
+      updateMany: vi.fn(({ where, data }) => {
+        const attempt = publishAttempts.get(where.id);
+
+        if (!attempt || (where.status && attempt.status !== where.status)) {
+          return Promise.resolve({
+            count: 0,
+          });
+        }
+
+        publishAttempts.set(where.id, {
+          ...attempt,
+          ...data,
+        });
+
+        return Promise.resolve({
+          count: 1,
+        });
+      }),
     },
     publishingStream: {
       findUnique: vi.fn(({ where }) => Promise.resolve(streamsById[where.id] || null)),
@@ -1796,6 +1910,153 @@ describe("shared stream execution and website completeness", () => {
       provider_key: "newsdata",
       streamIds: ["stream_1", "stream_2"],
     });
+  });
+
+  it("does not drop eligible stories just because no internal category label matches the source text", async () => {
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [
+        createWorkflowArticle("general_story", {
+          providerCategories: ["general"],
+          title: "Federal Reserve announces a rate decision",
+        }),
+      ],
+      cursor: {
+        page: 1,
+      },
+      fetched_count: 1,
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const prisma = createWorkflowExecutionPrisma({
+      website_stream: createWorkflowStream({
+        categories: [
+          {
+            id: "category_world",
+            name: "World",
+            slug: "world",
+          },
+        ],
+        destinationPlatform: "WEBSITE",
+        id: "website_stream",
+        mode: "REVIEW_REQUIRED",
+      }),
+    });
+
+    const completedRun = await runStreamFetch(
+      "website_stream",
+      {
+        fetchWindow: {
+          end: "2026-04-07T12:00:00.000Z",
+          start: "2026-04-07T00:00:00.000Z",
+        },
+        now: new Date("2026-04-07T12:00:00.000Z"),
+        trigger_type: "manual",
+      },
+      prisma,
+    );
+
+    expect(prisma.articleMatch.create).toHaveBeenCalledTimes(1);
+    expect(completedRun).toMatchObject({
+      held_count: 1,
+      publishable_count: 1,
+      skipped_count: 0,
+      status: "SUCCEEDED",
+    });
+  });
+
+  it("executes website auto-publish attempts during the stream run", async () => {
+    const recordObservabilityEvent = vi.fn().mockResolvedValue(null);
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [createWorkflowArticle("website_auto_story")],
+      cursor: {
+        page: 1,
+      },
+      fetched_count: 1,
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent,
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/revalidation", () => ({
+      revalidatePublishedPostPaths: vi.fn().mockRejectedValue(new Error("revalidate failed")),
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const prisma = createWorkflowExecutionPrisma({
+      website_stream: createWorkflowStream({
+        destinationPlatform: "WEBSITE",
+        id: "website_stream",
+        mode: "AUTO_PUBLISH",
+      }),
+    });
+
+    const completedRun = await runStreamFetch(
+      "website_stream",
+      {
+        fetchWindow: {
+          end: "2026-04-07T12:00:00.000Z",
+          start: "2026-04-07T00:00:00.000Z",
+        },
+        now: new Date("2026-04-07T12:00:00.000Z"),
+        trigger_type: "manual",
+      },
+      prisma,
+    );
+
+    expect(prisma.publishAttempt.create).toHaveBeenCalledTimes(1);
+    expect(completedRun).toMatchObject({
+      failed_count: 0,
+      published_count: 1,
+      publishable_count: 1,
+      queued_count: 1,
+      status: "SUCCEEDED",
+    });
+    expect(prisma.publishAttempt.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "SUCCEEDED",
+        }),
+      }),
+    );
+    expect(prisma.post.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          published_at: expect.any(Date),
+          status: "PUBLISHED",
+        }),
+      }),
+    );
+    expect(recordObservabilityEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "PUBLICATION_REVALIDATION_FAILED",
+        entity_type: "post",
+      }),
+      prisma,
+    );
   });
 
   it("processes every eligible website candidate from a broad pool even when max_posts_per_run is lower", async () => {

@@ -230,7 +230,7 @@ const DEFAULT_TEMPLATES = Object.freeze([
 
 const DEFAULT_STREAMS = Object.freeze([
   {
-    categorySlugs: ["world", "business", "technology", "policy"],
+    categorySlugs: ["general-news", "world", "business", "technology", "policy"],
     country_allowlist_json: ["us"],
     defaultTemplateName: "Website Default",
     destinationSlug: "website",

@@ -156,11 +156,20 @@ function findMatchingCategoryIds(article, streamCategories = []) {
 
   return streamCategories
     .filter((category) => {
-      const categoryTerms = [category.name, category.slug].map((value) => normalizeSearchText(value));
+      const categoryTerms = getCategorySearchTerms(category);
 
       return categoryTerms.some((term) => term && normalizedSearch.includes(term));
     })
     .map((category) => category.id);
+}
+
+function getCategorySearchTerms(category) {
+  const normalizedTerms = [category?.name, category?.slug]
+    .map((value) => normalizeSearchText(value))
+    .filter(Boolean);
+  const aliasTerms = normalizedTerms.map((term) => term.replace(/\s+news$/, ""));
+
+  return dedupeStrings([...normalizedTerms, ...aliasTerms]);
 }
 
 function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = {}) {
@@ -208,10 +217,6 @@ function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = 
 
   if (excludeKeywords.some((keyword) => normalizedSearch.includes(keyword))) {
     reasons.push("exclude_keyword_matched");
-  }
-
-  if (stream.categories.length && !matchedCategoryIds.length) {
-    reasons.push("stream_category_not_matched");
   }
 
   if (reasons.length) {
@@ -1697,26 +1702,44 @@ async function executePublishAttempt(
   });
 
   if (attempt.platform === "WEBSITE") {
-    await revalidatePublishedPostPaths(
-      {
-        categorySlugs: (
-          await db.postCategory.findMany({
-            include: {
-              category: {
-                select: {
-                  slug: true,
+    try {
+      await revalidatePublishedPostPaths(
+        {
+          categorySlugs: (
+            await db.postCategory.findMany({
+              include: {
+                category: {
+                  select: {
+                    slug: true,
+                  },
                 },
               },
-            },
-            where: {
-              post_id: attempt.post_id,
-            },
-          })
-        ).map((entry) => entry.category.slug),
-        locales: [attempt.stream.locale],
-        slug: attempt.post.slug,
-      },
-    );
+              where: {
+                post_id: attempt.post_id,
+              },
+            })
+          ).map((entry) => entry.category.slug),
+          locales: [attempt.stream.locale],
+          slug: attempt.post.slug,
+        },
+      );
+    } catch (error) {
+      await recordObservabilityEvent(
+        {
+          action: "PUBLICATION_REVALIDATION_FAILED",
+          entity_id: attempt.post_id,
+          entity_type: "post",
+          error,
+          level: "warn",
+          message: error instanceof Error ? error.message : "Published post revalidation failed.",
+          payload: {
+            article_match_id: attempt.article_match_id,
+            publish_attempt_id: attempt.id,
+          },
+        },
+        db,
+      );
+    }
   }
 
   await createAuditEventRecord(
@@ -1843,6 +1866,44 @@ async function queueArticleMatchForPublication(
   }
 
   return attempt;
+}
+
+async function executeQueuedPublishAttemptForFetchRun(
+  db,
+  publishAttempt,
+  articleMatch,
+  summary,
+  { now = new Date() } = {},
+) {
+  try {
+    const completedAttempt = await executePublishAttempt(db, publishAttempt.id, {
+      now,
+    });
+
+    if (completedAttempt?.status === "SUCCEEDED") {
+      summary.published_count += 1;
+      return completedAttempt;
+    }
+
+    if (completedAttempt?.status === "FAILED") {
+      summary.failed_count += 1;
+    }
+
+    return completedAttempt;
+  } catch (error) {
+    summary.failed_count += 1;
+    await recordObservabilityEvent(
+      {
+        action: "PUBLISH_ATTEMPT_FAILED",
+        entity_id: publishAttempt?.id || articleMatch.id,
+        entity_type: publishAttempt?.id ? "publish_attempt" : "article_match",
+        error,
+      },
+      db,
+    );
+
+    return null;
+  }
 }
 
 /**
@@ -3181,7 +3242,7 @@ async function processFetchedArticlesForStream(
     summary.queued_count += 1;
 
     try {
-      await queueArticleMatchForPublication(
+      const publishAttempt = await queueArticleMatchForPublication(
         db,
         {
           ...articleMatch,
@@ -3195,6 +3256,10 @@ async function processFetchedArticlesForStream(
           queueSource: "fetch_auto_publish",
         },
       );
+
+      await executeQueuedPublishAttemptForFetchRun(db, publishAttempt, articleMatch, summary, {
+        now,
+      });
     } catch (error) {
       summary.failed_count += 1;
       await recordObservabilityEvent(
