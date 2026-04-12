@@ -689,31 +689,56 @@ const StreamDetailTitle = styled.strong`
 const StreamDetailPills = styled(PillRow)``;
 
 const StreamDisclosure = styled.details`
+  position: relative;
   background:
-    linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(248, 251, 255, 0.94));
+    linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(247, 250, 254, 0.95)),
+    linear-gradient(90deg, rgba(16, 32, 51, 0.02), transparent 20%);
   border: 1px solid rgba(16, 32, 51, 0.08);
-  box-shadow: 0 8px 18px rgba(18, 34, 58, 0.03);
-  padding: 0.64rem 0.74rem;
+  box-shadow: 0 8px 18px rgba(18, 34, 58, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.74);
+  overflow: hidden;
+  padding: 0.72rem 0.82rem 0.72rem 1rem;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
     background 180ms ease;
 
+  &::before {
+    background: linear-gradient(180deg, rgba(36, 75, 115, 0.2), rgba(36, 75, 115, 0.04));
+    content: "";
+    inset: 0 auto 0 0;
+    opacity: 0.58;
+    position: absolute;
+    transition:
+      opacity 180ms ease,
+      background 180ms ease,
+      width 180ms ease;
+    width: 3px;
+  }
+
   &[open] {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(236, 246, 255, 0.95)),
-      radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 46%);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(237, 246, 255, 0.96)),
+      linear-gradient(90deg, rgba(15, 111, 141, 0.05), transparent 20%),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 46%);
     border-color: rgba(15, 111, 141, 0.24);
-    box-shadow: 0 14px 28px rgba(15, 96, 121, 0.08);
+    box-shadow: 0 14px 28px rgba(15, 96, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  }
+
+  &[open]::before {
+    background: linear-gradient(180deg, rgba(15, 111, 141, 0.96), rgba(224, 165, 58, 0.92));
+    opacity: 1;
+    width: 5px;
   }
 `;
 
 const StreamDisclosureSummary = styled.summary`
   color: #162744;
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 800;
+  letter-spacing: 0.12em;
   list-style: none;
+  text-transform: uppercase;
   transition: color 180ms ease;
 
   &::-webkit-details-marker {
@@ -727,10 +752,12 @@ const StreamDisclosureSummary = styled.summary`
 
 const StreamDisclosureBody = styled.div`
   display: grid;
-  gap: 0.55rem;
-  margin-top: 0.6rem;
-  padding-top: 0.55rem;
+  gap: 0.62rem;
+  margin-top: 0.72rem;
+  padding-top: 0.72rem;
   border-top: 1px solid rgba(15, 111, 141, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(240, 247, 255, 0.22));
 `;
 
 const RunHistoryList = styled.div`

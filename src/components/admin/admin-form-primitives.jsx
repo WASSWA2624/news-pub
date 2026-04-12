@@ -21,25 +21,41 @@ import { createDisclosureAriaProps } from "@/components/admin/admin-form-primiti
 import { focusRingCss } from "@/components/common/ui-surface";
 
 const DisclosureCard = styled.section`
+  position: relative;
   background:
     ${({ $open }) =>
       $open
-        ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 246, 255, 0.98)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 48%)"
-        : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(242, 247, 255, 0.98)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 52%)"};
+        ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(239, 247, 255, 0.98)), linear-gradient(90deg, rgba(15, 111, 141, 0.04), transparent 22%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 48%)"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(244, 248, 252, 0.98)), linear-gradient(90deg, rgba(16, 32, 51, 0.02), transparent 20%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.06), transparent 54%)"};
   border: 1px solid
     ${({ $open }) =>
-      $open ? "rgba(15, 111, 141, 0.34)" : "rgba(var(--theme-text-rgb), 0.22)"};
-  border-radius: var(--theme-radius-lg, 2px);
+      $open ? "rgba(15, 111, 141, 0.3)" : "rgba(var(--theme-text-rgb), 0.18)"};
+  border-radius: 0;
   box-shadow: ${({ $open }) =>
     $open
-      ? "0 16px 34px rgba(15, 96, 121, 0.12)"
-      : "0 12px 28px rgba(22, 36, 49, 0.08)"};
+      ? "0 20px 36px rgba(15, 96, 121, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.82)"
+      : "0 10px 22px rgba(22, 36, 49, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.74)"};
   display: grid;
   overflow: hidden;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
     background 180ms ease;
+
+  &::before {
+    background: ${({ $open }) =>
+      $open
+        ? "linear-gradient(180deg, rgba(15, 111, 141, 0.96), rgba(224, 165, 58, 0.92))"
+        : "linear-gradient(180deg, rgba(36, 75, 115, 0.2), rgba(36, 75, 115, 0.04))"};
+    content: "";
+    inset: 0 auto 0 0;
+    opacity: ${({ $open }) => ($open ? 1 : 0.56)};
+    position: absolute;
+    transition:
+      opacity 180ms ease,
+      background 180ms ease;
+    width: ${({ $open }) => ($open ? "5px" : "3px")};
+  }
 `;
 
 const DisclosureToggle = styled.button`
@@ -48,30 +64,32 @@ const DisclosureToggle = styled.button`
   background:
     ${({ $open }) =>
       $open
-        ? "linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(230, 243, 255, 0.94)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 56%)"
-        : "linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.9)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.07), transparent 60%)"};
+        ? "linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(232, 244, 255, 0.96)), linear-gradient(90deg, rgba(15, 111, 141, 0.08), transparent 18%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 56%)"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 251, 0.92)), linear-gradient(90deg, rgba(16, 32, 51, 0.03), transparent 18%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.05), transparent 60%)"};
   border: 1px solid transparent;
   border-bottom: 1px solid
     ${({ $open }) =>
-      $open ? "rgba(15, 111, 141, 0.24)" : "rgba(var(--theme-text-rgb), 0.18)"};
+      $open ? "rgba(15, 111, 141, 0.18)" : "rgba(var(--theme-text-rgb), 0.16)"};
   color: inherit;
   cursor: pointer;
   display: grid;
-  gap: 0.58rem;
+  gap: 0.64rem;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: var(--admin-button-min-height);
-  padding: 0.82rem 0.92rem;
+  padding: 0.94rem 1rem 0.92rem 1.12rem;
   text-align: left;
   transition:
     background 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    transform 160ms ease;
 
   &:hover {
     background:
       ${({ $open }) =>
         $open
-          ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(226, 240, 255, 0.96)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.16), transparent 56%)"
-          : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 244, 255, 0.94)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 60%)"};
+          ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(228, 242, 255, 0.97)), linear-gradient(90deg, rgba(15, 111, 141, 0.09), transparent 18%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 56%)"
+          : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(237, 244, 250, 0.95)), linear-gradient(90deg, rgba(16, 32, 51, 0.03), transparent 18%), radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 60%)"};
+    transform: translateY(-1px);
   }
 `;
 
@@ -91,19 +109,20 @@ const DisclosureTitleRow = styled.div`
 
 const DisclosureTitle = styled.h3`
   color: ${({ $open }) => ($open ? "#0d5f79" : "#162744")};
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   line-height: 1.15;
   margin: 0;
   text-transform: uppercase;
 `;
 
 const DisclosureSummary = styled.p`
-  color: rgba(72, 85, 108, 0.94);
-  font-size: 0.8rem;
-  line-height: 1.5;
+  color: ${({ $open }) => ($open ? "rgba(33, 52, 79, 0.96)" : "rgba(72, 85, 108, 0.92)")};
+  font-size: 0.79rem;
+  line-height: 1.52;
   margin: 0;
+  max-width: 78ch;
 `;
 
 const DisclosureMeta = styled.div`
@@ -135,7 +154,7 @@ const DisclosureMetaPill = styled.span`
           : $tone === "warning"
             ? "rgba(168, 113, 12, 0.2)"
             : "rgba(16, 32, 51, 0.08)"};
-  border-radius: var(--theme-radius-lg, 2px);
+  border-radius: 0;
   color: ${({ $tone }) =>
     $tone === "success"
       ? "#197341"
@@ -157,15 +176,26 @@ const DisclosureMetaPill = styled.span`
 
 const DisclosureToggleIcon = styled.span`
   align-items: center;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(var(--theme-text-rgb), 0.24);
-  border-radius: var(--theme-radius-lg, 2px);
-  color: #22344f;
+  background: ${({ $open }) =>
+    $open
+      ? "linear-gradient(180deg, rgba(15, 111, 141, 0.12), rgba(255, 255, 255, 0.9))"
+      : "linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(242, 246, 252, 0.9))"};
+  border: 1px solid
+    ${({ $open }) =>
+      $open ? "rgba(15, 111, 141, 0.26)" : "rgba(var(--theme-text-rgb), 0.18)"};
+  border-radius: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  color: ${({ $open }) => ($open ? "#0d5f79" : "#22344f")};
   display: inline-flex;
   flex: 0 0 auto;
-  height: calc(var(--admin-icon-button-size) - 8px);
+  height: calc(var(--admin-icon-button-size) - 6px);
   justify-content: center;
-  width: calc(var(--admin-icon-button-size) - 8px);
+  width: calc(var(--admin-icon-button-size) - 6px);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 
   svg {
     height: 0.9rem;
@@ -176,15 +206,17 @@ const DisclosureToggleIcon = styled.span`
 `;
 
 const DisclosureBody = styled.div`
-  border-top: 1px solid rgba(var(--theme-text-rgb), 0.18);
+  border-top: 1px solid
+    ${({ $open }) =>
+      $open ? "rgba(15, 111, 141, 0.16)" : "rgba(var(--theme-text-rgb), 0.14)"};
   background:
     ${({ $open }) =>
       $open
-        ? "linear-gradient(180deg, rgba(252, 254, 255, 0.98), rgba(241, 248, 255, 0.94))"
+        ? "linear-gradient(180deg, rgba(252, 254, 255, 0.995), rgba(242, 248, 255, 0.96)), linear-gradient(90deg, rgba(15, 111, 141, 0.04), transparent 18%)"
         : "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94))"};
   display: ${({ $open }) => ($open ? "grid" : "none")};
-  gap: 0.9rem;
-  padding: 0.92rem;
+  gap: 1rem;
+  padding: 1rem 1rem 1rem 1.12rem;
 `;
 
 const DisclosureGroupContext = createContext(null);
@@ -441,7 +473,7 @@ export function AdminDisclosureSection({
           <DisclosureTitleRow>
             <DisclosureTitle $open={resolvedOpen}>{title}</DisclosureTitle>
           </DisclosureTitleRow>
-          {summary ? <DisclosureSummary>{summary}</DisclosureSummary> : null}
+          {summary ? <DisclosureSummary $open={resolvedOpen}>{summary}</DisclosureSummary> : null}
           {description ? <SmallText>{description}</SmallText> : null}
           {resolvedMeta.length ? (
             <DisclosureMeta>
