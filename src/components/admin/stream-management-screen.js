@@ -692,7 +692,20 @@ const StreamDisclosure = styled.details`
   background:
     linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(248, 251, 255, 0.94));
   border: 1px solid rgba(16, 32, 51, 0.08);
+  box-shadow: 0 8px 18px rgba(18, 34, 58, 0.03);
   padding: 0.64rem 0.74rem;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+
+  &[open] {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(236, 246, 255, 0.95)),
+      radial-gradient(circle at top right, rgba(15, 111, 141, 0.12), transparent 46%);
+    border-color: rgba(15, 111, 141, 0.24);
+    box-shadow: 0 14px 28px rgba(15, 96, 121, 0.08);
+  }
 `;
 
 const StreamDisclosureSummary = styled.summary`
@@ -701,9 +714,14 @@ const StreamDisclosureSummary = styled.summary`
   font-size: 0.78rem;
   font-weight: 800;
   list-style: none;
+  transition: color 180ms ease;
 
   &::-webkit-details-marker {
     display: none;
+  }
+
+  ${StreamDisclosure}[open] & {
+    color: #0d5f79;
   }
 `;
 
@@ -711,6 +729,8 @@ const StreamDisclosureBody = styled.div`
   display: grid;
   gap: 0.55rem;
   margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(15, 111, 141, 0.12);
 `;
 
 const RunHistoryList = styled.div`

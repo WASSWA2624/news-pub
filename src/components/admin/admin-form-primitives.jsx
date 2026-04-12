@@ -22,23 +22,38 @@ import { focusRingCss } from "@/components/common/ui-surface";
 
 const DisclosureCard = styled.section`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(242, 247, 255, 0.98)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 52%);
-  border: 1px solid rgba(var(--theme-text-rgb), 0.22);
+    ${({ $open }) =>
+      $open
+        ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 246, 255, 0.98)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 48%)"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(242, 247, 255, 0.98)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.08), transparent 52%)"};
+  border: 1px solid
+    ${({ $open }) =>
+      $open ? "rgba(15, 111, 141, 0.34)" : "rgba(var(--theme-text-rgb), 0.22)"};
   border-radius: var(--theme-radius-lg, 2px);
-  box-shadow: 0 12px 28px rgba(22, 36, 49, 0.08);
+  box-shadow: ${({ $open }) =>
+    $open
+      ? "0 16px 34px rgba(15, 96, 121, 0.12)"
+      : "0 12px 28px rgba(22, 36, 49, 0.08)"};
   display: grid;
   overflow: hidden;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 `;
 
 const DisclosureToggle = styled.button`
   ${focusRingCss}
   align-items: start;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.9)),
-    radial-gradient(circle at top right, rgba(15, 111, 141, 0.07), transparent 60%);
+    ${({ $open }) =>
+      $open
+        ? "linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(230, 243, 255, 0.94)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.14), transparent 56%)"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.9)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.07), transparent 60%)"};
   border: 1px solid transparent;
-  border-bottom: 1px solid rgba(var(--theme-text-rgb), 0.18);
+  border-bottom: 1px solid
+    ${({ $open }) =>
+      $open ? "rgba(15, 111, 141, 0.24)" : "rgba(var(--theme-text-rgb), 0.18)"};
   color: inherit;
   cursor: pointer;
   display: grid;
@@ -53,8 +68,10 @@ const DisclosureToggle = styled.button`
 
   &:hover {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 244, 255, 0.94)),
-      radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 60%);
+      ${({ $open }) =>
+        $open
+          ? "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(226, 240, 255, 0.96)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.16), transparent 56%)"
+          : "linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(236, 244, 255, 0.94)), radial-gradient(circle at top right, rgba(15, 111, 141, 0.1), transparent 60%)"};
   }
 `;
 
@@ -73,7 +90,7 @@ const DisclosureTitleRow = styled.div`
 `;
 
 const DisclosureTitle = styled.h3`
-  color: #162744;
+  color: ${({ $open }) => ($open ? "#0d5f79" : "#162744")};
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -160,6 +177,11 @@ const DisclosureToggleIcon = styled.span`
 
 const DisclosureBody = styled.div`
   border-top: 1px solid rgba(var(--theme-text-rgb), 0.18);
+  background:
+    ${({ $open }) =>
+      $open
+        ? "linear-gradient(180deg, rgba(252, 254, 255, 0.98), rgba(241, 248, 255, 0.94))"
+        : "linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94))"};
   display: ${({ $open }) => ($open ? "grid" : "none")};
   gap: 0.9rem;
   padding: 0.92rem;
@@ -400,9 +422,10 @@ export function AdminDisclosureSection({
     : isOpen || shouldForceOpen;
 
   return (
-    <DisclosureCard data-admin-disclosure-section={resolvedId}>
+    <DisclosureCard $open={resolvedOpen} data-admin-disclosure-section={resolvedId}>
       <DisclosureToggle
         aria-expanded={resolvedOpen}
+        $open={resolvedOpen}
         onClick={() => {
           if (disclosureGroup) {
             toggleDisclosureItem?.(resolvedId);
@@ -416,7 +439,7 @@ export function AdminDisclosureSection({
       >
         <DisclosureCopy>
           <DisclosureTitleRow>
-            <DisclosureTitle>{title}</DisclosureTitle>
+            <DisclosureTitle $open={resolvedOpen}>{title}</DisclosureTitle>
           </DisclosureTitleRow>
           {summary ? <DisclosureSummary>{summary}</DisclosureSummary> : null}
           {description ? <SmallText>{description}</SmallText> : null}
