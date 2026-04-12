@@ -12,6 +12,14 @@ function createJsonResponse(payload, { ok = true, status = 200 } = {}) {
   };
 }
 
+function createTextResponse(body, { ok = true, status = 200 } = {}) {
+  return {
+    ok,
+    status,
+    text: async () => body,
+  };
+}
+
 function getRequestedUrl() {
   return new URL(`${fetch.mock.calls[0][0]}`);
 }
@@ -403,6 +411,160 @@ describe("news providers", () => {
         stopReason: "provider_exhausted",
       },
       fetched_count: 26,
+    });
+  });
+
+  it("retries Mediastack without the provider date filter after a non-JSON response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          createTextResponse("<html><title>Unexpected upstream page</title></html>", {
+            ok: true,
+            status: 200,
+          }),
+        )
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            data: [
+              {
+                category: "general",
+                country: "us",
+                description: "Recovered result",
+                language: "en",
+                published_at: "2026-04-12T12:00:00Z",
+                source: "Example Source",
+                title: "Recovered result",
+                url: "https://example.com/recovered-result",
+              },
+            ],
+            pagination: {
+              limit: 25,
+              offset: 0,
+            },
+          }),
+        ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      now: new Date("2026-04-12T14:30:00.000Z"),
+      provider_key: "mediastack",
+      stream: {
+        activeProvider: {
+          request_defaults_json: {
+            categories: ["general"],
+            countries: ["us"],
+            languages: ["en"],
+            sort: "published_desc",
+          },
+        },
+        locale: "en",
+        max_posts_per_run: 1,
+        settings_json: {
+          providerFilters: {
+            dateFrom: "2026-04-11",
+            dateTo: "2026-04-12",
+          },
+        },
+      },
+    });
+
+    const requestedUrls = fetch.mock.calls.map((call) => new URL(`${call[0]}`));
+
+    expect(requestedUrls).toHaveLength(2);
+    expect(requestedUrls[0].searchParams.get("date")).toBe("2026-04-11,2026-04-12");
+    expect(requestedUrls[1].searchParams.get("date")).toBeNull();
+    expect(result).toMatchObject({
+      diagnostics: {
+        fallbackEvents: [
+          expect.objectContaining({
+            kind: "date_filter_removed",
+            responseStatus: 200,
+          }),
+        ],
+      },
+      fetched_count: 1,
+    });
+    expect(result.articles[0]).toMatchObject({
+      provider_key: "mediastack",
+      title: "Recovered result",
+    });
+  });
+
+  it("fails over from Mediastack to NewsAPI when Mediastack times out before a response", async () => {
+    const outboundFetch = await import("@/lib/news/outbound-fetch");
+    const fetchWithTimeoutAndRetry = vi.spyOn(outboundFetch, "fetchWithTimeoutAndRetry").mockImplementation((url) => {
+      const requestUrl = new URL(`${url}`);
+
+      if (requestUrl.hostname === "api.mediastack.com") {
+        throw new Error("Outbound fetch exceeded 10000ms.");
+      }
+
+      if (requestUrl.hostname === "newsapi.org") {
+        return createJsonResponse({
+          articles: createNewsApiArticles(1, 1, {
+            source_name: "Fallback Wire",
+          }),
+          totalResults: 1,
+        });
+      }
+
+      throw new Error(`Unexpected provider host: ${requestUrl.hostname}`);
+    });
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      now: new Date("2026-04-12T14:30:00.000Z"),
+      provider_key: "mediastack",
+      stream: {
+        activeProvider: {
+          request_defaults_json: {
+            categories: ["general"],
+            countries: ["us"],
+            languages: ["en"],
+            sort: "published_desc",
+          },
+        },
+        locale: "en",
+        max_posts_per_run: 1,
+        settings_json: {
+          providerFilters: {},
+        },
+      },
+    });
+
+    const requestedUrls = fetchWithTimeoutAndRetry.mock.calls.map((call) => new URL(`${call[0]}`));
+    const newsApiRequestInit = fetchWithTimeoutAndRetry.mock.calls[1][1];
+
+    expect(requestedUrls).toHaveLength(2);
+    expect(requestedUrls[0].hostname).toBe("api.mediastack.com");
+    expect(requestedUrls[1].hostname).toBe("newsapi.org");
+    expect(requestedUrls[1].pathname).toBe("/v2/top-headlines");
+    expect(requestedUrls[1].searchParams.get("country")).toBe("us");
+    expect(requestedUrls[1].searchParams.get("category")).toBe("general");
+    expect(newsApiRequestInit.headers["x-api-key"]).toBe("newsapi-key");
+    expect(result).toMatchObject({
+      diagnostics: {
+        failover: {
+          requested_provider_key: "mediastack",
+          used_provider_key: "newsapi",
+          attempts: [
+            expect.objectContaining({
+              error_status: "provider_request_failed",
+              provider_key: "newsapi",
+              result: "succeeded",
+            }),
+          ],
+        },
+      },
+      fetched_count: 1,
+      provider_key: "newsapi",
+      requested_provider_key: "mediastack",
+    });
+    expect(result.articles[0]).toMatchObject({
+      provider_key: "newsapi",
+      source_name: "Fallback Wire",
     });
   });
 

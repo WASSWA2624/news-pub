@@ -176,8 +176,11 @@ function getCategorySearchTerms(category) {
   return dedupeStrings([...normalizedTerms, ...aliasTerms]);
 }
 
-export function resolveStreamArticleWindowPolicy(stream = {}) {
-  const provider_key = trimText(stream?.activeProvider?.provider_key).toLowerCase();
+export function resolveStreamArticleWindowPolicy(
+  stream = {},
+  { provider_key: providerKeyOverride = null, requestValues: requestValuesOverride = null } = {},
+) {
+  const provider_key = trimText(providerKeyOverride || stream?.activeProvider?.provider_key).toLowerCase();
 
   if (!provider_key) {
     return {
@@ -187,7 +190,7 @@ export function resolveStreamArticleWindowPolicy(stream = {}) {
     };
   }
 
-  const requestValues = resolveStreamProviderRequestValues(provider_key, {
+  const requestValues = requestValuesOverride || resolveStreamProviderRequestValues(provider_key, {
     country_allowlist_json: stream.country_allowlist_json,
     language_allowlist_json: stream.language_allowlist_json,
     locale: stream.locale,
@@ -597,7 +600,7 @@ async function upsertCanonicalPost(
           ),
           excerpt: article.summary || article.title,
           featured_image_id,
-          provider_key: stream.activeProvider.provider_key,
+          provider_key: article.provider_key || stream.activeProvider.provider_key,
           source_article_id: article.id,
           source_name: article.source_name,
           source_url: article.source_url,
@@ -614,7 +617,7 @@ async function upsertCanonicalPost(
           ),
           excerpt: article.summary || article.title,
           featured_image_id,
-          provider_key: stream.activeProvider.provider_key,
+          provider_key: article.provider_key || stream.activeProvider.provider_key,
           slug: canonicalSlug,
           source_article_id: article.id,
           source_name: article.source_name,
@@ -3048,7 +3051,11 @@ async function finalizeSuccessfulFetchRun(
         held_count: summary.held_count,
         optimized_count: summary.optimized_count,
         partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
-        provider_key: executionGroup?.provider_key || executionContext.stream.activeProvider?.provider_key || null,
+        provider_key:
+          providerResult?.provider_key
+          || executionGroup?.provider_key
+          || executionContext.stream.activeProvider?.provider_key
+          || null,
         publishable_count: summary.publishable_count,
         published_count: summary.published_count,
         sharedStreamIds: executionGroup?.streamIds || [executionContext.stream.id],
@@ -3143,7 +3150,10 @@ async function processFetchedArticlesForStream(
   const summary = createFetchRunSummary(providerResult);
   const uniqueEligibleCandidates = [];
   const repostEligibleDuplicates = [];
-  const fetchWindowPolicy = resolveStreamArticleWindowPolicy(executionContext.stream);
+  const fetchWindowPolicy = resolveStreamArticleWindowPolicy(executionContext.stream, {
+    provider_key: providerResult?.provider_key || null,
+    requestValues: providerResult?.requestValues || null,
+  });
 
   for (const articleCandidate of providerResult.articles) {
     const evaluation = evaluateArticleAgainstStream(articleCandidate, executionContext.stream, {
@@ -3219,7 +3229,14 @@ async function processFetchedArticlesForStream(
 
     const post = await upsertCanonicalPost(
       db,
-      fetchedArticle,
+      {
+        ...fetchedArticle,
+        provider_key:
+          articleCandidate.provider_key
+          || providerResult?.provider_key
+          || executionContext.stream.activeProvider?.provider_key
+          || null,
+      },
       executionContext.stream,
       evaluation.matchedCategoryIds,
       actor_id,

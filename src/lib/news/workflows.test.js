@@ -2135,6 +2135,118 @@ describe("shared stream execution and website completeness", () => {
     });
   });
 
+  it("uses the fetched provider window policy and post metadata when a Mediastack stream fails over to NewsAPI", async () => {
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [
+        createWorkflowArticle("website_fallback_top_headline", {
+          providerCountries: ["us"],
+          provider_key: "newsapi",
+          published_at: "2026-04-06T23:30:00.000Z",
+        }),
+      ],
+      cursor: {
+        page: 1,
+      },
+      diagnostics: {
+        failover: {
+          requested_provider_key: "mediastack",
+          used_provider_key: "newsapi",
+        },
+      },
+      fetched_count: 1,
+      provider_key: "newsapi",
+      requestValues: {
+        category: "general",
+        country: "us",
+        endpoint: "top-headlines",
+      },
+      requested_provider_key: "mediastack",
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/revalidation", () => ({
+      revalidatePublishedPostPaths: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const stream = createWorkflowStream({
+      destinationPlatform: "WEBSITE",
+      id: "website_stream",
+      mode: "AUTO_PUBLISH",
+      providerFilters: {
+        categories: ["general"],
+        countries: ["us"],
+      },
+      provider_key: "mediastack",
+      request_defaults_json: {
+        categories: ["general"],
+        countries: ["us"],
+        languages: ["en"],
+        sort: "published_desc",
+      },
+    });
+
+    stream.country_allowlist_json = ["us"];
+    stream.language_allowlist_json = ["en"];
+
+    const prisma = createWorkflowExecutionPrisma({
+      website_stream: stream,
+    });
+    const completedRun = await runStreamFetch(
+      "website_stream",
+      {
+        fetchWindow: {
+          end: "2026-04-07T12:00:00.000Z",
+          start: "2026-04-07T00:00:00.000Z",
+        },
+        now: new Date("2026-04-07T12:00:00.000Z"),
+        trigger_type: "manual",
+      },
+      prisma,
+    );
+
+    expect(prisma.articleMatch.create).toHaveBeenCalledTimes(1);
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          provider_key: "newsapi",
+        }),
+      }),
+    );
+    expect(prisma.fetchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          execution_details_json: expect.objectContaining({
+            providerDiagnostics: expect.objectContaining({
+              failover: expect.objectContaining({
+                requested_provider_key: "mediastack",
+                used_provider_key: "newsapi",
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(completedRun).toMatchObject({
+      published_count: 1,
+      publishable_count: 1,
+      skipped_count: 0,
+      status: "SUCCEEDED",
+    });
+  });
+
   it("processes every eligible website candidate from a broad pool even when max_posts_per_run is lower", async () => {
     const fetchProviderArticles = vi.fn().mockResolvedValue({
       articles: [

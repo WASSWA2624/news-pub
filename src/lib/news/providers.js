@@ -297,6 +297,30 @@ function buildDateRangeValue(startDate, endDate) {
   return start || end || "";
 }
 
+function normalizeFailoverKeywordQuery(value) {
+  return dedupeStrings(
+    normalizeScalar(value)
+      .split(",")
+      .map((entry) => normalizeScalar(entry))
+      .filter(Boolean)
+      .filter((entry) => !entry.startsWith("-")),
+  ).join(" ");
+}
+
+function mapMediastackSortToNewsData(sortValue) {
+  const normalizedSort = normalizeScalar(sortValue);
+
+  if (normalizedSort === "published_asc") {
+    return "pubdateasc";
+  }
+
+  if (normalizedSort === "popularity") {
+    return "source";
+  }
+
+  return "";
+}
+
 function appendScalarParam(url, key, value) {
   const normalizedValue = normalizeScalar(value);
 
@@ -354,6 +378,7 @@ function getProviderArticleTargetCount(provider_key, options = {}) {
 function createProviderDiagnostics(provider_key, { endpoint = null, requestValues = {}, requestSizing = null } = {}) {
   return {
     endpoint,
+    fallbackEvents: [],
     pageLimit: maxProviderPageCount,
     pages: [],
     provider_key,
@@ -366,6 +391,10 @@ function createProviderDiagnostics(provider_key, { endpoint = null, requestValue
 
 function recordProviderPage(diagnostics, pageDetails) {
   diagnostics.pages.push(pageDetails);
+}
+
+function recordProviderFallback(diagnostics, fallbackDetails) {
+  diagnostics.fallbackEvents.push(fallbackDetails);
 }
 
 function finalizeProviderDiagnostics(diagnostics, { articleCount = 0, stopReason = "provider_exhausted" } = {}) {
@@ -710,6 +739,7 @@ function resolveProviderRequestValues(provider_key, stream) {
 
 function buildMediastackRequest({
   credential,
+  includeDateFilter = true,
   maxArticlesHint = null,
   offset = 0,
   requestValues,
@@ -729,13 +759,16 @@ function buildMediastackRequest({
   appendScalarParam(url, "keywords", requestValues.keywords);
   appendScalarParam(url, "sources", sources);
 
-  const dateRange = buildDateRangeValue(requestValues.dateFrom, requestValues.dateTo);
+  const dateRange = includeDateFilter
+    ? buildDateRangeValue(requestValues.dateFrom, requestValues.dateTo)
+    : "";
 
   if (dateRange) {
     url.searchParams.set("date", dateRange);
   }
 
   return {
+    includesDateFilter: Boolean(dateRange),
     limit,
     responseShape: "data",
     url,
@@ -966,6 +999,150 @@ function createProviderResponseError(providerLabel, payload, fallbackMessage) {
   });
 }
 
+function buildMediastackNewsApiFailoverRequestValues(requestValues = {}) {
+  const sourceIds = splitDelimitedValues(requestValues.sources, { lowerCase: true });
+  const country = sourceIds.length ? "" : normalizeList(requestValues.countries, { lowerCase: true })[0] || "";
+  const category = sourceIds.length ? "" : normalizeList(requestValues.categories, { lowerCase: true })[0] || "";
+  const q = normalizeFailoverKeywordQuery(requestValues.keywords);
+
+  if (!q && !sourceIds.length && !country && !category) {
+    return null;
+  }
+
+  return {
+    category,
+    country,
+    endpoint: "top-headlines",
+    q,
+    sources: sourceIds.join(","),
+  };
+}
+
+function buildMediastackNewsDataFailoverRequestValues(requestValues = {}) {
+  const fromDate = normalizeScalar(requestValues.dateFrom);
+  const toDate = normalizeScalar(requestValues.dateTo);
+  const endpoint = fromDate || toDate ? "archive" : "latest";
+
+  return {
+    category: normalizeList(requestValues.categories, { lowerCase: true }),
+    country: normalizeList(requestValues.countries, { lowerCase: true }),
+    endpoint,
+    excludeCategories: normalizeList(requestValues.excludeCategories, { lowerCase: true }),
+    excludeCountries: normalizeList(requestValues.excludeCountries, { lowerCase: true }),
+    excludeLanguages: normalizeList(requestValues.excludeLanguages, { lowerCase: true }),
+    fromDate,
+    language: normalizeList(requestValues.languages, { lowerCase: true }),
+    q: normalizeFailoverKeywordQuery(requestValues.keywords),
+    sort: mapMediastackSortToNewsData(requestValues.sort),
+    toDate,
+  };
+}
+
+function buildProviderFailoverCandidates(primaryProviderKey, requestValues = {}) {
+  if (primaryProviderKey !== "mediastack") {
+    return [];
+  }
+
+  const candidates = [];
+  const newsApiRequestValues = buildMediastackNewsApiFailoverRequestValues(requestValues);
+
+  if (newsApiRequestValues && resolveNewsProviderCredential("newsapi")) {
+    candidates.push({
+      provider_key: "newsapi",
+      requestValues: newsApiRequestValues,
+    });
+  }
+
+  if (resolveNewsProviderCredential("newsdata")) {
+    candidates.push({
+      provider_key: "newsdata",
+      requestValues: buildMediastackNewsDataFailoverRequestValues(requestValues),
+    });
+  }
+
+  return candidates;
+}
+
+function shouldAttemptProviderFailover({
+  allowFailover = true,
+  articlesFetchedCount = 0,
+  error,
+  pageIndex = 0,
+  primaryProviderKey,
+}) {
+  return Boolean(
+    allowFailover
+    && primaryProviderKey === "mediastack"
+    && pageIndex === 0
+    && articlesFetchedCount === 0
+    && ["provider_request_failed", "provider_response_invalid"].includes(normalizeScalar(error?.status)),
+  );
+}
+
+function decorateProviderFailoverResult(
+  providerResult,
+  { failoverAttempts = [], primaryProviderKey } = {},
+) {
+  const diagnostics = providerResult?.diagnostics || {};
+
+  return {
+    ...providerResult,
+    diagnostics: {
+      ...diagnostics,
+      failover: {
+        attempts: failoverAttempts,
+        requested_provider_key: primaryProviderKey,
+        used_provider_key: providerResult?.provider_key || null,
+      },
+    },
+    requested_provider_key: primaryProviderKey,
+  };
+}
+
+function attachProviderFailoverAttempts(error, failoverAttempts = []) {
+  if (!failoverAttempts.length) {
+    return error;
+  }
+
+  const nextError = error instanceof Error ? error : new Error(`${error}`);
+
+  nextError.providerDiagnostics = {
+    ...(nextError.providerDiagnostics || {}),
+    failover: {
+      attempts: failoverAttempts,
+      requested_provider_key: nextError.providerDiagnostics?.provider_key || null,
+      used_provider_key: null,
+    },
+  };
+
+  return nextError;
+}
+
+function hasProviderErrorMessage(payload) {
+  return Boolean(
+    payload?.error?.message
+    || payload?.message
+    || payload?.results?.message
+    || payload?.status,
+  );
+}
+
+function shouldRetryMediastackWithoutDateFilter({ payload = null, request, response }) {
+  if (!request?.includesDateFilter) {
+    return false;
+  }
+
+  if (Array.isArray(payload?.[request.responseShape])) {
+    return false;
+  }
+
+  if (!response.ok) {
+    return response.status >= 500 && !hasProviderErrorMessage(payload);
+  }
+
+  return !hasProviderErrorMessage(payload);
+}
+
 async function fetchProviderResponse(providerLabel, url, init, { retryContext = {}, retryEvents = [] } = {}) {
   try {
     return await fetchWithTimeoutAndRetry(url, init, {
@@ -992,6 +1169,71 @@ function getFetchRequestInit(extraHeaders = {}) {
       revalidate: 0,
     },
   };
+}
+
+async function attemptProviderFailover({
+  allowFailover = true,
+  articlesFetchedCount = 0,
+  checkpoint = null,
+  error,
+  fetchWindow = null,
+  maxArticlesHint = null,
+  now = new Date(),
+  pageIndex = 0,
+  primaryProviderKey,
+  requestValues = {},
+  stream,
+}) {
+  if (!shouldAttemptProviderFailover({
+    allowFailover,
+    articlesFetchedCount,
+    error,
+    pageIndex,
+    primaryProviderKey,
+  })) {
+    return null;
+  }
+
+  const failoverAttempts = [];
+
+  for (const candidate of buildProviderFailoverCandidates(primaryProviderKey, requestValues)) {
+    try {
+      const providerResult = await fetchProviderArticles({
+        allowFailover: false,
+        checkpoint,
+        fetchWindow,
+        maxArticlesHint,
+        now,
+        provider_key: candidate.provider_key,
+        requestValues: candidate.requestValues,
+        stream,
+      });
+
+      failoverAttempts.push({
+        error_status: normalizeScalar(error?.status) || null,
+        provider_key: candidate.provider_key,
+        requestValues: candidate.requestValues,
+        result: "succeeded",
+      });
+
+      return decorateProviderFailoverResult(providerResult, {
+        failoverAttempts,
+        primaryProviderKey,
+      });
+    } catch (candidateError) {
+      failoverAttempts.push({
+        error_status: normalizeScalar(candidateError?.status) || null,
+        message: candidateError instanceof Error ? candidateError.message : `${candidateError}`,
+        provider_key: candidate.provider_key,
+        requestValues: candidate.requestValues,
+        result: "failed",
+      });
+    }
+  }
+
+  attachProviderFailoverAttempts(error, failoverAttempts);
+
+  return null;
 }
 
 /** Lists the provider catalog entries exposed to the admin and workflow layers. */
@@ -1128,6 +1370,7 @@ export async function fetchProviderSourceCatalog({
  * @returns {Promise<object>} Normalized provider result payload.
  */
 export async function fetchProviderArticles({
+  allowFailover = true,
   checkpoint,
   fetchWindow = null,
   maxArticlesHint = null,
@@ -1162,6 +1405,8 @@ export async function fetchProviderArticles({
         totalFetchedArticles: 1,
       },
       fetched_count: 1,
+      provider_key: normalizedKey,
+      requestValues: requestValuesOverride || {},
     };
   }
 
@@ -1192,18 +1437,21 @@ export async function fetchProviderArticles({
     const articles = [];
     let cursor = null;
     let offset = 0;
+    let allowProviderDateFilter = true;
     let stopReason = "page_limit_reached";
 
     for (let pageIndex = 0; pageIndex < maxProviderPageCount; pageIndex += 1) {
-      const request = buildMediastackRequest({
+      let request = buildMediastackRequest({
         credential,
+        includeDateFilter: allowProviderDateFilter,
         maxArticlesHint,
         offset,
         requestValues,
         stream,
       });
-      const requestUrl = serializeProviderRequestUrl(request.url, ["access_key"]);
+      let requestUrl = serializeProviderRequestUrl(request.url, ["access_key"]);
       let response;
+      let payload;
 
       try {
         response = await fetchProviderResponse("Mediastack", request.url, getFetchRequestInit(), {
@@ -1211,10 +1459,10 @@ export async function fetchProviderArticles({
             offset,
             requestUrl,
           },
-          retryEvents: diagnostics.retryEvents,
-        });
+            retryEvents: diagnostics.retryEvents,
+          });
       } catch (error) {
-        throw attachProviderDiagnostics(error, diagnostics, {
+        const providerError = attachProviderDiagnostics(error, diagnostics, {
           articleCount: Math.min(articles.length, targetCount),
           failure: {
             message: error instanceof Error ? error.message : `${error}`,
@@ -1224,12 +1472,75 @@ export async function fetchProviderArticles({
           },
           stopReason: diagnostics.retryEvents.length ? "retry_exhausted" : "request_failed",
         });
+
+        const failoverResult = await attemptProviderFailover({
+          allowFailover,
+          articlesFetchedCount: articles.length,
+          checkpoint,
+          error: providerError,
+          fetchWindow,
+          maxArticlesHint,
+          now,
+          pageIndex,
+          primaryProviderKey: normalizedKey,
+          requestValues,
+          stream,
+        });
+
+        if (failoverResult) {
+          return failoverResult;
+        }
+
+        throw providerError;
       }
 
-      const payload = await readJsonResponse(response);
+      payload = await readJsonResponse(response);
+
+      if (shouldRetryMediastackWithoutDateFilter({ payload, request, response })) {
+        recordProviderFallback(diagnostics, {
+          kind: "date_filter_removed",
+          offset,
+          requestUrl,
+          responseStatus: response.status,
+        });
+        allowProviderDateFilter = false;
+        request = buildMediastackRequest({
+          credential,
+          includeDateFilter: false,
+          maxArticlesHint,
+          offset,
+          requestValues,
+          stream,
+        });
+        requestUrl = serializeProviderRequestUrl(request.url, ["access_key"]);
+
+        try {
+          response = await fetchProviderResponse("Mediastack", request.url, getFetchRequestInit(), {
+            retryContext: {
+              fallbackKind: "date_filter_removed",
+              offset,
+              requestUrl,
+            },
+            retryEvents: diagnostics.retryEvents,
+          });
+        } catch (error) {
+          throw attachProviderDiagnostics(error, diagnostics, {
+            articleCount: Math.min(articles.length, targetCount),
+            failure: {
+              message: error instanceof Error ? error.message : `${error}`,
+              offset,
+              requestUrl,
+              type: diagnostics.retryEvents.length ? "retry_exhausted" : "request_failed",
+            },
+            stopReason: diagnostics.retryEvents.length ? "retry_exhausted" : "request_failed",
+          });
+        }
+
+        payload = await readJsonResponse(response);
+      }
 
       if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
-        throw attachProviderDiagnostics(
+        const providerError = attachProviderDiagnostics(
           createProviderResponseError("Mediastack", payload, "Invalid response shape."),
           diagnostics,
           {
@@ -1243,6 +1554,26 @@ export async function fetchProviderArticles({
             stopReason: "invalid_response",
           },
         );
+
+        const failoverResult = await attemptProviderFailover({
+          allowFailover,
+          articlesFetchedCount: articles.length,
+          checkpoint,
+          error: providerError,
+          fetchWindow,
+          maxArticlesHint,
+          now,
+          pageIndex,
+          primaryProviderKey: normalizedKey,
+          requestValues,
+          stream,
+        });
+
+        if (failoverResult) {
+          return failoverResult;
+        }
+
+        throw providerError;
       }
 
       const pageArticles = payload.data.map(normalizeMediastackArticle);
@@ -1295,6 +1626,8 @@ export async function fetchProviderArticles({
         stopReason,
       }),
       fetched_count: Math.min(articles.length, targetCount),
+      provider_key: normalizedKey,
+      requestValues,
     };
   }
 
@@ -1420,6 +1753,8 @@ export async function fetchProviderArticles({
         stopReason,
       }),
       fetched_count: Math.min(articles.length, targetCount),
+      provider_key: normalizedKey,
+      requestValues,
     };
   }
 
@@ -1555,6 +1890,8 @@ export async function fetchProviderArticles({
         stopReason,
       }),
       fetched_count: Math.min(articles.length, targetCount),
+      provider_key: normalizedKey,
+      requestValues,
     };
   }
 

@@ -42,6 +42,14 @@ function getRemoteImagePatterns() {
   ]);
 }
 
+function getLocalImagePatterns() {
+  return [
+    {
+      pathname: "/api/media/proxy",
+    },
+  ];
+}
+
 const withBundleAnalyzer = bundleAnalyzer({
   analyzerMode: process.env.BUNDLE_ANALYZE_FORMAT || "static",
   enabled: process.env.ANALYZE === "true",
@@ -71,6 +79,7 @@ const nextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    localPatterns: getLocalImagePatterns(),
     minimumCacheTTL: 3600,
     remotePatterns: getRemoteImagePatterns(),
   },
