@@ -14,7 +14,6 @@ import {
 import { getAdminPageAccess, hasAdminPermission } from "@/lib/auth/rbac";
 import { defaultLocale } from "@/features/i18n/config";
 import { getMessages } from "@/features/i18n/get-messages";
-import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -49,9 +48,7 @@ export default async function AdminLayout({ children }) {
 
   if (routeKind !== "protected") {
     return (
-      <LocaleMessagesProvider locale={defaultLocale} messages={messages}>
-        <AdminProviders>{children}</AdminProviders>
-      </LocaleMessagesProvider>
+      <AdminProviders>{children}</AdminProviders>
     );
   }
 
@@ -60,20 +57,18 @@ export default async function AdminLayout({ children }) {
     !pageAccess || hasAdminPermission(authState.user, pageAccess.permission);
 
   return (
-    <LocaleMessagesProvider locale={defaultLocale} messages={messages}>
-      <AdminProviders>
-        <AdminShell messages={messages} user={authState.user}>
-          {isAuthorizedForPage ? (
-            children
-          ) : (
-            <AdminAccessDeniedPage
-              pathname={pageAccess.pathname}
-              permission={pageAccess.permission}
-              user={authState.user}
-            />
-          )}
-        </AdminShell>
-      </AdminProviders>
-    </LocaleMessagesProvider>
+    <AdminProviders>
+      <AdminShell messages={messages} user={authState.user}>
+        {isAuthorizedForPage ? (
+          children
+        ) : (
+          <AdminAccessDeniedPage
+            pathname={pageAccess.pathname}
+            permission={pageAccess.permission}
+            user={authState.user}
+          />
+        )}
+      </AdminShell>
+    </AdminProviders>
   );
 }

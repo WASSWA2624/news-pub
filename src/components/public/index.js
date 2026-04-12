@@ -7,7 +7,6 @@ import styled, { css } from "styled-components";
 
 import AppIcon from "@/components/common/app-icon";
 import ResponsiveImage from "@/components/common/responsive-image";
-import SearchableSelect from "@/components/common/searchable-select";
 import PublicViewTracker from "@/components/analytics/public-view-tracker";
 import HomeLatestStories from "@/components/public/home-latest-stories";
 import { buildPublicSearchPageModel } from "@/components/public/public-search-page-utils";
@@ -563,13 +562,40 @@ const SearchInput = styled.input`
   }
 `;
 
-const SearchSelect = styled(SearchableSelect)`
+const SearchSelectWrap = styled.div`
+  position: relative;
+`;
+
+const SearchSelect = styled.select`
+  appearance: none;
+  background: white;
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  border-radius: 0;
+  color: var(--theme-text);
+  min-height: 48px;
+  padding: 0 2.2rem 0 0.78rem;
   width: 100%;
 
-  button {
-    border-radius: 0;
-    min-height: 48px;
-    padding: 0.52rem 0.7rem;
+  &:focus {
+    border-color: rgba(var(--theme-primary-rgb), 0.4);
+    box-shadow: 0 0 0 4px rgba(var(--theme-primary-rgb), 0.08);
+    outline: none;
+  }
+`;
+
+const SearchSelectCaret = styled.span`
+  align-items: center;
+  color: rgba(var(--theme-primary-rgb), 0.78);
+  display: inline-flex;
+  inset: 0 0 0 auto;
+  pointer-events: none;
+  position: absolute;
+  width: 2rem;
+
+  svg {
+    display: block;
+    height: 0.92rem;
+    width: 0.92rem;
   }
 `;
 
@@ -1672,15 +1698,23 @@ export function PublicCollectionPage({
                       type="search"
                     />
                   </SearchField>
-                  <SearchSelect
-                    aria-label={common.countryFilterLabel || "Filter by country"}
-                    defaultValue={collectionCountry}
-                    key={`country-filter-${collectionCountry}`}
-                    name="country"
-                    options={countryFilterOptions}
-                    placeholder={common.countryFilterLabel || "Filter by country"}
-                    searchPlaceholder={common.countryFilterLabel || "Filter by country"}
-                  />
+                  <SearchSelectWrap>
+                    <SearchSelect
+                      aria-label={common.countryFilterLabel || "Filter by country"}
+                      defaultValue={collectionCountry}
+                      key={`country-filter-${collectionCountry}`}
+                      name="country"
+                    >
+                      {countryFilterOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SearchSelect>
+                    <SearchSelectCaret aria-hidden="true">
+                      <AppIcon name="chevron-down" size={14} />
+                    </SearchSelectCaret>
+                  </SearchSelectWrap>
                   <ActionButton type="submit">
                     <AppIcon name="search" size={14} />
                     {common.searchAction || "Search"}

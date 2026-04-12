@@ -1,213 +1,120 @@
-# NewsPub codebase remediation prompt
+You are a senior Next.js 16, React 19, and web performance engineer.
+
+I need you to refactor this NewsPub codebase to materially improve website performance without changing the product behavior, visual design intent, SEO semantics, editorial workflows, or public URLs.
+
+## Primary goals
+
+1. Reduce public-route client JavaScript.
+2. Improve LCP, INP, CLS, and TTFB.
+3. Reduce duplicate server work and database over-fetching.
+4. Improve route-level code splitting.
+5. Add performance budgets and regression tooling.
 
 ## Context
-This repository is already partially working. Do **not** rewrite working business logic, routes, database behavior, SEO behavior, auth behavior, i18n behavior, or publishing workflows unless a change is required to close a verified gap. Preserve all working features and current user-visible flows.
 
-The current review found these likely problem areas:
-- The attached package is a **standalone production bundle**, not the original full source tree.
-- `scripts/cpanel-db-deploy.js`, `scripts/cpanel-db-seed.js`, and `scripts/cpanel-doctor.js` require `./cpanel-db-utils`, but that file is missing from the uploaded package.
-- The app was built on Windows and is being considered for Linux cPanel deployment.
-- Public pages and admin pages appear to ship **too much initial JavaScript**, with a large shared client entry and several heavy admin route chunks.
-- The UI uses many heavy visual effects and large monolithic components that likely increase render cost and duplicate styling logic.
-- Prisma seed/deploy on cPanel is vulnerable to memory pressure and should not always run as one heavy operation.
+This is a Next.js App Router codebase with a public site and admin interface.
+The public site currently appears to have a large shared client baseline and repeated server/database work.
 
-## Objective
-Refactor only what is necessary to:
-1. close performance gaps,
-2. remove duplicated UI structure/styling logic,
-3. prevent local-vs-cPanel deployment failures,
-4. keep the UI extremely light, extremely fast, and excellent to use,
-5. leave all currently working behavior unchanged unless a fix is required.
+## High-priority problems to fix
 
-## Non-negotiable constraints
-- Keep all existing routes, slugs, APIs, form behaviors, and business rules working.
-- Keep Prisma schema semantics intact unless a deployment fix absolutely requires a safe generator/runtime adjustment.
-- Do not introduce a visual redesign that changes the product identity; simplify and lighten it.
-- Prefer surgical refactors over broad rewrites.
-- Prefer server components and server rendering wherever interactivity is not required.
-- Prefer lazy loading for admin-only and modal-only code.
-- Prefer flat, static, low-cost styling over heavy runtime styling.
+### A. Make the public app shell server-first
+- Audit `src/app/layout.js`, `src/components/common/app-providers.js`, `src/styles/styled-registry.js`, and `src/app/[locale]/layout.js`.
+- Remove any unnecessary client wrappers from the public route tree.
+- Keep the root layout server-first wherever possible.
+- Only use client components for isolated interactive islands.
+
+### B. Reduce shared public JS
+- Refactor `src/components/layout/site-header.js` so the default header shell is server-rendered.
+- Split mobile menu, search dialog, and other interactive header behaviors into dynamically loaded client islands.
+- Eliminate route-wide `useSearchParams()` usage when server props can provide the required state.
+
+### C. Remove unused client locale context
+- Audit `src/features/i18n/locale-provider.js`.
+- If `useLocaleMessages()` is not used, remove the provider entirely.
+- If only a few client components need locale/messages, pass props directly.
+
+### D. Improve route-level code splitting
+- Break up `src/components/public/index.js` into route-specific modules.
+- Avoid importing search-only or home-only client components into routes that do not need them.
+- Ensure home, collection, and story routes each load only the client code they actually need.
+
+### E. Replace heavyweight public form controls with simpler alternatives
+- Replace public-facing `SearchableSelect` usage with a native `<select>` or a much lighter alternative.
+- Preserve accessibility and current functionality.
+- Keep the richer searchable control only where it is truly justified, such as admin surfaces.
+
+### F. Stop over-fetching on listing pages
+- Replace broad `publicPostSelect` usage on home/news/category/search listing routes with a lean card-specific select.
+- Create separate Prisma selects for:
+  - card/listing data
+  - story detail data
+  - metadata/SEO data
+- Do not fetch `contentHtml`, `contentMd`, `structuredContentJson`, or large SEO payloads for listing cards unless absolutely required.
+
+### G. Remove duplicate server work
+- Audit all `generateMetadata()` and page-render pairs.
+- Where the same data is loaded twice, refactor to share memoized loaders.
+- Use `cache()` and/or `unstable_cache()` appropriately.
+- Keep correctness and revalidation semantics intact.
+
+### H. Cache expensive aggregate data
+- Audit `getPublishedCategoryNavigationData()` and `getPublishedSearchFilterData()`.
+- Prevent per-request recomputation of category counts and country counts for every public page.
+- Use cache tags or snapshot/precomputed tables where appropriate.
+- Revalidate when publishing changes affect those aggregates.
+
+### I. Improve image delivery
+- Audit `src/components/common/responsive-image.js` and the media pipeline.
+- Avoid bypassing `next/image` for common editorial images.
+- Normalize remote images through a known proxy or ingestion pipeline so they can be optimized.
+- Ensure correct dimensions, `sizes`, and LCP treatment for likely hero images.
+
+### J. Refactor search for scale
+- Audit the search pipeline in `src/features/public-site/index.js`.
+- Replace broad `contains` matching plus JavaScript-side ranking with a more scalable search approach.
+- Prefer database full-text search or a dedicated search service.
+- Keep result quality strong while reducing server cost and latency.
+
+### K. Add caching for public incremental APIs
+- Audit:
+  - `src/app/api/public/latest-stories/route.js`
+  - `src/app/api/public/collection-stories/route.js`
+- Add safe cache semantics for public non-personalized responses.
+- Keep freshness acceptable for a news product.
+
+### L. Add performance governance
+- Add Lighthouse CI.
+- Add a bundle analyzer or equivalent build-time reporting.
+- Add performance budgets for key public routes.
+- Add Core Web Vitals RUM instrumentation.
+- Add synthetic monitoring coverage for key templates.
+
+## Constraints
+
+- Do not break existing routes, SEO metadata, structured data, or locale behavior.
+- Do not remove public search, story pages, category pages, or admin workflows.
 - Keep accessibility intact or improve it.
-
-## Required work
-
-### 1) Fix cPanel packaging and deployment breakpoints first
-- Ensure every runtime script dependency is actually shipped in the deployable package.
-- Add the missing `scripts/cpanel-db-utils.js` to the packaged output or remove the dependency by inlining or relocating the shared helper logic safely.
-- Add a preflight packaging check that fails the build if any runtime-required local file is missing from the cPanel artifact.
-- Make the deployment artifact deterministic:
-  - pin the Node version in `package.json` `engines`,
-  - keep dependency versions locked,
-  - document the expected cPanel Node major version,
-  - avoid any deploy-time ambiguity between local and server environments.
-- Ensure the app is built for Linux deployment, not just for a local Windows environment.
-- Remove any fragile dependency on Windows-originated build assumptions.
-
-### 2) Make Prisma deployment resilient on low-memory cPanel environments
-- Treat `cpanel:db:deploy` and `cpanel:db:seed` as separate operational steps.
-- Do **not** force seed execution every time migrations run.
-- Make seeding explicitly optional and idempotent.
-- Add an environment-controlled flag such as `SKIP_DB_SEED_ON_DEPLOY=1` or equivalent.
-- Keep the seed safe to rerun.
-- Reduce seed memory pressure:
-  - avoid one oversized all-in-one transaction for all seed domains if not required,
-  - split seed work into smaller phases,
-  - only load and compute what is necessary,
-  - avoid large in-memory objects when simple sequential upserts are enough.
-- Make password hashing settings configurable for constrained environments without weakening production defaults unexpectedly.
-- Add clearer error handling around Prisma initialization and seed failures so cPanel logs explain the next action immediately.
-- Verify Prisma client generation and runtime resolution before any seed runs.
-- Keep the MariaDB adapter flow working.
-
-### 3) Reduce initial JavaScript and route startup cost
-Current route entries look too heavy. Reduce first-load cost significantly, especially for:
-- public site pages,
-- admin dashboard,
-- admin streams,
-- admin destinations,
-- admin providers,
-- admin templates,
-- post editor pages.
-
-Do the following:
-- Move anything non-interactive out of client components.
-- Remove unnecessary `use client` boundaries.
-- Do not load admin-only client providers, admin shells, heavy forms, or admin UI helpers on public routes.
-- Dynamically import admin-only heavy components, especially:
-  - destination composer/editor,
-  - stream management screens,
-  - searchable selects,
-  - large disclosure panels,
-  - analytics widgets,
-  - modal content.
-- Keep the initial public shell lean and mostly server-rendered.
-- Keep the admin shell small, and lazy-load feature panels beneath it.
-- Audit shared providers loaded globally and remove any provider that is not required at the top level.
-- Ensure bulky libraries are not pulled into the base layout unless absolutely necessary.
-
-### 4) Remove UI duplication and monoliths without changing behavior
-Refactor duplicated admin UI primitives into a single shared, low-cost design system layer.
-
-Consolidate repeated patterns such as:
-- cards,
-- banners,
-- pills/badges,
-- field wrappers,
-- field labels/hints/errors,
-- table wrappers,
-- sticky side panels,
-- action rows,
-- section headers,
-- empty states.
-
-Then split overly large components into focused subcomponents/hooks, especially anything equivalent to:
-- admin shell,
-- news admin UI primitives,
-- destination form card,
-- stream management screen,
-- admin page dashboards,
-- public site shell.
-
-Requirements:
-- No duplicate style primitives scattered across route-specific chunks.
-- No giant all-in-one form component responsible for layout, validation, async data, modal state, and submission at once.
-- Shared UI primitives must be reusable and tree-shakable.
-
-### 5) Make the UI visually lighter and faster
-Keep the app attractive, but remove expensive paint/layout effects where they are not critical.
-
-Refactor the UI to:
-- reduce layered gradients,
-- reduce large shadows,
-- remove or minimize backdrop blur,
-- reduce decorative radial overlays,
-- simplify sticky containers where possible,
-- reduce nested wrappers and extra borders,
-- simplify oversized toolbar/header structures,
-- use a flatter and cleaner surface system,
-- preserve good spacing and readability,
-- keep controls responsive and accessible.
-
-Design direction:
-- clean,
-- crisp,
-- minimal,
-- fast,
-- editorial,
-- professional,
-- no visual clutter.
-
-Do **not** make the interface dull or broken. Make it feel lighter, quicker, and clearer.
-
-### 6) Improve data loading and admin page efficiency
-Audit admin pages and APIs for oversized first-load queries.
-
-Fix the following patterns where present:
-- large `findMany` calls on initial page render when only summaries are needed,
-- wide `include` graphs when smaller `select` queries would do,
-- loading full management datasets when only the first page is needed,
-- loading data for hidden sections before the user opens them,
-- repeated query work across dashboard sections,
-- large tables rendered without pagination or incremental loading.
-
-Required outcomes:
-- paginate long admin lists,
-- fetch summary metrics separately from detailed records,
-- defer expensive secondary panels,
-- cap record counts aggressively on first paint,
-- avoid N+1 behavior,
-- keep public data responses cache-friendly.
-
-### 7) Keep public pages fast by default
-For the public site:
-- keep as much as possible server-rendered,
-- only hydrate interactive search and navigation pieces that truly need it,
-- avoid shipping admin-related code or state to public routes,
-- simplify the public header/footer/search shell if they are visually or computationally heavy,
-- preserve SEO, metadata, sitemap, robots, article routes, and canonical behavior.
-
-### 8) Harden startup and diagnostics
-- Make `cpanel:doctor` complete and accurate.
-- Verify:
-  - required env vars,
-  - generated Prisma client presence,
-  - database connectivity,
-  - migration status,
-  - seed readiness,
-  - local media requirements,
-  - native dependency readiness where relevant.
-- Add actionable failures, not vague failures.
-- Add a runtime startup guard that fails clearly when critical package pieces are missing.
-
-## Specific implementation guidance
-- Prefer extracting stable reusable primitives instead of rewriting UI technology wholesale.
-- If `styled-components` is retained, centralize and deduplicate primitives aggressively.
-- If a styling migration is necessary, keep it incremental and low-risk.
-- Avoid introducing unnecessary new dependencies.
-- Do not move server-only code into client bundles.
-- Do not import Node-only or heavy server libraries into code that can end up client-side.
-- Keep route-level code splitting intentional and measurable.
-- Keep all form validation and API contract behavior backward-compatible.
-
-## Acceptance criteria
-- The package can be deployed to Linux cPanel without missing local script dependencies.
-- `cpanel:db:deploy`, `cpanel:db:seed`, and `cpanel:doctor` run with clear behavior and do not couple migration + seed unnecessarily.
-- The seed path is idempotent and substantially less memory-aggressive.
-- Public route entry cost is materially reduced from the current state.
-- Admin route entry cost is materially reduced from the current state.
-- Heavy admin features are lazy-loaded.
-- Duplicated UI primitives are centralized.
-- Large monolithic components are split into maintainable units.
-- The visual experience is cleaner, flatter, lighter, and faster.
-- No currently working feature regresses.
+- Preserve visual appearance as closely as possible.
+- Prefer incremental, reviewable refactors over a risky rewrite.
+- Keep server/client boundaries explicit and minimal.
 
 ## Deliverables
-Return:
-1. the code changes,
-2. a concise file-by-file summary of what changed,
-3. the exact root causes fixed,
-4. before/after bundle-impact notes,
-5. any environment or deployment notes needed for cPanel.
 
-## Final instruction
-Make the smallest set of high-confidence code changes that closes the real gaps above. Preserve everything that already works. Optimize for reliability, low memory usage, low bundle weight, and excellent perceived performance.
+1. A concrete refactor plan ordered by ROI.
+2. The code changes.
+3. Before/after bundle impact estimates.
+4. Before/after route impact estimates for home, category, story, and search pages.
+5. A short explanation of tradeoffs.
+6. A checklist of follow-up validation steps.
+
+## Output format
+
+Respond with:
+1. `Findings`
+2. `Refactor plan`
+3. `Code changes`
+4. `Performance impact estimate`
+5. `Validation checklist`
+6. `Risks and tradeoffs`
+
+Where possible, include exact files to edit and explain why each change improves LCP, INP, CLS, TTFB, or bundle size.

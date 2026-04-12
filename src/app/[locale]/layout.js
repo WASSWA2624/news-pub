@@ -8,7 +8,6 @@ import { StructuredDataBundle } from "@/components/seo";
 import SiteShell from "@/components/layout/site-shell";
 import { isSupportedLocale, supportedLocales } from "@/features/i18n/config";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
-import { LocaleMessagesProvider } from "@/features/i18n/locale-provider";
 import { getPublishedCategoryNavigationData, getPublishedSearchFilterData } from "@/features/public-site";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { buildOrganizationJsonLd } from "@/lib/seo";
@@ -68,7 +67,7 @@ export default async function LocaleLayout({ children, params }) {
   }));
 
   return (
-    <LocaleMessagesProvider locale={locale} messages={messages}>
+    <>
       <StructuredDataBundle
         idPrefix={`organization-${locale}`}
         items={[
@@ -82,6 +81,6 @@ export default async function LocaleLayout({ children, params }) {
       <SiteShell categoryLinks={categoryLinks} countryLinks={countryLinks} locale={locale} messages={messages}>
         {children}
       </SiteShell>
-    </LocaleMessagesProvider>
+    </>
   );
 }

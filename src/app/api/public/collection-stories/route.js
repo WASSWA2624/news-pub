@@ -11,6 +11,8 @@ import {
   searchPublishedPosts,
 } from "@/features/public-site";
 
+const publicApiCacheControl = "public, s-maxage=60, stale-while-revalidate=300";
+
 function normalizePage(value, fallback = 1) {
   const parsedValue = Number.parseInt(`${value ?? fallback}`.trim(), 10);
 
@@ -82,5 +84,9 @@ export async function GET(request) {
       totalItems: data?.pagination?.totalItems || 0,
     },
     success: true,
+  }, {
+    headers: {
+      "Cache-Control": publicApiCacheControl,
+    },
   });
 }

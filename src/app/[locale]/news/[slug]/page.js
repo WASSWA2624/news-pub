@@ -2,6 +2,7 @@
  * Locale-aware NewsPub published-story page.
  */
 
+import { cache } from "react";
 import { notFound } from "next/navigation";
 
 import NoticePage from "@/components/common/notice-page";
@@ -20,12 +21,13 @@ import { buildStoryPageMetadata } from "./page-metadata";
  * detail page cannot drift away from the SEO pipeline.
  */
 export const revalidate = 300;
+const getCachedStoryPageData = cache(async (locale, slug) => getPublishedStoryPageData({ locale, slug }));
 
 /** Builds the strongest available metadata for one published story. */
 export async function generateMetadata({ params }) {
   const { locale, slug } = await params;
   const messages = await getRequiredMessages(locale);
-  const pageData = await getPublishedStoryPageData({ locale, slug });
+  const pageData = await getCachedStoryPageData(locale, slug);
 
   return buildStoryPageMetadata({
     locale,
@@ -40,7 +42,7 @@ export default async function StoryPage({ params }) {
   const { locale, slug } = await params;
   const [messages, pageData] = await Promise.all([
     getRequiredMessages(locale),
-    getPublishedStoryPageData({ locale, slug }),
+    getCachedStoryPageData(locale, slug),
   ]);
 
   if (!pageData) {

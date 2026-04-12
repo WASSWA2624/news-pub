@@ -2,6 +2,7 @@
  * Feature services that assemble NewsPub public home, collection, story, and static page data.
  */
 
+import { unstable_cache } from "next/cache";
 import { defaultLocale } from "@/features/i18n/config";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
 import { Prisma } from "@prisma/client";
@@ -32,6 +33,8 @@ export const publicDataRevalidateSeconds = 300;
 export const publicListingPageSize = 12;
 const publicSearchRankingCandidateLimit = 240;
 const publicSearchRankingCandidateFloor = 60;
+const publicCategoryCountsCacheTag = "public:category-counts";
+const publicCountryCountsCacheTag = "public:country-counts";
 
 async function withPublicSiteDatabaseFallback(load, fallback) {
   try {
@@ -627,23 +630,28 @@ const mediaAssetSelect = Object.freeze({
   sourceUrl: true,
   width: true,
 });
+const publicCategorySelect = Object.freeze({
+  description: true,
+  id: true,
+  name: true,
+  slug: true,
+});
+const publicListingTranslationSelect = Object.freeze({
+  contentMd: true,
+  locale: true,
+  structuredContentJson: true,
+  summary: true,
+  title: true,
+});
 
 /**
- * Shared published-post selection for public pages.
- *
- * The selection intentionally includes richer SEO fields than most listing pages need so the story-detail route can
- * build metadata, structured data, and on-page fallbacks from one consistent record shape.
+ * Lean published-post selection shared by public listing cards.
  */
-const publicPostSelect = Object.freeze({
+const publicListingPostSelect = Object.freeze({
   categories: {
     select: {
       category: {
-        select: {
-          description: true,
-          id: true,
-          name: true,
-          slug: true,
-        },
+        select: publicCategorySelect,
       },
       categoryId: true,
     },
@@ -654,17 +662,31 @@ const publicPostSelect = Object.freeze({
   },
   id: true,
   providerKey: true,
-  publishAttempts: {
+  publishedAt: true,
+  slug: true,
+  sourceArticle: {
     select: {
-      id: true,
-      platform: true,
-      status: true,
-    },
-    where: {
-      platform: "WEBSITE",
-      status: "SUCCEEDED",
+      imageUrl: true,
     },
   },
+  sourceName: true,
+  sourceUrl: true,
+  translations: {
+    orderBy: {
+      locale: "asc",
+    },
+    select: publicListingTranslationSelect,
+  },
+  updatedAt: true,
+});
+const publicStorySelect = Object.freeze({
+  categories: publicListingPostSelect.categories,
+  excerpt: true,
+  featuredImage: {
+    select: mediaAssetSelect,
+  },
+  id: true,
+  providerKey: true,
   publishedAt: true,
   slug: true,
   sourceArticle: {
@@ -711,7 +733,7 @@ const publicPostSelect = Object.freeze({
 
 function buildPublicSearchSelect(locale) {
   return {
-    categories: publicPostSelect.categories,
+    categories: publicListingPostSelect.categories,
     excerpt: true,
     featuredImage: {
       select: mediaAssetSelect,
@@ -1048,12 +1070,7 @@ async function getPublishedCategoryCounts(db) {
       orderBy: {
         name: "asc",
       },
-      select: {
-        description: true,
-        id: true,
-        name: true,
-        slug: true,
-      },
+      select: publicCategorySelect,
     }),
     db.postCategory.groupBy({
       by: ["categoryId"],
@@ -1078,7 +1095,24 @@ async function getPublishedCategoryCounts(db) {
     .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
 }
 
-async function getPublishedCountryCounts(db, locale) {
+const getCachedPublishedCategoryCounts = unstable_cache(
+  async () => {
+    const db = await resolvePrismaClient();
+
+    return getPublishedCategoryCounts(db);
+  },
+  ["public-category-counts"],
+  {
+    revalidate: publicDataRevalidateSeconds,
+    tags: [publicCategoryCountsCacheTag],
+  },
+);
+
+function buildCountryCountsCacheTag(locale) {
+  return `${publicCountryCountsCacheTag}:${locale}`;
+}
+
+async function queryPublishedCountryCounts(db, locale) {
   if (typeof db.$queryRaw === "function") {
     try {
       const countryRows = await db.$queryRaw(Prisma.sql`
@@ -1162,6 +1196,31 @@ async function getPublishedCountryCounts(db, locale) {
     .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
 }
 
+function getCachedPublishedCountryCounts(locale) {
+  return unstable_cache(
+    async () => {
+      const db = await resolvePrismaClient();
+
+      return queryPublishedCountryCounts(db, locale);
+    },
+    ["public-country-counts", locale],
+    {
+      revalidate: publicDataRevalidateSeconds,
+      tags: [publicCountryCountsCacheTag, buildCountryCountsCacheTag(locale)],
+    },
+  )();
+}
+
+async function getPublishedCountryCounts(locale, prisma) {
+  if (prisma) {
+    const db = await resolvePrismaClient(prisma);
+
+    return queryPublishedCountryCounts(db, locale);
+  }
+
+  return getCachedPublishedCountryCounts(locale);
+}
+
 async function getLatestPublishedPosts(
   db,
   locale,
@@ -1169,7 +1228,7 @@ async function getLatestPublishedPosts(
 ) {
   return db.post.findMany({
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-    select: publicPostSelect,
+    select: publicListingPostSelect,
     skip,
     take,
     where: buildPublishedLocaleWhere(locale),
@@ -1194,7 +1253,7 @@ export async function getPublishedHomePageData({ locale = defaultLocale } = {}, 
         db.post.count({
           where: buildPublishedLocaleWhere(locale),
         }),
-        getPublishedCategoryCounts(db),
+        prisma ? getPublishedCategoryCounts(db) : getCachedPublishedCategoryCounts(),
         db.post.count({
           where: buildPublishedWebsiteWhere(),
         }),
@@ -1246,8 +1305,9 @@ export async function getPublishedCategoryNavigationData(
 ) {
   return withPublicSiteDatabaseFallback(
     async () => {
-      const db = await resolvePrismaClient(prisma);
-      const categories = await getPublishedCategoryCounts(db);
+      const categories = prisma
+        ? await getPublishedCategoryCounts(await resolvePrismaClient(prisma))
+        : await getCachedPublishedCategoryCounts();
       const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 8;
 
       return categories.slice(0, safeLimit).map((category) => ({
@@ -1268,13 +1328,9 @@ export async function getPublishedCategoryNavigationData(
  */
 export async function getPublishedSearchFilterData({ locale = defaultLocale } = {}, prisma) {
   return withPublicSiteDatabaseFallback(
-    async () => {
-      const db = await resolvePrismaClient(prisma);
-
-      return {
-        countries: await getPublishedCountryCounts(db, locale),
-      };
-    },
+    async () => ({
+      countries: await getPublishedCountryCounts(locale, prisma),
+    }),
     () => ({
       countries: [],
     }),
@@ -1333,7 +1389,7 @@ export async function getPublishedNewsIndexData({ locale = defaultLocale, page =
       const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
       const posts = await db.post.findMany({
         orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: publicPostSelect,
+        select: publicListingPostSelect,
         skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
         take: pagination.pageSize,
         where: buildPublishedWebsiteWhere({
@@ -1391,7 +1447,7 @@ export async function getPublishedCategoryPageData({ locale = defaultLocale, pag
       const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
       const posts = await db.post.findMany({
         orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: publicPostSelect,
+        select: publicListingPostSelect,
         skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
         take: pagination.pageSize,
         where,
@@ -1534,7 +1590,7 @@ export async function searchPublishedStories(
       } else {
         const posts = await db.post.findMany({
           orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-          select: publicPostSelect,
+          select: publicListingPostSelect,
           skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
           take: pagination.pageSize,
           where,
@@ -1572,7 +1628,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
     async () => {
       const db = await resolvePrismaClient(prisma);
       const post = await db.post.findFirst({
-        select: publicPostSelect,
+        select: publicStorySelect,
         where: buildPublishedWebsiteWhere({
           slug,
         }),
@@ -1590,7 +1646,7 @@ export async function getPublishedStoryPageData({ locale = defaultLocale, slug }
 
       const relatedPosts = await db.post.findMany({
         orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: publicPostSelect,
+        select: publicListingPostSelect,
         take: 4,
         where: buildPublishedWebsiteWhere({
           id: {

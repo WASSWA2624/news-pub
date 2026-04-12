@@ -2,6 +2,7 @@
  * Locale-aware NewsPub category landing page.
  */
 
+import { cache } from "react";
 import { notFound } from "next/navigation";
 
 import { StructuredDataBundle } from "@/components/seo";
@@ -12,6 +13,9 @@ import { getPublishedCategoryPageData } from "@/features/public-site";
 import { buildBreadcrumbJsonLd, buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
+const getCachedCategoryPageData = cache(async (locale, slug, page = 1) =>
+  getPublishedCategoryPageData({ locale, page, slug }),
+);
 
 /**
  * Builds metadata for a locale-aware NewsPub category landing page.
@@ -20,7 +24,7 @@ export async function generateMetadata({ params, searchParams }) {
   const { locale, slug } = await params;
   const resolvedSearchParams = await searchParams;
   const messages = await getRequiredMessages(locale);
-  const pageData = await getPublishedCategoryPageData({ locale, slug });
+  const pageData = await getCachedCategoryPageData(locale, slug, 1);
   const title = pageData?.entity?.name
     ? `${pageData.entity.name} stories`
     : messages.public?.common?.topCategoriesTitle || "Category";
@@ -41,10 +45,11 @@ export async function generateMetadata({ params, searchParams }) {
 export default async function CategoryPage({ params, searchParams }) {
   const { locale, slug } = await params;
   const resolvedSearchParams = await searchParams;
-  const page = resolvedSearchParams?.page;
+  const page = Number.parseInt(`${resolvedSearchParams?.page ?? "1"}`.trim(), 10);
+  const resolvedPage = Number.isFinite(page) && page > 0 ? page : 1;
   const [messages, pageData] = await Promise.all([
     getRequiredMessages(locale),
-    getPublishedCategoryPageData({ locale, page, slug }),
+    getCachedCategoryPageData(locale, slug, resolvedPage),
   ]);
 
   if (!pageData) {

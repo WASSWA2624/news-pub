@@ -6,12 +6,46 @@ import Image from "next/image";
 
 const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 675;
+const remoteImageHostnames = new Set(
+  [
+    "flagcdn.com",
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.S3_MEDIA_BASE_URL,
+    ...`${process.env.NEXT_IMAGE_REMOTE_HOSTS || ""}`.split(","),
+  ]
+    .map((value) => {
+      const normalizedValue = `${value || ""}`.trim();
+
+      if (!normalizedValue) {
+        return "";
+      }
+
+      try {
+        return new URL(normalizedValue).hostname;
+      } catch {
+        return normalizedValue.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").trim();
+      }
+    })
+    .filter(Boolean),
+);
 
 function isAbsoluteHttpUrl(value) {
   try {
     const parsedUrl = new URL(value);
 
     return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isNextImageEligibleRemoteUrl(value) {
+  if (!isAbsoluteHttpUrl(value)) {
+    return false;
+  }
+
+  try {
+    return remoteImageHostnames.has(new URL(value).hostname);
   } catch {
     return false;
   }
@@ -46,7 +80,7 @@ export default function ResponsiveImage({
     return null;
   }
 
-  if (isAbsoluteHttpUrl(src)) {
+  if (isAbsoluteHttpUrl(src) && !isNextImageEligibleRemoteUrl(src)) {
     const { decoding, fetchPriority, loading, style, ...imgRest } = rest;
 
     return (

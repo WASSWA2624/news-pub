@@ -1,3 +1,5 @@
+import bundleAnalyzer from "@next/bundle-analyzer";
+
 function normalizeHostname(value) {
   const normalizedValue = `${value || ""}`.trim();
 
@@ -40,6 +42,10 @@ function getRemoteImagePatterns() {
   ]);
 }
 
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -55,4 +61,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

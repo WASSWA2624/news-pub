@@ -8,6 +8,8 @@ import { defaultLocale, isSupportedLocale } from "@/features/i18n/config";
 import { publicHomeLatestIncrementCount } from "@/features/public-site/constants";
 import { getPublishedHomeLatestStoriesData } from "@/features/public-site";
 
+const publicApiCacheControl = "public, s-maxage=60, stale-while-revalidate=300";
+
 function normalizeNonNegativeInteger(value, fallback) {
   const parsedValue = Number.parseInt(`${value ?? fallback}`.trim(), 10);
 
@@ -38,5 +40,9 @@ export async function GET(request) {
   return NextResponse.json({
     data,
     success: true,
+  }, {
+    headers: {
+      "Cache-Control": publicApiCacheControl,
+    },
   });
 }

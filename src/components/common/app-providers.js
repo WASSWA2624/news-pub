@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Top-level shared providers for NewsPub theming and global styles.
  */
