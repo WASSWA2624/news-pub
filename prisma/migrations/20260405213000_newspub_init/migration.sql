@@ -433,7 +433,7 @@ CREATE TABLE `web_vital_metric` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `web_vital_metric_name_created_at_idx`(`name`, `created_at`),
-    INDEX `web_vital_metric_path_name_created_at_idx`(`path`, `name`, `created_at`),
+    INDEX `web_vital_metric_path_name_created_at_idx`(`path`(191), `name`, `created_at`),
     INDEX `web_vital_metric_route_group_name_created_at_idx`(`route_group`, `name`, `created_at`),
     INDEX `web_vital_metric_form_factor_name_created_at_idx`(`form_factor`, `name`, `created_at`),
     INDEX `web_vital_metric_build_id_name_created_at_idx`(`build_id`, `name`, `created_at`),

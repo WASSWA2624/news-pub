@@ -1167,7 +1167,7 @@ const publishAttemptExecutionInclude = {
   },
 };
 
-async function claimPublishAttemptById(
+export async function claimPublishAttemptById(
   db,
   attemptId,
   { leaseOwner = createLeaseOwner("publish"), now = new Date() } = {},
@@ -1190,6 +1190,7 @@ async function claimPublishAttemptById(
       id: true,
       startedAt: true,
       status: true,
+      streamId: true,
     },
     where: {
       id: attemptId,
@@ -1240,7 +1241,7 @@ async function claimPublishAttemptById(
   if (typeof db.publishingStream?.update === "function") {
     await db.publishingStream.update({
       where: {
-        id: existingRun.streamId,
+        id: existingAttempt.streamId,
       },
       data: {
         lastRunStartedAt: now,
@@ -1292,20 +1293,38 @@ async function claimNextPublishAttempt(db, { now = new Date() } = {}) {
 }
 
 async function refreshPublishAttemptLease(db, attemptId, leaseOwner, now = new Date()) {
-  if (!leaseOwner || typeof db.publishAttempt?.update !== "function") {
+  if (!leaseOwner) {
     return;
   }
 
-  await db.publishAttempt.update({
-    where: {
-      id: attemptId,
-    },
-    data: {
-      heartbeatAt: now,
-      leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
-      leaseOwner,
-    },
-  });
+  if (typeof db.publishAttempt?.updateMany === "function") {
+    await db.publishAttempt.updateMany({
+      data: {
+        heartbeatAt: now,
+        leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
+      },
+      where: {
+        id: attemptId,
+        leaseOwner,
+        status: "RUNNING",
+      },
+    });
+
+    return;
+  }
+
+  if (typeof db.publishAttempt?.update === "function") {
+    await db.publishAttempt.update({
+      where: {
+        id: attemptId,
+      },
+      data: {
+        heartbeatAt: now,
+        leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
+        leaseOwner,
+      },
+    });
+  }
 }
 
 async function executePublishAttempt(
@@ -1331,6 +1350,13 @@ async function executePublishAttempt(
       statusCode: 404,
     });
   }
+  const publicationMode =
+    trimText(attempt.diagnosticsJson?.publicationMode)
+    || ((attempt.retryCount || 0) > 0
+      ? "retry"
+      : attempt.articleMatch?.duplicateOfMatchId
+        ? "repost"
+        : "original");
 
   const destination = attempt.destination;
   const translation = pickTranslation(attempt.post?.translations || [], attempt.stream.locale);
@@ -1395,6 +1421,7 @@ async function executePublishAttempt(
     },
     data: {
       diagnosticsJson: {
+        ...(attempt.diagnosticsJson || {}),
         aiResolution: optimization.aiResolution || null,
         cacheHit: optimization.cacheHit,
         optimizationCacheId: optimization.cacheRecord?.id || null,
@@ -1452,6 +1479,9 @@ async function executePublishAttempt(
         entityId: failedAttempt.id,
         entityType: "publish_attempt",
         message: "Destination is not connected.",
+        payload: {
+          publicationMode,
+        },
       },
       db,
     );
@@ -1534,6 +1564,7 @@ async function executePublishAttempt(
       data: {
         completedAt: failedAt,
         diagnosticsJson: {
+          ...(attempt.diagnosticsJson || {}),
           aiResolution: optimization.aiResolution || null,
           cacheHit: optimization.cacheHit,
           errorDetails:
@@ -1605,6 +1636,7 @@ async function executePublishAttempt(
         payload: {
           issueCodes: diagnosticSummary.issueCodes,
           platform: attempt.platform,
+          publicationMode,
           reasonCode: diagnosticSummary.reasonCode,
           reasonMessage: diagnosticSummary.reasonMessage,
           retryable: error instanceof DestinationPublishError ? error.retryable : false,
@@ -1624,6 +1656,7 @@ async function executePublishAttempt(
       data: {
         completedAt: publishedAt,
         diagnosticsJson: {
+          ...(attempt.diagnosticsJson || {}),
           aiResolution: optimization.aiResolution || null,
           cacheHit: optimization.cacheHit,
           optimizationCacheId: optimization.cacheRecord?.id || null,
@@ -1704,6 +1737,7 @@ async function executePublishAttempt(
       entityType: "publish_attempt",
       payloadJson: {
         platform: attempt.platform,
+        publicationMode,
         remoteId: publishResult.remoteId || null,
       },
     },
@@ -1713,13 +1747,26 @@ async function executePublishAttempt(
   return succeededAttempt;
 }
 
-async function createPublishAttempt(db, { articleMatchId, platform, postId, publishAt, stream }) {
+function resolvePublicationMode(articleMatch, publicationMode = "") {
+  if (trimText(publicationMode)) {
+    return trimText(publicationMode);
+  }
+
+  return articleMatch?.duplicateOfMatchId ? "repost" : "original";
+}
+
+async function createPublishAttempt(
+  db,
+  { articleMatch, articleMatchId, now = new Date(), platform, postId, publicationMode = "", publishAt, queueSource = "manual", retryOfAttemptId = null, stream },
+) {
   const attemptCount = await db.publishAttempt.count({
     where: {
       articleMatchId,
     },
   });
-  const availableAt = publishAt instanceof Date ? publishAt : new Date();
+  const queuedAt = now;
+  const availableAt = publishAt instanceof Date ? publishAt : queuedAt;
+  const resolvedPublicationMode = resolvePublicationMode(articleMatch, publicationMode);
 
   return db.publishAttempt.create({
     data: {
@@ -1728,6 +1775,14 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
       attemptNumber: attemptCount + 1,
       destinationId: stream.destinationId,
       diagnosticsJson: {
+        publicationMode: resolvedPublicationMode,
+        queueSource,
+        queuedAt: queuedAt.toISOString(),
+        ...(retryOfAttemptId
+          ? {
+              retryOfAttemptId,
+            }
+          : {}),
         scheduledFor: availableAt.toISOString(),
       },
       idempotencyKey: createContentHash(articleMatchId, platform, attemptCount + 1).slice(0, 36),
@@ -1735,15 +1790,70 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
       postId,
       payloadJson: publishAt
         ? {
+            publicationMode: resolvedPublicationMode,
             scheduledFor: availableAt.toISOString(),
           }
         : null,
-      queuedAt: new Date(),
+      queuedAt,
       retryCount: Math.max(0, attemptCount),
       status: "PENDING",
       streamId: stream.id,
     },
   });
+}
+
+async function queueArticleMatchForPublication(
+  db,
+  articleMatch,
+  { now = new Date(), publicationMode = "", publishAt = null, queueSource = "manual" } = {},
+) {
+  if (!articleMatch?.canonicalPostId) {
+    throw new NewsPubError("Article match does not have a canonical post.", {
+      status: "post_not_ready_for_publication",
+      statusCode: 400,
+    });
+  }
+
+  const scheduledPublishAt = publishAt instanceof Date && publishAt > now ? publishAt : null;
+
+  if (scheduledPublishAt) {
+    await db.post.update({
+      where: {
+        id: articleMatch.canonicalPostId,
+      },
+      data: {
+        scheduledPublishAt,
+        status: "SCHEDULED",
+      },
+    });
+  }
+
+  const attempt = await createPublishAttempt(db, {
+    articleMatch,
+    articleMatchId: articleMatch.id,
+    now,
+    platform: articleMatch.destination.platform,
+    postId: articleMatch.canonicalPostId,
+    publicationMode,
+    publishAt: scheduledPublishAt,
+    queueSource,
+    stream: articleMatch.stream,
+  });
+
+  if (typeof db.articleMatch?.update === "function") {
+    await db.articleMatch.update({
+      where: {
+        id: articleMatch.id,
+      },
+      data: {
+        queuedAt: now,
+        status: "QUEUED",
+        workflowStage: scheduledPublishAt ? "SCHEDULED" : "APPROVED",
+      },
+    });
+  }
+
+  return attempt;
 }
 
 /**
@@ -1773,55 +1883,15 @@ export async function publishArticleMatch(articleMatchId, { publishAt } = {}, pr
     });
   }
 
+  const attempt = await queueArticleMatchForPublication(db, articleMatch, {
+    now: new Date(),
+    publishAt,
+    queueSource: publishAt && publishAt > new Date() ? "manual_schedule" : "manual_publish",
+  });
+
   if (publishAt && publishAt > new Date()) {
-    await db.post.update({
-      where: {
-        id: articleMatch.canonicalPostId,
-      },
-      data: {
-        scheduledPublishAt: publishAt,
-        status: "SCHEDULED",
-      },
-    });
-    await db.articleMatch.update({
-      where: {
-        id: articleMatch.id,
-      },
-      data: {
-        queuedAt: new Date(),
-        status: "HELD_FOR_REVIEW",
-        workflowStage: "SCHEDULED",
-      },
-    });
-
-    return createPublishAttempt(db, {
-      articleMatchId: articleMatch.id,
-      platform: articleMatch.destination.platform,
-      postId: articleMatch.canonicalPostId,
-      publishAt,
-      stream: articleMatch.stream,
-    });
+    return attempt;
   }
-
-  const attempt = await createPublishAttempt(db, {
-    articleMatchId: articleMatch.id,
-    platform: articleMatch.destination.platform,
-    postId: articleMatch.canonicalPostId,
-    stream: articleMatch.stream,
-  });
-
-  await db.articleMatch.update({
-    where: {
-      id: articleMatch.id,
-    },
-    data: {
-      queuedAt: new Date(),
-      workflowStage:
-        articleMatch.workflowStage === "HELD" && articleMatch.policyStatus === "BLOCK"
-          ? "HELD"
-          : "APPROVED",
-    },
-  });
 
   return executePublishAttempt(db, attempt.id);
 }
@@ -1915,9 +1985,13 @@ export async function retryPublishAttempt(attemptId, { actorId = null, automated
   }
 
   const nextAttempt = await createPublishAttempt(db, {
+    articleMatch: attempt.articleMatch,
     articleMatchId: attempt.articleMatchId,
     platform: attempt.platform,
     postId: attempt.postId,
+    publicationMode: "retry",
+    queueSource: automated ? "retry_scheduler" : "retry_request",
+    retryOfAttemptId: attempt.id,
     stream: attempt.stream,
   });
 
@@ -1977,9 +2051,12 @@ export async function manualRepostArticleMatch(articleMatchId, { actorId = null 
   }
 
   const nextAttempt = await createPublishAttempt(db, {
+    articleMatch,
     articleMatchId: articleMatch.id,
     platform: articleMatch.destination.platform,
     postId: articleMatch.canonicalPostId,
+    publicationMode: "repost",
+    queueSource: "manual_repost",
     stream: articleMatch.stream,
   });
 
@@ -2232,7 +2309,87 @@ function createScheduledFetchQueueKey(streamId, runAt) {
   return `scheduled:${streamId}:${serializeDate(runAt)}`;
 }
 
-async function claimFetchRunById(
+function getFetchRunHeartbeatIntervalMs() {
+  return Math.max(50, Math.floor(getFetchRunLeaseMs() / 3));
+}
+
+async function refreshFetchRunLease(db, fetchRunId, leaseOwner, now = new Date()) {
+  if (!leaseOwner) {
+    return;
+  }
+
+  if (typeof db.fetchRun?.updateMany === "function") {
+    await db.fetchRun.updateMany({
+      data: {
+        heartbeatAt: now,
+        leaseExpiresAt: getLeaseExpiration(now, getFetchRunLeaseMs()),
+      },
+      where: {
+        id: fetchRunId,
+        leaseOwner,
+        status: "RUNNING",
+      },
+    });
+
+    return;
+  }
+
+  if (typeof db.fetchRun?.update === "function") {
+    await db.fetchRun.update({
+      where: {
+        id: fetchRunId,
+      },
+      data: {
+        heartbeatAt: now,
+        leaseExpiresAt: getLeaseExpiration(now, getFetchRunLeaseMs()),
+        leaseOwner,
+      },
+    });
+  }
+}
+
+async function refreshFetchRunLeases(db, executionContexts = [], now = new Date()) {
+  const uniqueExecutionContexts = [...new Map(
+    (executionContexts || [])
+      .filter((executionContext) => executionContext?.fetchRun?.id && executionContext?.fetchRun?.leaseOwner)
+      .map((executionContext) => [executionContext.fetchRun.id, executionContext]),
+  ).values()];
+
+  await Promise.all(
+    uniqueExecutionContexts.map((executionContext) =>
+      refreshFetchRunLease(
+        db,
+        executionContext.fetchRun.id,
+        executionContext.fetchRun.leaseOwner,
+        now,
+      )),
+  );
+}
+
+async function runWithFetchRunHeartbeat(db, executionContexts, task) {
+  const refreshableExecutionContexts = (executionContexts || []).filter(
+    (executionContext) => executionContext?.fetchRun?.id && executionContext?.fetchRun?.leaseOwner,
+  );
+
+  if (!refreshableExecutionContexts.length) {
+    return task();
+  }
+
+  await refreshFetchRunLeases(db, refreshableExecutionContexts, new Date());
+  const heartbeatTimer = setInterval(() => {
+    void refreshFetchRunLeases(db, refreshableExecutionContexts, new Date()).catch(() => {});
+  }, getFetchRunHeartbeatIntervalMs());
+
+  heartbeatTimer.unref?.();
+
+  try {
+    return await task();
+  } finally {
+    clearInterval(heartbeatTimer);
+  }
+}
+
+export async function claimFetchRunById(
   db,
   fetchRunId,
   { leaseOwner = createLeaseOwner("fetch"), now = new Date() } = {},
@@ -2486,12 +2643,10 @@ async function recoverStrandedAutoPublishAttempts(db, { now = new Date() } = {})
   });
 
   for (const articleMatch of strandedMatches) {
-    await createPublishAttempt(db, {
-      articleMatchId: articleMatch.id,
-      platform: articleMatch.destination.platform,
-      postId: articleMatch.canonicalPostId,
+    await queueArticleMatchForPublication(db, articleMatch, {
+      now,
       publishAt: articleMatch.canonicalPost?.scheduledPublishAt || now,
-      stream: articleMatch.stream,
+      queueSource: "orphan_recovery",
     });
   }
 
@@ -2765,12 +2920,12 @@ async function finalizeFailedFetchRun(
           writeCheckpointOnSuccess: Boolean(executionContext.fetchWindow?.writeCheckpointOnSuccess),
         },
         endpoint: executionGroup?.endpoint || null,
-        executionMode: executionGroup?.executionMode || "single",
-        groupId: executionGroup?.id || null,
-        partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
-        providerDiagnostics: null,
-        streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
-      },
+      executionMode: executionGroup?.executionMode || "single",
+      groupId: executionGroup?.id || null,
+      partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+      providerDiagnostics: error?.providerDiagnostics || null,
+      streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
+    },
       finishedAt: new Date(),
       heartbeatAt: null,
       lastErrorAt: new Date(),
@@ -2959,13 +3114,20 @@ async function processFetchedArticlesForStream(
     summary.queuedCount += 1;
 
     try {
-      const publishResult = await publishArticleMatch(articleMatch.id, {}, db);
-
-      if (publishResult.status === "SUCCEEDED") {
-        summary.publishedCount += 1;
-      } else {
-        summary.failedCount += 1;
-      }
+      await queueArticleMatchForPublication(
+        db,
+        {
+          ...articleMatch,
+          destination: executionContext.stream.destination,
+          stream: executionContext.stream,
+        },
+        {
+          now,
+          publicationMode:
+            duplicateClassification === "repost_eligible_duplicate" ? "repost" : "original",
+          queueSource: "fetch_auto_publish",
+        },
+      );
     } catch (error) {
       summary.failedCount += 1;
       await recordObservabilityEvent(
@@ -3009,25 +3171,27 @@ async function runClaimedFetchRun(db, fetchRun, { now = new Date() } = {}) {
       },
     );
     executionGroup = planSharedFetchGroups([executionContext])[0];
-    const providerResult = await fetchProviderArticles({
-      checkpoint: executionContext.checkpoint,
-      fetchWindow: executionContext.fetchWindow,
-      maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
-      now,
-      providerKey: executionContext.stream.activeProvider.providerKey,
-      stream: executionContext.stream,
-    });
-
-    return await processFetchedArticlesForStream(
-      db,
-      executionContext,
-      providerResult,
-      {
-        actorId: fetchRun.requestedById || null,
-        executionGroup,
+    return await runWithFetchRunHeartbeat(db, [executionContext], async () => {
+      const providerResult = await fetchProviderArticles({
+        checkpoint: executionContext.checkpoint,
+        fetchWindow: executionContext.fetchWindow,
+        maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
         now,
-      },
-    );
+        providerKey: executionContext.stream.activeProvider.providerKey,
+        stream: executionContext.stream,
+      });
+
+      return processFetchedArticlesForStream(
+        db,
+        executionContext,
+        providerResult,
+        {
+          actorId: fetchRun.requestedById || null,
+          executionGroup,
+          now,
+        },
+      );
+    });
   } catch (error) {
     if (!executionContext) {
       return db.fetchRun.update({
@@ -3080,25 +3244,27 @@ export async function runStreamFetch(
   const executionGroup = planSharedFetchGroups([executionContext])[0];
 
   try {
-    const providerResult = await fetchProviderArticles({
-      checkpoint: executionContext.checkpoint,
-      fetchWindow: executionContext.fetchWindow,
-      maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
-      now,
-      providerKey: executionContext.stream.activeProvider.providerKey,
-      stream: executionContext.stream,
-    });
-
-    return processFetchedArticlesForStream(
-      db,
-      executionContext,
-      providerResult,
-      {
-        actorId,
-        executionGroup,
+    return runWithFetchRunHeartbeat(db, [executionContext], async () => {
+      const providerResult = await fetchProviderArticles({
+        checkpoint: executionContext.checkpoint,
+        fetchWindow: executionContext.fetchWindow,
+        maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
         now,
-      },
-    );
+        providerKey: executionContext.stream.activeProvider.providerKey,
+        stream: executionContext.stream,
+      });
+
+      return processFetchedArticlesForStream(
+        db,
+        executionContext,
+        providerResult,
+        {
+          actorId,
+          executionGroup,
+          now,
+        },
+      );
+    });
   } catch (error) {
     await finalizeFailedFetchRun(
       db,
@@ -3180,20 +3346,56 @@ export async function runMultipleStreamFetches(
       );
     }
 
-    let providerResult;
-
     try {
-      providerResult = await fetchProviderArticles({
-        checkpoint:
-          executionGroup.streamExecutions.length === 1
-            ? executionGroup.streamExecutions[0].checkpoint
-            : null,
-        fetchWindow: executionGroup.sharedFetchWindow,
-        maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
-        now,
-        providerKey: executionGroup.providerKey,
-        requestValues: executionGroup.sharedRequestValues,
-        stream: executionGroup.streamExecutions[0].stream,
+      await runWithFetchRunHeartbeat(db, executionGroup.streamExecutions, async () => {
+        const providerResult = await fetchProviderArticles({
+          checkpoint:
+            executionGroup.streamExecutions.length === 1
+              ? executionGroup.streamExecutions[0].checkpoint
+              : null,
+          fetchWindow: executionGroup.sharedFetchWindow,
+          maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
+          now,
+          providerKey: executionGroup.providerKey,
+          requestValues: executionGroup.sharedRequestValues,
+          stream: executionGroup.streamExecutions[0].stream,
+        });
+
+        for (const executionContext of executionGroup.streamExecutions) {
+          try {
+            const completedRun = await processFetchedArticlesForStream(
+              db,
+              executionContext,
+              providerResult,
+              {
+                actorId,
+                executionGroup,
+                now,
+              },
+            );
+
+            results.push({
+              run: completedRun,
+              stream: executionContext.stream,
+            });
+          } catch (error) {
+            const failedRun = await finalizeFailedFetchRun(
+              db,
+              executionContext,
+              error,
+              {
+                actorId,
+                executionGroup,
+              },
+            );
+
+            results.push({
+              error: error instanceof Error ? error.message : `${error}`,
+              run: failedRun,
+              stream: executionContext.stream,
+            });
+          }
+        }
       });
     } catch (error) {
       for (const executionContext of executionGroup.streamExecutions) {
@@ -3215,42 +3417,6 @@ export async function runMultipleStreamFetches(
       }
 
       continue;
-    }
-
-    for (const executionContext of executionGroup.streamExecutions) {
-      try {
-        const completedRun = await processFetchedArticlesForStream(
-          db,
-          executionContext,
-          providerResult,
-          {
-            actorId,
-            executionGroup,
-            now,
-          },
-        );
-
-        results.push({
-          run: completedRun,
-          stream: executionContext.stream,
-        });
-      } catch (error) {
-        const failedRun = await finalizeFailedFetchRun(
-          db,
-          executionContext,
-          error,
-          {
-            actorId,
-            executionGroup,
-          },
-        );
-
-        results.push({
-          error: error instanceof Error ? error.message : `${error}`,
-          run: failedRun,
-          stream: executionContext.stream,
-        });
-      }
     }
   }
 

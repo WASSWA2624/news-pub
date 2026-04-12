@@ -1192,25 +1192,25 @@ async function queryBodyOnlySearchMatches(db, { country, limit, locale, queryCon
   const strongMatch = buildSearchStrongMatchSql(queryContext);
   const bodyQuery = `
     FROM \`post\` AS p
-    INNER JOIN \`posttranslation\` AS t
-      ON t.\`postId\` = p.\`id\`
+    INNER JOIN \`post_translation\` AS t
+      ON t.\`post_id\` = p.\`id\`
       AND t.\`locale\` = ?
-    LEFT JOIN \`fetchedarticle\` AS fa
-      ON fa.\`id\` = p.\`sourceArticleId\`
-    LEFT JOIN \`postcategory\` AS pc
-      ON pc.\`postId\` = p.\`id\`
+    LEFT JOIN \`fetched_article\` AS fa
+      ON fa.\`id\` = p.\`source_article_id\`
+    LEFT JOIN \`post_category\` AS pc
+      ON pc.\`post_id\` = p.\`id\`
     LEFT JOIN \`category\` AS c
-      ON c.\`id\` = pc.\`categoryId\`
+      ON c.\`id\` = pc.\`category_id\`
     WHERE p.\`status\` = 'PUBLISHED'
       AND EXISTS (
         SELECT 1
-        FROM \`publishattempt\` AS publish_attempt
-        WHERE publish_attempt.\`postId\` = p.\`id\`
+        FROM \`publish_attempt\` AS publish_attempt
+        WHERE publish_attempt.\`post_id\` = p.\`id\`
           AND publish_attempt.\`platform\` = 'WEBSITE'
           AND publish_attempt.\`status\` = 'SUCCEEDED'
       )
-      ${country ? "AND JSON_CONTAINS(COALESCE(fa.`providerCountriesJson`, JSON_ARRAY()), JSON_QUOTE(?), '$')" : ""}
-      AND MATCH(t.\`contentMd\`) AGAINST(? IN BOOLEAN MODE) > 0
+      ${country ? "AND JSON_CONTAINS(COALESCE(fa.`provider_countries_json`, JSON_ARRAY()), JSON_QUOTE(?), '$')" : ""}
+      AND MATCH(t.\`content_md\`) AGAINST(? IN BOOLEAN MODE) > 0
       AND NOT (${strongMatch.sql})
   `;
   const baseParams = [
@@ -1230,10 +1230,10 @@ async function queryBodyOnlySearchMatches(db, { country, limit, locale, queryCon
     `
       SELECT
         p.\`id\` AS id,
-        LEAST(${searchFieldWeights.body.max}, ROUND(MAX(MATCH(t.\`contentMd\`) AGAINST(? IN NATURAL LANGUAGE MODE)) * 120)) AS bodyScore
+        LEAST(${searchFieldWeights.body.max}, ROUND(MAX(MATCH(t.\`content_md\`) AGAINST(? IN NATURAL LANGUAGE MODE)) * 120)) AS bodyScore
       ${bodyQuery}
-      GROUP BY p.\`id\`, p.\`publishedAt\`, p.\`updatedAt\`
-      ORDER BY bodyScore DESC, p.\`publishedAt\` DESC, p.\`updatedAt\` DESC
+      GROUP BY p.\`id\`, p.\`published_at\`, p.\`updated_at\`
+      ORDER BY bodyScore DESC, p.\`published_at\` DESC, p.\`updated_at\` DESC
       LIMIT ?
     `,
     queryContext.query,
@@ -1434,20 +1434,20 @@ async function queryPublishedCountryCounts(db, locale) {
     try {
       const countryRows = await db.$queryRaw(Prisma.sql`
         SELECT LOWER(country_codes.country_code) AS value, COUNT(*) AS count
-        FROM \`fetchedarticle\` AS article
-        INNER JOIN \`post\` AS post ON post.\`sourceArticleId\` = article.\`id\`
-        INNER JOIN \`posttranslation\` AS translation
-          ON translation.\`postId\` = post.\`id\`
+        FROM \`fetched_article\` AS article
+        INNER JOIN \`post\` AS post ON post.\`source_article_id\` = article.\`id\`
+        INNER JOIN \`post_translation\` AS translation
+          ON translation.\`post_id\` = post.\`id\`
           AND translation.\`locale\` = ${locale}
         INNER JOIN JSON_TABLE(
-          article.\`providerCountriesJson\`,
+          article.\`provider_countries_json\`,
           '$[*]' COLUMNS (country_code VARCHAR(8) PATH '$')
         ) AS country_codes
         WHERE post.\`status\` = 'PUBLISHED'
           AND EXISTS (
             SELECT 1
-            FROM \`publishattempt\` AS publish_attempt
-            WHERE publish_attempt.\`postId\` = post.\`id\`
+            FROM \`publish_attempt\` AS publish_attempt
+            WHERE publish_attempt.\`post_id\` = post.\`id\`
               AND publish_attempt.\`platform\` = 'WEBSITE'
               AND publish_attempt.\`status\` = 'SUCCEEDED'
           )

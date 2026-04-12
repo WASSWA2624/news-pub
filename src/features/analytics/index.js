@@ -172,6 +172,7 @@ function mapPublishAttempt(attempt) {
         }
       : null,
     optimizationStatus: attempt.diagnosticsJson?.optimizationStatus || null,
+    publicationMode: attempt.diagnosticsJson?.publicationMode || null,
     publishedAt: serializeDate(attempt.publishedAt),
     queuedAt: serializeDate(attempt.queuedAt),
     remoteId: attempt.remoteId || null,

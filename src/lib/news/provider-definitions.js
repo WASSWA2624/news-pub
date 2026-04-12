@@ -1704,6 +1704,36 @@ function createValidationIssue(code, message) {
   };
 }
 
+function splitDelimitedValues(values = [], { lowerCase = false } = {}) {
+  const rawValues = Array.isArray(values) ? values : normalizeText(values) ? [values] : [];
+
+  return [...new Set(
+    rawValues
+      .flatMap((value) => `${value || ""}`.split(","))
+      .map((value) => {
+        const normalizedValue = normalizeText(value);
+        const isExcluded = normalizedValue.startsWith("-");
+        const bareValue = normalizedValue.replace(/^-+/, "");
+        const normalizedBareValue = lowerCase ? normalizeKey(bareValue) : normalizeText(bareValue);
+
+        return normalizedBareValue ? `${isExcluded ? "-" : ""}${normalizedBareValue}` : "";
+      })
+      .filter(Boolean),
+  )];
+}
+
+function isValidNewsApiSourceId(value) {
+  const normalizedValue = normalizeText(value).replace(/^-+/, "");
+
+  return /^[a-z0-9-]+$/i.test(normalizedValue);
+}
+
+function isValidDomainValue(value) {
+  const normalizedValue = normalizeText(value).replace(/^-+/, "");
+
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(normalizedValue);
+}
+
 function normalizeAllowlistValues(values = []) {
   return dedupeValues(values).map((value) => normalizeKey(value));
 }
@@ -1816,7 +1846,43 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
     const country = readSingleValue(requestValues, "country");
     const category = readSingleValue(requestValues, "category");
     const domains = readSingleValue(requestValues, "domains");
+    const excludeDomains = readSingleValue(requestValues, "excludeDomains");
     const sources = readSingleValue(requestValues, "sources");
+    const sourceIds = splitDelimitedValues(sources, { lowerCase: true });
+    const requestedDomains = splitDelimitedValues(domains, { lowerCase: true });
+    const requestedExcludedDomains = splitDelimitedValues(excludeDomains, { lowerCase: true });
+
+    if (sourceIds.length > 20) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_sources_too_many",
+          'NewsAPI accepts at most 20 source identifiers per request. Trim the sources list before saving these defaults.',
+        ),
+      );
+    }
+
+    if (
+      sourceIds.length
+      && sourceIds.some((sourceId) => sourceId.startsWith("-") || !isValidNewsApiSourceId(sourceId))
+    ) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_sources_invalid_format",
+          'NewsAPI source identifiers must be a comma-separated list of source ids such as "bbc-news,techcrunch".',
+        ),
+      );
+    }
+
+    if (
+      [...requestedDomains, ...requestedExcludedDomains].some((domainValue) => !isValidDomainValue(domainValue))
+    ) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_domains_invalid_format",
+          'NewsAPI domain filters must be a comma-separated list of hostnames such as "bbc.co.uk,techcrunch.com".',
+        ),
+      );
+    }
 
     if (endpoint === "everything") {
       if (query.length > 500) {
@@ -1863,6 +1929,15 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
     const toDate = readSingleValue(requestValues, "toDate");
     const categories = readMultiValue(requestValues, "category");
     const excludeCategories = readMultiValue(requestValues, "excludeCategories");
+
+    if (endpoint === "latest" && (fromDate || toDate)) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsdata_latest_uses_timeframe_only",
+          'NewsData "Latest" uses relative timeframe windows only. Switch to "News Archive" before saving explicit from/to dates.',
+        ),
+      );
+    }
 
     if (endpoint === "archive") {
       if (!fromDate || !toDate) {

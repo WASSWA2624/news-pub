@@ -588,7 +588,7 @@ model WebVitalMetric {
   createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([name, createdAt])
-  @@index([path, name, createdAt])
+  @@index([path(length: 191), name, createdAt])
   @@index([routeGroup, name, createdAt])
   @@index([formFactor, name, createdAt])
   @@index([buildId, name, createdAt])

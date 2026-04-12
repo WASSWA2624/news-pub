@@ -361,7 +361,7 @@ async function checkDatabase(connection, databaseConfig, failures) {
   const adminEmail = getEnvValue("ADMIN_SEED_EMAIL").toLowerCase();
   const adminPassword = getEnvValue("ADMIN_SEED_PASSWORD");
   const users = await connection.query(
-    "SELECT `email`, `isActive`, `passwordHash`, `role` FROM `user` WHERE `email` = ? LIMIT 1",
+    "SELECT `email`, `is_active`, `password_hash`, `role` FROM `user` WHERE `email` = ? LIMIT 1",
     [adminEmail],
   );
   const adminUser = users[0];
@@ -371,7 +371,7 @@ async function checkDatabase(connection, databaseConfig, failures) {
     return;
   }
 
-  if (!adminUser.isActive) {
+  if (!adminUser.is_active) {
     failures.push("The seeded admin user is inactive. Run npm run cpanel:db:seed in the cPanel app root.");
   }
 
@@ -379,7 +379,7 @@ async function checkDatabase(connection, databaseConfig, failures) {
     failures.push("The seeded admin user is not a SUPER_ADMIN. Run npm run cpanel:db:seed in the cPanel app root.");
   }
 
-  if (!verifyPassword(adminPassword, adminUser.passwordHash)) {
+  if (!verifyPassword(adminPassword, adminUser.password_hash)) {
     failures.push("ADMIN_SEED_PASSWORD does not match the seeded admin user. Run npm run cpanel:db:seed, then sign in with that password.");
   }
 }

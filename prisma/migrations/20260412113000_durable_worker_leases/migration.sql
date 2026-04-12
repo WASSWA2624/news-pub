@@ -12,13 +12,12 @@ ALTER TABLE `publish_attempt`
     ADD COLUMN `heartbeat_at` DATETIME(3) NULL,
     ADD COLUMN `orphaned_at` DATETIME(3) NULL;
 
-DROP INDEX `publish_attempt_destination_id_status_created_at_idx` ON `publish_attempt`;
-DROP INDEX `publish_attempt_stream_id_status_created_at_idx` ON `publish_attempt`;
-
 CREATE INDEX `publish_attempt_destination_id_status_available_at_idx`
     ON `publish_attempt`(`destination_id`, `status`, `available_at`);
 CREATE INDEX `publish_attempt_stream_id_status_available_at_idx`
     ON `publish_attempt`(`stream_id`, `status`, `available_at`);
+DROP INDEX `publish_attempt_destination_id_status_created_at_idx` ON `publish_attempt`;
+DROP INDEX `publish_attempt_stream_id_status_created_at_idx` ON `publish_attempt`;
 CREATE INDEX `publish_attempt_status_lease_expires_at_idx`
     ON `publish_attempt`(`status`, `lease_expires_at`);
 

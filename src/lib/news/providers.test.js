@@ -16,6 +16,21 @@ function getRequestedUrl() {
   return new URL(`${fetch.mock.calls[0][0]}`);
 }
 
+function createNewsApiArticles(count, page, { sourceName = "Example Wire" } = {}) {
+  return Array.from({ length: count }, (_, index) => ({
+    author: `Reporter ${page}-${index + 1}`,
+    content: `Story content ${page}-${index + 1}`,
+    description: `Story description ${page}-${index + 1}`,
+    publishedAt: `2026-04-${`${Math.min(page, 9)}`.padStart(2, "0")}T${`${index % 24}`.padStart(2, "0")}:00:00Z`,
+    source: {
+      name: sourceName,
+    },
+    title: `Story ${page}-${index + 1}`,
+    url: `https://example.com/newsapi/${page}-${index + 1}`,
+    urlToImage: `https://example.com/newsapi/${page}-${index + 1}.jpg`,
+  }));
+}
+
 describe("news providers", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -763,6 +778,147 @@ describe("news providers", () => {
         stopReason: "provider_exhausted",
       },
       fetchedCount: 2,
+    });
+  });
+
+  it("caps NewsData request size at the plan-safe runtime ceiling", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          nextPage: null,
+          results: [],
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      providerKey: "newsdata",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "latest",
+            language: ["en"],
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 30,
+        settingsJson: {
+          providerFilters: {
+            q: "policy",
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.searchParams.get("size")).toBe("50");
+  });
+
+  it("reports explicit page-limit truncation when NewsAPI still has more pages after the local cap", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input) => {
+        const url = new URL(`${input}`);
+        const page = Number.parseInt(url.searchParams.get("page"), 10);
+
+        return Promise.resolve(
+          createJsonResponse({
+            articles: createNewsApiArticles(100, page),
+            totalResults: 1000,
+          }),
+        );
+      }),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      providerKey: "newsapi",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "everything",
+            language: "en",
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 40,
+        settingsJson: {
+          providerFilters: {
+            q: "markets",
+          },
+        },
+      },
+    });
+
+    const requestedUrls = fetch.mock.calls.map((call) => new URL(`${call[0]}`));
+
+    expect(requestedUrls).toHaveLength(5);
+    expect(requestedUrls[0].searchParams.get("pageSize")).toBe("100");
+    expect(result).toMatchObject({
+      diagnostics: {
+        pageCount: 5,
+        providerKey: "newsapi",
+        requestSizing: {
+          cappedByProvider: true,
+          providerBatchCap: 100,
+          requestedBatchSize: 120,
+          runtimeBatchSize: 100,
+        },
+        stopReason: "page_limit_reached",
+        totalFetchedArticles: 500,
+        truncatedByPageLimit: true,
+      },
+      fetchedCount: 500,
+    });
+  });
+
+  it("attaches invalid-response diagnostics when NewsData returns the wrong shape", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          nextPage: null,
+          results: {
+            unexpected: true,
+          },
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await expect(
+      fetchProviderArticles({
+        providerKey: "newsdata",
+        stream: {
+          activeProvider: {
+            requestDefaultsJson: {
+              endpoint: "latest",
+              language: ["en"],
+            },
+          },
+          locale: "en",
+          maxPostsPerRun: 1,
+          settingsJson: {
+            providerFilters: {
+              q: "policy",
+            },
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      providerDiagnostics: {
+        failure: {
+          responseStatus: 200,
+          type: "invalid_response",
+        },
+        stopReason: "invalid_response",
+      },
+      status: "provider_response_invalid",
     });
   });
 });

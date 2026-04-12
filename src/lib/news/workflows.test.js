@@ -821,6 +821,10 @@ describe("stream selection and scheduling helpers", () => {
         data: expect.objectContaining({
           articleMatchId: "match_1",
           availableAt: now,
+          diagnosticsJson: expect.objectContaining({
+            publicationMode: "original",
+            queueSource: "orphan_recovery",
+          }),
           status: "PENDING",
         }),
       }),
@@ -842,6 +846,225 @@ describe("stream selection and scheduling helpers", () => {
       recoveredPublishAttemptCount: 1,
       retriedPublishAttempts: 0,
     });
+  });
+
+  it("reconciles stale fetch runs back to the pending queue before processing new work", async () => {
+    const { runScheduledStreams } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    const prisma = {
+      articleMatch: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      fetchRun: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            errorMessage: null,
+            id: "stale_fetch_run_1",
+            lastErrorCode: null,
+            startedAt: new Date("2026-04-05T11:00:00.000Z"),
+            status: "RUNNING",
+            streamId: "stream_1",
+          },
+        ]),
+        update: vi.fn().mockResolvedValue(null),
+      },
+      publishAttempt: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
+      },
+      publishingStream: {
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    const summary = await runScheduledStreams(
+      {
+        now,
+      },
+      prisma,
+    );
+
+    expect(prisma.fetchRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "stale_fetch_run_1",
+        },
+        data: expect.objectContaining({
+          availableAt: now,
+          lastErrorCode: "stale_fetch_run_recovered",
+          status: "PENDING",
+        }),
+      }),
+    );
+    expect(prisma.publishingStream.update).toHaveBeenCalledWith({
+      data: {
+        lastRunStartedAt: null,
+      },
+      where: {
+        id: "stream_1",
+      },
+    });
+    expect(summary).toMatchObject({
+      dueStreamCount: 0,
+      processedPublishAttempts: 0,
+      recoveredFetchRunCount: 1,
+    });
+  });
+
+  it("claims publish attempts idempotently and updates the owning stream once", async () => {
+    const { claimPublishAttemptById } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    let attemptRecord = {
+      availableAt: new Date("2026-04-05T12:00:00.000Z"),
+      heartbeatAt: null,
+      id: "attempt_1",
+      leaseExpiresAt: null,
+      leaseOwner: null,
+      startedAt: null,
+      status: "PENDING",
+      streamId: "stream_1",
+    };
+    const db = {
+      publishAttempt: {
+        findUnique: vi.fn(({ where }) =>
+          Promise.resolve(where.id === attemptRecord.id ? { ...attemptRecord } : null)),
+        updateMany: vi.fn(({ data, where }) => {
+          const claimable =
+            where.id === attemptRecord.id
+            && attemptRecord.status === "PENDING"
+            && attemptRecord.availableAt <= where.availableAt.lte
+            && (
+              attemptRecord.leaseExpiresAt === null
+              || attemptRecord.leaseExpiresAt <= where.OR[1].leaseExpiresAt.lte
+            );
+
+          if (!claimable) {
+            return Promise.resolve({
+              count: 0,
+            });
+          }
+
+          attemptRecord = {
+            ...attemptRecord,
+            ...data,
+          };
+
+          return Promise.resolve({
+            count: 1,
+          });
+        }),
+      },
+      publishingStream: {
+        update: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    const firstClaim = await claimPublishAttemptById(
+      db,
+      "attempt_1",
+      {
+        leaseOwner: "publish_lease_1",
+        now,
+      },
+    );
+    const secondClaim = await claimPublishAttemptById(
+      db,
+      "attempt_1",
+      {
+        leaseOwner: "publish_lease_2",
+        now,
+      },
+    );
+
+    expect(firstClaim.record).toMatchObject({
+      id: "attempt_1",
+      leaseOwner: "publish_lease_1",
+      status: "RUNNING",
+      streamId: "stream_1",
+    });
+    expect(secondClaim.record).toBeNull();
+    expect(db.publishingStream.update).toHaveBeenCalledWith({
+      data: {
+        lastRunStartedAt: now,
+      },
+      where: {
+        id: "stream_1",
+      },
+    });
+  });
+
+  it("claims fetch runs idempotently and increments the attempt count once", async () => {
+    const { claimFetchRunById } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    let fetchRunRecord = {
+      attemptCount: 0,
+      availableAt: new Date("2026-04-05T12:00:00.000Z"),
+      heartbeatAt: null,
+      id: "fetch_run_1",
+      leaseExpiresAt: null,
+      leaseOwner: null,
+      startedAt: null,
+      status: "PENDING",
+    };
+    const db = {
+      fetchRun: {
+        findUnique: vi.fn(({ where }) =>
+          Promise.resolve(where.id === fetchRunRecord.id ? { ...fetchRunRecord } : null)),
+        updateMany: vi.fn(({ data, where }) => {
+          const claimable =
+            where.id === fetchRunRecord.id
+            && fetchRunRecord.status === "PENDING"
+            && fetchRunRecord.availableAt <= where.availableAt.lte
+            && (
+              fetchRunRecord.leaseExpiresAt === null
+              || fetchRunRecord.leaseExpiresAt <= where.OR[1].leaseExpiresAt.lte
+            );
+
+          if (!claimable) {
+            return Promise.resolve({
+              count: 0,
+            });
+          }
+
+          fetchRunRecord = {
+            ...fetchRunRecord,
+            ...data,
+          };
+
+          return Promise.resolve({
+            count: 1,
+          });
+        }),
+      },
+    };
+
+    const firstClaim = await claimFetchRunById(
+      db,
+      "fetch_run_1",
+      {
+        leaseOwner: "fetch_lease_1",
+        now,
+      },
+    );
+    const secondClaim = await claimFetchRunById(
+      db,
+      "fetch_run_1",
+      {
+        leaseOwner: "fetch_lease_2",
+        now,
+      },
+    );
+
+    expect(firstClaim.record).toMatchObject({
+      attemptCount: 1,
+      id: "fetch_run_1",
+      leaseOwner: "fetch_lease_1",
+      startedAt: now,
+      status: "RUNNING",
+    });
+    expect(secondClaim.record).toBeNull();
   });
 
   it("audits manual repost requests before executing a fresh publish attempt", async () => {
@@ -997,6 +1220,18 @@ describe("stream selection and scheduling helpers", () => {
         entityId: "attempt_2",
       }),
       prisma,
+    );
+    expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          diagnosticsJson: expect.objectContaining({
+            publicationMode: "repost",
+            queueSource: "manual_repost",
+          }),
+          retryCount: 1,
+          status: "PENDING",
+        }),
+      }),
     );
   });
 
@@ -1173,6 +1408,20 @@ describe("stream selection and scheduling helpers", () => {
         entityId: "attempt_retry_2",
       }),
       prisma,
+    );
+    expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          articleMatchId: "match_1",
+          diagnosticsJson: expect.objectContaining({
+            publicationMode: "retry",
+            queueSource: "retry_request",
+            retryOfAttemptId: "attempt_failed_1",
+          }),
+          retryCount: 1,
+          status: "PENDING",
+        }),
+      }),
     );
   });
 });

@@ -157,4 +157,68 @@ describe("provider definition option metadata", () => {
       },
     ]);
   });
+
+  it("flags NewsAPI source lists longer than the documented 20-source maximum", () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        endpoint: "everything",
+        q: "policy",
+        sources: Array.from({ length: 21 }, (_, index) => `source-${index + 1}`).join(","),
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsapi_sources_too_many",
+      },
+    ]);
+  });
+
+  it("flags malformed NewsAPI source identifiers before execution", () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        endpoint: "everything",
+        q: "policy",
+        sources: "bbc-news,not a source id",
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsapi_sources_invalid_format",
+      },
+    ]);
+  });
+
+  it("flags malformed NewsAPI domain filters before execution", () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        domains: "bbc.co.uk,not_a_domain",
+        endpoint: "everything",
+        q: "policy",
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsapi_domains_invalid_format",
+      },
+    ]);
+  });
+
+  it('flags NewsData "Latest" configurations that try to save explicit from/to dates', () => {
+    const issues = getProviderRequestValidationIssues("newsdata", {
+      providerDefaults: {
+        endpoint: "latest",
+        fromDate: "2026-04-01",
+        toDate: "2026-04-05",
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsdata_latest_uses_timeframe_only",
+      },
+    ]);
+  });
 });

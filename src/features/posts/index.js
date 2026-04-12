@@ -213,6 +213,7 @@ function mapPublishAttempt(attempt) {
     errorMessage: attempt.errorMessage || null,
     id: attempt.id,
     platform: attempt.platform,
+    publicationMode: attempt.diagnosticsJson?.publicationMode || null,
     publishedAt: serializeDate(attempt.publishedAt),
     queuedAt: serializeDate(attempt.queuedAt),
     remoteId: attempt.remoteId || null,
