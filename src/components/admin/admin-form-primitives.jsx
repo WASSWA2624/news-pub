@@ -4,7 +4,7 @@
  * Shared disclosure and validation primitives used by NewsPub admin forms.
  */
 
-import { createContext, useContext, useEffect, useId, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import { getAutoOpenDisclosureIds, hasBlockingDisclosureState } from "@/components/admin/admin-ui-contract";
@@ -251,45 +251,49 @@ export function AdminDisclosureGroup({ children }) {
     () => registeredIds.find((id) => blockingStates[id]) || null,
     [blockingStates, registeredIds],
   );
+  const registerItem = useCallback((id) => {
+    setRegisteredIds((currentIds) => (currentIds.includes(id) ? currentIds : [...currentIds, id]));
+  }, []);
+  const setItemBlocking = useCallback((id, isBlocking) => {
+    setBlockingStates((currentStates) =>
+      currentStates[id] === isBlocking
+        ? currentStates
+        : {
+            ...currentStates,
+            [id]: isBlocking,
+          },
+    );
+  }, []);
+  const toggleItem = useCallback((id) => {
+    setOpenId((currentId) => (currentId === id ? null : id));
+  }, []);
+  const unregisterItem = useCallback((id) => {
+    setRegisteredIds((currentIds) => currentIds.filter((currentId) => currentId !== id));
+    setBlockingStates((currentStates) => {
+      if (!Object.prototype.hasOwnProperty.call(currentStates, id)) {
+        return currentStates;
+      }
+
+      const nextStates = {
+        ...currentStates,
+      };
+
+      delete nextStates[id];
+
+      return nextStates;
+    });
+    setOpenId((currentId) => (currentId === id ? null : currentId));
+  }, []);
   const value = useMemo(
     () => ({
       forcedOpenId,
       openId,
-      registerItem(id) {
-        setRegisteredIds((currentIds) => (currentIds.includes(id) ? currentIds : [...currentIds, id]));
-      },
-      setItemBlocking(id, isBlocking) {
-        setBlockingStates((currentStates) =>
-          currentStates[id] === isBlocking
-            ? currentStates
-            : {
-                ...currentStates,
-                [id]: isBlocking,
-              },
-        );
-      },
-      toggleItem(id) {
-        setOpenId((currentId) => (currentId === id ? null : id));
-      },
-      unregisterItem(id) {
-        setRegisteredIds((currentIds) => currentIds.filter((currentId) => currentId !== id));
-        setBlockingStates((currentStates) => {
-          if (!Object.prototype.hasOwnProperty.call(currentStates, id)) {
-            return currentStates;
-          }
-
-          const nextStates = {
-            ...currentStates,
-          };
-
-          delete nextStates[id];
-
-          return nextStates;
-        });
-        setOpenId((currentId) => (currentId === id ? null : currentId));
-      },
+      registerItem,
+      setItemBlocking,
+      toggleItem,
+      unregisterItem,
     }),
-    [forcedOpenId, openId],
+    [forcedOpenId, openId, registerItem, setItemBlocking, toggleItem, unregisterItem],
   );
 
   return (
@@ -352,6 +356,10 @@ export function AdminDisclosureSection({
   const generatedId = useId();
   const resolvedId = id || generatedId;
   const disclosureGroup = useContext(DisclosureGroupContext);
+  const registerDisclosureItem = disclosureGroup?.registerItem;
+  const setDisclosureItemBlocking = disclosureGroup?.setItemBlocking;
+  const toggleDisclosureItem = disclosureGroup?.toggleItem;
+  const unregisterDisclosureItem = disclosureGroup?.unregisterItem;
   const { bodyProps, toggleProps } = createDisclosureAriaProps(resolvedId);
   const shouldForceOpen = hasBlockingDisclosureState({
     blockingWarningCount,
@@ -370,20 +378,20 @@ export function AdminDisclosureSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   useEffect(() => {
-    if (!disclosureGroup) {
+    if (!registerDisclosureItem || !unregisterDisclosureItem) {
       return undefined;
     }
 
-    disclosureGroup.registerItem(resolvedId);
+    registerDisclosureItem(resolvedId);
 
     return () => {
-      disclosureGroup.unregisterItem(resolvedId);
+      unregisterDisclosureItem(resolvedId);
     };
-  }, [disclosureGroup, resolvedId]);
+  }, [registerDisclosureItem, resolvedId, unregisterDisclosureItem]);
 
   useEffect(() => {
-    disclosureGroup?.setItemBlocking(resolvedId, shouldForceOpen);
-  }, [disclosureGroup, resolvedId, shouldForceOpen]);
+    setDisclosureItemBlocking?.(resolvedId, shouldForceOpen);
+  }, [resolvedId, setDisclosureItemBlocking, shouldForceOpen]);
 
   const resolvedOpen = disclosureGroup
     ? disclosureGroup.forcedOpenId
@@ -397,7 +405,7 @@ export function AdminDisclosureSection({
         aria-expanded={resolvedOpen}
         onClick={() => {
           if (disclosureGroup) {
-            disclosureGroup.toggleItem(resolvedId);
+            toggleDisclosureItem?.(resolvedId);
             return;
           }
 
