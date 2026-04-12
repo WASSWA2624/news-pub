@@ -27,6 +27,7 @@ const {
   resolveCompactStoryMedia,
   trimStoryContentHtml,
 } = publicPageUtils;
+const contentGridDesktopMinWidth = "980px";
 
 const editorialHeadingStyles = css`
   color: var(--theme-story-ink);
@@ -54,6 +55,27 @@ const storyPaperPanelStyles = css`
   box-shadow:
     0 18px 48px rgba(var(--theme-story-ink-rgb), 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.75);
+`;
+
+const interactiveAdvertPlaceholderStyles = css`
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+
+  &:hover {
+    border-color: rgba(var(--theme-primary-rgb), 0.32);
+    box-shadow: 0 18px 44px rgba(18, 34, 58, 0.1);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(var(--theme-accent-rgb), 0.34);
+    outline-offset: 3px;
+  }
 `;
 
 const PageMain = styled.main`
@@ -107,6 +129,7 @@ const Description = styled.p`
 `;
 
 const HeroAdPlaceholder = styled.section`
+  ${interactiveAdvertPlaceholderStyles}
   align-items: center;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 252, 0.92)),
@@ -148,7 +171,7 @@ const ContentGrid = styled.div`
   display: grid;
   gap: 0.8rem;
 
-  @media (min-width: 980px) {
+  @media (min-width: ${contentGridDesktopMinWidth}) {
     align-items: start;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   }
@@ -165,6 +188,7 @@ const Panel = styled.section`
 `;
 
 const AdPlaceholderPanel = styled(Panel)`
+  ${interactiveAdvertPlaceholderStyles}
   background:
     linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(244, 248, 252, 0.96)),
     radial-gradient(circle at top right, rgba(var(--theme-primary-rgb), 0.08), transparent 54%);
@@ -209,6 +233,15 @@ const AdPlaceholderText = styled.p`
   line-height: 1.45;
   margin: 0;
   max-width: 20rem;
+`;
+
+const DesktopSidebarAdRail = styled.aside`
+  display: none;
+
+  @media (min-width: ${contentGridDesktopMinWidth}) {
+    display: grid;
+    gap: 1rem;
+  }
 `;
 
 const SectionTitle = styled.h2`
@@ -1492,13 +1525,47 @@ function HomeStoryList({ emptyLabel, items = [], locale, readMoreLabel = "Read m
   );
 }
 
+function SidebarAdvertPlaceholder({ href, text, title }) {
+  return (
+    <AdPlaceholderPanel
+      aria-label={`${title}. Contact us on WhatsApp to reserve this advert placement.`}
+      as="a"
+      href={href}
+      rel="noreferrer"
+      target="_blank"
+    >
+      <AdPlaceholderFrame>
+        <AdPlaceholderLabel>Advertisement</AdPlaceholderLabel>
+        <AdPlaceholderTitle>{title}</AdPlaceholderTitle>
+        <AdPlaceholderText>{text}</AdPlaceholderText>
+      </AdPlaceholderFrame>
+    </AdPlaceholderPanel>
+  );
+}
+
+function HeroAdvertLink({ href, text }) {
+  return (
+    <HeroAdPlaceholder
+      aria-label="Advertisement placeholder. Contact us on WhatsApp to reserve this featured advert placement."
+      as="a"
+      href={href}
+      rel="noreferrer"
+      target="_blank"
+    >
+      <HeroAdEyebrow>Advertisement</HeroAdEyebrow>
+      <HeroAdTitle>Advertise here</HeroAdTitle>
+      <HeroAdText>{text}</HeroAdText>
+    </HeroAdPlaceholder>
+  );
+}
+
 /**
  * Renders the localized public home page with featured and latest stories.
  *
  * @param {object} props - Page copy and data payload.
  * @returns {JSX.Element} The public home page.
  */
-export function PublicHomePage({ locale, messages, pageContent, pageData }) {
+export function PublicHomePage({ advertContactHref, locale, messages, pageContent, pageData }) {
   const common = messages.common || {};
 
   return (
@@ -1513,13 +1580,10 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
           </HeroTitleRow>
         </Title>
         <Description>{pageContent.description}</Description>
-        <HeroAdPlaceholder aria-label="Advertisement placeholder">
-          <HeroAdEyebrow>Advertisement</HeroAdEyebrow>
-          <HeroAdTitle>Advertise here</HeroAdTitle>
-          <HeroAdText>
-            Put your brand in front of our readers. Contact us to book this homepage banner placement.
-          </HeroAdText>
-        </HeroAdPlaceholder>
+        <HeroAdvertLink
+          href={advertContactHref}
+          text="Put your brand in front of our readers. Message us on WhatsApp to book this homepage banner placement."
+        />
       </Hero>
 
       <ContentGrid>
@@ -1562,29 +1626,21 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
           </Panel>
         </div>
 
-        <div style={{ display: "grid", gap: "1rem" }}>
-          <AdPlaceholderPanel aria-label="Advertisement placeholder">
-            <AdPlaceholderFrame>
-              <AdPlaceholderLabel>Advertisement</AdPlaceholderLabel>
-              <AdPlaceholderTitle>Sidebar advert space</AdPlaceholderTitle>
-              <AdPlaceholderText>
-                Reserve this placement for sponsor creative, campaign artwork, or partner promotions.
-              </AdPlaceholderText>
-            </AdPlaceholderFrame>
-          </AdPlaceholderPanel>
+        <DesktopSidebarAdRail>
+          <SidebarAdvertPlaceholder
+            href={advertContactHref}
+            text="Reserve this placement for sponsor creative, campaign artwork, or partner promotions."
+            title="Sidebar advert space"
+          />
 
           {pageData.featuredStory ? (
-            <AdPlaceholderPanel aria-label="Advertisement placeholder">
-              <AdPlaceholderFrame>
-                <AdPlaceholderLabel>Advertisement</AdPlaceholderLabel>
-                <AdPlaceholderTitle>Advertise here</AdPlaceholderTitle>
-                <AdPlaceholderText>
-                  Reach engaged readers in this featured slot. Contact us to place your advert here.
-                </AdPlaceholderText>
-              </AdPlaceholderFrame>
-            </AdPlaceholderPanel>
+            <SidebarAdvertPlaceholder
+              href={advertContactHref}
+              text="Reach engaged readers in this featured slot. Message us on WhatsApp to place your advert here."
+              title="Advertise here"
+            />
           ) : null}
-        </div>
+        </DesktopSidebarAdRail>
       </ContentGrid>
     </PageMain>
   );
@@ -1597,6 +1653,7 @@ export function PublicHomePage({ locale, messages, pageContent, pageData }) {
  * @returns {JSX.Element} The public collection page.
  */
 export function PublicCollectionPage({
+  advertContactHref,
   categoryLinks = [],
   collectionCountry = "all",
   collectionSlug = "all",
@@ -1672,6 +1729,10 @@ export function PublicCollectionPage({
           </HeroTitleRow>
         </Title>
         <Description>{entity?.description || pageContent.description}</Description>
+        <HeroAdvertLink
+          href={advertContactHref}
+          text="Put your brand in front of our readers. Message us on WhatsApp to reserve this featured placement."
+        />
       </Hero>
 
       <Panel>

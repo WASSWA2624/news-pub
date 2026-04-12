@@ -1,31 +1,37 @@
-const storyPath = process.env.LHCI_STORY_PATH || "/en/news";
+const baseUrl = process.env.LHCI_BASE_URL || "http://127.0.0.1:3000";
+const homePath = process.env.LHCI_HOME_PATH || "/en";
+const newsPath = process.env.LHCI_NEWS_PATH || "/en/news";
+const searchPath = process.env.LHCI_SEARCH_PATH || "/en/search?q=climate";
+const storyPath = process.env.LHCI_STORY_PATH || "/en/news/climate-resilience-market-watch";
 
 module.exports = {
   ci: {
     collect: {
-      numberOfRuns: 2,
+      numberOfRuns: 3,
       settings: {
         budgets: [{ path: "lighthouse-budget.json" }],
+        chromeFlags: "--no-sandbox",
       },
       startServerCommand: "npm run start",
       startServerReadyPattern: "ready on",
       url: [
-        "http://127.0.0.1:3000/en",
-        "http://127.0.0.1:3000/en/news",
-        "http://127.0.0.1:3000/en/search?q=climate",
-        `http://127.0.0.1:3000${storyPath}`,
+        `${baseUrl}${homePath}`,
+        `${baseUrl}${newsPath}`,
+        `${baseUrl}${searchPath}`,
+        `${baseUrl}${storyPath}`,
       ],
     },
     assert: {
       assertions: {
-        "categories:performance": ["warn", { minScore: 0.8 }],
-        "largest-contentful-paint": ["warn", { maxNumericValue: 2500 }],
-        "total-blocking-time": ["warn", { maxNumericValue: 200 }],
-        "cumulative-layout-shift": ["warn", { maxNumericValue: 0.1 }],
+        "categories:performance": ["error", { minScore: 0.85 }],
+        "largest-contentful-paint": ["error", { maxNumericValue: 2800 }],
+        "total-blocking-time": ["error", { maxNumericValue: 250 }],
+        "cumulative-layout-shift": ["error", { maxNumericValue: 0.1 }],
       },
     },
     upload: {
-      target: "temporary-public-storage",
+      outputDir: ".lighthouseci",
+      target: "filesystem",
     },
   },
 };

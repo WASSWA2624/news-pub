@@ -7,6 +7,7 @@ import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedCategoryNavigationData, getPublishedSearchFilterData, searchPublishedPosts } from "@/features/public-site";
 import { normalizePublicSearchQuery } from "@/features/public-site/search-utils";
+import { env } from "@/lib/env/server";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -55,6 +56,7 @@ export default async function SearchPage({ params, searchParams }) {
 
   return (
     <PublicCollectionPage
+      advertContactHref={env.contact.whatsappAdvertUrl}
       categoryLinks={categoryLinks}
       collectionCountry={pageData.country || "all"}
       collectionView="search"

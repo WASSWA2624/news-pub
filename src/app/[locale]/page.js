@@ -6,6 +6,7 @@ import { PublicHomePage } from "@/components/public";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedHomePageData } from "@/features/public-site";
+import { env } from "@/lib/env/server";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -38,6 +39,7 @@ export default async function LocaleHomePage({ params }) {
 
   return (
     <PublicHomePage
+      advertContactHref={env.contact.whatsappAdvertUrl}
       locale={locale}
       messages={messages.public}
       pageContent={messages.public?.home || {}}

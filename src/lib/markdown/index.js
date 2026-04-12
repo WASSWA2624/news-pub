@@ -128,9 +128,14 @@ function renderHtmlSection(section) {
           return "";
         }
 
+        const width = Number.isFinite(image.width) && image.width > 0 ? ` width="${image.width}"` : "";
+        const height = Number.isFinite(image.height) && image.height > 0 ? ` height="${image.height}"` : "";
+
         return `<figure><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
           imageAlt,
-        )}" loading="lazy" />${image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : ""}</figure>`;
+        )}" loading="lazy" decoding="async"${width}${height} />${
+          image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : ""
+        }</figure>`;
       })
       .join("");
 

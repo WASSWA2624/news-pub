@@ -193,6 +193,12 @@ export const ADMIN_NAV_ITEMS = Object.freeze([
     permission: ADMIN_PERMISSIONS.VIEW_JOBS,
   }),
   Object.freeze({
+    href: "/admin/performance",
+    icon: "activity",
+    key: "performance",
+    permission: ADMIN_PERMISSIONS.VIEW_ANALYTICS,
+  }),
+  Object.freeze({
     href: "/admin/seo",
     icon: "seo",
     key: "seo",
@@ -261,6 +267,11 @@ const adminPageRules = Object.freeze([
     label: "Jobs",
     matches: (pathname) => pathname === "/admin/jobs",
     permission: ADMIN_PERMISSIONS.VIEW_JOBS,
+  }),
+  Object.freeze({
+    label: "Performance",
+    matches: (pathname) => pathname === "/admin/performance",
+    permission: ADMIN_PERMISSIONS.VIEW_ANALYTICS,
   }),
   Object.freeze({
     label: "SEO",

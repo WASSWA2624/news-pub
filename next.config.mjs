@@ -43,8 +43,17 @@ function getRemoteImagePatterns() {
 }
 
 const withBundleAnalyzer = bundleAnalyzer({
+  analyzerMode: process.env.BUNDLE_ANALYZE_FORMAT || "static",
   enabled: process.env.ANALYZE === "true",
+  openAnalyzer: false,
 });
+
+const releaseId =
+  process.env.NEXT_PUBLIC_RELEASE_ID
+  || process.env.GITHUB_SHA
+  || process.env.VERCEL_GIT_COMMIT_SHA
+  || process.env.npm_package_version
+  || "local";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -52,11 +61,17 @@ const nextConfig = {
   compiler: {
     styledComponents: true,
   },
+  experimental: {
+    webVitalsAttribution: ["CLS", "INP", "LCP", "TTFB"],
+  },
   env: {
     DEFAULT_LOCALE: process.env.DEFAULT_LOCALE,
+    NEXT_PUBLIC_RELEASE_ID: releaseId,
     SUPPORTED_LOCALES: process.env.SUPPORTED_LOCALES,
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 3600,
     remotePatterns: getRemoteImagePatterns(),
   },
 };

@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const vm = require("vm");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
 
 const routes = [
   {
@@ -30,7 +30,35 @@ const routes = [
   },
 ];
 
+function parseArguments(argv) {
+  const parsed = {
+    budgetPath: "",
+    outputPath: "",
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+
+    if (argument === "--budget") {
+      parsed.budgetPath = argv[index + 1] || "";
+      index += 1;
+      continue;
+    }
+
+    if (argument === "--output") {
+      parsed.outputPath = argv[index + 1] || "";
+      index += 1;
+    }
+  }
+
+  return parsed;
+}
+
 function loadManifest(filename) {
+  if (!fs.existsSync(filename)) {
+    throw new Error(`Missing client reference manifest: ${filename}`);
+  }
+
   const source = fs.readFileSync(filename, "utf8");
   const context = { globalThis: {} };
 
@@ -43,22 +71,126 @@ function formatKilobytes(bytes) {
   return `${(bytes / 1024).toFixed(1)} kB`;
 }
 
-for (const route of routes) {
+function ensureOutputDirectory(filename) {
+  if (!filename) {
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(path.resolve(filename)), {
+    recursive: true,
+  });
+}
+
+function loadBudgets(filename) {
+  if (!filename) {
+    return null;
+  }
+
+  const parsed = JSON.parse(fs.readFileSync(filename, "utf8"));
+
+  return {
+    defaults: parsed.defaults || {},
+    routes: parsed.routes || {},
+  };
+}
+
+function getRouteBudget(budgets, routeLabel) {
+  if (!budgets) {
+    return null;
+  }
+
+  return {
+    ...budgets.defaults,
+    ...(budgets.routes?.[routeLabel] || {}),
+  };
+}
+
+function collectRouteEntryStats(route) {
   const routeManifestMap = loadManifest(route.manifest);
   const routeManifest = Object.values(routeManifestMap)[0] || {};
   const entryFiles = routeManifest.entryJSFiles?.[route.entry] || [];
-  const assets = entryFiles.map((file) => {
-    const diskPath = path.join(".next", file.replace(/^static\//, "static/"));
+  const assets = entryFiles
+    .map((file) => {
+      const diskPath = path.join(".next", file.replace(/^static\//, "static/"));
 
-    return {
-      bytes: fs.statSync(diskPath).size,
-      file,
-    };
-  });
+      return {
+        bytes: fs.statSync(diskPath).size,
+        file,
+      };
+    })
+    .sort((left, right) => right.bytes - left.bytes);
   const totalBytes = assets.reduce((sum, asset) => sum + asset.bytes, 0);
 
-  console.log(`${route.label}: ${formatKilobytes(totalBytes)}`);
-  for (const asset of assets) {
+  return {
+    assetCount: assets.length,
+    assets,
+    label: route.label,
+    largestAssetBytes: assets[0]?.bytes || 0,
+    totalBytes,
+  };
+}
+
+function assertRouteBudgets(results, budgets) {
+  const failures = [];
+
+  for (const result of results) {
+    const budget = getRouteBudget(budgets, result.label);
+
+    if (!budget) {
+      continue;
+    }
+
+    if (Number.isFinite(budget.maxTotalKb) && result.totalBytes > budget.maxTotalKb * 1024) {
+      failures.push(
+        `${result.label} total JS ${formatKilobytes(result.totalBytes)} exceeds ${budget.maxTotalKb.toFixed(1)} kB`,
+      );
+    }
+
+    if (Number.isFinite(budget.maxLargestAssetKb) && result.largestAssetBytes > budget.maxLargestAssetKb * 1024) {
+      failures.push(
+        `${result.label} largest JS asset ${formatKilobytes(result.largestAssetBytes)} exceeds ${budget.maxLargestAssetKb.toFixed(1)} kB`,
+      );
+    }
+
+    if (Number.isFinite(budget.maxAssetCount) && result.assetCount > budget.maxAssetCount) {
+      failures.push(`${result.label} asset count ${result.assetCount} exceeds ${budget.maxAssetCount}`);
+    }
+  }
+
+  return failures;
+}
+
+const options = parseArguments(process.argv.slice(2));
+const budgets = loadBudgets(options.budgetPath);
+const results = routes.map(collectRouteEntryStats);
+const output = {
+  generatedAt: new Date().toISOString(),
+  routes: results,
+  summary: {
+    largestRoute: results.reduce((largest, current) => (current.totalBytes > largest.totalBytes ? current : largest), results[0]),
+    routeCount: results.length,
+    totalBytes: results.reduce((sum, route) => sum + route.totalBytes, 0),
+  },
+};
+
+for (const route of results) {
+  console.log(`${route.label}: ${formatKilobytes(route.totalBytes)}`);
+  for (const asset of route.assets) {
     console.log(`  ${formatKilobytes(asset.bytes)}  ${asset.file}`);
   }
+}
+
+if (options.outputPath) {
+  ensureOutputDirectory(options.outputPath);
+  fs.writeFileSync(options.outputPath, JSON.stringify(output, null, 2));
+}
+
+const failures = assertRouteBudgets(results, budgets);
+
+if (failures.length) {
+  console.error("\nRoute entry-size budget failures:");
+  for (const failure of failures) {
+    console.error(`- ${failure}`);
+  }
+  process.exitCode = 1;
 }

@@ -4,12 +4,14 @@
 
 import { notFound } from "next/navigation";
 
+import WebVitals from "@/components/analytics/web-vitals";
 import { StructuredDataBundle } from "@/components/seo";
 import SiteShell from "@/components/layout/site-shell";
 import { isSupportedLocale, supportedLocales } from "@/features/i18n/config";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { getPublishedCategoryNavigationData, getPublishedSearchFilterData } from "@/features/public-site";
 import { buildLocalizedPath, publicRouteSegments } from "@/features/i18n/routing";
+import { env } from "@/lib/env/server";
 import { buildOrganizationJsonLd } from "@/lib/seo";
 
 export const dynamicParams = false;
@@ -81,6 +83,7 @@ export default async function LocaleLayout({ children, params }) {
       <SiteShell categoryLinks={categoryLinks} countryLinks={countryLinks} locale={locale} messages={messages}>
         {children}
       </SiteShell>
+      {env.observability.metricsEnabled ? <WebVitals /> : null}
     </>
   );
 }

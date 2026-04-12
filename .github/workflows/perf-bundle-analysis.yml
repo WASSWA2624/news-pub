@@ -1,0 +1,82 @@
+name: Performance Bundle Analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  bundle-analysis:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: mysql://news_pub:news_pub@127.0.0.1:3307/news_pub
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_RELEASE_ID: ci-bundle-analysis
+      DEFAULT_LOCALE: en
+      SUPPORTED_LOCALES: en
+      SESSION_SECRET: session-secret
+      SESSION_MAX_AGE_SECONDS: "3600"
+      ADMIN_SEED_EMAIL: admin@example.com
+      ADMIN_SEED_PASSWORD: strong-password
+      MEDIASTACK_API_KEY: ""
+      NEWSDATA_API_KEY: ""
+      NEWSAPI_API_KEY: ""
+      DESTINATION_TOKEN_ENCRYPTION_KEY: destination-secret
+      META_APP_ID: ""
+      META_APP_SECRET: ""
+      META_SYSTEM_USER_ACCESS_TOKEN: ""
+      META_USER_ACCESS_TOKEN: ""
+      META_GRAPH_API_BASE_URL: ""
+      META_ALLOWED_PAGE_IDS: ""
+      META_SOCIAL_MIN_POST_INTERVAL_MINUTES: ""
+      META_SOCIAL_DUPLICATE_COOLDOWN_HOURS: ""
+      META_FACEBOOK_MAX_POSTS_PER_24H: ""
+      META_INSTAGRAM_MAX_POSTS_PER_24H: ""
+      META_INSTAGRAM_MAX_HASHTAGS: ""
+      OPENAI_API_KEY: ""
+      AI_MODEL: ""
+      AI_OPTIMIZATION_ENABLED: "true"
+      AI_MAX_SOURCE_CHARS: ""
+      AI_REQUEST_TIMEOUT_MS: ""
+      PLATFORM_POLICY_BLOCKLIST: ""
+      PLATFORM_POLICY_HOLD_SCORE: ""
+      PLATFORM_POLICY_BLOCK_SCORE: ""
+      MEDIA_DRIVER: local
+      LOCAL_MEDIA_BASE_PATH: public/uploads
+      LOCAL_MEDIA_BASE_URL: /uploads
+      S3_MEDIA_BUCKET: ""
+      S3_MEDIA_REGION: ""
+      S3_MEDIA_BASE_URL: ""
+      S3_ACCESS_KEY_ID: ""
+      S3_SECRET_ACCESS_KEY: ""
+      UPLOAD_ALLOWED_MIME_TYPES: image/jpeg,image/png,image/webp
+      MEDIA_MAX_REMOTE_FILE_BYTES: "5242880"
+      REVALIDATE_SECRET: revalidate-secret
+      CRON_SECRET: cron-secret
+      ENABLE_ANALYTICS: "true"
+      ENABLE_METRICS: "true"
+      DEFAULT_SCHEDULE_TIMEZONE: UTC
+      INITIAL_BACKFILL_HOURS: "24"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          cache: npm
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npm run build:analyze
+
+      - run: npm run perf:routes:json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bundle-analysis
+          path: |
+            .next/analyze
+            .next/perf/route-entry-sizes.json

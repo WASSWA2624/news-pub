@@ -4,7 +4,7 @@
  * Homepage lead-story component that presents the latest published NewsPub stories with editorial hierarchy.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 
@@ -78,6 +78,22 @@ function resolveSearchMatchLabel(item, searchMatchCopy = {}) {
   }
 
   return searchMatchCopy[reason] || defaultSearchMatchCopy[reason] || "";
+}
+
+function appendUniqueItems(currentItems = [], nextItems = []) {
+  const seenItemIds = new Set(currentItems.map((item) => item.id));
+
+  return [
+    ...currentItems,
+    ...nextItems.filter((item) => {
+      if (!item?.id || seenItemIds.has(item.id)) {
+        return false;
+      }
+
+      seenItemIds.add(item.id);
+      return true;
+    }),
+  ];
 }
 
 const EmptyState = styled.p`
@@ -279,6 +295,17 @@ const HomeListError = styled.p`
   }
 `;
 
+const RetryButton = styled.button`
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0;
+  text-decoration: underline;
+`;
+
 /**
  * Renders the compact story list used across home and collection pagination surfaces.
  *
@@ -413,6 +440,55 @@ export default function HomeLatestStories({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const cacheRef = useRef(new Map());
+  const inFlightRequestRef = useRef(null);
+
+  useEffect(() => () => {
+    inFlightRequestRef.current?.controller?.abort();
+  }, []);
+
+  async function requestStories(requestKey, requestUrl) {
+    if (cacheRef.current.has(requestKey)) {
+      return cacheRef.current.get(requestKey);
+    }
+
+    if (inFlightRequestRef.current?.key === requestKey) {
+      return inFlightRequestRef.current.promise;
+    }
+
+    inFlightRequestRef.current?.controller?.abort();
+
+    const controller = new AbortController();
+    const promise = fetch(requestUrl, {
+      headers: {
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok || !payload?.success || !payload?.data) {
+          throw new Error("Could not load more stories.");
+        }
+
+        cacheRef.current.set(requestKey, payload.data);
+        return payload.data;
+      })
+      .finally(() => {
+        if (inFlightRequestRef.current?.key === requestKey) {
+          inFlightRequestRef.current = null;
+        }
+      });
+
+    inFlightRequestRef.current = {
+      controller,
+      key: requestKey,
+      promise,
+    };
+
+    return promise;
+  }
 
   async function handleViewMore() {
     if (isLoading || !hasMore) {
@@ -440,23 +516,20 @@ export default function HomeLatestStories({
             },
       );
       const endpoint = mode === "collection" ? "/api/public/collection-stories" : "/api/public/latest-stories";
-      const response = await fetch(`${endpoint}?${searchParams.toString()}`, {
-        cache: "no-store",
-      });
-      const payload = await response.json().catch(() => null);
+      const requestUrl = `${endpoint}?${searchParams.toString()}`;
+      const data = await requestStories(requestUrl, requestUrl);
+      const nextItems = Array.isArray(data.items) ? data.items : [];
 
-      if (!response.ok || !payload?.success || !payload?.data) {
-        throw new Error("Could not load more stories.");
-      }
-
-      const nextItems = Array.isArray(payload.data.items) ? payload.data.items : [];
-
-      setItems((currentItems) => [...currentItems, ...nextItems]);
-      setHasMore(Boolean(payload.data.hasMore));
+      setItems((currentItems) => appendUniqueItems(currentItems, nextItems));
+      setHasMore(Boolean(data.hasMore));
       if (mode === "collection") {
-        setCurrentPage((previousPage) => payload?.data?.page || previousPage + 1);
+        setCurrentPage((previousPage) => data.page || previousPage + 1);
       }
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
+
       setError(requestErrorLabel);
     } finally {
       setIsLoading(false);
@@ -480,7 +553,10 @@ export default function HomeLatestStories({
       {error ? (
         <HomeListError role="status">
           <AppIcon name="warning" size={14} />
-          {error}
+          {error}{" "}
+          <RetryButton disabled={isLoading} onClick={handleViewMore} type="button">
+            Retry
+          </RetryButton>
         </HomeListError>
       ) : null}
       {hasMore ? (

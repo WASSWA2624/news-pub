@@ -122,6 +122,7 @@ Copy [`.env.example`](./.env.example) to `.env.development` for local developmen
 - Any credential that was previously committed or shared from this repo must be rotated before it is used again.
 - `DATABASE_URL` must point to a reachable local MySQL or MariaDB database before you run migrations, seeding, or the live dev server.
 - `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` are bootstrap credentials only and must be strong, unique values before any shared, staging, or production deployment.
+- `WHATSAPP_ADVERT_NUMBER` must be set in international format, for example `+256783230321`, so public advert placeholders open the correct WhatsApp contact.
 - Set `NEXT_IMAGE_REMOTE_HOSTS` to any extra trusted image/CDN hostnames. The app also allows `flagcdn.com`, `NEXT_PUBLIC_APP_URL`, and `S3_MEDIA_BASE_URL`.
 - For production media, prefer `MEDIA_DRIVER=s3` with a durable bucket/CDN URL. `MEDIA_DRIVER=local` should point at a persistent directory that is not deleted during redeploys.
 - Run `npm run repo:check` before opening a PR to catch local env files, release-bundle env leaks, obvious secrets, and lockfile drift.

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const localeCodePattern = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const mimeTypePattern = /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i;
+const internationalPhoneNumberPattern = /^\+?[1-9]\d{7,14}$/;
 
 function requiredString(name) {
   return z.string().trim().min(1, {
@@ -29,6 +30,14 @@ function integerString(name) {
     .transform((value) => Number.parseInt(value, 10))
     .refine((value) => value > 0, {
       message: `${name} must be greater than 0.`,
+    });
+}
+
+function phoneNumberString(name) {
+  return requiredString(name)
+    .transform((value) => value.replace(/[\s().-]/g, ""))
+    .refine((value) => internationalPhoneNumberPattern.test(value), {
+      message: `${name} must be a valid international phone number like +256783230321.`,
     });
 }
 
@@ -163,6 +172,10 @@ function normalizeBaseUrl(value) {
   return value.replace(/\/$/, "");
 }
 
+function buildWhatsAppUrl(phoneNumber) {
+  return `https://wa.me/${phoneNumber.replace(/^\+/, "")}`;
+}
+
 const sharedEnvSchema = z
   .object({
     NEXT_PUBLIC_APP_URL: requiredString("NEXT_PUBLIC_APP_URL")
@@ -219,6 +232,7 @@ const serverEnvSchema = sharedEnvSchema
       message: "ADMIN_SEED_EMAIL must be a valid email address.",
     }),
     ADMIN_SEED_PASSWORD: requiredString("ADMIN_SEED_PASSWORD"),
+    WHATSAPP_ADVERT_NUMBER: phoneNumberString("WHATSAPP_ADVERT_NUMBER"),
     MEDIASTACK_API_KEY: optionalString(),
     NEWSDATA_API_KEY: optionalString(),
     NEWSAPI_API_KEY: optionalString(),
@@ -355,6 +369,10 @@ function mapServerEnv(parsedEnv) {
     },
     cron: {
       secret: parsedEnv.CRON_SECRET,
+    },
+    contact: {
+      whatsappAdvertNumber: parsedEnv.WHATSAPP_ADVERT_NUMBER,
+      whatsappAdvertUrl: buildWhatsAppUrl(parsedEnv.WHATSAPP_ADVERT_NUMBER),
     },
     database: {
       url: parsedEnv.DATABASE_URL,

@@ -10,6 +10,7 @@ import { PublicCollectionPage } from "@/components/public";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedCategoryPageData } from "@/features/public-site";
+import { env } from "@/lib/env/server";
 import { buildBreadcrumbJsonLd, buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -74,6 +75,7 @@ export default async function CategoryPage({ params, searchParams }) {
         ]}
       />
       <PublicCollectionPage
+        advertContactHref={env.contact.whatsappAdvertUrl}
         collectionSlug={pageData.entity.slug}
         collectionView="category"
         entity={pageData.entity}

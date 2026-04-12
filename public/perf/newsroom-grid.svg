@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Newsroom grid fixture</title>
+  <desc id="desc">Editorial card-style illustration used for search and collection fixtures.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#153449" />
+      <stop offset="50%" stop-color="#135d75" />
+      <stop offset="100%" stop-color="#be7a38" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)" />
+  <rect x="104" y="112" width="992" height="676" rx="30" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.28)" />
+  <rect x="162" y="174" width="876" height="34" rx="17" fill="rgba(255,255,255,0.74)" />
+  <rect x="162" y="242" width="640" height="80" rx="18" fill="rgba(255,255,255,0.86)" />
+  <rect x="162" y="372" width="284" height="198" rx="24" fill="rgba(255,255,255,0.18)" />
+  <rect x="486" y="372" width="284" height="198" rx="24" fill="rgba(255,255,255,0.18)" />
+  <rect x="810" y="372" width="228" height="198" rx="24" fill="rgba(255,255,255,0.18)" />
+  <rect x="162" y="622" width="740" height="26" rx="13" fill="rgba(255,255,255,0.46)" />
+  <rect x="162" y="672" width="620" height="26" rx="13" fill="rgba(255,255,255,0.46)" />
+  <text x="162" y="152" fill="#f4f8fb" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="5">SEARCH FIXTURE</text>
+</svg>

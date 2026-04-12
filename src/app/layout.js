@@ -3,7 +3,6 @@
  */
 
 import AppProviders from "@/components/common/app-providers";
-import WebVitals from "@/components/analytics/web-vitals";
 import { sharedEnv } from "@/lib/env/shared";
 import StyledRegistry from "@/styles/styled-registry";
 
@@ -61,7 +60,6 @@ export default function RootLayout({ children }) {
       <body>
         <StyledRegistry>
           <AppProviders>{children}</AppProviders>
-          <WebVitals />
         </StyledRegistry>
       </body>
     </html>

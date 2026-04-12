@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createEditorialImageProxyUrl,
   createImagePlaceholderDataUrl,
   discoverRemoteImageUrl,
   extractRemoteImageUrlFromHtml,
@@ -32,12 +33,18 @@ describe("media placeholder helpers", () => {
     expect(resolvedUrl).toMatch(/^data:image\/svg\+xml;charset=UTF-8,/);
   });
 
-  it("preserves normal media urls", () => {
+  it("routes arbitrary remote media through the controlled image proxy", () => {
     expect(
       getRenderableImageUrl("https://media.equipblog.com/images/microscope-bench.jpg", {
         alt: "Bench microscope prepared for laboratory inspection.",
       }),
-    ).toBe("https://media.equipblog.com/images/microscope-bench.jpg");
+    ).toBe("/api/media/proxy?url=https%3A%2F%2Fmedia.equipblog.com%2Fimages%2Fmicroscope-bench.jpg");
+  });
+
+  it("creates the same-origin proxy url for arbitrary editorial images", () => {
+    expect(createEditorialImageProxyUrl("https://media.equipblog.com/images/microscope-bench.jpg")).toBe(
+      "/api/media/proxy?url=https%3A%2F%2Fmedia.equipblog.com%2Fimages%2Fmicroscope-bench.jpg",
+    );
   });
 
   it("drops unsafe image urls instead of rendering them", () => {

@@ -1,120 +1,172 @@
-You are a senior Next.js 16, React 19, and web performance engineer.
+You are a senior Next.js 16 performance engineer working on the NewsPub codebase.
 
-I need you to refactor this NewsPub codebase to materially improve website performance without changing the product behavior, visual design intent, SEO semantics, editorial workflows, or public URLs.
+Your objective is to implement a production-grade website performance hardening pass focused on:
 
-## Primary goals
-
-1. Reduce public-route client JavaScript.
-2. Improve LCP, INP, CLS, and TTFB.
-3. Reduce duplicate server work and database over-fetching.
-4. Improve route-level code splitting.
-5. Add performance budgets and regression tooling.
+1. Core Web Vitals (especially LCP, INP, CLS)
+2. lower TTFB for public routes
+3. smaller client bundles
+4. better image delivery
+5. durable performance monitoring and CI regression prevention
 
 ## Context
 
-This is a Next.js App Router codebase with a public site and admin interface.
-The public site currently appears to have a large shared client baseline and repeated server/database work.
+This is a Next.js 16 App Router application using React 19, Prisma, styled-components, and a public news site with home, news index, category, search, and story pages.
 
-## High-priority problems to fix
+The codebase already includes:
 
-### A. Make the public app shell server-first
-- Audit `src/app/layout.js`, `src/components/common/app-providers.js`, `src/styles/styled-registry.js`, and `src/app/[locale]/layout.js`.
-- Remove any unnecessary client wrappers from the public route tree.
-- Keep the root layout server-first wherever possible.
-- Only use client components for isolated interactive islands.
+- Lighthouse CI scripts in `package.json`
+- a Lighthouse config in `.lighthouserc.cjs`
+- a route entry-size script at `scripts/perf/print-route-entry-sizes.js`
+- `@next/bundle-analyzer` wiring in `next.config.mjs`
+- route revalidation on public pages
+- cacheable public API responses
+- a client-side Web Vitals sender in `src/components/analytics/web-vitals.js`
 
-### B. Reduce shared public JS
-- Refactor `src/components/layout/site-header.js` so the default header shell is server-rendered.
-- Split mobile menu, search dialog, and other interactive header behaviors into dynamically loaded client islands.
-- Eliminate route-wide `useSearchParams()` usage when server props can provide the required state.
+However, the current gaps are:
 
-### C. Remove unused client locale context
-- Audit `src/features/i18n/locale-provider.js`.
-- If `useLocaleMessages()` is not used, remove the provider entirely.
-- If only a few client components need locale/messages, pass props directly.
+- arbitrary remote editorial images often fall back to plain `<img>` instead of an optimized first-party image pipeline
+- Web Vitals are collected client-side but not persisted/aggregated in production
+- Lighthouse and bundle tooling are not enforced by CI in the attached repo
+- search is expensive because it loads large candidate sets and ranks in app code using `contentMd`
+- listing pages perform repeated count + fetch patterns that may inflate TTFB under load
+- “load more” requests use `cache: "no-store"` despite cacheable API responses
+- public rendering depends heavily on styled-components runtime
+- no route-level loading states / streaming boundaries are evident for public pages
 
-### D. Improve route-level code splitting
-- Break up `src/components/public/index.js` into route-specific modules.
-- Avoid importing search-only or home-only client components into routes that do not need them.
-- Ensure home, collection, and story routes each load only the client code they actually need.
+## Files to inspect first
 
-### E. Replace heavyweight public form controls with simpler alternatives
-- Replace public-facing `SearchableSelect` usage with a native `<select>` or a much lighter alternative.
-- Preserve accessibility and current functionality.
-- Keep the richer searchable control only where it is truly justified, such as admin surfaces.
-
-### F. Stop over-fetching on listing pages
-- Replace broad `publicPostSelect` usage on home/news/category/search listing routes with a lean card-specific select.
-- Create separate Prisma selects for:
-  - card/listing data
-  - story detail data
-  - metadata/SEO data
-- Do not fetch `contentHtml`, `contentMd`, `structuredContentJson`, or large SEO payloads for listing cards unless absolutely required.
-
-### G. Remove duplicate server work
-- Audit all `generateMetadata()` and page-render pairs.
-- Where the same data is loaded twice, refactor to share memoized loaders.
-- Use `cache()` and/or `unstable_cache()` appropriately.
-- Keep correctness and revalidation semantics intact.
-
-### H. Cache expensive aggregate data
-- Audit `getPublishedCategoryNavigationData()` and `getPublishedSearchFilterData()`.
-- Prevent per-request recomputation of category counts and country counts for every public page.
-- Use cache tags or snapshot/precomputed tables where appropriate.
-- Revalidate when publishing changes affect those aggregates.
-
-### I. Improve image delivery
-- Audit `src/components/common/responsive-image.js` and the media pipeline.
-- Avoid bypassing `next/image` for common editorial images.
-- Normalize remote images through a known proxy or ingestion pipeline so they can be optimized.
-- Ensure correct dimensions, `sizes`, and LCP treatment for likely hero images.
-
-### J. Refactor search for scale
-- Audit the search pipeline in `src/features/public-site/index.js`.
-- Replace broad `contains` matching plus JavaScript-side ranking with a more scalable search approach.
-- Prefer database full-text search or a dedicated search service.
-- Keep result quality strong while reducing server cost and latency.
-
-### K. Add caching for public incremental APIs
-- Audit:
-  - `src/app/api/public/latest-stories/route.js`
-  - `src/app/api/public/collection-stories/route.js`
-- Add safe cache semantics for public non-personalized responses.
-- Keep freshness acceptable for a news product.
-
-### L. Add performance governance
-- Add Lighthouse CI.
-- Add a bundle analyzer or equivalent build-time reporting.
-- Add performance budgets for key public routes.
-- Add Core Web Vitals RUM instrumentation.
-- Add synthetic monitoring coverage for key templates.
-
-## Constraints
-
-- Do not break existing routes, SEO metadata, structured data, or locale behavior.
-- Do not remove public search, story pages, category pages, or admin workflows.
-- Keep accessibility intact or improve it.
-- Preserve visual appearance as closely as possible.
-- Prefer incremental, reviewable refactors over a risky rewrite.
-- Keep server/client boundaries explicit and minimal.
+- `next.config.mjs`
+- `.lighthouserc.cjs`
+- `package.json`
+- `src/components/common/responsive-image.js`
+- `src/components/analytics/web-vitals.js`
+- `src/app/api/analytics/web-vitals/route.js`
+- `src/components/public/home-latest-stories.js`
+- `src/app/[locale]/search/page.js`
+- `src/features/public-site/index.js`
+- `scripts/perf/print-route-entry-sizes.js`
 
 ## Deliverables
 
-1. A concrete refactor plan ordered by ROI.
-2. The code changes.
-3. Before/after bundle impact estimates.
-4. Before/after route impact estimates for home, category, story, and search pages.
-5. A short explanation of tradeoffs.
-6. A checklist of follow-up validation steps.
+Produce the work in small, reviewable commits or patches and include code, config, and documentation updates.
+
+### Deliverable 1 — Image delivery hardening
+
+Implement an approach that ensures editorial images are performance-safe:
+
+- stop relying on arbitrary third-party hosts for above-the-fold images
+- route editorial media through first-party storage/CDN or a controlled image proxy
+- ensure story hero images, list-card images, and category/search thumbnails are optimizer-friendly
+- preserve width/height to avoid CLS
+- add placeholder/blur strategy where appropriate
+- ensure responsive `sizes` are correct for actual layouts
+- keep lazy loading for below-the-fold media
+- keep eager/high-priority loading only for the true LCP candidate
+
+Also add a short ADR or markdown note explaining the chosen image strategy and tradeoffs.
+
+### Deliverable 2 — Real-user performance observability
+
+Turn the current Web Vitals hook into a production-usable monitoring system:
+
+- persist incoming metrics from `src/components/analytics/web-vitals.js`
+- store enough metadata to analyze by route, metric, device/form factor, and release/build id
+- add aggregation or summary queries for p75 values
+- create an internal dashboard route or exportable report/query shape
+- define alert thresholds for LCP, INP, and CLS regressions
+- document how to operate it
+
+Keep the payload privacy-conscious and lightweight.
+
+### Deliverable 3 — CI performance gates
+
+Add repository automation so performance regressions fail fast:
+
+- create CI workflows for Lighthouse, route entry-size analysis, and bundle analysis
+- run against the most important public routes
+- publish artifacts for review
+- fail on meaningful regressions, not noisy micro-variance
+- add clear thresholds for:
+  - performance score
+  - LCP
+  - TBT / interaction-related lab signal
+  - CLS
+  - route JS size / asset growth
+
+Prefer workflows that are reliable in CI and easy for maintainers to understand.
+
+### Deliverable 4 — Search and listing performance optimization
+
+Refactor public search and listing data flows to reduce TTFB and server cost:
+
+- reduce over-fetching in search candidate selection
+- avoid loading `contentMd` in the first pass where possible
+- move ranking/filtering closer to the database or a proper search index
+- verify or add appropriate Prisma / DB indexes
+- reduce duplicate count queries where feasible
+- evaluate cursor-based pagination where it improves performance without harming UX
+- preserve correctness and result quality
+
+Include before/after reasoning and any migration steps.
+
+### Deliverable 5 — Client fetch and caching cleanup
+
+Improve incremental client-side loading:
+
+- remove unnecessary `cache: "no-store"` from public “load more” calls unless strictly required
+- honor HTTP caching semantics where safe
+- add request cancellation / de-duping for repeated clicks or route transitions
+- keep the UX resilient with loading, error, and retry behavior
+
+### Deliverable 6 — Public rendering and bundle cost review
+
+Review the public route surface for avoidable client/runtime cost:
+
+- identify public components that should remain server components
+- confirm that only essential interactive islands are client components
+- measure the cost of styled-components on public routes
+- reduce client JavaScript where possible
+- split or isolate heavy client modules where necessary
+- use the latest Next.js 16 bundle analysis options where appropriate
+
+Do not rewrite everything blindly. Prefer targeted wins with measurable impact.
+
+### Deliverable 7 — Perceived performance improvements
+
+Improve user-perceived speed on slower routes:
+
+- add route-level loading states and/or Suspense boundaries where beneficial
+- stream non-critical secondary content when it improves perceived responsiveness
+- ensure skeletons/loading UI do not cause layout shift
+
+## Constraints
+
+- preserve existing product behavior and editorial functionality
+- preserve SEO behavior, canonical metadata, structured data, and crawlability
+- do not introduce regressions in locale-aware routing
+- keep accessibility intact or improved
+- avoid introducing vendor lock-in unless clearly justified
+- prefer production-safe, observable changes over superficial score-chasing
 
 ## Output format
 
-Respond with:
-1. `Findings`
-2. `Refactor plan`
-3. `Code changes`
-4. `Performance impact estimate`
-5. `Validation checklist`
-6. `Risks and tradeoffs`
+Return:
 
-Where possible, include exact files to edit and explain why each change improves LCP, INP, CLS, TTFB, or bundle size.
+1. a concise implementation plan
+2. the exact code/config changes
+3. any migration steps
+4. a verification checklist
+5. a before/after performance hypothesis for each major change
+6. any follow-up risks or tradeoffs
+
+## Success criteria
+
+The final state should make this codebase materially stronger against:
+
+- Lighthouse / PageSpeed Insights
+- WebPageTest / GTmetrix
+- Chrome DevTools trace analysis
+- CrUX / RUM monitoring
+- ongoing bundle-size and route-regression checks
+
+Prioritize the highest-impact fixes first, especially image delivery, observability, CI enforcement, and search/listing TTFB.

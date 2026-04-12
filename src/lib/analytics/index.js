@@ -20,6 +20,14 @@ export const viewEventTypeValues = Object.freeze([
   "SEARCH_VIEW",
 ]);
 
+export const webVitalMetricNameValues = Object.freeze([
+  "CLS",
+  "FCP",
+  "INP",
+  "LCP",
+  "TTFB",
+]);
+
 export const observabilityFailureActionValues = Object.freeze([
   "DESTINATION_CONNECTION_ERROR",
   "FETCH_RUN_FAILED",
@@ -43,6 +51,23 @@ export const captureViewEventSchema = z.object({
   path: z.string().trim().min(1).max(2048),
   postId: z.string().trim().min(1).optional(),
   referrer: z.string().trim().max(2048).optional(),
+});
+
+export const captureWebVitalSchema = z.object({
+  attribution: z.record(z.any()).optional(),
+  buildId: z.string().trim().max(128).optional(),
+  connectionType: z.string().trim().max(32).optional(),
+  delta: z.number().finite().optional(),
+  formFactor: z.string().trim().max(16).optional(),
+  id: z.string().trim().min(1).max(128),
+  label: z.string().trim().max(32).optional(),
+  name: z.enum(webVitalMetricNameValues),
+  navigationType: z.string().trim().max(32).optional(),
+  path: z.string().trim().min(1).max(2048),
+  rating: z.string().trim().min(1).max(16),
+  value: z.number().finite(),
+  viewportHeight: z.number().int().positive().optional(),
+  viewportWidth: z.number().int().positive().optional(),
 });
 
 function trimToNull(value, maxLength) {
@@ -79,6 +104,82 @@ function normalizeViewEventType(value) {
   const normalizedValue = `${value || ""}`.trim().toUpperCase();
 
   return viewEventTypeValues.includes(normalizedValue) ? normalizedValue : "PAGE_VIEW";
+}
+
+function normalizeWebVitalMetricName(value) {
+  const normalizedValue = `${value || ""}`.trim().toUpperCase();
+
+  return webVitalMetricNameValues.includes(normalizedValue) ? normalizedValue : "LCP";
+}
+
+function normalizeWebVitalRating(value) {
+  const normalizedValue = `${value || ""}`.trim().toLowerCase();
+
+  return ["good", "needs-improvement", "poor"].includes(normalizedValue)
+    ? normalizedValue
+    : "good";
+}
+
+function normalizeWebVitalFormFactor(value, viewportWidth) {
+  const normalizedValue = `${value || ""}`.trim().toLowerCase();
+
+  if (["desktop", "mobile", "tablet"].includes(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  if (Number.isFinite(viewportWidth)) {
+    if (viewportWidth < 760) {
+      return "mobile";
+    }
+
+    if (viewportWidth < 1040) {
+      return "tablet";
+    }
+  }
+
+  return "desktop";
+}
+
+function normalizeWebVitalPath(value) {
+  return normalizePathname(value);
+}
+
+function inferLocaleFromPath(pathname) {
+  const segments = normalizePathname(pathname).split("/").filter(Boolean);
+  const localeSegment = segments[0] || defaultLocale;
+
+  return normalizeLocale(localeSegment);
+}
+
+function classifyPublicRoute(pathname) {
+  const normalizedPath = normalizePathname(pathname);
+  const segments = normalizedPath.split("/").filter(Boolean);
+
+  if (segments.length <= 1) {
+    return "home";
+  }
+
+  if (segments[1] === "news" && segments.length === 2) {
+    return "news";
+  }
+
+  if (segments[1] === "news" && segments.length === 3) {
+    return "story";
+  }
+
+  if (segments[1] === "category" && segments.length === 3) {
+    return "category";
+  }
+
+  if (segments[1] === "search" && segments.length === 2) {
+    return "search";
+  }
+
+  return "other";
+}
+
+function trimStructuredObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
 
 function serializeDate(value) {
@@ -286,6 +387,53 @@ export async function recordViewEvent(input, options = {}, prisma) {
       locale: true,
       path: true,
       postId: true,
+    },
+  });
+}
+
+/** Records a privacy-conscious Core Web Vitals sample for later aggregation. */
+export async function recordWebVitalMetric(input, prisma) {
+  if (!env.observability.metricsEnabled) {
+    return null;
+  }
+
+  const db = await resolvePrismaClient(prisma);
+
+  if (typeof db.webVitalMetric?.create !== "function") {
+    return null;
+  }
+
+  const path = normalizeWebVitalPath(input?.path);
+  const viewportWidth = Number.isFinite(input?.viewportWidth) ? Math.trunc(input.viewportWidth) : null;
+  const viewportHeight = Number.isFinite(input?.viewportHeight) ? Math.trunc(input.viewportHeight) : null;
+
+  return db.webVitalMetric.create({
+    data: {
+      attributionJson: trimStructuredObject(input?.attribution),
+      buildId: trimToNull(input?.buildId, 128),
+      connectionType: trimToNull(input?.connectionType, 32),
+      delta: Number.isFinite(input?.delta) ? input.delta : null,
+      formFactor: normalizeWebVitalFormFactor(input?.formFactor, viewportWidth),
+      label: trimToNull(input?.label, 32),
+      locale: inferLocaleFromPath(path),
+      metricId: trimToNull(input?.id, 128) || "unknown",
+      name: normalizeWebVitalMetricName(input?.name),
+      navigationType: trimToNull(input?.navigationType, 32),
+      path,
+      rating: normalizeWebVitalRating(input?.rating),
+      routeGroup: classifyPublicRoute(path),
+      value: Number.isFinite(input?.value) ? input.value : 0,
+      viewportHeight,
+      viewportWidth,
+    },
+    select: {
+      buildId: true,
+      createdAt: true,
+      id: true,
+      name: true,
+      path: true,
+      routeGroup: true,
+      value: true,
     },
   });
 }

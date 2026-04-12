@@ -3,53 +3,10 @@
  */
 
 import Image from "next/image";
+import { createImagePlaceholderDataUrl, getRenderableImageUrl } from "@/lib/media";
 
 const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 675;
-const remoteImageHostnames = new Set(
-  [
-    "flagcdn.com",
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.S3_MEDIA_BASE_URL,
-    ...`${process.env.NEXT_IMAGE_REMOTE_HOSTS || ""}`.split(","),
-  ]
-    .map((value) => {
-      const normalizedValue = `${value || ""}`.trim();
-
-      if (!normalizedValue) {
-        return "";
-      }
-
-      try {
-        return new URL(normalizedValue).hostname;
-      } catch {
-        return normalizedValue.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").trim();
-      }
-    })
-    .filter(Boolean),
-);
-
-function isAbsoluteHttpUrl(value) {
-  try {
-    const parsedUrl = new URL(value);
-
-    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isNextImageEligibleRemoteUrl(value) {
-  if (!isAbsoluteHttpUrl(value)) {
-    return false;
-  }
-
-  try {
-    return remoteImageHostnames.has(new URL(value).hostname);
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Renders a Next.js-optimized image with safe fallback dimensions for editorial media.
@@ -70,6 +27,7 @@ export default function ResponsiveImage({
   className,
   fill = false,
   height,
+  placeholder,
   priority = false,
   sizes,
   src,
@@ -80,36 +38,44 @@ export default function ResponsiveImage({
     return null;
   }
 
-  if (isAbsoluteHttpUrl(src) && !isNextImageEligibleRemoteUrl(src)) {
-    const { decoding, fetchPriority, loading, style, ...imgRest } = rest;
+  const resolvedWidth = width || DEFAULT_WIDTH;
+  const resolvedHeight = height || DEFAULT_HEIGHT;
+  const resolvedSrc = getRenderableImageUrl(src, {
+    alt,
+    height: resolvedHeight,
+    width: resolvedWidth,
+  });
 
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- arbitrary remote hosts must not enter Next image optimization.
-      <img
-        alt={alt}
-        className={className}
-        decoding={decoding || "async"}
-        fetchPriority={priority ? "high" : fetchPriority}
-        height={fill ? undefined : height || DEFAULT_HEIGHT}
-        loading={priority ? "eager" : loading || "lazy"}
-        src={src}
-        style={fill ? { ...style, height: "100%", width: "100%" } : style}
-        width={fill ? undefined : width || DEFAULT_WIDTH}
-        {...imgRest}
-      />
-    );
+  if (!resolvedSrc) {
+    return null;
   }
+
+  const shouldUseBlurPlaceholder =
+    placeholder === undefined
+      && !resolvedSrc.startsWith("data:image/")
+      && (fill || resolvedWidth >= 96 || resolvedHeight >= 96);
+  const blurDataURL =
+    placeholder === "blur" || shouldUseBlurPlaceholder
+      ? createImagePlaceholderDataUrl({
+          alt,
+          height: resolvedHeight,
+          sourceUrl: resolvedSrc,
+          width: resolvedWidth,
+        })
+      : undefined;
 
   return (
     <Image
       alt={alt}
       className={className}
       fill={fill || undefined}
-      height={fill ? undefined : height || DEFAULT_HEIGHT}
+      height={fill ? undefined : resolvedHeight}
+      placeholder={placeholder || (shouldUseBlurPlaceholder ? "blur" : "empty")}
       priority={priority}
+      blurDataURL={blurDataURL}
       sizes={sizes || (fill ? "100vw" : undefined)}
-      src={src}
-      width={fill ? undefined : width || DEFAULT_WIDTH}
+      src={resolvedSrc}
+      width={fill ? undefined : resolvedWidth}
       {...rest}
     />
   );

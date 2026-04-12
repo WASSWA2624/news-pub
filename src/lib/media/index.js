@@ -4,6 +4,8 @@
 
 import { sanitizeMediaUrl } from "@/lib/security";
 
+const imageProxyPath = "/api/media/proxy";
+
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -41,6 +43,57 @@ function createPreviewDescription({ caption, sourceUrl }) {
   }
 
   return "The original image could not be loaded, so a placeholder preview is shown instead.";
+}
+
+function normalizeHostname(value) {
+  const normalizedValue = trimText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  try {
+    return new URL(normalizedValue).hostname.toLowerCase();
+  } catch {
+    return normalizedValue
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/.*$/, "")
+      .trim()
+      .toLowerCase();
+  }
+}
+
+function getDirectImageHostnames() {
+  return new Set(
+    [
+      "flagcdn.com",
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.S3_MEDIA_BASE_URL,
+      ...`${process.env.NEXT_IMAGE_REMOTE_HOSTS || ""}`.split(","),
+    ]
+      .map(normalizeHostname)
+      .filter(Boolean),
+  );
+}
+
+function isSameOriginOrApprovedRemoteImageUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+
+    return getDirectImageHostnames().has(parsedUrl.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+export function createEditorialImageProxyUrl(url) {
+  const safeUrl = sanitizeMediaUrl(url);
+
+  if (!safeUrl || safeUrl.startsWith("/") || safeUrl.startsWith("data:image/")) {
+    return safeUrl || "";
+  }
+
+  return `${imageProxyPath}?url=${encodeURIComponent(safeUrl)}`;
 }
 /**
  * Returns whether a URL points to one of NewsPub's reserved fixture images.
@@ -127,7 +180,13 @@ export function getRenderableImageUrl(url, options = {}) {
     });
   }
 
-  return normalizedUrl;
+  if (normalizedUrl.startsWith("/") || normalizedUrl.startsWith("data:image/")) {
+    return normalizedUrl;
+  }
+
+  return isSameOriginOrApprovedRemoteImageUrl(normalizedUrl)
+    ? normalizedUrl
+    : createEditorialImageProxyUrl(normalizedUrl);
 }
 
 function extractHtmlAttribute(tag, attributeName) {

@@ -6,6 +6,7 @@ import { PublicCollectionPage } from "@/components/public";
 import { getRequiredMessages } from "@/features/i18n/get-messages";
 import { publicRouteSegments } from "@/features/i18n/routing";
 import { getPublishedNewsIndexData, publicListingPageSize } from "@/features/public-site";
+import { env } from "@/lib/env/server";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -47,6 +48,7 @@ export default async function NewsIndexPage({ params, searchParams }) {
 
   return (
     <PublicCollectionPage
+      advertContactHref={env.contact.whatsappAdvertUrl}
       collectionView="news"
       locale={locale}
       messages={messages.public}

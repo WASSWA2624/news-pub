@@ -339,6 +339,7 @@ model Post {
   viewEvents         ViewEvent[]
 
   @@index([status, publishedAt])
+  @@index([status, publishedAt, updatedAt])
   @@index([status, scheduledPublishAt])
   @@map("post")
 }
@@ -360,6 +361,7 @@ model PostTranslation {
   seoRecord             SEORecord?
 
   @@unique([postId, locale])
+  @@fulltext([contentMd], map: "posttranslation_contentMd_fts_idx")
   @@index([locale, postId])
   @@map("posttranslation")
 }
@@ -563,6 +565,34 @@ model ViewEvent {
   @@map("viewevent")
 }
 
+model WebVitalMetric {
+  id             String   @id @default(cuid())
+  metricId       String   @db.VarChar(128)
+  name           String   @db.VarChar(16)
+  rating         String   @db.VarChar(16)
+  path           String   @db.VarChar(2048)
+  routeGroup     String   @db.VarChar(64)
+  locale         String?  @db.VarChar(16)
+  label          String?  @db.VarChar(32)
+  navigationType String?  @db.VarChar(32)
+  formFactor     String   @db.VarChar(16)
+  connectionType String?  @db.VarChar(32)
+  viewportWidth  Int?
+  viewportHeight Int?
+  value          Float
+  delta          Float?
+  buildId        String?  @db.VarChar(128)
+  attributionJson Json?
+  createdAt      DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([path, name, createdAt])
+  @@index([routeGroup, name, createdAt])
+  @@index([formFactor, name, createdAt])
+  @@index([buildId, name, createdAt])
+  @@map("webvitalmetric")
+}
+
 model AuditEvent {
   id          String   @id @default(cuid())
   actorId     String?
@@ -629,6 +659,7 @@ model PublishAttempt {
 
   @@index([destinationId, status, createdAt])
   @@index([streamId, status, createdAt])
+  @@index([postId, platform, status])
   @@index([postId, createdAt])
   @@map("publishattempt")
 }

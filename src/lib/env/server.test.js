@@ -21,6 +21,7 @@ describe("server environment module", () => {
     const { env } = await import("./server");
 
     expect(env.auth.adminSeed.email).toBe("admin@example.com");
+    expect(env.contact.whatsappAdvertUrl).toBe("https://wa.me/256783230321");
     expect(env.media.driver).toBe("local");
     expect(env.scheduler.initialBackfillHours).toBe(24);
   });

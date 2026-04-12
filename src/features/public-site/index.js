@@ -731,7 +731,7 @@ const publicStorySelect = Object.freeze({
   updatedAt: true,
 });
 
-function buildPublicSearchSelect(locale) {
+function buildPublicSearchSelect(locale, { includeContentMd = true } = {}) {
   return {
     categories: publicListingPostSelect.categories,
     excerpt: true,
@@ -754,7 +754,7 @@ function buildPublicSearchSelect(locale) {
         locale: "asc",
       },
       select: {
-        contentMd: true,
+        ...(includeContentMd ? { contentMd: true } : {}),
         locale: true,
         structuredContentJson: true,
         summary: true,
@@ -914,6 +914,9 @@ function resolveSearchFieldScore(value, queryContext, weights) {
 function rankPublishedSearchPost(post, locale, queryContext) {
   const translation = pickTranslation(post.translations || [], locale);
   const summary = buildPostCardSummary(post, translation);
+  const bodyScoreFromDb = Number.isFinite(post?.searchBodyScore)
+    ? Math.min(searchFieldWeights.body.max, Math.max(0, Math.round(post.searchBodyScore)))
+    : 0;
   const combinedStrongText = normalizePublicSearchRankingText([
     translation?.title,
     summary,
@@ -923,7 +926,7 @@ function rankPublishedSearchPost(post, locale, queryContext) {
   ].join(" "));
   const combinedText = normalizePublicSearchRankingText([
     combinedStrongText,
-    translation?.contentMd,
+    translation?.contentMd || (bodyScoreFromDb > 0 ? queryContext.searchText : ""),
   ].join(" "), {
     maxLength: 9000,
   });
@@ -956,7 +959,12 @@ function rankPublishedSearchPost(post, locale, queryContext) {
     },
     {
       key: "body",
-      ...resolveSearchFieldScore(translation?.contentMd, queryContext, searchFieldWeights.body),
+      ...(bodyScoreFromDb > 0
+        ? {
+            matchedTerms: queryContext.terms.length,
+            score: bodyScoreFromDb,
+          }
+        : resolveSearchFieldScore(translation?.contentMd, queryContext, searchFieldWeights.body)),
     },
   ]
     .filter((entry) => entry.score > 0)
@@ -970,6 +978,9 @@ function rankPublishedSearchPost(post, locale, queryContext) {
     (count, term) => count + (combinedText.includes(term) ? 1 : 0),
     0,
   );
+  const resolvedMatchedTerms = bodyScoreFromDb > 0
+    ? Math.max(matchedTerms, queryContext.terms.length)
+    : matchedTerms;
   const primaryMatch = fieldScores[0] || {
     key: "body",
     matchedTerms: 0,
@@ -979,9 +990,9 @@ function rankPublishedSearchPost(post, locale, queryContext) {
     (sum, entry) => sum + Math.min(entry.key === "body" ? 12 : 34, Math.round(entry.score * 0.18)),
     0,
   );
-  let score = primaryMatch.score + secondaryScore + matchedTerms * 28;
+  let score = primaryMatch.score + secondaryScore + resolvedMatchedTerms * 28;
 
-  if (matchedTerms === queryContext.terms.length && queryContext.terms.length > 1) {
+  if (resolvedMatchedTerms === queryContext.terms.length && queryContext.terms.length > 1) {
     score += 78;
   }
 
@@ -990,7 +1001,7 @@ function rankPublishedSearchPost(post, locale, queryContext) {
   }
 
   return {
-    matchedTerms,
+    matchedTerms: resolvedMatchedTerms,
     primaryReason: primaryMatch.key,
     score,
   };
@@ -1064,6 +1075,312 @@ function getSearchCandidateLimit(pagination) {
   return Math.min(requestedWindow, publicSearchRankingCandidateLimit);
 }
 
+async function getPaginatedPublishedListingSnapshot(
+  db,
+  {
+    page = 1,
+    select = publicListingPostSelect,
+    where,
+  },
+) {
+  const requestedPage = normalizePage(page);
+  const requestedSkip = (requestedPage - 1) * publicListingPageSize;
+  const [totalItems, requestedPosts] = await Promise.all([
+    db.post.count({ where }),
+    db.post.findMany({
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      select,
+      skip: requestedSkip,
+      take: publicListingPageSize,
+      where,
+    }),
+  ]);
+  const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+
+  if (!totalItems || pagination.currentPage === requestedPage) {
+    return {
+      pagination,
+      posts: requestedPosts,
+    };
+  }
+
+  const safeSkip = (pagination.currentPage - 1) * pagination.pageSize;
+
+  if (safeSkip === requestedSkip) {
+    return {
+      pagination,
+      posts: requestedPosts,
+    };
+  }
+
+  const posts = await db.post.findMany({
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+    select,
+    skip: safeSkip,
+    take: pagination.pageSize,
+    where,
+  });
+
+  return {
+    pagination,
+    posts,
+  };
+}
+
+function createSearchBodyBooleanQuery(queryContext) {
+  return [...new Set(queryContext.terms)]
+    .map((term) => `${term}*`)
+    .join(" ")
+    .trim();
+}
+
+function createSearchNeedles(queryContext) {
+  return [...new Set([queryContext.query, ...queryContext.terms].map(normalizeSearch).filter(Boolean))];
+}
+
+function buildSearchStrongMatchSql(queryContext) {
+  const needles = createSearchNeedles(queryContext);
+
+  if (!needles.length) {
+    return {
+      params: [],
+      sql: "0 = 1",
+    };
+  }
+
+  const expressions = [];
+  const params = [];
+
+  for (const needle of needles) {
+    const slugNeedle = needle.replace(/\s+/g, "-");
+    const textPattern = `%${needle}%`;
+    const slugPattern = `%${slugNeedle || needle}%`;
+
+    expressions.push("LOWER(COALESCE(p.slug, '')) LIKE ?");
+    params.push(slugPattern);
+    expressions.push("LOWER(COALESCE(p.sourceName, '')) LIKE ?");
+    params.push(textPattern);
+    expressions.push("LOWER(COALESCE(p.excerpt, '')) LIKE ?");
+    params.push(textPattern);
+    expressions.push("LOWER(COALESCE(t.title, '')) LIKE ?");
+    params.push(textPattern);
+    expressions.push("LOWER(COALESCE(t.summary, '')) LIKE ?");
+    params.push(textPattern);
+    expressions.push("LOWER(COALESCE(c.name, '')) LIKE ?");
+    params.push(textPattern);
+    expressions.push("LOWER(COALESCE(c.slug, '')) LIKE ?");
+    params.push(slugPattern);
+  }
+
+  return {
+    params,
+    sql: expressions.join(" OR "),
+  };
+}
+
+async function queryBodyOnlySearchMatches(db, { country, limit, locale, queryContext }) {
+  if (!queryContext.query || typeof db.$queryRawUnsafe !== "function") {
+    return null;
+  }
+
+  const booleanQuery = createSearchBodyBooleanQuery(queryContext);
+
+  if (!booleanQuery) {
+    return null;
+  }
+
+  const strongMatch = buildSearchStrongMatchSql(queryContext);
+  const bodyQuery = `
+    FROM \`post\` AS p
+    INNER JOIN \`posttranslation\` AS t
+      ON t.\`postId\` = p.\`id\`
+      AND t.\`locale\` = ?
+    LEFT JOIN \`fetchedarticle\` AS fa
+      ON fa.\`id\` = p.\`sourceArticleId\`
+    LEFT JOIN \`postcategory\` AS pc
+      ON pc.\`postId\` = p.\`id\`
+    LEFT JOIN \`category\` AS c
+      ON c.\`id\` = pc.\`categoryId\`
+    WHERE p.\`status\` = 'PUBLISHED'
+      AND EXISTS (
+        SELECT 1
+        FROM \`publishattempt\` AS publish_attempt
+        WHERE publish_attempt.\`postId\` = p.\`id\`
+          AND publish_attempt.\`platform\` = 'WEBSITE'
+          AND publish_attempt.\`status\` = 'SUCCEEDED'
+      )
+      ${country ? "AND JSON_CONTAINS(COALESCE(fa.`providerCountriesJson`, JSON_ARRAY()), JSON_QUOTE(?), '$')" : ""}
+      AND MATCH(t.\`contentMd\`) AGAINST(? IN BOOLEAN MODE) > 0
+      AND NOT (${strongMatch.sql})
+  `;
+  const baseParams = [
+    locale,
+    ...(country ? [country] : []),
+    booleanQuery,
+    ...strongMatch.params,
+  ];
+  const countRows = await db.$queryRawUnsafe(
+    `
+      SELECT COUNT(DISTINCT p.\`id\`) AS total
+      ${bodyQuery}
+    `,
+    ...baseParams,
+  );
+  const rows = await db.$queryRawUnsafe(
+    `
+      SELECT
+        p.\`id\` AS id,
+        LEAST(${searchFieldWeights.body.max}, ROUND(MAX(MATCH(t.\`contentMd\`) AGAINST(? IN NATURAL LANGUAGE MODE)) * 120)) AS bodyScore
+      ${bodyQuery}
+      GROUP BY p.\`id\`, p.\`publishedAt\`, p.\`updatedAt\`
+      ORDER BY bodyScore DESC, p.\`publishedAt\` DESC, p.\`updatedAt\` DESC
+      LIMIT ?
+    `,
+    queryContext.query,
+    ...baseParams,
+    limit,
+  );
+
+  return {
+    rows: rows.map((row) => ({
+      bodyScore: Number(row.bodyScore || 0),
+      id: row.id,
+    })),
+    total: Number(countRows?.[0]?.total || 0),
+  };
+}
+
+async function hydrateSearchPageContent(db, posts, locale) {
+  const postIdsNeedingBody = posts
+    .filter((post) => {
+      const translation = pickTranslation(post.translations || [], locale);
+
+      return !translation?.contentMd && (!buildPostCardSummary(post, translation) || Number(post?.searchBodyScore || 0) > 0);
+    })
+    .map((post) => post.id);
+
+  if (!postIdsNeedingBody.length) {
+    return posts;
+  }
+
+  const contentRows = await db.post.findMany({
+    select: {
+      id: true,
+      translations: {
+        orderBy: {
+          locale: "asc",
+        },
+        select: {
+          contentMd: true,
+          locale: true,
+        },
+        where: {
+          locale: {
+            in: [...new Set([locale, defaultLocale].filter(Boolean))],
+          },
+        },
+      },
+    },
+    where: {
+      id: {
+        in: postIdsNeedingBody,
+      },
+    },
+  });
+  const contentById = new Map(contentRows.map((row) => [row.id, row.translations || []]));
+
+  return posts.map((post) => {
+    if (!contentById.has(post.id)) {
+      return post;
+    }
+
+    const translationsByLocale = new Map((post.translations || []).map((translation) => [translation.locale, translation]));
+
+    for (const translation of contentById.get(post.id)) {
+      const existingTranslation = translationsByLocale.get(translation.locale) || { locale: translation.locale };
+
+      translationsByLocale.set(translation.locale, {
+        ...existingTranslation,
+        contentMd: translation.contentMd,
+      });
+    }
+
+    return {
+      ...post,
+      translations: [...translationsByLocale.values()],
+    };
+  });
+}
+
+async function searchPublishedStoriesOptimized(db, { country, locale, page, queryContext }) {
+  const requestedPage = normalizePage(page);
+  const normalizedCountry = normalizeCountry(country);
+  const strongWhere = buildSearchWhere(locale, queryContext.query, normalizedCountry, {
+    includeBody: false,
+  });
+  const strongTotalItems = await db.post.count({ where: strongWhere });
+  const candidateLimit = getSearchCandidateLimit({
+    currentPage: requestedPage,
+    pageSize: publicListingPageSize,
+  });
+  const [strongCandidatePosts, bodyOnlySearchMatch] = await Promise.all([
+    db.post.findMany({
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      select: buildPublicSearchSelect(locale, {
+        includeContentMd: false,
+      }),
+      take: candidateLimit,
+      where: strongWhere,
+    }),
+    queryBodyOnlySearchMatches(db, {
+      country: normalizedCountry,
+      limit: candidateLimit,
+      locale,
+      queryContext,
+    }),
+  ]);
+  const bodyMatchIds = (bodyOnlySearchMatch?.rows || []).map((row) => row.id);
+  const bodyScoreById = new Map((bodyOnlySearchMatch?.rows || []).map((row) => [row.id, row.bodyScore]));
+  const bodyOnlyPosts = bodyMatchIds.length
+    ? await db.post.findMany({
+        select: buildPublicSearchSelect(locale, {
+          includeContentMd: false,
+        }),
+        where: {
+          id: {
+            in: bodyMatchIds,
+          },
+        },
+      })
+    : [];
+  const candidatePosts = dedupeSearchCandidates([
+    ...strongCandidatePosts.map((post) => ({
+      ...post,
+      searchBodyScore: bodyScoreById.get(post.id) || 0,
+    })),
+    ...bodyOnlyPosts.map((post) => ({
+      ...post,
+      searchBodyScore: bodyScoreById.get(post.id) || 0,
+    })),
+  ]);
+  const totalItems = strongTotalItems + (bodyOnlySearchMatch?.total || 0);
+  const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+  const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
+  const endIndex = startIndex + pagination.pageSize;
+  const rankedPosts = rankSearchCandidates(candidatePosts, locale, queryContext);
+  const pagePosts = await hydrateSearchPageContent(db, rankedPosts.slice(startIndex, endIndex).map((entry) => entry.post), locale);
+  const hydratedRankedPosts = rankedPosts.slice(startIndex, endIndex).map((entry) => ({
+    ...entry,
+    post: pagePosts.find((post) => post.id === entry.post.id) || entry.post,
+  }));
+
+  return {
+    items: hydratedRankedPosts.map((rankedPost) => mapRankedSearchResult(rankedPost, locale)),
+    pagination,
+    totalItems,
+  };
+}
+
 async function getPublishedCategoryCounts(db) {
   const [categories, categoryPostCounts] = await Promise.all([
     db.category.findMany({
@@ -1117,9 +1434,9 @@ async function queryPublishedCountryCounts(db, locale) {
     try {
       const countryRows = await db.$queryRaw(Prisma.sql`
         SELECT LOWER(country_codes.country_code) AS value, COUNT(*) AS count
-        FROM \`FetchedArticle\` AS article
-        INNER JOIN \`Post\` AS post ON post.\`sourceArticleId\` = article.\`id\`
-        INNER JOIN \`PostTranslation\` AS translation
+        FROM \`fetchedarticle\` AS article
+        INNER JOIN \`post\` AS post ON post.\`sourceArticleId\` = article.\`id\`
+        INNER JOIN \`posttranslation\` AS translation
           ON translation.\`postId\` = post.\`id\`
           AND translation.\`locale\` = ${locale}
         INNER JOIN JSON_TABLE(
@@ -1129,7 +1446,7 @@ async function queryPublishedCountryCounts(db, locale) {
         WHERE post.\`status\` = 'PUBLISHED'
           AND EXISTS (
             SELECT 1
-            FROM \`PublishAttempt\` AS publish_attempt
+            FROM \`publishattempt\` AS publish_attempt
             WHERE publish_attempt.\`postId\` = post.\`id\`
               AND publish_attempt.\`platform\` = 'WEBSITE'
               AND publish_attempt.\`status\` = 'SUCCEEDED'
@@ -1376,29 +1693,16 @@ export async function getPublishedNewsIndexData({ locale = defaultLocale, page =
   return withPublicSiteDatabaseFallback(
     async () => {
       const db = await resolvePrismaClient(prisma);
-      const requestedPage = normalizePage(page);
-      const totalItems = await db.post.count({
-        where: buildPublishedWebsiteWhere({
-          translations: {
-            some: {
-              locale,
-            },
+      const where = buildPublishedWebsiteWhere({
+        translations: {
+          some: {
+            locale,
           },
-        }),
+        },
       });
-      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-      const posts = await db.post.findMany({
-        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: publicListingPostSelect,
-        skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-        take: pagination.pageSize,
-        where: buildPublishedWebsiteWhere({
-          translations: {
-            some: {
-              locale,
-            },
-          },
-        }),
+      const { pagination, posts } = await getPaginatedPublishedListingSnapshot(db, {
+        page,
+        where,
       });
 
       return {
@@ -1443,13 +1747,8 @@ export async function getPublishedCategoryPageData({ locale = defaultLocale, pag
           },
         },
       });
-      const totalItems = await db.post.count({ where });
-      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
-      const posts = await db.post.findMany({
-        orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-        select: publicListingPostSelect,
-        skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-        take: pagination.pageSize,
+      const { pagination, posts } = await getPaginatedPublishedListingSnapshot(db, {
+        page: requestedPage,
         where,
       });
 
@@ -1537,73 +1836,105 @@ export async function searchPublishedStories(
       const requestedPage = normalizePage(page);
       const normalizedCountry = normalizeCountry(country);
       const queryContext = buildPublicSearchQueryContext(search);
-      const where = buildSearchWhere(locale, search, normalizedCountry);
-      const totalItems = await db.post.count({ where });
-      const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
       let items = [];
 
       if (queryContext.query) {
-        const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
-        const endIndex = startIndex + pagination.pageSize;
-        const candidateLimit = getSearchCandidateLimit(pagination);
-        const strongWhere = buildSearchWhere(locale, search, normalizedCountry, {
-          includeBody: false,
-        });
-        const strongCandidatePosts = await db.post.findMany({
-          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-          select: buildPublicSearchSelect(locale),
-          take: candidateLimit,
-          where: strongWhere,
-        });
-        let candidatePosts = strongCandidatePosts;
+        if (typeof db.$queryRawUnsafe === "function") {
+          const optimizedSnapshot = await searchPublishedStoriesOptimized(db, {
+            country: normalizedCountry,
+            locale,
+            page: requestedPage,
+            queryContext,
+          });
 
-        if (strongCandidatePosts.length < Math.min(totalItems, endIndex, candidateLimit)) {
-          const fallbackCandidatePosts = await db.post.findMany({
+          items = optimizedSnapshot.items;
+          return {
+            country: normalizedCountry,
+            countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+            items,
+            pagination: optimizedSnapshot.pagination,
+            query: queryContext.query,
+          };
+        } else {
+          const where = buildSearchWhere(locale, search, normalizedCountry);
+          const totalItems = await db.post.count({ where });
+          const pagination = createPagination(totalItems, requestedPage, publicListingPageSize);
+          const startIndex = totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0;
+          const endIndex = startIndex + pagination.pageSize;
+          const candidateLimit = getSearchCandidateLimit(pagination);
+          const strongWhere = buildSearchWhere(locale, search, normalizedCountry, {
+            includeBody: false,
+          });
+          const strongCandidatePosts = await db.post.findMany({
             orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
             select: buildPublicSearchSelect(locale),
             take: candidateLimit,
-            where,
+            where: strongWhere,
           });
+          let candidatePosts = strongCandidatePosts;
 
-          candidatePosts = dedupeSearchCandidates([...strongCandidatePosts, ...fallbackCandidatePosts]);
-        }
+          if (strongCandidatePosts.length < Math.min(totalItems, endIndex, candidateLimit)) {
+            const fallbackCandidatePosts = await db.post.findMany({
+              orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+              select: buildPublicSearchSelect(locale),
+              take: candidateLimit,
+              where,
+            });
 
-        const rankedPosts = rankSearchCandidates(candidatePosts, locale, queryContext);
+            candidatePosts = dedupeSearchCandidates([...strongCandidatePosts, ...fallbackCandidatePosts]);
+          }
 
-        if (rankedPosts.length >= endIndex || rankedPosts.length >= totalItems || candidateLimit >= totalItems) {
-          items = rankedPosts.slice(startIndex, endIndex).map((rankedPost) =>
-            mapRankedSearchResult(rankedPost, locale),
-          );
-        } else {
-          const pagePosts = await db.post.findMany({
-            orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-            select: buildPublicSearchSelect(locale),
-            skip: startIndex,
-            take: pagination.pageSize,
-            where,
-          });
+          const rankedPosts = rankSearchCandidates(candidatePosts, locale, queryContext);
 
-          items = rankSearchCandidates(pagePosts, locale, queryContext).map((rankedPost) =>
-            mapRankedSearchResult(rankedPost, locale),
-          );
+          if (rankedPosts.length >= endIndex || rankedPosts.length >= totalItems || candidateLimit >= totalItems) {
+            items = rankedPosts.slice(startIndex, endIndex).map((rankedPost) =>
+              mapRankedSearchResult(rankedPost, locale),
+            );
+          } else {
+            const pagePosts = await db.post.findMany({
+              orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+              select: buildPublicSearchSelect(locale),
+              skip: startIndex,
+              take: pagination.pageSize,
+              where,
+            });
+
+            items = rankSearchCandidates(pagePosts, locale, queryContext).map((rankedPost) =>
+              mapRankedSearchResult(rankedPost, locale),
+            );
+          }
+
+          return {
+            country: normalizedCountry,
+            countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+            items,
+            pagination,
+            query: queryContext.query,
+          };
         }
       } else {
-        const posts = await db.post.findMany({
-          orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
-          select: publicListingPostSelect,
-          skip: totalItems ? (pagination.currentPage - 1) * pagination.pageSize : 0,
-          take: pagination.pageSize,
+        const where = buildSearchWhere(locale, search, normalizedCountry);
+        const { pagination, posts } = await getPaginatedPublishedListingSnapshot(db, {
+          page: requestedPage,
           where,
         });
 
         items = posts.map((post) => mapPostCard(post, locale));
+
+        return {
+          country: normalizedCountry,
+          countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
+          items,
+          pagination,
+          query: queryContext.query,
+        };
       }
 
       return {
         country: normalizedCountry,
         countryLabel: normalizedCountry ? formatCountryLabel(normalizedCountry, locale) : "",
         items,
-        pagination,
+        pagination: createEmptyPagination(page),
         query: queryContext.query,
       };
     },

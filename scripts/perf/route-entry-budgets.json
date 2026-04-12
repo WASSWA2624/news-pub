@@ -1,0 +1,24 @@
+{
+  "defaults": {
+    "maxAssetCount": 12,
+    "maxLargestAssetKb": 140,
+    "maxTotalKb": 220
+  },
+  "routes": {
+    "home": {
+      "maxTotalKb": 140
+    },
+    "news": {
+      "maxTotalKb": 165
+    },
+    "category": {
+      "maxTotalKb": 165
+    },
+    "search": {
+      "maxTotalKb": 175
+    },
+    "story": {
+      "maxTotalKb": 200
+    }
+  }
+}

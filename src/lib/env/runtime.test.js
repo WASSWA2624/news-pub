@@ -21,6 +21,10 @@ describe("environment runtime schema", () => {
       openaiApiKey: null,
       requestTimeoutMs: 20000,
     });
+    expect(env.contact).toEqual({
+      whatsappAdvertNumber: "+256783230321",
+      whatsappAdvertUrl: "https://wa.me/256783230321",
+    });
     expect(env.destinations.encryptionKey).toBe("destination-secret");
     expect(env.meta).toEqual({
       appId: null,
@@ -85,6 +89,15 @@ describe("environment runtime schema", () => {
     expect(() => parseSharedEnv(env)).toThrow(
       /DEFAULT_LOCALE must be included in SUPPORTED_LOCALES/,
     );
+  });
+
+  it("requires a valid WhatsApp advert number in international format", () => {
+    const env = createNewsPubTestEnv({
+      WHATSAPP_ADVERT_NUMBER: "0783230321",
+    });
+
+    expect(() => parseServerEnv(env)).toThrow(/WHATSAPP_ADVERT_NUMBER/);
+    expect(() => parseServerEnv(env)).toThrow(/international phone number/);
   });
 
   it("requires S3 settings only when the S3 driver is enabled", () => {
