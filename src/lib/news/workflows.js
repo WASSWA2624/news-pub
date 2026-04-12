@@ -9,6 +9,10 @@ import { getDestinationManagementSnapshot } from "@/features/destinations";
 import { discoverRemoteImageUrl } from "@/lib/media";
 import { fetchProviderArticles } from "@/lib/news/providers";
 import {
+  getProviderTimeBoundarySupport,
+  resolveStreamProviderRequestValues,
+} from "@/lib/news/provider-definitions";
+import {
   isArticleInsideFetchWindow,
   resolveExecutionFetchWindow,
   serializeFetchWindow,
@@ -172,7 +176,38 @@ function getCategorySearchTerms(category) {
   return dedupeStrings([...normalizedTerms, ...aliasTerms]);
 }
 
-function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = {}) {
+export function resolveStreamArticleWindowPolicy(stream = {}) {
+  const provider_key = trimText(stream?.activeProvider?.provider_key).toLowerCase();
+
+  if (!provider_key) {
+    return {
+      enforceEndBoundary: true,
+      enforceStartBoundary: true,
+      mode: "default",
+    };
+  }
+
+  const requestValues = resolveStreamProviderRequestValues(provider_key, {
+    country_allowlist_json: stream.country_allowlist_json,
+    language_allowlist_json: stream.language_allowlist_json,
+    locale: stream.locale,
+    providerDefaults: stream.activeProvider?.request_defaults_json,
+    providerFilters: stream.settings_json?.providerFilters,
+  });
+  const timeBoundarySupport = getProviderTimeBoundarySupport(provider_key, requestValues);
+
+  return {
+    enforceEndBoundary: true,
+    enforceStartBoundary: timeBoundarySupport.mode !== "local_only",
+    mode: timeBoundarySupport.mode || "default",
+  };
+}
+
+function evaluateArticleAgainstStream(
+  article,
+  stream,
+  { fetchWindow = null, fetchWindowPolicy = null } = {},
+) {
   const reasons = [];
   const normalizedSearch = getArticleSearchText(article);
   const includeKeywords = dedupeStrings(stream.include_keywords_json || []).map((keyword) =>
@@ -189,7 +224,7 @@ function evaluateArticleAgainstStream(article, stream, { fetchWindow = null } = 
     stream.categories.map((entry) => entry.category),
   );
 
-  if (!isArticleInsideFetchWindow(article, fetchWindow)) {
+  if (!isArticleInsideFetchWindow(article, fetchWindow, fetchWindowPolicy || undefined)) {
     reasons.push("outside_fetch_window");
   }
 
@@ -3108,10 +3143,12 @@ async function processFetchedArticlesForStream(
   const summary = createFetchRunSummary(providerResult);
   const uniqueEligibleCandidates = [];
   const repostEligibleDuplicates = [];
+  const fetchWindowPolicy = resolveStreamArticleWindowPolicy(executionContext.stream);
 
   for (const articleCandidate of providerResult.articles) {
     const evaluation = evaluateArticleAgainstStream(articleCandidate, executionContext.stream, {
       fetchWindow: executionContext.fetchWindow,
+      fetchWindowPolicy,
     });
 
     if (evaluation.status === "SKIPPED") {

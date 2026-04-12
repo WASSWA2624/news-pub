@@ -138,4 +138,37 @@ describe("fetch window helpers", () => {
       ),
     ).toBe(true);
   });
+
+  it("can ignore the lower bound for local-only provider feeds while still enforcing the end boundary", () => {
+    const fetchWindow = resolveExecutionFetchWindow({
+      now: new Date("2026-04-07T12:00:00.000Z"),
+      requestedWindow: {
+        end: "2026-04-07T12:00:00.000Z",
+        start: "2026-04-07T00:00:00.000Z",
+      },
+    });
+
+    expect(
+      isArticleInsideFetchWindow(
+        {
+          published_at: "2026-04-06T23:30:00.000Z",
+        },
+        fetchWindow,
+        {
+          enforceStartBoundary: false,
+        },
+      ),
+    ).toBe(true);
+    expect(
+      isArticleInsideFetchWindow(
+        {
+          published_at: "2026-04-07T12:00:01.000Z",
+        },
+        fetchWindow,
+        {
+          enforceStartBoundary: false,
+        },
+      ),
+    ).toBe(false);
+  });
 });

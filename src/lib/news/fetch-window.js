@@ -232,7 +232,11 @@ export function mergeExecutionFetchWindows(windows = []) {
  * @param {object|null} fetchWindow - Normalized fetch window.
  * @returns {boolean} True when the article should remain eligible by window.
  */
-export function isArticleInsideFetchWindow(article, fetchWindow) {
+export function isArticleInsideFetchWindow(
+  article,
+  fetchWindow,
+  { enforceEndBoundary = true, enforceStartBoundary = true } = {},
+) {
   if (!fetchWindow?.start || !fetchWindow?.end) {
     return true;
   }
@@ -243,5 +247,13 @@ export function isArticleInsideFetchWindow(article, fetchWindow) {
     return true;
   }
 
-  return articlePublishedAt >= fetchWindow.start && articlePublishedAt <= fetchWindow.end;
+  if (enforceStartBoundary && articlePublishedAt < fetchWindow.start) {
+    return false;
+  }
+
+  if (enforceEndBoundary && articlePublishedAt > fetchWindow.end) {
+    return false;
+  }
+
+  return true;
 }

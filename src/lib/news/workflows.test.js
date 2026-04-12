@@ -2059,6 +2059,82 @@ describe("shared stream execution and website completeness", () => {
     );
   });
 
+  it("keeps local-only top-headlines results eligible when they fall just before the requested lower bound", async () => {
+    const fetchProviderArticles = vi.fn().mockResolvedValue({
+      articles: [
+        createWorkflowArticle("website_top_headline", {
+          providerCountries: ["us"],
+          published_at: "2026-04-06T23:30:00.000Z",
+        }),
+      ],
+      cursor: {
+        page: 1,
+      },
+      fetched_count: 1,
+    });
+
+    vi.doMock("@/lib/ai", () => ({
+      optimizeDestinationPayload: vi.fn().mockResolvedValue(createOptimizationPassResult()),
+    }));
+    vi.doMock("@/lib/analytics", () => ({
+      createAuditEventRecord: vi.fn().mockResolvedValue(null),
+      recordObservabilityEvent: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/news/providers", () => ({
+      fetchProviderArticles,
+    }));
+    vi.doMock("@/lib/revalidation", () => ({
+      revalidatePublishedPostPaths: vi.fn().mockResolvedValue(null),
+    }));
+    vi.doMock("@/lib/validation/configuration", () => ({
+      getStreamValidationIssues: vi.fn().mockReturnValue([]),
+    }));
+
+    const { runStreamFetch } = await import("./workflows");
+    const stream = createWorkflowStream({
+      destinationPlatform: "WEBSITE",
+      id: "website_stream",
+      mode: "AUTO_PUBLISH",
+      providerFilters: {
+        categories: ["general"],
+        countries: ["us"],
+      },
+      provider_key: "newsapi",
+      request_defaults_json: {
+        category: "general",
+        country: "us",
+        endpoint: "top-headlines",
+      },
+    });
+
+    stream.country_allowlist_json = ["us"];
+    stream.language_allowlist_json = ["en"];
+
+    const prisma = createWorkflowExecutionPrisma({
+      website_stream: stream,
+    });
+    const completedRun = await runStreamFetch(
+      "website_stream",
+      {
+        fetchWindow: {
+          end: "2026-04-07T12:00:00.000Z",
+          start: "2026-04-07T00:00:00.000Z",
+        },
+        now: new Date("2026-04-07T12:00:00.000Z"),
+        trigger_type: "manual",
+      },
+      prisma,
+    );
+
+    expect(prisma.articleMatch.create).toHaveBeenCalledTimes(1);
+    expect(completedRun).toMatchObject({
+      published_count: 1,
+      publishable_count: 1,
+      skipped_count: 0,
+      status: "SUCCEEDED",
+    });
+  });
+
   it("processes every eligible website candidate from a broad pool even when max_posts_per_run is lower", async () => {
     const fetchProviderArticles = vi.fn().mockResolvedValue({
       articles: [
