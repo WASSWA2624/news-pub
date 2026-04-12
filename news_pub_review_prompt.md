@@ -1,496 +1,289 @@
-# Refactor Prompt: NewsPub Full Reliability + Database Naming Compliance Overhaul
+# Refactor Prompt: NewsPub Compliance-Preserving Reliability and Provider Hardening
 
-You are a senior staff/principal engineer performing a **full-codebase refactor** of the attached NewsPub repository. Work like a production-focused architect and implementer, not like a superficial formatter.
+You are a senior staff/principal engineer performing a **full production-grade refactor review and targeted implementation pass** on the attached NewsPub repository.
 
-Your mission is to refactor the entire codebase so that it is:
+Your job is **not** to rewrite compliant areas. Your job is to:
 
-1. **100% compliant with lowercase snake_case database naming** for **all database tables and all database columns**.
-2. Equipped with a **durable, restart-safe, multi-instance-safe background worker** that reliably resumes and completes all scheduled, triggered, and in-flight stream work, including **auto-publish / auto-repost flows** according to each stream’s configuration.
-3. Updated so that **all implemented news provider integrations are re-reviewed and hardened against the current official provider documentation**, including request construction, pagination, validation, retries, rate-limit behavior, and normalization robustness.
+1. **Preserve all already-correct database snake_case mappings and migrations as-is.**
+2. **Eliminate the remaining places where runtime code still assumes old non-snake-case or compressed physical database identifiers.**
+3. **Strengthen the durable background worker / scheduler architecture so triggered, running, orphaned, and auto-publish/repost work is always recoverable, resumable, observable, and idempotent.**
+4. **Review every implemented news provider integration against the official provider docs and harden both UI metadata and runtime request logic without regressing working features that are already compliant.**
 
-Do not stop at a partial patch. Treat this as a **systemic refactor** with schema, runtime, scheduling, provider integration, tests, scripts, and operational tooling all brought into alignment.
-
----
-
-## Repository-specific findings you must treat as ground truth
-
-### 1) Database naming is not snake_case compliant today
-The current Prisma/database layer uses lowercase table names, but many multi-word tables are compressed instead of snake_case, and a large number of columns are camelCase.
-
-Examples of current non-compliant multi-word table names that must be renamed:
-
-- `adminsession` -> `admin_session`
-- `newsproviderconfig` -> `news_provider_config`
-- `mediaasset` -> `media_asset`
-- `mediavariant` -> `media_variant`
-- `fetchedarticle` -> `fetched_article`
-- `posttranslation` -> `post_translation`
-- `providerfetchcheckpoint` -> `provider_fetch_checkpoint`
-- `publishingstream` -> `publishing_stream`
-- `articlematch` -> `article_match`
-- `optimizationcache` -> `optimization_cache`
-- `destinationtemplate` -> `destination_template`
-- `seorecord` -> `seo_record`
-- `viewevent` -> `view_event`
-- `webvitalmetric` -> `web_vital_metric`
-- `auditevent` -> `audit_event`
-- `postcategory` -> `post_category`
-- `streamcategory` -> `stream_category`
-- `publishattempt` -> `publish_attempt`
-- `fetchrun` -> `fetch_run`
-
-Single-word table names that already comply can remain as-is only if they are genuinely single-word entities, for example: `locale`, `user`, `post`, `category`, `destination`.
-
-Examples of current non-compliant column names that must be converted to snake_case at the database level:
-
-- `createdAt` -> `created_at`
-- `updatedAt` -> `updated_at`
-- `passwordHash` -> `password_hash`
-- `userId` -> `user_id`
-- `providerKey` -> `provider_key`
-- `baseUrl` -> `base_url`
-- `requestDefaultsJson` -> `request_defaults_json`
-- `accountHandle` -> `account_handle`
-- `externalAccountId` -> `external_account_id`
-- `connectionStatus` -> `connection_status`
-- `encryptedTokenCiphertext` -> `encrypted_token_ciphertext`
-- `lastCheckedAt` -> `last_checked_at`
-- `fileSizeBytes` -> `file_size_bytes`
-- `sourceUrl` -> `source_url`
-- `mimeType` -> `mime_type`
-- `featuredMediaId` -> `featured_media_id`
-- `providerArticleId` -> `provider_article_id`
-- `dedupeFingerprint` -> `dedupe_fingerprint`
-- `publishedAt` -> `published_at`
-- `scheduledPublishAt` -> `scheduled_publish_at`
-- `scheduleIntervalMinutes` -> `schedule_interval_minutes`
-- `retryBackoffMinutes` -> `retry_backoff_minutes`
-- `lastRunStartedAt` -> `last_run_started_at`
-- `lastRunCompletedAt` -> `last_run_completed_at`
-- `lastFailureAt` -> `last_failure_at`
-- `optimizationCacheId` -> `optimization_cache_id`
-- `optimizedPayloadJson` -> `optimized_payload_json`
-- `readinessChecksJson` -> `readiness_checks_json`
-- `duplicateOfMatchId` -> `duplicate_of_match_id`
-- `attemptNumber` -> `attempt_number`
-- `idempotencyKey` -> `idempotency_key`
-- `payloadJson` -> `payload_json`
-- `responseJson` -> `response_json`
-- `diagnosticsJson` -> `diagnostics_json`
-- `providerCursorBeforeJson` -> `provider_cursor_before_json`
-- `providerCursorAfterJson` -> `provider_cursor_after_json`
-- `executionDetailsJson` -> `execution_details_json`
-
-Assume there are many more. You must produce and apply the **complete mapping** for every model field persisted to the database.
-
-### 2) Worker/scheduler reliability is not strong enough today
-Current scheduling and execution logic is centered around files such as:
-
-- `src/lib/news/workflows.js`
-- `scripts/internal-scheduler.js`
-- `src/app/api/jobs/scheduled-publishing/route.js`
-- `src/features/streams/index.js`
-
-The current implementation has these architectural weaknesses:
-
-- It relies heavily on timestamp-based “in progress” inference (`lastRunStartedAt` compared with completion/failure timestamps) instead of durable job claiming and recovery.
-- `runScheduledStreams()` processes due streams, pending scheduled publish attempts, and retryable failed attempts, but it does **not** robustly recover stale/orphaned `RUNNING` work after a crash/restart.
-- Publish attempts can be marked `RUNNING`, but there is no full stale-lease reconciliation loop that safely returns abandoned work to a resumable state.
-- Stream execution state is too process-local and not durable enough for multi-instance or crash-recovery behavior.
-- Internal polling via `scripts/internal-scheduler.js` is a fallback, not a true durable worker/orchestrator.
-- Auto-publish currently happens too directly in the fetch flow; it must become durable queue/worker behavior so a process crash cannot strand eligible stories.
-
-### 3) Provider integrations need a full docs-alignment and robustness pass
-Current provider code is mainly in:
-
-- `src/lib/news/providers.js`
-- `src/lib/news/provider-definitions.js`
-- `src/lib/news/outbound-fetch.js`
-
-Treat the following as concrete gaps to address:
-
-#### Mediastack
-- The implementation currently builds requests using `countries`, `languages`, `categories`, `keywords`, `date`, `sort`, and `limit`, but it does **not** fully implement durable pagination via `offset`.
-- The official docs support source filtering via `sources`; the adapter currently does not expose/implement that request capability.
-- Pagination metadata is returned, but the implementation is effectively single-request rather than a robust paginated fetch loop.
-
-#### NewsAPI
-- The implementation supports only part of the documented request surface.
-- The official docs support `page` pagination for both `everything` and `top-headlines`; current behavior is effectively first-page only.
-- The official docs support `sources` (including a documented incompatibility with `country` / `category` on `top-headlines`); the current adapter/definitions do not model this fully.
-- Everything/top-headlines validation must align with documented compatibility rules while keeping product guardrails explicit and test-covered.
-
-#### NewsData
-- The implementation supports `page` cursor usage only in a limited way and needs a more durable paginated fetch strategy.
-- The official docs expose `nextPage` / `page` traversal, endpoint-specific date/time controls, and a broader set of filters than are currently enforced end-to-end.
-- Archive/latest behaviors must remain endpoint-correct and test-covered, including incompatibilities such as include-category vs exclude-category combinations.
-
-#### Shared provider client concerns
-- Retries exist, but the outbound fetch utility is still too generic for production-grade provider robustness.
-- Add provider-aware handling for rate limits, `Retry-After` when available, bounded retry policies, jitter, better error taxonomy, and better pagination/partial-failure diagnostics.
-- Do not silently drop extra pages of provider results when the upstream result set is larger than one page and the stream configuration indicates more articles may be relevant.
+Do not do a superficial cleanup. Deliver a surgical, test-backed, production-safe refactor that keeps existing correct behavior and only changes what is necessary.
 
 ---
 
-## Non-negotiable outcomes
+## Ground truth from the current repository
 
-### A. Database compliance
-Refactor the codebase so that **every physical database table name and every physical database column name** is lowercase snake_case.
+### 1) Physical Prisma schema and migrations are already snake_case and should be preserved
+The repository already maps physical tables and columns to lowercase snake_case in Prisma and migrations.
 
-That includes:
-
-- Prisma model-to-table mappings
-- Prisma field-to-column mappings
-- Migration SQL
-- Foreign keys
-- indexes / unique indexes / fulltext indexes / join tables
-- raw SQL scripts
-- cPanel deployment scripts
-- doctor/verification scripts
-- seeds
-- tests
-- any naming assumptions in analytics, admin tools, and operational scripts
-
-It is acceptable to keep application-layer JavaScript/TypeScript property names camelCase **only if** the physical database names are explicitly mapped with Prisma `@map` / `@@map` and the result is fully verified. It is also acceptable to rename application-layer fields if you choose a broader consistency refactor. What is **not** acceptable is leaving any physical DB table/column in camelCase or compressed multi-word lowercase.
-
-### B. Background worker durability
-Implement a durable background execution architecture so that:
-
-- due streams are detected and claimed atomically
-- only one worker instance claims a given executable unit at a time
-- in-flight work uses **leases/heartbeats** or equivalent durable ownership semantics
-- stale/incomplete work is re-queued or safely resumed after crash/restart
-- pending scheduled publications are not stranded
-- stale `RUNNING` publish attempts are recovered
-- stale `RUNNING` / `PENDING` fetch runs are reconciled
-- AUTO_PUBLISH streams always transition eligible content into durable publish work
-- duplicate/repost-eligible logic continues to work correctly
-- retries are bounded, observable, and idempotent
-- the system is safe under multiple app instances / cron invocations / restarts
-
-### C. Provider compliance and robustness
-Rework provider integrations to be:
-
-- aligned with the current official docs for implemented endpoints
-- explicit about supported vs intentionally unsupported parameters
-- strict about parameter compatibility rules
-- resilient under pagination, partial results, rate limits, transient failures, and malformed payloads
-- fully tested
-- instrumented with better diagnostics so operators can see what was requested, what page/cursor was used, why pagination stopped, and what retry behavior occurred
-
----
-
-## Required implementation workstreams
-
-## 1. Build a full database naming migration plan
-
-Do not do ad-hoc renames. First generate a complete canonical mapping matrix:
-
-- current model name -> target table name
-- current persisted field name -> target column name
-- current index / constraint / FK names -> target snake_case names where relevant
-- current join-table names -> target snake_case names
-
-Then implement a safe migration strategy that:
-
-- preserves all existing data
-- preserves referential integrity throughout the migration
-- updates Prisma schema mappings correctly
-- updates all generated client assumptions
-- works from a clean install and from an existing populated DB
-- is deterministic and repeatable
-
-Prefer a migration sequence that is production-safe and explicit. Do not leave “temporary” mixed naming in place.
-
-Also update operational tooling that currently hardcodes old table names, especially:
-
-- cPanel table normalization utilities
-- DB doctor checks
-- migration verification logic
-- seeding / deploy scripts
-
-## 2. Refactor fetch/publish execution into a durable job model
-
-You may extend existing tables or introduce dedicated execution tables if needed, but the final design must be durable and easy to reason about.
-
-At minimum, implement durable handling for:
-
-- scheduled stream fetch execution
-- queued publish execution
-- automated retries
-- stale execution recovery
-- reconciliation after restart
-
-A strong solution should include concepts like:
-
-- `next_run_at`
-- `available_at`
-- `lease_owner`
-- `lease_expires_at`
-- `heartbeat_at`
-- `attempt_count`
-- `last_error_at`
-- `last_error_code`
-- `last_error_message`
-- `orphaned_at` / reconciliation markers
-
-Use transactions and uniqueness/idempotency safeguards so that repeated scheduler invocations cannot duplicate the same work.
-
-## 3. Separate orchestration concerns cleanly
-
-Refactor the current all-in-one scheduling behavior into clearer phases such as:
-
-1. **Scheduler / reconciler pass**
-   - discovers due work
-   - reconciles stale work
-   - enqueues or re-enqueues executable items
-
-2. **Fetch worker**
-   - claims a stream execution unit
-   - runs provider fetches
-   - persists article matches deterministically
-   - enqueues publish work for AUTO_PUBLISH streams instead of relying on fragile inline execution
-
-3. **Publish worker**
-   - claims publish attempts
-   - performs destination publication
-   - heartbeats while running
-   - marks success/failure/retry schedule atomically
-
-4. **Recovery loop**
-   - finds stale `RUNNING` items and safely returns them to a recoverable state
-   - repairs orphaned article matches / queued work if a crash happened mid-flight
-
-The public admin/manual APIs can still trigger work, but they should do so by creating durable execution records, not by relying only on long in-request execution chains.
-
-## 4. Preserve and harden stream-specific behavior
-
-Preserve existing product behavior while making it durable:
-
-- `AUTO_PUBLISH` vs `REVIEW_REQUIRED`
-- per-stream retry limits
-- per-stream retry backoff
-- per-stream duplicate window rules
-- per-stream max posts per run
-- per-stream destination restrictions
-- scheduling intervals and any future schedule-expression support
-- checkpoint behavior for providers
-- manual repost and automated repost-eligible duplicate handling
-
-Important: AUTO_PUBLISH streams must always publish according to their configured destination and stream settings even after app restarts, worker crashes, or overlapping scheduler invocations.
-
-## 5. Perform a provider-by-provider docs audit and refactor
-
-For each implemented provider, do the following:
-
-### Mediastack
-- Re-check the live/historical request contract.
-- Support documented request fields that the product intends to expose, including `sources` if appropriate.
-- Implement true pagination using `limit` + `offset` when needed.
-- Stop paginating only when one of the following is true:
-  - upstream has no more results
-  - downstream stream/run limits are satisfied
-  - a documented provider cap is reached intentionally and logged
-- Persist enough execution diagnostics to show page/offset progression.
-
-### NewsAPI
-- Re-check `everything` and `top-headlines` against official docs.
-- Implement documented pagination using `page` + `pageSize` where appropriate.
-- Model/support `sources` where the product should support it.
-- Enforce documented compatibility rules, especially `sources` vs `country/category` for top-headlines.
-- Keep explicit product-level guardrails separate from official API validation so operators can distinguish “provider limitation” from “NewsPub product policy”.
-
-### NewsData
-- Re-check `latest` and `archive` against official docs.
-- Harden `page` / `nextPage` traversal.
-- Ensure endpoint-specific time boundary behavior is correct and explicit.
-- Preserve and test incompatibility validation like category vs exclude-category.
-- Decide which advanced documented fields NewsPub officially supports, then either:
-  - implement them properly end-to-end, or
-  - explicitly mark them unsupported and remove misleading definitions.
-
-### Shared provider client
-Refactor the shared provider client and fetch utilities to include:
-
-- rate-limit-aware retry behavior
-- `Retry-After` support when provided
-- exponential backoff with jitter
-- max retry ceilings by provider/endpoint
-- robust timeout handling
-- structured provider error classification
-- structured pagination diagnostics
-- response-shape validation with actionable operator messages
-- defensive normalization when optional fields are missing or malformed
-
-## 6. Tighten destination publish durability
-
-Harden the publish path so that publish attempts are durable before external calls begin.
-
-Requirements:
-
-- claim/lease publish attempts before execution
-- heartbeat long-running attempts
-- safely recover attempts left in `RUNNING`
-- never lose a ready-to-publish item because a process died mid-request
-- use idempotency consistently when retrying or re-queuing
-- distinguish permanent failures from transient failures cleanly
-- keep audit/event history coherent after retries and recovery
-
-Do not let a stale `RUNNING` attempt block a post forever.
-
-## 7. Add reconciliation logic for stranded states
-
-Implement a reconciliation subsystem that can repair these scenarios:
-
-- stream marked effectively “running” only because timestamps were updated before crash
-- fetch run created but never finalized
-- article matches created but publish attempts not enqueued due to crash
-- publish attempt set to `RUNNING` but never completed
-- scheduled publish time already passed but the pending attempt was missed
-- retryable failed attempt whose retry time has arrived but was skipped during downtime
-
-This reconciler must be safe, idempotent, and test-covered.
-
-## 8. Update observability and operator tooling
-
-Improve job and provider diagnostics so operators can answer:
-
-- what stream/job is currently claimed
-- who/what claimed it
-- when the lease expires
-- what page/cursor was last fetched
-- why pagination stopped
-- why a retry was or was not scheduled
-- whether an item was recovered from a stale/orphaned state
-- whether a failure is transient, validation-related, destination-related, provider-related, or policy-related
-
-Update admin/job snapshots as necessary so the UI remains truthful.
-
-## 9. Expand automated test coverage substantially
-
-Add or update tests for all of the following:
-
-### Database naming compliance
-- Prisma schema maps all physical tables to snake_case.
-- Prisma schema maps all physical columns to snake_case.
-- Migration SQL produces only snake_case table/column names.
-- A verification test/script fails if any physical table or column name is not lowercase snake_case.
-
-### Worker reliability
-- due streams are enqueued once
-- concurrent scheduler runs do not double-claim work
-- stale leases are recovered
-- stale `RUNNING` publish attempts are recovered
-- AUTO_PUBLISH streams still publish after simulated crash/restart
-- retry backoff and retry-limit behavior remain correct
-- scheduled publish attempts fire after downtime recovery
-
-### Provider tests
-- request builders match documented parameter names per endpoint
-- incompatible parameter combinations are rejected correctly
-- paginated fetch loops continue correctly and stop correctly
-- rate-limit and transient-failure behavior is correct
-- malformed provider payloads fail safely with actionable errors
-- normalization remains deterministic
-
-### End-to-end / integration-level tests
-- stream fetch -> article match -> queue -> publish succeeds for AUTO_PUBLISH
-- crash during fetch/publish can be recovered by reconciliation pass
-- duplicate/repost-eligible paths still behave correctly
-- cPanel deploy/doctor scripts reflect the new snake_case schema names
-
-## 10. Add a hard compliance verification step
-
-Create a CI-safe verification step that fails the build if:
-
-- any physical table name is not lowercase snake_case
-- any physical column name is not lowercase snake_case
-- any migration introduces a non-compliant DB name
-- any required worker recovery invariant is broken by tests
-
-This check must be automated, not manual.
-
----
-
-## Files that are definitely in scope
-
-At minimum, inspect and update all relevant code in these areas:
+Treat the following as **already compliant** and **do not rename them again unless an inconsistency is proven**:
 
 - `prisma/schema.prisma`
-- `prisma/migrations/**`
-- `prisma/seed.js`
-- `scripts/cpanel-db-utils.js`
-- `scripts/cpanel-doctor.js`
-- `scripts/cpanel-db-deploy.js`
-- `scripts/internal-scheduler.js`
-- `src/lib/news/workflows.js`
-- `src/lib/news/providers.js`
-- `src/lib/news/provider-definitions.js`
-- `src/lib/news/outbound-fetch.js`
-- `src/features/streams/**`
-- `src/features/posts/**`
-- `src/features/analytics/**`
-- `src/app/api/jobs/**`
-- any tests affected by schema name or job lifecycle changes
+- `prisma/migrations/20260405213000_newspub_init/migration.sql`
+- `prisma/migrations/20260412113000_durable_worker_leases/migration.sql`
+- `scripts/verify-db-snake-case.js`
 
-Search for all raw string references to current table names and current camelCase DB column names.
+The command `npm run verify:db:naming` currently passes against the shipped Prisma schema/migrations.
+
+**Important:** the remaining database compliance problem is **not** the Prisma schema. It is the existence of **hand-written SQL and operational queries** that still reference old compressed table names and camelCase column names.
+
+### 2) Remaining DB compliance gaps are in hand-written SQL, not Prisma mappings
+Refactor all hand-written SQL and DB-adjacent utilities so that **every physical table and column reference matches the existing snake_case database**.
+
+Known high-priority problem areas:
+
+#### `src/features/public-site/index.js`
+This file contains raw SQL that still references old physical identifiers such as:
+
+- `posttranslation` instead of `post_translation`
+- `fetchedarticle` instead of `fetched_article`
+- `postcategory` instead of `post_category`
+- `publishattempt` instead of `publish_attempt`
+- `postId` instead of `post_id`
+- `sourceArticleId` instead of `source_article_id`
+- `providerCountriesJson` instead of `provider_countries_json`
+- `contentMd` instead of `content_md`
+- `publishedAt` instead of `published_at`
+- `updatedAt` instead of `updated_at`
+
+This means the repo is **not yet 100% compliant at runtime**, even though Prisma/migrations are compliant.
+
+#### `scripts/cpanel-doctor.js`
+This script still queries:
+
+- `isActive` instead of `is_active`
+- `passwordHash` instead of `password_hash`
+
+That operational health check must be fixed to match the current physical schema.
+
+#### Verification gap
+`scripts/verify-db-snake-case.js` currently verifies Prisma schema mappings and migration SQL, but it does **not** scan hand-written SQL embedded in application or script files. Extend verification so CI fails when raw SQL uses stale physical identifiers.
+
+### 3) Worker durability is partially implemented and should be extended, not replaced blindly
+The repository already includes meaningful durable-worker primitives:
+
+- lease fields on `publish_attempt` and `fetch_run`
+- `next_run_at` on `publishing_stream`
+- stale-run reconciliation in `src/lib/news/workflows.js`
+- atomic claim patterns using `updateMany`
+- scheduled queueing via `fetch_run.queue_key`
+- recovery of stranded auto-publish article matches
+- fallback internal polling via `scripts/internal-scheduler.js`
+
+Preserve the good parts.
+
+Do **not** throw away or regress the following existing mechanisms unless you replace them with something strictly better and fully test-covered:
+
+- `reconcileStaleFetchRuns()`
+- `reconcileStalePublishAttempts()`
+- `recoverStrandedAutoPublishAttempts()`
+- `claimFetchRunById()` / `claimNextFetchRun()`
+- `claimPublishAttemptById()` / `claimNextPublishAttempt()`
+- durable `queue_key` uniqueness for scheduled fetch runs
+
+### 4) Remaining worker/scheduler gaps to close
+Even though durable worker primitives exist, the architecture still needs hardening.
+
+#### A. Auto-publish is still too inline with fetch execution
+In `processFetchedArticlesForStream()` the code still creates a canonical post, creates/updates the article match, optimizes it, and then can immediately call `publishArticleMatch()` inside the fetch-run execution path.
+
+Refactor this so that:
+
+- fetch execution persists publishable work durably
+- publish execution is handled through durable publish-attempt queue semantics
+- a crash during a long fetch run cannot leave publication only partially transitioned
+- the fetch path becomes a queueing/orchestration path, not an inline publication pipeline
+
+#### B. Fetch-run leases are claimed, but not refreshed throughout long execution
+The current code claims fetch-run leases and releases them on completion/failure, but long-running fetch/process/publish flows can exceed the lease duration if upstream latency, AI optimization, media handling, or downstream publication becomes slow.
+
+Add a heartbeat/lease-refresh strategy for **fetch runs**, similar in spirit to what exists for publish attempts, so long executions do not get incorrectly recovered as stale while still alive.
+
+#### C. Scheduler behavior should remain multi-instance-safe
+Keep the API/cron-triggered scheduling pattern, but ensure the end-to-end system remains correct under:
+
+- multiple app instances
+- repeated cron invocations
+- process restarts
+- partial failures
+- long-running publish bursts
+
+Do not rely on process-local state for correctness.
+
+#### D. Recovery should cover triggered/running stream work end to end
+Guarantee that the following can always be recovered safely:
+
+- stale `RUNNING` fetch runs
+- stale `RUNNING` publish attempts
+- article matches in `AUTO_PUBLISH` mode that were queued but never converted into publish work
+- streams that became due while another process was running
+- scheduled publications whose due time passed during downtime
+- retryable failed publish attempts after backoff elapses
+
+#### E. Observability and diagnostics should become first-class
+Expose enough durable diagnostics so operators can answer:
+
+- what was queued
+- what was claimed
+- what was recovered as orphaned/stale
+- what was retried
+- what was skipped and why
+- whether a publish action was original publication, retry, or repost
+- whether page-limit truncation or provider-limit truncation occurred upstream
+
+### 5) Provider integrations are more advanced than older review notes imply; preserve what already works
+The repository already implements more provider functionality than an older review might suggest.
+
+**Do not remove working provider behavior that is already present and test-backed.**
+
+Examples already present in the repo and expected to remain:
+
+- **Mediastack:** `sources` support is already modeled in provider definitions and request building.
+- **Mediastack:** offset-based pagination is already implemented in the runtime fetch loop.
+- **NewsAPI:** `page` pagination is already implemented.
+- **NewsAPI:** `sources` is already modeled and validated against `country` / `category` incompatibility for `top-headlines`.
+- **NewsData:** `nextPage`/`page` cursor traversal is already implemented.
+- **NewsData:** `latest` timeframe and `archive` from/to date handling are already modeled.
+- Provider diagnostics and retry-event recording already exist.
+
+The task is to **harden and complete**, not to re-solve already-solved problems.
+
+### 6) Provider gaps to fix precisely
+
+#### A. Cap request sizes at provider-safe limits inside runtime request builders
+The current helper `getProviderFetchBatchSize()` returns `max(maxArticlesHint * 3, 25)`, which is reasonable as a fetch target heuristic, but the request builders do not consistently cap that value per provider.
+
+Concrete examples:
+
+- `buildNewsApiRequest()` uses `pageSize = getProviderFetchBatchSize(...)` directly.
+- `buildNewsDataRequest()` uses `size = getProviderFetchBatchSize(...)` directly.
+- `buildMediastackRequest()` already uses a provider cap helper.
+
+Refactor request sizing so that runtime request builders enforce documented provider limits rather than relying only on UI/editor limits.
+
+At minimum:
+
+- hard-cap NewsAPI `pageSize` to documented limits
+- cap NewsData `size` to a documented/plan-safe ceiling, with explicit configuration if plan-dependent
+- preserve or improve Mediastack’s current capping logic
+
+#### B. Add docs-aligned validation that is still missing or too implicit
+Review all implemented request parameters against official docs and harden validation, including but not limited to:
+
+- NewsAPI `sources` maximum count / format handling
+- NewsAPI endpoint-specific parameter compatibility
+- NewsData plan-sensitive request sizing and endpoint-specific filter rules
+- Mediastack source/category/language/country include/exclude formatting
+- consistent validation messages in the admin UI before execution
+
+#### C. Make page-limit truncation explicit
+The provider runtime uses a fixed `maxProviderPageCount` and target-count logic. Preserve bounded behavior, but make sure the system never silently hides that an upstream result set was truncated due to local page caps.
+
+Add diagnostics and tests so operators can tell the difference between:
+
+- provider exhausted
+- article target reached
+- page limit reached
+- empty page
+- duplicate cursor
+- invalid response
+- retry exhaustion
+
+#### D. Expand retry/error taxonomy coverage and tests
+The shared outbound fetch helper already supports timeout/retry/jitter and `Retry-After` parsing. Harden and fully test it for provider usage.
+
+Add or improve tests for:
+
+- `Retry-After` seconds and HTTP-date parsing
+- 408 / 429 / 5xx retry behavior
+- bounded retry counts
+- jittered delays
+- non-retryable 4xx handling
+- malformed JSON / invalid response shapes
+- diagnostics emitted for partial-page/provider failures
+
+### 7) Test and verification expectations
+You must leave the repo with a verification story that catches regressions.
+
+Implement or update tests for:
+
+#### Database naming / raw SQL
+- a scanner or verifier that detects stale physical identifiers in raw SQL strings
+- coverage for the `public-site` raw queries
+- coverage for `cpanel-doctor` operational queries
+
+#### Worker durability
+- stale fetch-run recovery
+- stale publish-attempt recovery
+- heartbeat/lease refresh for long-running fetch runs
+- idempotent claim behavior across concurrent claim attempts
+- crash-recovery path from queued article match to publish attempt
+- due stream queueing under repeated scheduler invocations
+- retry scheduling/backoff behavior
+
+#### Provider integrations
+- Mediastack request building, pagination, sources, and offset progression
+- NewsAPI request sizing caps, sources compatibility, and page traversal
+- NewsData page cursor traversal, endpoint-specific filters, and plan-safe size behavior
+- diagnostics for page-limit truncation and partial failures
+- outbound fetch retry semantics
+
+If existing tests are already correct, keep them. Only change them where behavior is intentionally improved.
+
+### 8) Operational constraints
+- Keep the public product behavior stable unless a change is required for correctness or docs compliance.
+- Keep existing compliant Prisma `@map` / `@@map` mappings unless you can prove they are wrong.
+- Do not regress cPanel deployment scripts.
+- Do not regress manual publishing, review-required streams, repost flows, or website publishing.
+- Preserve idempotency and duplicate/repost cooldown rules unless a bug demands a fix.
+- Favor additive migrations when schema/runtime durability changes are required.
 
 ---
 
-## Implementation standards
+## Implementation requirements
 
-- Prefer explicitness over magic.
-- Prefer durable database-backed coordination over in-memory flags.
-- Use transactions where state transitions must be atomic.
-- Make every retry / requeue / recovery path idempotent.
-- Keep backward migration/upgrade safety in mind.
-- Avoid hidden behavior changes in editorial logic.
-- Do not leave TODOs for core correctness items.
-- Do not claim completion until all tests pass and all DB naming checks pass.
+Execute the refactor in this order:
 
----
-
-## Deliverables required from this refactor
-
-1. Updated codebase
-2. Updated Prisma schema and migrations
-3. Updated worker/scheduler/reconciliation flow
-4. Updated provider adapters and validations
-5. Updated operational scripts
-6. New/updated automated tests
-7. A concise implementation report that includes:
-   - what schema names changed
-   - what worker model changed
-   - what provider behaviors changed
-   - what compatibility risks were handled
-   - what verification steps prove 100% snake_case DB compliance
+1. **Inventory and fix stale raw SQL physical identifiers** across app code and scripts.
+2. **Upgrade verification tooling** so raw SQL regressions fail CI.
+3. **Refactor fetch execution to durable queue-first publication orchestration** rather than inline best-effort publication.
+4. **Add fetch-run heartbeat/lease refresh** and ensure stale recovery remains safe.
+5. **Harden provider request builders** with provider-specific runtime caps and docs-aligned validation.
+6. **Expand provider diagnostics and retry-path test coverage.**
+7. **Run/repair all impacted tests** and add missing ones.
+8. **Document the final architecture changes** in concise code comments where needed.
 
 ---
 
-## Final acceptance checklist
+## Definition of done
 
-The refactor is complete only if all of the following are true:
+The work is only done when all of the following are true:
 
-- [ ] Every physical database table name is lowercase snake_case.
-- [ ] Every physical database column name is lowercase snake_case.
-- [ ] Existing data can be migrated safely.
-- [ ] AUTO_PUBLISH streams are durable across restart/crash.
-- [ ] Stale `RUNNING` stream work is recoverable.
-- [ ] Stale `RUNNING` publish attempts are recoverable.
-- [ ] Scheduled publish attempts are never silently stranded.
-- [ ] Retry behavior is durable and observable.
-- [ ] Mediastack integration is aligned with current official docs and paginated robustly.
-- [ ] NewsAPI integration is aligned with current official docs and paginated robustly.
-- [ ] NewsData integration is aligned with current official docs and paginated robustly.
-- [ ] Provider validation rules are explicit and test-covered.
-- [ ] cPanel/doctor/deploy scripts reflect the new schema names.
-- [ ] CI contains an automated snake_case DB compliance guard.
-- [ ] All impacted tests pass.
+- All physical DB names remain lowercase snake_case.
+- No hand-written SQL references stale compressed or camelCase physical identifiers.
+- CI verifies both Prisma mappings/migrations **and** raw SQL usage.
+- Scheduled, triggered, in-flight, orphaned, and retryable stream/publish work is durably recoverable.
+- Auto-publish/repost execution is queue-safe and restart-safe.
+- Provider request builders are docs-aligned and runtime-capped.
+- Provider UI definitions and validation rules match actual runtime behavior.
+- Diagnostics clearly distinguish exhaustion, truncation, retries, failures, and recoveries.
+- The refactor leaves already-compliant behavior untouched wherever possible.
 
 ---
 
-## Execution instruction
+## Deliverables
 
-Proceed with a **deep, end-to-end refactor**, not a localized patch. Wherever the current architecture makes the requirements impossible to satisfy reliably, redesign that part of the system.
+Produce:
 
-Be decisive, production-minded, and exhaustive.
+1. The code changes.
+2. Any required migration(s).
+3. Updated/added tests.
+4. Updated verification tooling.
+5. A short engineer-facing summary of:
+   - what was already compliant and preserved
+   - what was actually fixed
+   - what architectural reliability guarantees are now provided
+   - what provider limitations remain intentionally bounded by plan or upstream API constraints
+
