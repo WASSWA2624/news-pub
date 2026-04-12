@@ -138,4 +138,23 @@ describe("provider definition option metadata", () => {
       },
     ]);
   });
+
+  it('flags NewsAPI "Top Headlines" source filters when country or category is also set', () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        category: "business",
+        endpoint: "top-headlines",
+        sources: "bbc-news",
+      },
+      providerFilters: {
+        country: "us",
+      },
+    });
+
+    expect(issues).toMatchObject([
+      {
+        code: "provider_newsapi_top_headlines_sources_incompatible",
+      },
+    ]);
+  });
 });

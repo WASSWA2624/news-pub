@@ -26,6 +26,8 @@
     "perf:fixtures": "node scripts/perf/seed-public-fixtures.js",
     "repo:check": "node scripts/check-repo-hygiene.js",
     "test": "vitest run",
+    "verify:db:naming": "node scripts/verify-db-snake-case.js",
+    "verify:ci": "npm run verify:db:naming && npm test",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:seed": "prisma generate && prisma db seed"

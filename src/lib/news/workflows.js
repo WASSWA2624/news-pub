@@ -61,6 +61,82 @@ function getStreamMaxPostsPerRun(stream) {
   return Math.max(1, Number.parseInt(`${stream?.maxPostsPerRun || 5}`, 10) || 5);
 }
 
+function normalizePositiveInteger(value, fallbackValue) {
+  const parsedValue = Number.parseInt(`${value || ""}`, 10);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : fallbackValue;
+}
+
+function coerceDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsedValue = new Date(value);
+
+    if (!Number.isNaN(parsedValue.getTime())) {
+      return parsedValue;
+    }
+  }
+
+  return null;
+}
+
+function getFetchRunLeaseMs() {
+  return normalizePositiveInteger(process.env.NEWS_PUB_FETCH_RUN_LEASE_MS, 5 * 60 * 1000);
+}
+
+function getPublishAttemptLeaseMs() {
+  return normalizePositiveInteger(process.env.NEWS_PUB_PUBLISH_ATTEMPT_LEASE_MS, 10 * 60 * 1000);
+}
+
+function getLeaseExpiration(now, leaseMs) {
+  return new Date(now.getTime() + leaseMs);
+}
+
+function createLeaseOwner(prefix) {
+  return `${prefix}_${createContentHash(prefix, Date.now(), Math.random()).slice(0, 24)}`;
+}
+
+function buildInitialFetchRunExecutionDetails(fetchWindow) {
+  return {
+    checkpointStrategy: {
+      usesExplicitBoundaries: Boolean(fetchWindow?.usesExplicitBoundaries),
+      usesProviderCheckpoint: Boolean(fetchWindow?.usesProviderCheckpoint),
+      writeCheckpointOnSuccess: Boolean(fetchWindow?.writeCheckpointOnSuccess),
+    },
+    streamFetchWindow: serializeFetchWindow(fetchWindow),
+  };
+}
+
+function resolveStoredFetchWindow(fetchRun, checkpoint, now = new Date()) {
+  const storedWindow = fetchRun?.executionDetailsJson?.streamFetchWindow || null;
+  const storedStart = coerceDate(storedWindow?.start) || coerceDate(fetchRun?.windowStart);
+  const storedEnd = coerceDate(storedWindow?.end) || coerceDate(fetchRun?.windowEnd);
+
+  if (storedStart || storedEnd) {
+    return {
+      end: storedEnd || now,
+      source: storedWindow?.source || (fetchRun?.triggerType === "scheduled" ? "checkpoint" : "explicit"),
+      start: storedStart || checkpoint?.lastSuccessfulFetchAt || now,
+      usesExplicitBoundaries: Boolean(storedWindow?.usesExplicitBoundaries),
+      usesProviderCheckpoint: Boolean(storedWindow?.usesProviderCheckpoint),
+      writeCheckpointOnSuccess:
+        typeof storedWindow?.writeCheckpointOnSuccess === "boolean"
+          ? storedWindow.writeCheckpointOnSuccess
+          : fetchRun?.triggerType === "scheduled",
+    };
+  }
+
+  return resolveFetchWindowForExecution({
+    checkpoint,
+    now,
+    requestedWindow: null,
+    writeCheckpointOnSuccess: fetchRun?.triggerType === "scheduled",
+  });
+}
+
 /**
  * Resolves the normalized fetch window used for one NewsPub stream execution.
  */
@@ -1052,54 +1128,202 @@ export async function refreshArticleMatchOptimization(
   };
 }
 
-async function executePublishAttempt(
-  db,
-  attemptId,
-  { bypassSocialDuplicateCooldown = false } = {},
-) {
-  const attempt = await db.publishAttempt.findUnique({
+const publishAttemptExecutionInclude = {
+  articleMatch: {
     include: {
-      articleMatch: {
-        include: {
-          destination: true,
-          stream: {
-            include: {
-              destination: true,
-            },
-          },
-        },
-      },
       destination: true,
-      post: {
-        include: {
-          featuredImage: true,
-          sourceArticle: {
-            select: {
-              body: true,
-              imageUrl: true,
-            },
-          },
-          translations: {
-            include: {
-              seoRecord: {
-                include: {
-                  ogImage: true,
-                },
-              },
-            },
-          },
-        },
-      },
       stream: {
         include: {
           destination: true,
         },
       },
     },
+  },
+  destination: true,
+  post: {
+    include: {
+      featuredImage: true,
+      sourceArticle: {
+        select: {
+          body: true,
+          imageUrl: true,
+        },
+      },
+      translations: {
+        include: {
+          seoRecord: {
+            include: {
+              ogImage: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  stream: {
+    include: {
+      destination: true,
+    },
+  },
+};
+
+async function claimPublishAttemptById(
+  db,
+  attemptId,
+  { leaseOwner = createLeaseOwner("publish"), now = new Date() } = {},
+) {
+  if (typeof db.publishAttempt?.updateMany !== "function") {
+    return {
+      leaseOwner,
+      record: await db.publishAttempt.findUnique({
+        include: publishAttemptExecutionInclude,
+        where: {
+          id: attemptId,
+        },
+      }),
+    };
+  }
+
+  const existingAttempt = await db.publishAttempt.findUnique({
+    select: {
+      availableAt: true,
+      id: true,
+      startedAt: true,
+      status: true,
+    },
     where: {
       id: attemptId,
     },
   });
+
+  if (!existingAttempt) {
+    return {
+      leaseOwner,
+      record: null,
+    };
+  }
+
+  const claimResult = await db.publishAttempt.updateMany({
+    data: {
+      heartbeatAt: now,
+      leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
+      leaseOwner,
+      startedAt: existingAttempt.startedAt || now,
+      status: "RUNNING",
+    },
+    where: {
+      id: attemptId,
+      status: "PENDING",
+      availableAt: {
+        lte: now,
+      },
+      OR: [
+        {
+          leaseExpiresAt: null,
+        },
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+      ],
+    },
+  });
+
+  if (!claimResult.count) {
+    return {
+      leaseOwner,
+      record: null,
+    };
+  }
+
+  if (typeof db.publishingStream?.update === "function") {
+    await db.publishingStream.update({
+      where: {
+        id: existingRun.streamId,
+      },
+      data: {
+        lastRunStartedAt: now,
+      },
+    });
+  }
+
+  return {
+    leaseOwner,
+    record: await db.publishAttempt.findUnique({
+      include: publishAttemptExecutionInclude,
+      where: {
+        id: attemptId,
+      },
+    }),
+  };
+}
+
+async function claimNextPublishAttempt(db, { now = new Date() } = {}) {
+  if (typeof db.publishAttempt?.findFirst !== "function" || typeof db.publishAttempt?.updateMany !== "function") {
+    return null;
+  }
+
+  const candidate = await db.publishAttempt.findFirst({
+    orderBy: [{ availableAt: "asc" }, { createdAt: "asc" }],
+    where: {
+      status: "PENDING",
+      availableAt: {
+        lte: now,
+      },
+      OR: [
+        {
+          leaseExpiresAt: null,
+        },
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+      ],
+    },
+  });
+
+  if (!candidate) {
+    return null;
+  }
+
+  return claimPublishAttemptById(db, candidate.id, { now });
+}
+
+async function refreshPublishAttemptLease(db, attemptId, leaseOwner, now = new Date()) {
+  if (!leaseOwner || typeof db.publishAttempt?.update !== "function") {
+    return;
+  }
+
+  await db.publishAttempt.update({
+    where: {
+      id: attemptId,
+    },
+    data: {
+      heartbeatAt: now,
+      leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
+      leaseOwner,
+    },
+  });
+}
+
+async function executePublishAttempt(
+  db,
+  attemptId,
+  { bypassSocialDuplicateCooldown = false, claimedAttempt = null, leaseOwner: existingLeaseOwner = null, now = new Date() } = {},
+) {
+  const claimedPublishAttempt = claimedAttempt
+    ? {
+        leaseOwner: existingLeaseOwner,
+        record: claimedAttempt,
+      }
+    : await claimPublishAttemptById(db, attemptId, {
+        leaseOwner: existingLeaseOwner || createLeaseOwner("publish"),
+        now,
+      });
+  const leaseOwner = claimedPublishAttempt.leaseOwner || existingLeaseOwner || createLeaseOwner("publish");
+  const attempt = claimedPublishAttempt.record;
 
   if (!attempt) {
     throw new NewsPubError("Publish attempt was not found.", {
@@ -1163,6 +1387,8 @@ async function executePublishAttempt(
     warnings: optimizedPayload.policyWarnings || optimizedPayload.warnings || [],
   };
 
+  await refreshPublishAttemptLease(db, attempt.id, leaseOwner, now);
+
   await db.publishAttempt.update({
     where: {
       id: attempt.id,
@@ -1181,7 +1407,10 @@ async function executePublishAttempt(
         riskScore: optimization.policy.riskScore,
       },
       payloadJson: payload,
-      startedAt: new Date(),
+      heartbeatAt: now,
+      leaseExpiresAt: getLeaseExpiration(now, getPublishAttemptLeaseMs()),
+      leaseOwner,
+      startedAt: attempt.startedAt || now,
       status: "RUNNING",
     },
   });
@@ -1196,6 +1425,10 @@ async function executePublishAttempt(
       data: {
         completedAt: new Date(),
         errorMessage: "Destination is not connected.",
+        heartbeatAt: null,
+        lastErrorAt: new Date(),
+        leaseExpiresAt: null,
+        leaseOwner: null,
         responseJson: {
           error: "destination_not_connected",
         },
@@ -1261,6 +1494,8 @@ async function executePublishAttempt(
       }
     }
 
+    await refreshPublishAttemptLease(db, attempt.id, leaseOwner, new Date());
+
     if (attempt.platform === "WEBSITE") {
       await applyWebsiteOptimizedPayloadToPost(db, {
         payload,
@@ -1319,6 +1554,10 @@ async function executePublishAttempt(
           || trimText(error?.responseJson?.error)
           || "destination_publish_failed",
         errorMessage: error instanceof Error ? error.message : "Destination publication failed.",
+        heartbeatAt: null,
+        lastErrorAt: failedAt,
+        leaseExpiresAt: null,
+        leaseOwner: null,
         responseJson:
           error instanceof DestinationPublishError
             ? {
@@ -1398,6 +1637,9 @@ async function executePublishAttempt(
         },
         publishedAt,
         remoteId: publishResult.remoteId,
+        heartbeatAt: null,
+        leaseExpiresAt: null,
+        leaseOwner: null,
         responseJson: publishResult.responseJson || {
           canonicalUrl: context.canonicalUrl,
           remoteId: publishResult.remoteId || null,
@@ -1477,29 +1719,29 @@ async function createPublishAttempt(db, { articleMatchId, platform, postId, publ
       articleMatchId,
     },
   });
+  const availableAt = publishAt instanceof Date ? publishAt : new Date();
 
   return db.publishAttempt.create({
     data: {
+      availableAt,
       articleMatchId,
       attemptNumber: attemptCount + 1,
       destinationId: stream.destinationId,
       diagnosticsJson: {
-        scheduledFor: publishAt ? publishAt.toISOString() : null,
+        scheduledFor: availableAt.toISOString(),
       },
       idempotencyKey: createContentHash(articleMatchId, platform, attemptCount + 1).slice(0, 36),
       platform,
       postId,
+      payloadJson: publishAt
+        ? {
+            scheduledFor: availableAt.toISOString(),
+          }
+        : null,
       queuedAt: new Date(),
       retryCount: Math.max(0, attemptCount),
+      status: "PENDING",
       streamId: stream.id,
-      ...(publishAt
-        ? {
-            payloadJson: {
-              scheduledFor: publishAt.toISOString(),
-            },
-            status: "PENDING",
-          }
-        : {}),
     },
   });
 }
@@ -1693,6 +1935,10 @@ export async function retryPublishAttempt(attemptId, { actorId = null, automated
     db,
   );
 
+  if (automated) {
+    return nextAttempt;
+  }
+
   return executePublishAttempt(db, nextAttempt.id);
 }
 
@@ -1830,7 +2076,14 @@ function resolveFetchWindowForExecution({ checkpoint, now, requestedWindow, writ
 async function loadStreamExecutionContext(
   db,
   streamId,
-  { actorId = null, now = new Date(), requestedWindow = null, triggerType = "manual", writeCheckpointOnSuccess = null } = {},
+  {
+    actorId = null,
+    existingFetchRun = null,
+    now = new Date(),
+    requestedWindow = null,
+    triggerType = "manual",
+    writeCheckpointOnSuccess = null,
+  } = {},
 ) {
   const stream = await db.publishingStream.findUnique({
     include: {
@@ -1874,32 +2127,45 @@ async function loadStreamExecutionContext(
 
   const checkpoint =
     stream.checkpoints.find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
-  const fetchWindow = resolveFetchWindowForExecution({
-    checkpoint,
-    now,
-    requestedWindow,
-    writeCheckpointOnSuccess,
-  });
-  const fetchRun = await db.fetchRun.create({
-    data: {
-      providerConfigId: stream.activeProviderId,
-      requestedById: actorId,
-      status: "RUNNING",
-      streamId: stream.id,
-      triggerType,
-      windowEnd: fetchWindow.end,
-      windowStart: fetchWindow.start,
-    },
-  });
+  const fetchWindow = existingFetchRun
+    ? resolveStoredFetchWindow(existingFetchRun, checkpoint, now)
+    : resolveFetchWindowForExecution({
+        checkpoint,
+        now,
+        requestedWindow,
+        writeCheckpointOnSuccess,
+      });
+  const fetchRun = existingFetchRun
+    ? existingFetchRun
+    : await db.fetchRun.create({
+        data: {
+          attemptCount: 1,
+          availableAt: now,
+          executionDetailsJson: buildInitialFetchRunExecutionDetails(fetchWindow),
+          heartbeatAt: now,
+          leaseExpiresAt: getLeaseExpiration(now, getFetchRunLeaseMs()),
+          leaseOwner: createLeaseOwner("fetch"),
+          providerConfigId: stream.activeProviderId,
+          requestedById: actorId,
+          startedAt: now,
+          status: "RUNNING",
+          streamId: stream.id,
+          triggerType,
+          windowEnd: fetchWindow.end,
+          windowStart: fetchWindow.start,
+        },
+      });
 
-  await db.publishingStream.update({
-    where: {
-      id: stream.id,
-    },
-    data: {
-      lastRunStartedAt: fetchRun.startedAt,
-    },
-  });
+  if (!existingFetchRun) {
+    await db.publishingStream.update({
+      where: {
+        id: stream.id,
+      },
+      data: {
+        lastRunStartedAt: fetchRun.startedAt,
+      },
+    });
+  }
 
   return {
     checkpoint,
@@ -1947,6 +2213,10 @@ export function getStreamNextScheduledRunAt(stream) {
     return null;
   }
 
+  if (stream?.nextRunAt instanceof Date) {
+    return stream.nextRunAt;
+  }
+
   if (isStreamExecutionInProgress(stream)) {
     return null;
   }
@@ -1956,6 +2226,359 @@ export function getStreamNextScheduledRunAt(stream) {
   }
 
   return new Date(stream.lastRunCompletedAt.getTime() + stream.scheduleIntervalMinutes * 60 * 1000);
+}
+
+function createScheduledFetchQueueKey(streamId, runAt) {
+  return `scheduled:${streamId}:${serializeDate(runAt)}`;
+}
+
+async function claimFetchRunById(
+  db,
+  fetchRunId,
+  { leaseOwner = createLeaseOwner("fetch"), now = new Date() } = {},
+) {
+  if (typeof db.fetchRun?.updateMany !== "function") {
+    return {
+      leaseOwner,
+      record: await db.fetchRun.findUnique({
+        where: {
+          id: fetchRunId,
+        },
+      }),
+    };
+  }
+
+  const existingRun = await db.fetchRun.findUnique({
+    where: {
+      id: fetchRunId,
+    },
+  });
+
+  if (!existingRun) {
+    return {
+      leaseOwner,
+      record: null,
+    };
+  }
+
+  const claimResult = await db.fetchRun.updateMany({
+    data: {
+      attemptCount: (existingRun.attemptCount || 0) + 1,
+      heartbeatAt: now,
+      leaseExpiresAt: getLeaseExpiration(now, getFetchRunLeaseMs()),
+      leaseOwner,
+      startedAt: now,
+      status: "RUNNING",
+    },
+    where: {
+      id: fetchRunId,
+      status: "PENDING",
+      availableAt: {
+        lte: now,
+      },
+      OR: [
+        {
+          leaseExpiresAt: null,
+        },
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+      ],
+    },
+  });
+
+  if (!claimResult.count) {
+    return {
+      leaseOwner,
+      record: null,
+    };
+  }
+
+  return {
+    leaseOwner,
+    record: await db.fetchRun.findUnique({
+      where: {
+        id: fetchRunId,
+      },
+    }),
+  };
+}
+
+async function claimNextFetchRun(db, { now = new Date() } = {}) {
+  if (typeof db.fetchRun?.findFirst !== "function" || typeof db.fetchRun?.updateMany !== "function") {
+    return null;
+  }
+
+  const candidate = await db.fetchRun.findFirst({
+    orderBy: [{ availableAt: "asc" }, { createdAt: "asc" }],
+    where: {
+      status: "PENDING",
+      availableAt: {
+        lte: now,
+      },
+      OR: [
+        {
+          leaseExpiresAt: null,
+        },
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+      ],
+    },
+  });
+
+  if (!candidate) {
+    return null;
+  }
+
+  return claimFetchRunById(db, candidate.id, { now });
+}
+
+async function reconcileStaleFetchRuns(db, { now = new Date() } = {}) {
+  if (typeof db.fetchRun?.findMany !== "function") {
+    return [];
+  }
+
+  const staleRuns = await db.fetchRun.findMany({
+    where: {
+      status: "RUNNING",
+      OR: [
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+        {
+          leaseExpiresAt: null,
+          startedAt: {
+            lte: new Date(now.getTime() - getFetchRunLeaseMs()),
+          },
+        },
+      ],
+    },
+  });
+
+  for (const staleRun of staleRuns) {
+    await db.fetchRun.update({
+      where: {
+        id: staleRun.id,
+      },
+      data: {
+        availableAt: now,
+        errorMessage: staleRun.errorMessage || "Recovered stale fetch run for retry.",
+        heartbeatAt: null,
+        lastErrorAt: now,
+        lastErrorCode: staleRun.lastErrorCode || "stale_fetch_run_recovered",
+        leaseExpiresAt: null,
+        leaseOwner: null,
+        orphanedAt: now,
+        startedAt: null,
+        status: "PENDING",
+      },
+    });
+
+    await db.publishingStream.update({
+      where: {
+        id: staleRun.streamId,
+      },
+      data: {
+        lastRunStartedAt: null,
+      },
+    });
+  }
+
+  return staleRuns;
+}
+
+async function reconcileStalePublishAttempts(db, { now = new Date() } = {}) {
+  if (typeof db.publishAttempt?.findMany !== "function") {
+    return [];
+  }
+
+  const staleAttempts = await db.publishAttempt.findMany({
+    include: {
+      post: {
+        select: {
+          scheduledPublishAt: true,
+        },
+      },
+    },
+    where: {
+      status: "RUNNING",
+      OR: [
+        {
+          leaseExpiresAt: {
+            lte: now,
+          },
+        },
+        {
+          leaseExpiresAt: null,
+          startedAt: {
+            lte: new Date(now.getTime() - getPublishAttemptLeaseMs()),
+          },
+        },
+      ],
+    },
+  });
+
+  for (const staleAttempt of staleAttempts) {
+    await db.publishAttempt.update({
+      where: {
+        id: staleAttempt.id,
+      },
+      data: {
+        availableAt: staleAttempt.post?.scheduledPublishAt || now,
+        errorCode: staleAttempt.errorCode || "stale_publish_attempt_recovered",
+        errorMessage: staleAttempt.errorMessage || "Recovered stale publish attempt for retry.",
+        heartbeatAt: null,
+        lastErrorAt: now,
+        leaseExpiresAt: null,
+        leaseOwner: null,
+        orphanedAt: now,
+        startedAt: null,
+        status: "PENDING",
+      },
+    });
+  }
+
+  return staleAttempts;
+}
+
+async function recoverStrandedAutoPublishAttempts(db, { now = new Date() } = {}) {
+  if (typeof db.articleMatch?.findMany !== "function") {
+    return [];
+  }
+
+  const strandedMatches = await db.articleMatch.findMany({
+    include: {
+      canonicalPost: {
+        select: {
+          scheduledPublishAt: true,
+        },
+      },
+      destination: true,
+      stream: {
+        include: {
+          destination: true,
+        },
+      },
+    },
+    where: {
+      canonicalPostId: {
+        not: null,
+      },
+      publishedAt: null,
+      queuedAt: {
+        not: null,
+      },
+      publishAttempts: {
+        none: {},
+      },
+      stream: {
+        mode: "AUTO_PUBLISH",
+        status: "ACTIVE",
+      },
+    },
+  });
+
+  for (const articleMatch of strandedMatches) {
+    await createPublishAttempt(db, {
+      articleMatchId: articleMatch.id,
+      platform: articleMatch.destination.platform,
+      postId: articleMatch.canonicalPostId,
+      publishAt: articleMatch.canonicalPost?.scheduledPublishAt || now,
+      stream: articleMatch.stream,
+    });
+  }
+
+  return strandedMatches;
+}
+
+async function enqueueDueStreamFetchRuns(db, { now = new Date() } = {}) {
+  if (typeof db.publishingStream?.findMany !== "function" || typeof db.fetchRun?.upsert !== "function") {
+    return [];
+  }
+
+  const streams = await db.publishingStream.findMany({
+    include: {
+      checkpoints: true,
+    },
+    where: {
+      scheduleIntervalMinutes: {
+        gt: 0,
+      },
+      status: "ACTIVE",
+    },
+  });
+  const queuedRuns = [];
+
+  for (const stream of streams) {
+    const scheduledRunAt = getStreamNextScheduledRunAt(stream) || now;
+
+    if (!(scheduledRunAt instanceof Date) || scheduledRunAt > now) {
+      continue;
+    }
+
+    const existingQueuedRun = typeof db.fetchRun?.findFirst === "function"
+      ? await db.fetchRun.findFirst({
+          where: {
+            status: {
+              in: ["PENDING", "RUNNING"],
+            },
+            streamId: stream.id,
+          },
+        })
+      : null;
+
+    if (existingQueuedRun) {
+      continue;
+    }
+
+    const checkpoint =
+      stream.checkpoints.find((entry) => entry.providerConfigId === stream.activeProviderId) || null;
+    const fetchWindow = resolveFetchWindowForExecution({
+      checkpoint,
+      now,
+      writeCheckpointOnSuccess: true,
+    });
+    const queueKey = createScheduledFetchQueueKey(stream.id, scheduledRunAt);
+    const queuedRun = await db.fetchRun.upsert({
+      where: {
+        queueKey,
+      },
+      update: {
+        availableAt: now,
+      },
+      create: {
+        availableAt: now,
+        executionDetailsJson: buildInitialFetchRunExecutionDetails(fetchWindow),
+        providerConfigId: stream.activeProviderId,
+        queueKey,
+        status: "PENDING",
+        streamId: stream.id,
+        triggerType: "scheduled",
+        windowEnd: fetchWindow.end,
+        windowStart: fetchWindow.start,
+      },
+    });
+
+    await db.publishingStream.update({
+      where: {
+        id: stream.id,
+      },
+      data: {
+        nextRunAt: new Date(now.getTime() + stream.scheduleIntervalMinutes * 60 * 1000),
+      },
+    });
+
+    queuedRuns.push(queuedRun);
+  }
+
+  return queuedRuns;
 }
 
 function getSharedFetchCursorForCheckpoint(executionGroup, providerResult) {
@@ -1989,6 +2612,7 @@ function buildFetchRunExecutionDetails(executionContext, executionGroup, provide
     groupId: executionGroup?.id || null,
     groupSize: executionGroup?.streamIds?.length || 1,
     partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+    providerDiagnostics: providerResult?.diagnostics || null,
     sharedRequest: executionGroup ? serializeSharedFetchGroup(executionGroup) : null,
     streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
     timeBoundarySupport: timeBoundarySupport
@@ -2057,13 +2681,17 @@ async function finalizeSuccessfulFetchRun(
     },
     data: {
       aiCacheHitCount: summary.aiCacheHitCount,
+      availableAt: now,
       blockedCount: summary.blockedCount,
       duplicateCount: summary.duplicateCount,
       executionDetailsJson: executionDetails,
       failedCount: summary.failedCount,
       fetchedCount: summary.fetchedCount,
       finishedAt: new Date(),
+      heartbeatAt: null,
       heldCount: summary.heldCount,
+      leaseExpiresAt: null,
+      leaseOwner: null,
       optimizedCount: summary.optimizedCount,
       providerCursorAfterJson: checkpointCursor,
       providerCursorBeforeJson: executionContext.checkpoint?.cursorJson || null,
@@ -2128,6 +2756,7 @@ async function finalizeFailedFetchRun(
       id: executionContext.fetchRun.id,
     },
     data: {
+      availableAt: new Date(),
       errorMessage: error instanceof Error ? error.message : `${error}`,
       executionDetailsJson: {
         checkpointStrategy: {
@@ -2139,9 +2768,15 @@ async function finalizeFailedFetchRun(
         executionMode: executionGroup?.executionMode || "single",
         groupId: executionGroup?.id || null,
         partitionReasonCodes: executionGroup?.partitionReasonCodes || [],
+        providerDiagnostics: null,
         streamFetchWindow: serializeFetchWindow(executionContext.fetchWindow),
       },
       finishedAt: new Date(),
+      heartbeatAt: null,
+      lastErrorAt: new Date(),
+      lastErrorCode: trimText(error?.status) || "fetch_run_failed",
+      leaseExpiresAt: null,
+      leaseOwner: null,
       status: "FAILED",
     },
   });
@@ -2356,6 +2991,72 @@ async function processFetchedArticlesForStream(
       now,
     },
   );
+}
+
+async function runClaimedFetchRun(db, fetchRun, { now = new Date() } = {}) {
+  let executionContext = null;
+  let executionGroup = null;
+
+  try {
+    executionContext = await loadStreamExecutionContext(
+      db,
+      fetchRun.streamId,
+      {
+        actorId: fetchRun.requestedById || null,
+        existingFetchRun: fetchRun,
+        now,
+        triggerType: fetchRun.triggerType,
+      },
+    );
+    executionGroup = planSharedFetchGroups([executionContext])[0];
+    const providerResult = await fetchProviderArticles({
+      checkpoint: executionContext.checkpoint,
+      fetchWindow: executionContext.fetchWindow,
+      maxArticlesHint: getGroupMaxArticlesHint(executionGroup),
+      now,
+      providerKey: executionContext.stream.activeProvider.providerKey,
+      stream: executionContext.stream,
+    });
+
+    return await processFetchedArticlesForStream(
+      db,
+      executionContext,
+      providerResult,
+      {
+        actorId: fetchRun.requestedById || null,
+        executionGroup,
+        now,
+      },
+    );
+  } catch (error) {
+    if (!executionContext) {
+      return db.fetchRun.update({
+        where: {
+          id: fetchRun.id,
+        },
+        data: {
+          errorMessage: error instanceof Error ? error.message : `${error}`,
+          finishedAt: new Date(),
+          heartbeatAt: null,
+          lastErrorAt: new Date(),
+          lastErrorCode: trimText(error?.status) || "fetch_run_failed",
+          leaseExpiresAt: null,
+          leaseOwner: null,
+          status: "FAILED",
+        },
+      });
+    }
+
+    return finalizeFailedFetchRun(
+      db,
+      executionContext,
+      error,
+      {
+        actorId: fetchRun.requestedById || null,
+        executionGroup,
+      },
+    );
+  }
 }
 
 /** Runs one publishing stream end to end, including fetch, filtering, dedupe, and publication. */
@@ -2573,67 +3274,24 @@ export function isStreamDueForScheduledRun(stream, now = new Date()) {
     return false;
   }
 
-  if (!(stream?.lastRunCompletedAt instanceof Date)) {
-    return true;
-  }
-
   const nextRunAt = getStreamNextScheduledRunAt(stream);
 
-  if (!(nextRunAt instanceof Date)) {
-    return false;
+  if (nextRunAt instanceof Date) {
+    return nextRunAt <= now;
   }
 
-  return nextRunAt <= now;
+  return !(stream?.lastRunCompletedAt instanceof Date);
 }
 
 /** Executes all due scheduled stream runs and any pending scheduled publish attempts. */
 export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
-  const streams = await db.publishingStream.findMany({
-    where: {
-      status: "ACTIVE",
-    },
-  });
-  const dueStreams = streams.filter((stream) => isStreamDueForScheduledRun(stream, now));
-  const batchRunSummary = dueStreams.length
-    ? await runMultipleStreamFetches(
-      dueStreams.map((stream) => stream.id),
-      {
-        now,
-        triggerType: "scheduled",
-      },
-      db,
-    )
-    : {
-      results: [],
-    };
-  const results = batchRunSummary.results
-    .map((result) => result.run)
-    .filter(Boolean);
-
-  const dueScheduledAttempts = await db.publishAttempt.findMany({
-    include: {
-      post: true,
-    },
-    where: {
-      post: {
-        scheduledPublishAt: {
-          lte: now,
-        },
-      },
-      status: "PENDING",
-    },
-  });
-
-  for (const attempt of dueScheduledAttempts) {
-    try {
-      await executePublishAttempt(db, attempt.id);
-    } catch {
-      // The failure is already recorded in audit and observability layers.
-    }
-  }
-
-  const failedAttempts = await db.publishAttempt.findMany({
+  const recoveredFetchRuns = await reconcileStaleFetchRuns(db, { now });
+  const recoveredPublishAttempts = await reconcileStalePublishAttempts(db, { now });
+  const recoveredArticleMatches = await recoverStrandedAutoPublishAttempts(db, { now });
+  const queuedStreamRuns = await enqueueDueStreamFetchRuns(db, { now });
+  const failedAttempts = typeof db.publishAttempt?.findMany === "function"
+    ? await db.publishAttempt.findMany({
     include: {
       articleMatch: {
         include: {
@@ -2651,7 +3309,8 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
     where: {
       status: "FAILED",
     },
-  });
+    })
+    : [];
   const latestAttemptByMatch = new Map();
 
   for (const attempt of failedAttempts) {
@@ -2678,9 +3337,47 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
     }
   }
 
+  const results = [];
+
+  while (true) {
+    const claimedFetchRun = await claimNextFetchRun(db, { now });
+
+    if (!claimedFetchRun?.record) {
+      break;
+    }
+
+    results.push(await runClaimedFetchRun(db, claimedFetchRun.record, { now }));
+  }
+
+  let processedPublishAttempts = 0;
+
+  while (true) {
+    const claimedPublishAttempt = await claimNextPublishAttempt(db, { now });
+
+    if (!claimedPublishAttempt?.record) {
+      break;
+    }
+
+    processedPublishAttempts += 1;
+
+    try {
+      await executePublishAttempt(db, claimedPublishAttempt.record.id, {
+        claimedAttempt: claimedPublishAttempt.record,
+        leaseOwner: claimedPublishAttempt.leaseOwner,
+        now,
+      });
+    } catch {
+      // The failure is already recorded in audit and observability layers.
+    }
+  }
+
   return {
-    dueStreamCount: dueStreams.length,
-    processedScheduledAttempts: dueScheduledAttempts.length,
+    dueStreamCount: queuedStreamRuns.length,
+    processedPublishAttempts,
+    processedScheduledAttempts: processedPublishAttempts,
+    recoveredArticleMatchCount: recoveredArticleMatches.length,
+    recoveredFetchRunCount: recoveredFetchRuns.length,
+    recoveredPublishAttemptCount: recoveredPublishAttempts.length,
     retriedPublishAttempts: dueRetryAttempts.length,
     results,
   };

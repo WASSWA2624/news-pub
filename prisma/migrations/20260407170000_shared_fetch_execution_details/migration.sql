@@ -1,2 +1,1 @@
-ALTER TABLE `fetchrun`
-    ADD COLUMN `executionDetailsJson` JSON NULL;
+-- Folded into the snake_case baseline migration at 20260405213000_newspub_init.

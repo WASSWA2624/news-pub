@@ -3,6 +3,12 @@ const { existsSync, readFileSync, readdirSync } = require("node:fs");
 const path = require("node:path");
 
 const { PrismaMariaDb } = require("@prisma/adapter-mariadb");
+const {
+  formatDatabaseConnectionFailure,
+  formatPrismaColumnNormalizationPlan,
+  formatPrismaTableNormalizationPlan,
+  normalizePrismaSchemaNaming,
+} = require("./cpanel-db-utils");
 
 const NPX_COMMAND = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "npx";
 
@@ -88,6 +94,22 @@ function describeDatabaseTarget(databaseUrl) {
   const port = parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306;
 
   return `${user}@${host}:${port}/${database}`;
+}
+
+function createMariaDbConnectionConfig(databaseUrl = process.env.DATABASE_URL) {
+  const parsedUrl = parseDatabaseUrl(databaseUrl);
+
+  if (!parsedUrl) {
+    return null;
+  }
+
+  return {
+    database: parsedUrl.pathname.replace(/^\//, ""),
+    host: parsedUrl.hostname || "localhost",
+    password: decodeURIComponent(parsedUrl.password || ""),
+    port: parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306,
+    user: decodeURIComponent(parsedUrl.username || ""),
+  };
 }
 
 function assertLocalDatabaseUrlReady(databaseUrl = process.env.DATABASE_URL) {
@@ -249,8 +271,50 @@ function baselineExistingDatabase() {
   return true;
 }
 
-function applyPrismaMigrations() {
+async function normalizeLocalPrismaSchemaNaming() {
+  const databaseConfig = createMariaDbConnectionConfig();
+  let mariadb;
+
+  try {
+    mariadb = require("mariadb");
+  } catch (error) {
+    if (error?.code === "MODULE_NOT_FOUND") {
+      throw new Error("The mariadb dependency is missing. Run npm install before running Prisma workflows.");
+    }
+
+    throw error;
+  }
+
+  let connection;
+
+  try {
+    connection = await mariadb.createConnection(databaseConfig);
+  } catch (error) {
+    throw new Error(formatDatabaseConnectionFailure(error));
+  }
+
+  try {
+    const normalizationPlan = await normalizePrismaSchemaNaming(connection, databaseConfig.database);
+
+    if (normalizationPlan.tablePlan.renames.length > 0) {
+      console.log(
+        `Normalized legacy Prisma table names locally: ${formatPrismaTableNormalizationPlan(normalizationPlan.tablePlan.renames)}.`,
+      );
+    }
+
+    if (normalizationPlan.columnPlan.renames.length > 0) {
+      console.log(
+        `Normalized legacy Prisma column names locally: ${formatPrismaColumnNormalizationPlan(normalizationPlan.columnPlan.renames)}.`,
+      );
+    }
+  } finally {
+    await connection.end();
+  }
+}
+
+async function applyPrismaMigrations() {
   assertLocalDatabaseUrlReady();
+  await normalizeLocalPrismaSchemaNaming();
   console.log("Applying Prisma migrations...");
 
   const migrateResult = runPrismaCommand(["migrate", "deploy"], {

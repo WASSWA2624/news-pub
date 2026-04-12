@@ -7,8 +7,9 @@ const { spawnSync } = require("node:child_process");
 
 const {
   formatDatabaseConnectionFailure,
-  formatPrismaTableCaseNormalizationPlan,
-  normalizePrismaTableCase,
+  formatPrismaColumnNormalizationPlan,
+  formatPrismaTableNormalizationPlan,
+  normalizePrismaSchemaNaming,
 } = require("./cpanel-db-utils");
 
 const rootDir = process.cwd();
@@ -280,11 +281,17 @@ async function applyMigrations() {
   }
 
   try {
-    const normalizationPlan = await normalizePrismaTableCase(connection, databaseConfig.database);
+    const normalizationPlan = await normalizePrismaSchemaNaming(connection, databaseConfig.database);
 
-    if (normalizationPlan.renames.length > 0) {
+    if (normalizationPlan.tablePlan.renames.length > 0) {
       console.log(
-        `Normalized legacy Prisma table names for cPanel: ${formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames)}.`,
+        `Normalized legacy Prisma table names for cPanel: ${formatPrismaTableNormalizationPlan(normalizationPlan.tablePlan.renames)}.`,
+      );
+    }
+
+    if (normalizationPlan.columnPlan.renames.length > 0) {
+      console.log(
+        `Normalized legacy Prisma column names for cPanel: ${formatPrismaColumnNormalizationPlan(normalizationPlan.columnPlan.renames)}.`,
       );
     }
 

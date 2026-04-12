@@ -5,11 +5,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const {
-  buildPrismaTableCaseNormalizationPlan,
+  buildPrismaColumnNormalizationPlan,
+  buildPrismaTableNormalizationPlan,
   formatDatabaseConnectionFailure,
-  formatPrismaTableCaseConflicts,
-  formatPrismaTableCaseNormalizationPlan,
+  formatPrismaColumnNormalizationConflicts,
+  formatPrismaColumnNormalizationPlan,
+  formatPrismaTableNormalizationConflicts,
+  formatPrismaTableNormalizationPlan,
+  listSchemaColumnNames,
   listSchemaTableNames,
+  readPrismaNamingMetadata,
 } = require("./cpanel-db-utils");
 
 const rootDir = process.cwd();
@@ -242,16 +247,17 @@ function checkNativeDependencies(failures) {
 }
 
 async function checkDatabase(connection, databaseConfig, failures) {
+  const namingMetadata = readPrismaNamingMetadata();
   const tableNames = await listSchemaTableNames(connection, databaseConfig.database);
   const tableNameSet = new Set(tableNames);
-  const normalizationPlan = buildPrismaTableCaseNormalizationPlan(tableNames);
-  const requiredTables = ["_prisma_migrations", "user", "adminsession", "auditevent"];
+  const tablePlan = buildPrismaTableNormalizationPlan(tableNames, namingMetadata);
+  const requiredTables = ["_prisma_migrations", "user", "admin_session", "audit_event"];
 
-  if (normalizationPlan.conflicts.length > 0) {
+  if (tablePlan.conflicts.length > 0) {
     failures.push(
       [
         "Conflicting Prisma table name variants were found:",
-        formatPrismaTableCaseConflicts(normalizationPlan.conflicts),
+        formatPrismaTableNormalizationConflicts(tablePlan.conflicts),
         "Keep only one copy of each Prisma table, then rerun npm run cpanel:db:deploy in the cPanel app root.",
       ].join(" "),
     );
@@ -259,12 +265,66 @@ async function checkDatabase(connection, databaseConfig, failures) {
     return;
   }
 
-  if (normalizationPlan.renames.length > 0) {
+  if (tablePlan.renames.length > 0) {
     failures.push(
       [
-        "Legacy mixed-case Prisma tables were found:",
-        formatPrismaTableCaseNormalizationPlan(normalizationPlan.renames),
-        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them to the lowercase Prisma table convention, then restart the app.",
+        "Legacy Prisma table names were found:",
+        formatPrismaTableNormalizationPlan(tablePlan.renames),
+        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them to the snake_case Prisma table convention, then restart the app.",
+      ].join(" "),
+    );
+
+    return;
+  }
+
+  const columnConflicts = [];
+  const columnRenames = [];
+
+  for (const table of namingMetadata.tables) {
+    if (!tableNameSet.has(table.canonicalName)) {
+      continue;
+    }
+
+    const columnNames = await listSchemaColumnNames(connection, databaseConfig.database, table.canonicalName);
+    const columnPlan = buildPrismaColumnNormalizationPlan(columnNames, table.columns);
+
+    if (columnPlan.conflicts.length > 0) {
+      columnConflicts.push(
+        ...columnPlan.conflicts.map((conflict) => ({
+          ...conflict,
+          tableName: table.canonicalName,
+        })),
+      );
+    }
+
+    if (columnPlan.renames.length > 0) {
+      columnRenames.push(
+        ...columnPlan.renames.map((rename) => ({
+          ...rename,
+          tableName: table.canonicalName,
+        })),
+      );
+    }
+  }
+
+  if (columnConflicts.length > 0) {
+    failures.push(
+      [
+        "Conflicting Prisma column name variants were found:",
+        formatPrismaColumnNormalizationConflicts(columnConflicts),
+        "Keep only one copy of each Prisma column, then rerun npm run cpanel:db:deploy in the cPanel app root.",
+      ].join(" "),
+    );
+
+    return;
+  }
+
+  if (columnRenames.length > 0) {
+    failures.push(
+      [
+        "Legacy Prisma column names were found:",
+        formatPrismaColumnNormalizationPlan(columnRenames),
+        "Run npm run cpanel:db:deploy in the cPanel app root to normalize them to snake_case before starting the app.",
       ].join(" "),
     );
 

@@ -38,6 +38,8 @@ const providerRuntimeCatalog = Object.freeze({
   },
 });
 
+const maxProviderPageCount = 5;
+
 function normalizeProviderKey(value) {
   return `${value || ""}`.trim().toLowerCase();
 }
@@ -270,6 +272,66 @@ function getCheckpointCursorValue(cursorJson) {
   return "";
 }
 
+function serializeProviderRequestUrl(url, redactParams = []) {
+  const diagnosticUrl = new URL(url);
+
+  for (const param of redactParams) {
+    if (diagnosticUrl.searchParams.has(param)) {
+      diagnosticUrl.searchParams.set(param, "[redacted]");
+    }
+  }
+
+  return diagnosticUrl.toString();
+}
+
+function getProviderArticleTargetCount(providerKey, options = {}) {
+  const normalizedProviderKey = normalizeProviderKey(providerKey);
+  const batchSize =
+    normalizedProviderKey === "mediastack"
+      ? getCappedProviderFetchBatchSize(normalizedProviderKey, options)
+      : getProviderFetchBatchSize(options);
+
+  return Math.min(Math.max(batchSize, batchSize * maxProviderPageCount), 500);
+}
+
+function createProviderDiagnostics(providerKey, { endpoint = null, requestValues = {} } = {}) {
+  return {
+    endpoint,
+    pageLimit: maxProviderPageCount,
+    pages: [],
+    providerKey,
+    requestValues: requestValues || {},
+    retryEvents: [],
+    stopReason: null,
+  };
+}
+
+function recordProviderPage(diagnostics, pageDetails) {
+  diagnostics.pages.push(pageDetails);
+}
+
+function finalizeProviderDiagnostics(diagnostics, { articleCount = 0, stopReason = "provider_exhausted" } = {}) {
+  return {
+    ...diagnostics,
+    pageCount: diagnostics.pages.length,
+    stopReason: diagnostics.stopReason || stopReason,
+    totalFetchedArticles: articleCount,
+  };
+}
+
+function createRetryEventRecorder(retryEvents = [], context = {}) {
+  return (event) => {
+    retryEvents.push({
+      ...context,
+      attempt: event.attempt,
+      delayMs: event.delayMs,
+      errorMessage: event.errorMessage || null,
+      kind: event.kind,
+      status: event.status,
+    });
+  };
+}
+
 function createNormalizedArticle(article, providerKey) {
   const normalizedTitle = normalizeDisplayText(article.title);
   const normalizedSourceUrl = normalizeDisplayText(article.sourceUrl);
@@ -439,16 +501,25 @@ function resolveProviderRequestValues(providerKey, stream) {
   });
 }
 
-function buildMediastackRequest({ credential, maxArticlesHint = null, requestValues, stream }) {
+function buildMediastackRequest({
+  credential,
+  maxArticlesHint = null,
+  offset = 0,
+  requestValues,
+  stream,
+}) {
   const url = new URL(providerRuntimeCatalog.mediastack.baseUrl);
+  const limit = getCappedProviderFetchBatchSize("mediastack", { maxArticlesHint, stream });
 
   url.searchParams.set("access_key", credential);
-  url.searchParams.set("limit", `${getCappedProviderFetchBatchSize("mediastack", { maxArticlesHint, stream })}`);
+  url.searchParams.set("limit", `${limit}`);
+  url.searchParams.set("offset", `${Math.max(0, Number.parseInt(`${offset || 0}`, 10) || 0)}`);
   appendIncludeExcludeListParam(url, "countries", requestValues.countries, requestValues.excludeCountries);
   appendIncludeExcludeListParam(url, "languages", requestValues.languages, requestValues.excludeLanguages);
   appendIncludeExcludeListParam(url, "categories", requestValues.categories, requestValues.excludeCategories);
   appendScalarParam(url, "sort", requestValues.sort);
   appendScalarParam(url, "keywords", requestValues.keywords);
+  appendScalarParam(url, "sources", requestValues.sources);
 
   const dateRange = buildDateRangeValue(requestValues.dateFrom, requestValues.dateTo);
 
@@ -457,24 +528,25 @@ function buildMediastackRequest({ credential, maxArticlesHint = null, requestVal
   }
 
   return {
+    limit,
     responseShape: "data",
     url,
   };
 }
 
 function buildNewsDataRequest({
-  checkpoint,
   credential,
   maxArticlesHint = null,
+  pageCursor = "",
   requestValues,
   stream,
 }) {
   const endpoint = getSingleValue(requestValues, "endpoint", "latest") === "archive" ? "archive" : "latest";
   const url = new URL(providerRuntimeCatalog.newsdata.baseUrlByEndpoint[endpoint]);
-  const pageCursor = getCheckpointCursorValue(checkpoint?.cursorJson);
+  const requestSize = getProviderFetchBatchSize({ maxArticlesHint, stream });
 
   url.searchParams.set("apikey", credential);
-  url.searchParams.set("size", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
+  url.searchParams.set("size", `${requestSize}`);
 
   if (pageCursor) {
     url.searchParams.set("page", pageCursor);
@@ -510,19 +582,29 @@ function buildNewsDataRequest({
 
   return {
     endpoint,
+    requestSize,
     responseShape: "results",
     url,
   };
 }
 
-function buildNewsApiRequest({ credential, maxArticlesHint = null, requestValues, stream }) {
+function buildNewsApiRequest({
+  credential,
+  maxArticlesHint = null,
+  page = 1,
+  requestValues,
+  stream,
+}) {
   const endpoint = getSingleValue(requestValues, "endpoint", "top-headlines") === "everything"
     ? "everything"
     : "top-headlines";
   const url = new URL(providerRuntimeCatalog.newsapi.baseUrlByEndpoint[endpoint]);
+  const pageSize = getProviderFetchBatchSize({ maxArticlesHint, stream });
 
-  url.searchParams.set("pageSize", `${getProviderFetchBatchSize({ maxArticlesHint, stream })}`);
+  url.searchParams.set("page", `${Math.max(1, Number.parseInt(`${page || 1}`, 10) || 1)}`);
+  url.searchParams.set("pageSize", `${pageSize}`);
   appendScalarParam(url, "q", requestValues.q);
+  appendScalarParam(url, "sources", requestValues.sources);
 
   if (endpoint === "everything") {
     appendScalarParam(url, "language", requestValues.language);
@@ -533,6 +615,16 @@ function buildNewsApiRequest({ credential, maxArticlesHint = null, requestValues
     appendScalarParam(url, "to", requestValues.toDate);
     appendScalarParam(url, "sortBy", requestValues.sortBy);
   } else {
+    if (normalizeScalar(requestValues.sources) && (normalizeScalar(requestValues.country) || normalizeScalar(requestValues.category))) {
+      throw new NewsPubError(
+        'NewsAPI "Top Headlines" sources cannot be combined with country or category.',
+        {
+          status: "provider_request_invalid",
+          statusCode: 400,
+        },
+      );
+    }
+
     appendScalarParam(url, "country", requestValues.country);
     appendScalarParam(url, "category", requestValues.category);
   }
@@ -542,6 +634,7 @@ function buildNewsApiRequest({ credential, maxArticlesHint = null, requestValues
     headers: {
       "x-api-key": credential,
     },
+    pageSize,
     responseShape: "articles",
     url,
   };
@@ -575,9 +668,11 @@ function createProviderResponseError(providerLabel, payload, fallbackMessage) {
   });
 }
 
-async function fetchProviderResponse(providerLabel, url, init) {
+async function fetchProviderResponse(providerLabel, url, init, { retryContext = {}, retryEvents = [] } = {}) {
   try {
-    return await fetchWithTimeoutAndRetry(url, init);
+    return await fetchWithTimeoutAndRetry(url, init, {
+      onRetry: createRetryEventRecorder(retryEvents, retryContext),
+    });
   } catch (error) {
     throw new NewsPubError(
       `${providerLabel} request failed before a response: ${error instanceof Error ? error.message : "network error"}.`,
@@ -675,6 +770,16 @@ export async function fetchProviderArticles({
     return {
       articles: buildFallbackProviderArticles(stream, normalizedKey, now),
       cursor: checkpoint?.cursorJson || null,
+      diagnostics: {
+        endpoint: getSingleValue(requestValuesOverride || {}, "endpoint", null),
+        pageCount: 0,
+        pages: [],
+        providerKey: normalizedKey,
+        requestValues: requestValuesOverride || {},
+        retryEvents: [],
+        stopReason: "fixture_mode",
+        totalFetchedArticles: 1,
+      },
       fetchedCount: 1,
     };
   }
@@ -697,73 +802,268 @@ export async function fetchProviderArticles({
   );
 
   if (normalizedKey === "mediastack") {
-    const request = buildMediastackRequest({
-      credential,
-      maxArticlesHint,
+    const diagnostics = createProviderDiagnostics(normalizedKey, {
       requestValues,
-      stream,
     });
-    const response = await fetchProviderResponse("Mediastack", request.url, getFetchRequestInit());
-    const payload = await readJsonResponse(response);
+    const targetCount = getProviderArticleTargetCount(normalizedKey, { maxArticlesHint, stream });
+    const articles = [];
+    let cursor = null;
+    let offset = 0;
+    let stopReason = "page_limit_reached";
 
-    if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
-      throw createProviderResponseError("Mediastack", payload, "Invalid response shape.");
+    for (let pageIndex = 0; pageIndex < maxProviderPageCount; pageIndex += 1) {
+      const request = buildMediastackRequest({
+        credential,
+        maxArticlesHint,
+        offset,
+        requestValues,
+        stream,
+      });
+      const requestUrl = serializeProviderRequestUrl(request.url, ["access_key"]);
+      const response = await fetchProviderResponse("Mediastack", request.url, getFetchRequestInit(), {
+        retryContext: {
+          offset,
+          requestUrl,
+        },
+        retryEvents: diagnostics.retryEvents,
+      });
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
+        throw createProviderResponseError("Mediastack", payload, "Invalid response shape.");
+      }
+
+      const pageArticles = payload.data.map(normalizeMediastackArticle);
+      const pageCursor = payload.pagination || {
+        limit: request.limit,
+        offset,
+      };
+      const total = Number.parseInt(`${pageCursor.total ?? ""}`, 10);
+      const nextOffset = Number.parseInt(`${pageCursor.offset ?? offset}`, 10) + pageArticles.length;
+
+      recordProviderPage(diagnostics, {
+        itemCount: pageArticles.length,
+        offset,
+        requestUrl,
+        responseStatus: response.status,
+        total: Number.isFinite(total) ? total : null,
+      });
+
+      articles.push(...pageArticles);
+      cursor = pageCursor;
+
+      if (articles.length >= targetCount) {
+        stopReason = "article_target_reached";
+        break;
+      }
+
+      if (!pageArticles.length) {
+        stopReason = "empty_page";
+        break;
+      }
+
+      if (pageArticles.length < request.limit || (Number.isFinite(total) && nextOffset >= total)) {
+        stopReason = "provider_exhausted";
+        break;
+      }
+
+      offset = nextOffset;
     }
 
     return {
-      articles: payload.data.map(normalizeMediastackArticle),
-      cursor: payload.pagination || null,
-      fetchedCount: payload.data.length,
+      articles: articles.slice(0, targetCount),
+      cursor,
+      diagnostics: finalizeProviderDiagnostics(diagnostics, {
+        articleCount: Math.min(articles.length, targetCount),
+        stopReason,
+      }),
+      fetchedCount: Math.min(articles.length, targetCount),
     };
   }
 
   if (normalizedKey === "newsdata") {
-    const request = buildNewsDataRequest({
-      checkpoint,
-      credential,
-      maxArticlesHint,
+    const endpoint = getSingleValue(requestValues, "endpoint", "latest") === "archive" ? "archive" : "latest";
+    const diagnostics = createProviderDiagnostics(normalizedKey, {
+      endpoint,
       requestValues,
-      stream,
     });
-    const response = await fetchProviderResponse("NewsData", request.url, getFetchRequestInit());
-    const payload = await readJsonResponse(response);
+    const targetCount = getProviderArticleTargetCount(normalizedKey, { maxArticlesHint, stream });
+    const seenCursors = new Set();
+    const articles = [];
+    let cursor = null;
+    let pageCursor = getCheckpointCursorValue(checkpoint?.cursorJson);
+    let stopReason = "page_limit_reached";
 
-    if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
-      throw createProviderResponseError("NewsData", payload, "Invalid response shape.");
+    for (let pageIndex = 0; pageIndex < maxProviderPageCount; pageIndex += 1) {
+      if (pageCursor && seenCursors.has(pageCursor)) {
+        stopReason = "duplicate_cursor";
+        break;
+      }
+
+      if (pageCursor) {
+        seenCursors.add(pageCursor);
+      }
+
+      const request = buildNewsDataRequest({
+        credential,
+        maxArticlesHint,
+        pageCursor,
+        requestValues,
+        stream,
+      });
+      const requestUrl = serializeProviderRequestUrl(request.url, ["apikey"]);
+      const response = await fetchProviderResponse("NewsData", request.url, getFetchRequestInit(), {
+        retryContext: {
+          cursor: pageCursor || null,
+          endpoint: request.endpoint,
+          requestUrl,
+        },
+        retryEvents: diagnostics.retryEvents,
+      });
+      const payload = await readJsonResponse(response);
+
+      if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
+        throw createProviderResponseError("NewsData", payload, "Invalid response shape.");
+      }
+
+      const pageArticles = payload.results.map(normalizeNewsDataArticle);
+      const nextCursor = getCheckpointCursorValue(payload.nextPage);
+
+      recordProviderPage(diagnostics, {
+        cursorIn: pageCursor || null,
+        cursorOut: nextCursor || null,
+        endpoint: request.endpoint,
+        itemCount: pageArticles.length,
+        requestUrl,
+        responseStatus: response.status,
+      });
+
+      articles.push(...pageArticles);
+      cursor = nextCursor || null;
+
+      if (articles.length >= targetCount) {
+        stopReason = "article_target_reached";
+        break;
+      }
+
+      if (!pageArticles.length) {
+        stopReason = "empty_page";
+        break;
+      }
+
+      if (!nextCursor) {
+        stopReason = "provider_exhausted";
+        break;
+      }
+
+      pageCursor = nextCursor;
     }
 
     return {
-      articles: payload.results.map(normalizeNewsDataArticle),
-      cursor: payload.nextPage || null,
-      fetchedCount: payload.results.length,
+      articles: articles.slice(0, targetCount),
+      cursor,
+      diagnostics: finalizeProviderDiagnostics(diagnostics, {
+        articleCount: Math.min(articles.length, targetCount),
+        stopReason,
+      }),
+      fetchedCount: Math.min(articles.length, targetCount),
     };
   }
 
   if (normalizedKey === "newsapi") {
-    const request = buildNewsApiRequest({
-      credential,
-      maxArticlesHint,
+    const endpoint = getSingleValue(requestValues, "endpoint", "top-headlines") === "everything"
+      ? "everything"
+      : "top-headlines";
+    const diagnostics = createProviderDiagnostics(normalizedKey, {
+      endpoint,
       requestValues,
-      stream,
     });
-    const response = await fetchProviderResponse("NewsAPI", request.url, getFetchRequestInit(request.headers));
-    const payload = await readJsonResponse(response);
+    const targetCount = getProviderArticleTargetCount(normalizedKey, { maxArticlesHint, stream });
+    const articles = [];
+    let cursor = null;
+    let stopReason = "page_limit_reached";
+    let totalResults = null;
 
-    if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
-      throw createProviderResponseError("NewsAPI", payload, "Invalid response shape.");
-    }
+    for (let page = 1; page <= maxProviderPageCount; page += 1) {
+      const request = buildNewsApiRequest({
+        credential,
+        maxArticlesHint,
+        page,
+        requestValues,
+        stream,
+      });
+      const requestUrl = serializeProviderRequestUrl(request.url);
+      const response = await fetchProviderResponse(
+        "NewsAPI",
+        request.url,
+        getFetchRequestInit(request.headers),
+        {
+          retryContext: {
+            endpoint: request.endpoint,
+            page,
+            requestUrl,
+          },
+          retryEvents: diagnostics.retryEvents,
+        },
+      );
+      const payload = await readJsonResponse(response);
 
-    return {
-      articles: payload.articles.map((article) =>
+      if (!response.ok || !Array.isArray(payload?.[request.responseShape])) {
+        throw createProviderResponseError("NewsAPI", payload, "Invalid response shape.");
+      }
+
+      const pageArticles = payload.articles.map((article) =>
         normalizeNewsApiArticle(article, {
           requestValues,
           stream,
-        })),
-      cursor: {
+        }),
+      );
+      totalResults = Number.parseInt(`${payload.totalResults ?? pageArticles.length}`, 10);
+
+      recordProviderPage(diagnostics, {
         endpoint: request.endpoint,
-        totalResults: payload.totalResults || payload.articles.length,
-      },
-      fetchedCount: payload.articles.length,
+        itemCount: pageArticles.length,
+        page,
+        requestUrl,
+        responseStatus: response.status,
+        totalResults: Number.isFinite(totalResults) ? totalResults : null,
+      });
+
+      articles.push(...pageArticles);
+      cursor = {
+        endpoint: request.endpoint,
+        page,
+        pageSize: request.pageSize,
+        totalResults: Number.isFinite(totalResults) ? totalResults : articles.length,
+      };
+
+      if (articles.length >= targetCount) {
+        stopReason = "article_target_reached";
+        break;
+      }
+
+      if (!pageArticles.length) {
+        stopReason = "empty_page";
+        break;
+      }
+
+      if (
+        pageArticles.length < request.pageSize
+        || (Number.isFinite(totalResults) && page * request.pageSize >= totalResults)
+      ) {
+        stopReason = "provider_exhausted";
+        break;
+      }
+    }
+
+    return {
+      articles: articles.slice(0, targetCount),
+      cursor,
+      diagnostics: finalizeProviderDiagnostics(diagnostics, {
+        articleCount: Math.min(articles.length, targetCount),
+        stopReason,
+      }),
+      fetchedCount: Math.min(articles.length, targetCount),
     };
   }
 

@@ -681,6 +681,169 @@ describe("stream selection and scheduling helpers", () => {
     ).toEqual(new Date("2026-04-05T11:30:00.000Z"));
   });
 
+  it("prefers persisted nextRunAt values when determining whether a stream is due", async () => {
+    const { getStreamNextScheduledRunAt, isStreamDueForScheduledRun } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+
+    expect(
+      getStreamNextScheduledRunAt({
+        lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
+        nextRunAt: new Date("2026-04-05T13:00:00.000Z"),
+        scheduleIntervalMinutes: 30,
+      }),
+    ).toEqual(new Date("2026-04-05T13:00:00.000Z"));
+
+    expect(
+      isStreamDueForScheduledRun(
+        {
+          nextRunAt: new Date("2026-04-05T13:00:00.000Z"),
+          scheduleIntervalMinutes: 30,
+        },
+        now,
+      ),
+    ).toBe(false);
+
+    expect(
+      isStreamDueForScheduledRun(
+        {
+          nextRunAt: new Date("2026-04-05T12:00:00.000Z"),
+          scheduleIntervalMinutes: 30,
+        },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("reconciles stale publish attempts, recovers stranded auto-publish matches, and queues due scheduled runs", async () => {
+    const { runScheduledStreams } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    const prisma = {
+      articleMatch: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            canonicalPost: {
+              scheduledPublishAt: null,
+            },
+            canonicalPostId: "post_1",
+            destination: {
+              platform: "WEBSITE",
+            },
+            id: "match_1",
+            queuedAt: now,
+            stream: {
+              destination: {
+                platform: "WEBSITE",
+              },
+              destinationId: "destination_1",
+              id: "stream_1",
+              mode: "AUTO_PUBLISH",
+              status: "ACTIVE",
+            },
+          },
+        ]),
+      },
+      fetchRun: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn().mockResolvedValue({
+          id: "fetch_run_queued_1",
+          queueKey: "scheduled:stream_1:2026-04-05T12:00:00.000Z",
+          status: "PENDING",
+        }),
+        update: vi.fn().mockResolvedValue(null),
+      },
+      publishAttempt: {
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({
+          articleMatchId: "match_1",
+          id: "attempt_1",
+          retryCount: 0,
+          status: "PENDING",
+        }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi
+          .fn()
+          .mockResolvedValueOnce([
+            {
+              errorCode: null,
+              errorMessage: null,
+              id: "stale_attempt_1",
+              post: {
+                scheduledPublishAt: null,
+              },
+              startedAt: new Date("2026-04-05T11:00:00.000Z"),
+              status: "RUNNING",
+            },
+          ])
+          .mockResolvedValueOnce([]),
+        update: vi.fn().mockResolvedValue(null),
+      },
+      publishingStream: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            activeProviderId: "provider_1",
+            checkpoints: [],
+            id: "stream_1",
+            lastRunCompletedAt: new Date("2026-04-05T11:00:00.000Z"),
+            nextRunAt: new Date("2026-04-05T12:00:00.000Z"),
+            scheduleIntervalMinutes: 30,
+            status: "ACTIVE",
+          },
+        ]),
+        update: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    const summary = await runScheduledStreams(
+      {
+        now,
+      },
+      prisma,
+    );
+
+    expect(prisma.publishAttempt.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "stale_attempt_1",
+        },
+        data: expect.objectContaining({
+          availableAt: now,
+          errorCode: "stale_publish_attempt_recovered",
+          status: "PENDING",
+        }),
+      }),
+    );
+    expect(prisma.publishAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          articleMatchId: "match_1",
+          availableAt: now,
+          status: "PENDING",
+        }),
+      }),
+    );
+    expect(prisma.fetchRun.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          queueKey: expect.stringContaining("scheduled:stream_1:"),
+          status: "PENDING",
+          streamId: "stream_1",
+          triggerType: "scheduled",
+        }),
+      }),
+    );
+    expect(summary).toMatchObject({
+      dueStreamCount: 1,
+      processedPublishAttempts: 0,
+      recoveredArticleMatchCount: 1,
+      recoveredPublishAttemptCount: 1,
+      retriedPublishAttempts: 0,
+    });
+  });
+
   it("audits manual repost requests before executing a fresh publish attempt", async () => {
     vi.doMock("@/lib/analytics", () => ({
       createAuditEventRecord: vi.fn().mockResolvedValue(null),

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   compilerBuild = "small"
 }
 
@@ -117,10 +117,10 @@ enum ViewEventType {
 model Locale {
   code                 String                @id @db.VarChar(16)
   name                 String                @db.VarChar(64)
-  isActive             Boolean               @default(true)
-  isDefault            Boolean               @default(false)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  isActive             Boolean               @default(true) @map("is_active")
+  isDefault            Boolean               @default(false) @map("is_default")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
   postTranslations     PostTranslation[]
   destinationTemplates DestinationTemplate[]
   optimizationCaches   OptimizationCache[]
@@ -134,11 +134,11 @@ model User {
   id            String         @id @default(cuid())
   email         String         @unique @db.VarChar(191)
   name          String         @db.VarChar(191)
-  passwordHash  String         @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
   role          UserRole
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   adminSessions AdminSession[]
   authoredPosts Post[]         @relation("PostAuthor")
   auditEvents   AuditEvent[]
@@ -148,61 +148,61 @@ model User {
 }
 
 model AdminSession {
-  id            String   @id @default(cuid())
-  userId        String
-  tokenHash     String   @unique @db.VarChar(64)
-  expiresAt     DateTime
-  invalidatedAt DateTime?
-  createdAt     DateTime @default(now())
-  lastUsedAt    DateTime @default(now())
-  userAgent     String?  @db.VarChar(512)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  tokenHash     String    @unique @map("token_hash") @db.VarChar(64)
+  expiresAt     DateTime  @map("expires_at")
+  invalidatedAt DateTime? @map("invalidated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastUsedAt    DateTime  @default(now()) @map("last_used_at")
+  userAgent     String?   @map("user_agent") @db.VarChar(512)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@index([userId, expiresAt])
-  @@map("adminsession")
+  @@map("admin_session")
 }
 
 model NewsProviderConfig {
-  id                  String                   @id @default(cuid())
-  providerKey         String                   @unique @db.VarChar(64)
-  label               String                   @db.VarChar(191)
-  description         String?                  @db.LongText
-  baseUrl             String?                  @db.VarChar(2048)
-  isDefault           Boolean                  @default(false)
-  isEnabled           Boolean                  @default(true)
-  isSelectable        Boolean                  @default(true)
-  requestDefaultsJson Json?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
-  streams             PublishingStream[]       @relation("StreamProvider")
+  id                  String                    @id @default(cuid())
+  providerKey         String                    @unique @map("provider_key") @db.VarChar(64)
+  label               String                    @db.VarChar(191)
+  description         String?                   @db.LongText
+  baseUrl             String?                   @map("base_url") @db.VarChar(2048)
+  isDefault           Boolean                   @default(false) @map("is_default")
+  isEnabled           Boolean                   @default(true) @map("is_enabled")
+  isSelectable        Boolean                   @default(true) @map("is_selectable")
+  requestDefaultsJson Json?                     @map("request_defaults_json")
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+  streams             PublishingStream[]        @relation("StreamProvider")
   checkpoints         ProviderFetchCheckpoint[]
   fetchedArticles     FetchedArticle[]
   fetchRuns           FetchRun[]
 
   @@index([isEnabled, isDefault])
-  @@map("newsproviderconfig")
+  @@map("news_provider_config")
 }
 
 model Destination {
-  id                       String           @id @default(cuid())
-  name                     String           @db.VarChar(191)
-  slug                     String           @unique @db.VarChar(191)
+  id                       String              @id @default(cuid())
+  name                     String              @db.VarChar(191)
+  slug                     String              @unique @db.VarChar(191)
   platform                 DestinationPlatform
   kind                     DestinationKind
-  accountHandle            String?          @db.VarChar(191)
-  externalAccountId        String?          @db.VarChar(191)
-  connectionStatus         ConnectionStatus @default(DISCONNECTED)
-  connectionError          String?          @db.LongText
-  encryptedTokenCiphertext String?          @db.LongText
-  encryptedTokenIv         String?          @db.VarChar(64)
-  encryptedTokenTag        String?          @db.VarChar(64)
-  tokenHint                String?          @db.VarChar(64)
-  settingsJson             Json?
-  lastCheckedAt            DateTime?
-  lastConnectedAt          DateTime?
-  createdAt                DateTime         @default(now())
-  updatedAt                DateTime         @updatedAt
+  accountHandle            String?             @map("account_handle") @db.VarChar(191)
+  externalAccountId        String?             @map("external_account_id") @db.VarChar(191)
+  connectionStatus         ConnectionStatus    @default(DISCONNECTED) @map("connection_status")
+  connectionError          String?             @map("connection_error") @db.LongText
+  encryptedTokenCiphertext String?             @map("encrypted_token_ciphertext") @db.LongText
+  encryptedTokenIv         String?             @map("encrypted_token_iv") @db.VarChar(64)
+  encryptedTokenTag        String?             @map("encrypted_token_tag") @db.VarChar(64)
+  tokenHint                String?             @map("token_hint") @db.VarChar(64)
+  settingsJson             Json?               @map("settings_json")
+  lastCheckedAt            DateTime?           @map("last_checked_at")
+  lastConnectedAt          DateTime?           @map("last_connected_at")
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
   streams                  PublishingStream[]
   articleMatches           ArticleMatch[]
   publishAttempts          PublishAttempt[]
@@ -216,8 +216,8 @@ model Category {
   name                 String                @unique @db.VarChar(191)
   slug                 String                @unique @db.VarChar(191)
   description          String?               @db.LongText
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
   posts                PostCategory[]
   streamAssignments    StreamCategory[]
   destinationTemplates DestinationTemplate[]
@@ -226,80 +226,80 @@ model Category {
 }
 
 model MediaAsset {
-  id              String          @id @default(cuid())
-  fileName        String?         @db.VarChar(255)
-  fileSizeBytes   Int?
-  storageDriver   String          @db.VarChar(32)
-  storageKey      String?         @db.VarChar(255)
-  publicUrl       String?         @db.VarChar(2048)
-  localPath       String?         @db.VarChar(512)
-  sourceUrl       String?         @db.VarChar(2048)
-  sourceDomain    String?         @db.VarChar(191)
-  alt             String?         @db.LongText
-  caption         String?         @db.LongText
-  mimeType        String?         @db.VarChar(191)
+  id              String           @id @default(cuid())
+  fileName        String?          @map("file_name") @db.VarChar(255)
+  fileSizeBytes   Int?             @map("file_size_bytes")
+  storageDriver   String           @map("storage_driver") @db.VarChar(32)
+  storageKey      String?          @map("storage_key") @db.VarChar(255)
+  publicUrl       String?          @map("public_url") @db.VarChar(2048)
+  localPath       String?          @map("local_path") @db.VarChar(512)
+  sourceUrl       String?          @map("source_url") @db.VarChar(2048)
+  sourceDomain    String?          @map("source_domain") @db.VarChar(191)
+  alt             String?          @db.LongText
+  caption         String?          @db.LongText
+  mimeType        String?          @map("mime_type") @db.VarChar(191)
   width           Int?
   height          Int?
-  attributionText String?         @db.LongText
-  licenseType     String?         @db.VarChar(128)
-  licenseNotes    String?         @db.LongText
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  attributionText String?          @map("attribution_text") @db.LongText
+  licenseType     String?          @map("license_type") @db.VarChar(128)
+  licenseNotes    String?          @map("license_notes") @db.LongText
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
   variants        MediaVariant[]
-  featuredInPosts Post[]          @relation("PostFeaturedImage")
+  featuredInPosts Post[]           @relation("PostFeaturedImage")
   fetchedArticles FetchedArticle[]
-  seoOgRecords    SEORecord[]     @relation("SeoOgImage")
+  seoOgRecords    SEORecord[]      @relation("SeoOgImage")
 
   @@index([sourceDomain])
-  @@map("mediaasset")
+  @@map("media_asset")
 }
 
 model MediaVariant {
   id            String     @id @default(cuid())
-  mediaAssetId  String
-  variantKey    String     @db.VarChar(64)
+  mediaAssetId  String     @map("media_asset_id")
+  variantKey    String     @map("variant_key") @db.VarChar(64)
   format        String     @db.VarChar(32)
-  mimeType      String?    @db.VarChar(191)
+  mimeType      String?    @map("mime_type") @db.VarChar(191)
   width         Int
   height        Int
-  fileSizeBytes Int?
-  storageKey    String?    @db.VarChar(255)
-  publicUrl     String?    @db.VarChar(2048)
-  localPath     String?    @db.VarChar(512)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  fileSizeBytes Int?       @map("file_size_bytes")
+  storageKey    String?    @map("storage_key") @db.VarChar(255)
+  publicUrl     String?    @map("public_url") @db.VarChar(2048)
+  localPath     String?    @map("local_path") @db.VarChar(512)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
   mediaAsset    MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
 
   @@index([mediaAssetId])
   @@index([mediaAssetId, variantKey])
-  @@map("mediavariant")
+  @@map("media_variant")
 }
 
 model FetchedArticle {
   id                     String             @id @default(cuid())
-  providerConfigId       String
-  featuredMediaId        String?
-  providerArticleId      String?            @db.VarChar(191)
-  dedupeFingerprint      String             @unique @db.VarChar(191)
-  sourceUrlHash          String?            @db.VarChar(64)
-  normalizedTitleHash    String             @db.VarChar(64)
-  sourceName             String             @db.VarChar(191)
-  sourceUrl              String             @db.VarChar(2048)
+  providerConfigId       String             @map("provider_config_id")
+  featuredMediaId        String?            @map("featured_media_id")
+  providerArticleId      String?            @map("provider_article_id") @db.VarChar(191)
+  dedupeFingerprint      String             @unique @map("dedupe_fingerprint") @db.VarChar(191)
+  sourceUrlHash          String?            @map("source_url_hash") @db.VarChar(64)
+  normalizedTitleHash    String             @map("normalized_title_hash") @db.VarChar(64)
+  sourceName             String             @map("source_name") @db.VarChar(191)
+  sourceUrl              String             @map("source_url") @db.VarChar(2048)
   title                  String             @db.VarChar(255)
   summary                String?            @db.LongText
   body                   String?            @db.LongText
   author                 String?            @db.VarChar(191)
-  publishedAt            DateTime
-  imageUrl               String?            @db.VarChar(2048)
+  publishedAt            DateTime           @map("published_at")
+  imageUrl               String?            @map("image_url") @db.VarChar(2048)
   language               String?            @db.VarChar(32)
-  providerCategoriesJson Json?
-  providerCountriesJson  Json?
-  providerRegionsJson    Json?
-  tagsJson               Json?
-  rawPayloadJson         Json?
-  fetchTimestamp         DateTime           @default(now())
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  providerCategoriesJson Json?              @map("provider_categories_json")
+  providerCountriesJson  Json?              @map("provider_countries_json")
+  providerRegionsJson    Json?              @map("provider_regions_json")
+  tagsJson               Json?              @map("tags_json")
+  rawPayloadJson         Json?              @map("raw_payload_json")
+  fetchTimestamp         DateTime           @default(now()) @map("fetch_timestamp")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
   providerConfig         NewsProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
   featuredMedia          MediaAsset?        @relation(fields: [featuredMediaId], references: [id], onDelete: SetNull)
   articleMatches         ArticleMatch[]
@@ -309,34 +309,34 @@ model FetchedArticle {
   @@index([providerConfigId, publishedAt])
   @@index([sourceUrlHash, publishedAt])
   @@index([normalizedTitleHash, publishedAt])
-  @@map("fetchedarticle")
+  @@map("fetched_article")
 }
 
 model Post {
-  id                 String          @id @default(cuid())
-  sourceArticleId    String?         @unique
-  slug               String          @unique @db.VarChar(191)
-  status             PostStatus      @default(DRAFT)
-  editorialStage     EditorialStage  @default(INGESTED)
-  canonicalContentHash String?       @db.VarChar(64)
-  sourceName         String          @db.VarChar(191)
-  sourceUrl          String          @db.VarChar(2048)
-  providerKey        String          @db.VarChar(64)
-  excerpt            String          @db.LongText
-  featuredImageId    String?
-  authorId           String?
-  scheduledPublishAt DateTime?
-  publishedAt        DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  sourceArticle      FetchedArticle? @relation("PostSourceArticle", fields: [sourceArticleId], references: [id], onDelete: SetNull)
-  featuredImage      MediaAsset?     @relation("PostFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
-  author             User?           @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  translations       PostTranslation[]
-  categories         PostCategory[]
-  articleMatches     ArticleMatch[]
-  publishAttempts    PublishAttempt[]
-  viewEvents         ViewEvent[]
+  id                   String            @id @default(cuid())
+  sourceArticleId      String?           @unique @map("source_article_id")
+  slug                 String            @unique @db.VarChar(191)
+  status               PostStatus        @default(DRAFT)
+  editorialStage       EditorialStage    @default(INGESTED) @map("editorial_stage")
+  canonicalContentHash String?           @map("canonical_content_hash") @db.VarChar(64)
+  sourceName           String            @map("source_name") @db.VarChar(191)
+  sourceUrl            String            @map("source_url") @db.VarChar(2048)
+  providerKey          String            @map("provider_key") @db.VarChar(64)
+  excerpt              String            @db.LongText
+  featuredImageId      String?           @map("featured_image_id")
+  authorId             String?           @map("author_id")
+  scheduledPublishAt   DateTime?         @map("scheduled_publish_at")
+  publishedAt          DateTime?         @map("published_at")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  sourceArticle        FetchedArticle?   @relation("PostSourceArticle", fields: [sourceArticleId], references: [id], onDelete: SetNull)
+  featuredImage        MediaAsset?       @relation("PostFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  author               User?             @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  translations         PostTranslation[]
+  categories           PostCategory[]
+  articleMatches       ArticleMatch[]
+  publishAttempts      PublishAttempt[]
+  viewEvents           ViewEvent[]
 
   @@index([status, publishedAt])
   @@index([status, publishedAt, updatedAt])
@@ -345,76 +345,77 @@ model Post {
 }
 
 model PostTranslation {
-  id                    String          @id @default(cuid())
-  postId                String
-  locale                String          @db.VarChar(16)
-  title                 String          @db.VarChar(255)
-  summary               String          @db.LongText
-  contentMd             String          @db.LongText
-  contentHtml           String          @db.LongText
-  structuredContentJson Json
-  sourceAttribution     String          @db.LongText
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  post                  Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
-  localeRecord          Locale          @relation(fields: [locale], references: [code], onDelete: Restrict)
+  id                    String     @id @default(cuid())
+  postId                String     @map("post_id")
+  locale                String     @db.VarChar(16)
+  title                 String     @db.VarChar(255)
+  summary               String     @db.LongText
+  contentMd             String     @map("content_md") @db.LongText
+  contentHtml           String     @map("content_html") @db.LongText
+  structuredContentJson Json       @map("structured_content_json")
+  sourceAttribution     String     @map("source_attribution") @db.LongText
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+  post                  Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  localeRecord          Locale     @relation(fields: [locale], references: [code], onDelete: Restrict)
   seoRecord             SEORecord?
 
   @@unique([postId, locale])
-  @@fulltext([contentMd], map: "posttranslation_contentMd_fts_idx")
   @@index([locale, postId])
-  @@map("posttranslation")
+  @@fulltext([contentMd], map: "post_translation_content_md_fts_idx")
+  @@map("post_translation")
 }
 
 model ProviderFetchCheckpoint {
   id                    String             @id @default(cuid())
-  streamId              String
-  providerConfigId      String
-  lastSuccessfulFetchAt DateTime?
-  cursorJson            Json?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  streamId              String             @map("stream_id")
+  providerConfigId      String             @map("provider_config_id")
+  lastSuccessfulFetchAt DateTime?          @map("last_successful_fetch_at")
+  cursorJson            Json?              @map("cursor_json")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
   stream                PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
   providerConfig        NewsProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
 
   @@unique([streamId, providerConfigId])
-  @@map("providerfetchcheckpoint")
+  @@map("provider_fetch_checkpoint")
 }
 
 model PublishingStream {
-  id                      String               @id @default(cuid())
-  name                    String               @db.VarChar(191)
-  slug                    String               @unique @db.VarChar(191)
-  description             String?              @db.LongText
-  destinationId           String
-  activeProviderId        String
-  defaultTemplateId       String?
-  locale                  String               @db.VarChar(16)
-  timezone                String               @db.VarChar(64)
-  scheduleIntervalMinutes Int                  @default(60)
-  scheduleExpression      String?              @db.VarChar(128)
+  id                      String                    @id @default(cuid())
+  name                    String                    @db.VarChar(191)
+  slug                    String                    @unique @db.VarChar(191)
+  description             String?                   @db.LongText
+  destinationId           String                    @map("destination_id")
+  activeProviderId        String                    @map("active_provider_id")
+  defaultTemplateId       String?                   @map("default_template_id")
+  locale                  String                    @db.VarChar(16)
+  timezone                String                    @db.VarChar(64)
+  scheduleIntervalMinutes Int                       @default(60) @map("schedule_interval_minutes")
+  scheduleExpression      String?                   @map("schedule_expression") @db.VarChar(128)
   mode                    StreamMode
-  status                  StreamStatus         @default(ACTIVE)
-  maxPostsPerRun          Int                  @default(5)
-  duplicateWindowHours    Int                  @default(48)
-  retryLimit              Int                  @default(3)
-  retryBackoffMinutes     Int                  @default(15)
-  languageAllowlistJson   Json?
-  countryAllowlistJson    Json?
-  regionAllowlistJson     Json?
-  includeKeywordsJson     Json?
-  excludeKeywordsJson     Json?
-  settingsJson            Json?
-  consecutiveFailureCount Int                  @default(0)
-  lastRunStartedAt        DateTime?
-  lastRunCompletedAt      DateTime?
-  lastFailureAt           DateTime?
-  createdAt               DateTime             @default(now())
-  updatedAt               DateTime             @updatedAt
-  destination             Destination          @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  activeProvider          NewsProviderConfig   @relation("StreamProvider", fields: [activeProviderId], references: [id], onDelete: Restrict)
-  defaultTemplate         DestinationTemplate? @relation("StreamDefaultTemplate", fields: [defaultTemplateId], references: [id], onDelete: SetNull)
-  localeRecord            Locale               @relation(fields: [locale], references: [code], onDelete: Restrict)
+  status                  StreamStatus              @default(ACTIVE)
+  maxPostsPerRun          Int                       @default(5) @map("max_posts_per_run")
+  duplicateWindowHours    Int                       @default(48) @map("duplicate_window_hours")
+  retryLimit              Int                       @default(3) @map("retry_limit")
+  retryBackoffMinutes     Int                       @default(15) @map("retry_backoff_minutes")
+  languageAllowlistJson   Json?                     @map("language_allowlist_json")
+  countryAllowlistJson    Json?                     @map("country_allowlist_json")
+  regionAllowlistJson     Json?                     @map("region_allowlist_json")
+  includeKeywordsJson     Json?                     @map("include_keywords_json")
+  excludeKeywordsJson     Json?                     @map("exclude_keywords_json")
+  settingsJson            Json?                     @map("settings_json")
+  consecutiveFailureCount Int                       @default(0) @map("consecutive_failure_count")
+  lastRunStartedAt        DateTime?                 @map("last_run_started_at")
+  lastRunCompletedAt      DateTime?                 @map("last_run_completed_at")
+  lastFailureAt           DateTime?                 @map("last_failure_at")
+  nextRunAt               DateTime?                 @map("next_run_at")
+  createdAt               DateTime                  @default(now()) @map("created_at")
+  updatedAt               DateTime                  @updatedAt @map("updated_at")
+  destination             Destination               @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  activeProvider          NewsProviderConfig        @relation("StreamProvider", fields: [activeProviderId], references: [id], onDelete: Restrict)
+  defaultTemplate         DestinationTemplate?      @relation("StreamDefaultTemplate", fields: [defaultTemplateId], references: [id], onDelete: SetNull)
+  localeRecord            Locale                    @relation(fields: [locale], references: [code], onDelete: Restrict)
   categories              StreamCategory[]
   checkpoints             ProviderFetchCheckpoint[]
   articleMatches          ArticleMatch[]
@@ -424,46 +425,47 @@ model PublishingStream {
   @@index([status, destinationId])
   @@index([destinationId, mode, status])
   @@index([activeProviderId, status])
-  @@map("publishingstream")
+  @@index([status, nextRunAt])
+  @@map("publishing_stream")
 }
 
 model ArticleMatch {
-  id                  String             @id @default(cuid())
-  fetchedArticleId    String
-  streamId            String
-  destinationId       String
-  canonicalPostId     String?
-  optimizationCacheId String?
-  status              ArticleMatchStatus
-  workflowStage       WorkflowStage      @default(INGESTED)
-  optimizationStatus  OptimizationStatus @default(NOT_REQUESTED)
-  policyStatus        PolicyReviewStatus @default(PASS)
-  optimizationHash    String?            @db.VarChar(64)
-  optimizedPayloadJson Json?
-  policyReasonsJson   Json?
-  readinessChecksJson Json?
-  banRiskScore        Int?
-  lastOptimizedAt     DateTime?
-  lastPolicyCheckedAt DateTime?
-  reviewNotes         String?            @db.LongText
-  filterReasonsJson   Json?
-  holdReasonsJson     Json?
-  duplicateOfMatchId  String?
-  duplicateFingerprint String?          @db.VarChar(191)
-  queuedAt            DateTime?
-  publishedAt         DateTime?
-  failedAt            DateTime?
-  overrideNotes       String?            @db.LongText
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  fetchedArticle      FetchedArticle     @relation(fields: [fetchedArticleId], references: [id], onDelete: Cascade)
-  stream              PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  destination         Destination        @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  canonicalPost       Post?              @relation(fields: [canonicalPostId], references: [id], onDelete: SetNull)
-  optimizationCache   OptimizationCache? @relation(fields: [optimizationCacheId], references: [id], onDelete: SetNull)
-  duplicateOf         ArticleMatch?      @relation("DuplicateArticleMatch", fields: [duplicateOfMatchId], references: [id], onDelete: SetNull)
-  duplicates          ArticleMatch[]     @relation("DuplicateArticleMatch")
-  publishAttempts     PublishAttempt[]
+  id                   String             @id @default(cuid())
+  fetchedArticleId     String             @map("fetched_article_id")
+  streamId             String             @map("stream_id")
+  destinationId        String             @map("destination_id")
+  canonicalPostId      String?            @map("canonical_post_id")
+  optimizationCacheId  String?            @map("optimization_cache_id")
+  status               ArticleMatchStatus
+  workflowStage        WorkflowStage      @default(INGESTED) @map("workflow_stage")
+  optimizationStatus   OptimizationStatus @default(NOT_REQUESTED) @map("optimization_status")
+  policyStatus         PolicyReviewStatus @default(PASS) @map("policy_status")
+  optimizationHash     String?            @map("optimization_hash") @db.VarChar(64)
+  optimizedPayloadJson Json?              @map("optimized_payload_json")
+  policyReasonsJson    Json?              @map("policy_reasons_json")
+  readinessChecksJson  Json?              @map("readiness_checks_json")
+  banRiskScore         Int?               @map("ban_risk_score")
+  lastOptimizedAt      DateTime?          @map("last_optimized_at")
+  lastPolicyCheckedAt  DateTime?          @map("last_policy_checked_at")
+  reviewNotes          String?            @map("review_notes") @db.LongText
+  filterReasonsJson    Json?              @map("filter_reasons_json")
+  holdReasonsJson      Json?              @map("hold_reasons_json")
+  duplicateOfMatchId   String?            @map("duplicate_of_match_id")
+  duplicateFingerprint String?            @map("duplicate_fingerprint") @db.VarChar(191)
+  queuedAt             DateTime?          @map("queued_at")
+  publishedAt          DateTime?          @map("published_at")
+  failedAt             DateTime?          @map("failed_at")
+  overrideNotes        String?            @map("override_notes") @db.LongText
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  fetchedArticle       FetchedArticle     @relation(fields: [fetchedArticleId], references: [id], onDelete: Cascade)
+  stream               PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  destination          Destination        @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  canonicalPost        Post?              @relation(fields: [canonicalPostId], references: [id], onDelete: SetNull)
+  optimizationCache    OptimizationCache? @relation(fields: [optimizationCacheId], references: [id], onDelete: SetNull)
+  duplicateOf          ArticleMatch?      @relation("DuplicateArticleMatch", fields: [duplicateOfMatchId], references: [id], onDelete: SetNull)
+  duplicates           ArticleMatch[]     @relation("DuplicateArticleMatch")
+  publishAttempts      PublishAttempt[]
 
   @@unique([fetchedArticleId, streamId])
   @@index([streamId, status])
@@ -471,35 +473,35 @@ model ArticleMatch {
   @@index([destinationId, status])
   @@index([destinationId, policyStatus])
   @@index([canonicalPostId])
-  @@map("articlematch")
+  @@map("article_match")
 }
 
 model OptimizationCache {
-  id               String             @id @default(cuid())
-  cacheKey         String             @unique @db.VarChar(191)
-  contentHash      String             @db.VarChar(64)
-  settingsHash     String             @db.VarChar(64)
-  optimizationHash String             @db.VarChar(64)
-  locale           String?            @db.VarChar(16)
+  id               String              @id @default(cuid())
+  cacheKey         String              @unique @map("cache_key") @db.VarChar(191)
+  contentHash      String              @map("content_hash") @db.VarChar(64)
+  settingsHash     String              @map("settings_hash") @db.VarChar(64)
+  optimizationHash String              @map("optimization_hash") @db.VarChar(64)
+  locale           String?             @db.VarChar(16)
   platform         DestinationPlatform
-  destinationKind  DestinationKind
-  status           OptimizationStatus @default(PENDING)
-  policyStatus     PolicyReviewStatus @default(PASS)
-  provider         String?            @db.VarChar(64)
-  model            String?            @db.VarChar(128)
-  usedFallback     Boolean            @default(false)
-  banRiskScore     Int?
-  resultJson       Json?
-  warningsJson     Json?
-  errorMessage     String?            @db.LongText
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  localeRecord     Locale?            @relation(fields: [locale], references: [code], onDelete: SetNull)
+  destinationKind  DestinationKind     @map("destination_kind")
+  status           OptimizationStatus  @default(PENDING)
+  policyStatus     PolicyReviewStatus  @default(PASS) @map("policy_status")
+  provider         String?             @db.VarChar(64)
+  model            String?             @db.VarChar(128)
+  usedFallback     Boolean             @default(false) @map("used_fallback")
+  banRiskScore     Int?                @map("ban_risk_score")
+  resultJson       Json?               @map("result_json")
+  warningsJson     Json?               @map("warnings_json")
+  errorMessage     String?             @map("error_message") @db.LongText
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  localeRecord     Locale?             @relation(fields: [locale], references: [code], onDelete: SetNull)
   articleMatches   ArticleMatch[]
 
   @@index([platform, destinationKind, locale])
   @@index([status, updatedAt])
-  @@map("optimizationcache")
+  @@map("optimization_cache")
 }
 
 model DestinationTemplate {
@@ -507,14 +509,14 @@ model DestinationTemplate {
   name             String              @db.VarChar(191)
   platform         DestinationPlatform
   locale           String?             @db.VarChar(16)
-  categoryId       String?
-  titleTemplate    String?             @db.LongText
-  summaryTemplate  String?             @db.LongText
-  bodyTemplate     String              @db.LongText
-  hashtagsTemplate String?             @db.LongText
-  isDefault        Boolean             @default(false)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  categoryId       String?             @map("category_id")
+  titleTemplate    String?             @map("title_template") @db.LongText
+  summaryTemplate  String?             @map("summary_template") @db.LongText
+  bodyTemplate     String              @map("body_template") @db.LongText
+  hashtagsTemplate String?             @map("hashtags_template") @db.LongText
+  isDefault        Boolean             @default(false) @map("is_default")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
   localeRecord     Locale?             @relation(fields: [locale], references: [code], onDelete: SetNull)
   category         Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   streams          PublishingStream[]  @relation("StreamDefaultTemplate")
@@ -522,181 +524,198 @@ model DestinationTemplate {
   @@unique([name, platform, locale])
   @@index([platform, locale, isDefault])
   @@index([platform, categoryId])
-  @@map("destinationtemplate")
+  @@map("destination_template")
 }
 
 model SEORecord {
   id                 String          @id @default(cuid())
-  postTranslationId  String          @unique
-  canonicalUrl       String          @db.VarChar(2048)
-  metaTitle          String          @db.VarChar(255)
-  metaDescription    String          @db.LongText
-  ogTitle            String          @db.VarChar(255)
-  ogDescription      String          @db.LongText
-  ogImageId          String?
-  twitterTitle       String          @db.VarChar(255)
-  twitterDescription String          @db.LongText
-  keywordsJson       Json
-  authorsJson        Json
+  postTranslationId  String          @unique @map("post_translation_id")
+  canonicalUrl       String          @map("canonical_url") @db.VarChar(2048)
+  metaTitle          String          @map("meta_title") @db.VarChar(255)
+  metaDescription    String          @map("meta_description") @db.LongText
+  ogTitle            String          @map("og_title") @db.VarChar(255)
+  ogDescription      String          @map("og_description") @db.LongText
+  ogImageId          String?         @map("og_image_id")
+  twitterTitle       String          @map("twitter_title") @db.VarChar(255)
+  twitterDescription String          @map("twitter_description") @db.LongText
+  keywordsJson       Json            @map("keywords_json")
+  authorsJson        Json            @map("authors_json")
   noindex            Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
   postTranslation    PostTranslation @relation(fields: [postTranslationId], references: [id], onDelete: Cascade)
   ogImage            MediaAsset?     @relation("SeoOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
 
-  @@map("seorecord")
+  @@map("seo_record")
 }
 
 model ViewEvent {
   id           String        @id @default(cuid())
-  postId       String?
+  postId       String?       @map("post_id")
   path         String        @db.VarChar(2048)
   locale       String        @db.VarChar(16)
-  eventType    ViewEventType
-  ipHash       String        @db.VarChar(255)
-  userAgent    String?       @db.VarChar(512)
+  eventType    ViewEventType @map("event_type")
+  ipHash       String        @map("ip_hash") @db.VarChar(255)
+  userAgent    String?       @map("user_agent") @db.VarChar(512)
   referrer     String?       @db.VarChar(2048)
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime      @default(now()) @map("created_at")
   post         Post?         @relation(fields: [postId], references: [id], onDelete: SetNull)
   localeRecord Locale        @relation(fields: [locale], references: [code], onDelete: Restrict)
 
   @@index([eventType, createdAt])
   @@index([postId, createdAt])
-  @@map("viewevent")
+  @@map("view_event")
 }
 
 model WebVitalMetric {
-  id             String   @id @default(cuid())
-  metricId       String   @db.VarChar(128)
-  name           String   @db.VarChar(16)
-  rating         String   @db.VarChar(16)
-  path           String   @db.VarChar(2048)
-  routeGroup     String   @db.VarChar(64)
-  locale         String?  @db.VarChar(16)
-  label          String?  @db.VarChar(32)
-  navigationType String?  @db.VarChar(32)
-  formFactor     String   @db.VarChar(16)
-  connectionType String?  @db.VarChar(32)
-  viewportWidth  Int?
-  viewportHeight Int?
-  value          Float
-  delta          Float?
-  buildId        String?  @db.VarChar(128)
-  attributionJson Json?
-  createdAt      DateTime @default(now())
+  id              String   @id @default(cuid())
+  metricId        String   @map("metric_id") @db.VarChar(128)
+  name            String   @db.VarChar(16)
+  rating          String   @db.VarChar(16)
+  path            String   @db.VarChar(2048)
+  routeGroup      String   @map("route_group") @db.VarChar(64)
+  locale          String?  @db.VarChar(16)
+  label           String?  @db.VarChar(32)
+  navigationType  String?  @map("navigation_type") @db.VarChar(32)
+  formFactor      String   @map("form_factor") @db.VarChar(16)
+  connectionType  String?  @map("connection_type") @db.VarChar(32)
+  viewportWidth   Int?     @map("viewport_width")
+  viewportHeight  Int?     @map("viewport_height")
+  value           Float
+  delta           Float?
+  buildId         String?  @map("build_id") @db.VarChar(128)
+  attributionJson Json?    @map("attribution_json")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([name, createdAt])
   @@index([path, name, createdAt])
   @@index([routeGroup, name, createdAt])
   @@index([formFactor, name, createdAt])
   @@index([buildId, name, createdAt])
-  @@map("webvitalmetric")
+  @@map("web_vital_metric")
 }
 
 model AuditEvent {
   id          String   @id @default(cuid())
-  actorId     String?
-  entityType  String   @db.VarChar(64)
-  entityId    String   @db.VarChar(191)
+  actorId     String?  @map("actor_id")
+  entityType  String   @map("entity_type") @db.VarChar(64)
+  entityId    String   @map("entity_id") @db.VarChar(191)
   action      String   @db.VarChar(64)
-  payloadJson Json?
-  createdAt   DateTime @default(now())
+  payloadJson Json?    @map("payload_json")
+  createdAt   DateTime @default(now()) @map("created_at")
   actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
-  @@map("auditevent")
+  @@map("audit_event")
 }
 
 model PostCategory {
-  postId     String
-  categoryId String
+  postId     String   @map("post_id")
+  categoryId String   @map("category_id")
   post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([postId, categoryId])
   @@index([categoryId])
-  @@map("postcategory")
+  @@map("post_category")
 }
 
 model StreamCategory {
-  streamId   String
-  categoryId String
+  streamId   String           @map("stream_id")
+  categoryId String           @map("category_id")
   stream     PublishingStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
   category   Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([streamId, categoryId])
   @@index([categoryId])
-  @@map("streamcategory")
+  @@map("stream_category")
 }
 
 model PublishAttempt {
-  id             String               @id @default(cuid())
-  articleMatchId String
-  streamId       String
-  destinationId  String
-  postId         String?
-  platform       DestinationPlatform
-  status         PublishAttemptStatus @default(PENDING)
-  attemptNumber  Int                  @default(1)
-  retryCount     Int                  @default(0)
-  idempotencyKey String               @unique @db.VarChar(191)
-  payloadJson    Json?
-  responseJson   Json?
-  diagnosticsJson Json?
-  remoteId       String?              @db.VarChar(191)
-  errorCode      String?              @db.VarChar(128)
-  errorMessage   String?              @db.LongText
-  retryable      Boolean              @default(false)
-  queuedAt       DateTime             @default(now())
-  startedAt      DateTime?
-  completedAt    DateTime?
-  publishedAt    DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  articleMatch   ArticleMatch         @relation(fields: [articleMatchId], references: [id], onDelete: Cascade)
-  stream         PublishingStream     @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  destination    Destination          @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  post           Post?                @relation(fields: [postId], references: [id], onDelete: SetNull)
+  id              String               @id @default(cuid())
+  articleMatchId  String               @map("article_match_id")
+  streamId        String               @map("stream_id")
+  destinationId   String               @map("destination_id")
+  postId          String?              @map("post_id")
+  platform        DestinationPlatform
+  status          PublishAttemptStatus @default(PENDING)
+  attemptNumber   Int                  @default(1) @map("attempt_number")
+  retryCount      Int                  @default(0) @map("retry_count")
+  idempotencyKey  String               @unique @map("idempotency_key") @db.VarChar(191)
+  payloadJson     Json?                @map("payload_json")
+  responseJson    Json?                @map("response_json")
+  diagnosticsJson Json?                @map("diagnostics_json")
+  remoteId        String?              @map("remote_id") @db.VarChar(191)
+  errorCode       String?              @map("last_error_code") @db.VarChar(128)
+  errorMessage    String?              @map("last_error_message") @db.LongText
+  lastErrorAt     DateTime?            @map("last_error_at")
+  retryable       Boolean              @default(false)
+  availableAt     DateTime             @default(now()) @map("available_at")
+  leaseOwner      String?              @map("lease_owner") @db.VarChar(191)
+  leaseExpiresAt  DateTime?            @map("lease_expires_at")
+  heartbeatAt     DateTime?            @map("heartbeat_at")
+  orphanedAt      DateTime?            @map("orphaned_at")
+  queuedAt        DateTime             @default(now()) @map("queued_at")
+  startedAt       DateTime?            @map("started_at")
+  completedAt     DateTime?            @map("completed_at")
+  publishedAt     DateTime?            @map("published_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  articleMatch    ArticleMatch         @relation(fields: [articleMatchId], references: [id], onDelete: Cascade)
+  stream          PublishingStream     @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  destination     Destination          @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  post            Post?                @relation(fields: [postId], references: [id], onDelete: SetNull)
 
-  @@index([destinationId, status, createdAt])
-  @@index([streamId, status, createdAt])
+  @@index([destinationId, status, availableAt])
+  @@index([streamId, status, availableAt])
+  @@index([status, leaseExpiresAt])
   @@index([postId, platform, status])
   @@index([postId, createdAt])
-  @@map("publishattempt")
+  @@map("publish_attempt")
 }
 
 model FetchRun {
-  id                      String             @id @default(cuid())
-  streamId                String
-  providerConfigId        String
-  requestedById           String?
-  triggerType             String             @db.VarChar(32)
-  status                  FetchRunStatus     @default(PENDING)
-  windowStart             DateTime?
-  windowEnd               DateTime?
-  fetchedCount            Int                @default(0)
-  publishableCount        Int                @default(0)
-  heldCount               Int                @default(0)
-  duplicateCount          Int                @default(0)
-  skippedCount            Int                @default(0)
-  queuedCount             Int                @default(0)
-  optimizedCount          Int                @default(0)
-  blockedCount            Int                @default(0)
-  aiCacheHitCount         Int                @default(0)
-  publishedCount          Int                @default(0)
-  failedCount             Int                @default(0)
-  errorMessage            String?            @db.LongText
-  providerCursorBeforeJson Json?
-  providerCursorAfterJson  Json?
-  executionDetailsJson    Json?
-  startedAt               DateTime           @default(now())
-  finishedAt              DateTime?
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
-  stream                  PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  providerConfig          NewsProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
-  requestedBy             User?              @relation("FetchRunRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  id                       String             @id @default(cuid())
+  streamId                 String             @map("stream_id")
+  providerConfigId         String             @map("provider_config_id")
+  requestedById            String?            @map("requested_by_id")
+  triggerType              String             @map("trigger_type") @db.VarChar(32)
+  status                   FetchRunStatus     @default(PENDING)
+  queueKey                 String?            @unique @map("queue_key") @db.VarChar(191)
+  availableAt              DateTime           @default(now()) @map("available_at")
+  leaseOwner               String?            @map("lease_owner") @db.VarChar(191)
+  leaseExpiresAt           DateTime?          @map("lease_expires_at")
+  heartbeatAt              DateTime?          @map("heartbeat_at")
+  attemptCount             Int                @default(0) @map("attempt_count")
+  lastErrorCode            String?            @map("last_error_code") @db.VarChar(128)
+  errorMessage             String?            @map("last_error_message") @db.LongText
+  lastErrorAt              DateTime?          @map("last_error_at")
+  orphanedAt               DateTime?          @map("orphaned_at")
+  windowStart              DateTime?          @map("window_start")
+  windowEnd                DateTime?          @map("window_end")
+  fetchedCount             Int                @default(0) @map("fetched_count")
+  publishableCount         Int                @default(0) @map("publishable_count")
+  heldCount                Int                @default(0) @map("held_count")
+  duplicateCount           Int                @default(0) @map("duplicate_count")
+  skippedCount             Int                @default(0) @map("skipped_count")
+  queuedCount              Int                @default(0) @map("queued_count")
+  optimizedCount           Int                @default(0) @map("optimized_count")
+  blockedCount             Int                @default(0) @map("blocked_count")
+  aiCacheHitCount          Int                @default(0) @map("ai_cache_hit_count")
+  publishedCount           Int                @default(0) @map("published_count")
+  failedCount              Int                @default(0) @map("failed_count")
+  providerCursorBeforeJson Json?              @map("provider_cursor_before_json")
+  providerCursorAfterJson  Json?              @map("provider_cursor_after_json")
+  executionDetailsJson     Json?              @map("execution_details_json")
+  startedAt                DateTime?          @map("started_at")
+  finishedAt               DateTime?          @map("finished_at")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+  stream                   PublishingStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  providerConfig           NewsProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
+  requestedBy              User?              @relation("FetchRunRequester", fields: [requestedById], references: [id], onDelete: SetNull)
 
   @@index([streamId, startedAt])
-  @@index([status, startedAt])
-  @@map("fetchrun")
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+  @@map("fetch_run")
 }

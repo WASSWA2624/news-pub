@@ -1020,6 +1020,15 @@ const providerDefinitionMap = Object.freeze({
         section: "request",
       },
       {
+        description: "Restrict results to documented Mediastack source identifiers.",
+        input: "text",
+        key: "sources",
+        label: "Sources",
+        placeholder: "cnn,bbc",
+        scopes: ["provider", "stream"],
+        section: "request",
+      },
+      {
         description:
           "Optional lower bound shown in the editor. Automatic runs resolve to NewsPub's normalized previous-24-hours-plus-next-30-minutes window or reuse the checkpoint start when available, while explicit manual or batched runs can provide a bounded start date.",
         input: "date",
@@ -1402,6 +1411,16 @@ const providerDefinitionMap = Object.freeze({
         label: "Keyword Query",
         placeholder: "climate policy",
         scopes: ["stream"],
+        section: "request",
+      },
+      {
+        description:
+          "Restrict NewsAPI to specific source IDs. Top Headlines sources cannot be combined with country or category.",
+        input: "text",
+        key: "sources",
+        label: "Sources",
+        placeholder: "bbc-news,techcrunch",
+        scopes: ["provider", "stream"],
         section: "request",
       },
       {
@@ -1797,6 +1816,7 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
     const country = readSingleValue(requestValues, "country");
     const category = readSingleValue(requestValues, "category");
     const domains = readSingleValue(requestValues, "domains");
+    const sources = readSingleValue(requestValues, "sources");
 
     if (endpoint === "everything") {
       if (query.length > 500) {
@@ -1818,11 +1838,20 @@ export function getProviderRequestValidationIssues(providerKey, options = {}) {
       }
     }
 
-    if (endpoint === "top-headlines" && !query && !country && !category) {
+    if (endpoint === "top-headlines" && sources && (country || category)) {
+      issues.push(
+        createValidationIssue(
+          "provider_newsapi_top_headlines_sources_incompatible",
+          'NewsAPI "Top Headlines" sources cannot be combined with country or category. Clear those filters or remove the sources list.',
+        ),
+      );
+    }
+
+    if (endpoint === "top-headlines" && !query && !country && !category && !sources) {
       issues.push(
         createValidationIssue(
           "provider_newsapi_top_headlines_requires_scope",
-          'NewsAPI "Top Headlines" needs a keyword query, country, or category. Add one of those filters or update the provider defaults.',
+          'NewsAPI "Top Headlines" needs a keyword query, sources, country, or category. Add one of those filters or update the provider defaults.',
         ),
       );
     }

@@ -187,27 +187,122 @@ describe("news providers", () => {
     expect(requestedUrl.searchParams.get("limit")).toBe("100");
   });
 
+  it("paginates Mediastack with offset progression and source filtering", async () => {
+    const firstPageItems = Array.from({ length: 25 }, (_, index) => ({
+      category: "business",
+      country: "ug",
+      description: `First page result ${index + 1}`,
+      language: "en",
+      published_at: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
+      source: "Example Source",
+      title: `First page result ${index + 1}`,
+      url: `https://example.com/first-page-result-${index + 1}`,
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            data: firstPageItems,
+            pagination: {
+              limit: 25,
+              offset: 0,
+              total: 26,
+            },
+          }),
+        )
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            data: [
+              {
+                category: "business",
+                country: "ug",
+                description: "Second page result",
+                language: "en",
+                published_at: "2026-04-05T01:00:00Z",
+                source: "Example Source",
+                title: "Second page result",
+                url: "https://example.com/second-page-result",
+              },
+            ],
+            pagination: {
+              limit: 25,
+              offset: 25,
+              total: 26,
+            },
+          }),
+        ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      maxArticlesHint: 1,
+      providerKey: "mediastack",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            countries: ["ug"],
+            languages: ["en"],
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 1,
+        settingsJson: {
+          providerFilters: {
+            sources: "cnn,bbc",
+          },
+        },
+      },
+    });
+
+    const requestedUrls = fetch.mock.calls.map((call) => new URL(`${call[0]}`));
+
+    expect(requestedUrls).toHaveLength(2);
+    expect(requestedUrls[0].searchParams.get("offset")).toBe("0");
+    expect(requestedUrls[0].searchParams.get("sources")).toBe("cnn,bbc");
+    expect(requestedUrls[1].searchParams.get("offset")).toBe("25");
+    expect(result).toMatchObject({
+      cursor: {
+        offset: 25,
+        total: 26,
+      },
+      diagnostics: {
+        pageCount: 2,
+        stopReason: "provider_exhausted",
+      },
+      fetchedCount: 26,
+    });
+  });
+
   it("builds NewsData requests with official endpoint and advanced filters", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        createJsonResponse({
-          nextPage: "next-token",
-          results: [
-            {
-              article_id: "article_1",
-              category: ["technology"],
-              country: ["ug"],
-              description: "Policy and regulation update",
-              language: "en",
-              link: "https://example.com/technology-policy",
-              pubDate: "2026-04-05T00:00:00Z",
-              source_id: "bbc",
-              title: "Technology policy update",
-            },
-          ],
-        }),
-      ),
+      vi.fn()
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            nextPage: "next-token",
+            results: [
+              {
+                article_id: "article_1",
+                category: ["technology"],
+                country: ["ug"],
+                description: "Policy and regulation update",
+                language: "en",
+                link: "https://example.com/technology-policy",
+                pubDate: "2026-04-05T00:00:00Z",
+                source_id: "bbc",
+                title: "Technology policy update",
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            nextPage: null,
+            results: [],
+          }),
+        ),
     );
 
     const { fetchProviderArticles } = await import("./providers");
@@ -261,7 +356,11 @@ describe("news providers", () => {
     expect(requestedUrl.searchParams.get("image")).toBe("1");
     expect(requestedUrl.searchParams.get("removeduplicate")).toBe("1");
     expect(result).toMatchObject({
-      cursor: "next-token",
+      cursor: null,
+      diagnostics: {
+        pageCount: 2,
+        stopReason: "empty_page",
+      },
       fetchedCount: 1,
     });
     expect(result.articles[0]).toMatchObject({
@@ -359,6 +458,85 @@ describe("news providers", () => {
       providerKey: "newsapi",
       sourceName: "Example Wire",
       title: "Climate policy feature",
+    });
+  });
+
+  it("paginates NewsAPI Top Headlines with documented sources support", async () => {
+    const firstPageArticles = Array.from({ length: 25 }, (_, index) => ({
+      description: `First page headline ${index + 1}`,
+      publishedAt: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
+      source: {
+        name: "BBC News",
+      },
+      title: `First page headline ${index + 1}`,
+      url: `https://example.com/headline-${index + 1}`,
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            articles: firstPageArticles,
+            totalResults: 26,
+          }),
+        )
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            articles: [
+              {
+                description: "Second page headline",
+                publishedAt: "2026-04-05T01:00:00Z",
+                source: {
+                  name: "BBC News",
+                },
+                title: "Second page headline",
+                url: "https://example.com/headline-2",
+              },
+            ],
+            totalResults: 26,
+          }),
+        ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      maxArticlesHint: 1,
+      providerKey: "newsapi",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "top-headlines",
+            sources: "bbc-news",
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 1,
+        settingsJson: {
+          providerFilters: {
+            q: "economy",
+            sources: "bbc-news",
+          },
+        },
+      },
+    });
+
+    const requestedUrls = fetch.mock.calls.map((call) => new URL(`${call[0]}`));
+
+    expect(requestedUrls).toHaveLength(2);
+    expect(requestedUrls[0].searchParams.get("page")).toBe("1");
+    expect(requestedUrls[0].searchParams.get("sources")).toBe("bbc-news");
+    expect(requestedUrls[1].searchParams.get("page")).toBe("2");
+    expect(result).toMatchObject({
+      cursor: {
+        endpoint: "top-headlines",
+        page: 2,
+      },
+      diagnostics: {
+        pageCount: 2,
+        stopReason: "provider_exhausted",
+      },
+      fetchedCount: 26,
     });
   });
 
@@ -505,5 +683,86 @@ describe("news providers", () => {
     expect(requestedUrl.searchParams.get("excludecategory")).toBe("sports");
     expect(requestedUrl.searchParams.get("from_date")).toBe("2026-04-01");
     expect(requestedUrl.searchParams.get("to_date")).toBe("2026-04-05");
+  });
+
+  it("paginates NewsData using nextPage cursors until the provider is exhausted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            nextPage: "cursor_2",
+            results: [
+              {
+                article_id: "article_1",
+                category: ["technology"],
+                country: ["ug"],
+                description: "First page policy result",
+                language: "en",
+                link: "https://example.com/newsdata-1",
+                pubDate: "2026-04-05T00:00:00Z",
+                source_id: "bbc",
+                title: "First page policy result",
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            nextPage: null,
+            results: [
+              {
+                article_id: "article_2",
+                category: ["technology"],
+                country: ["ug"],
+                description: "Second page policy result",
+                language: "en",
+                link: "https://example.com/newsdata-2",
+                pubDate: "2026-04-05T01:00:00Z",
+                source_id: "bbc",
+                title: "Second page policy result",
+              },
+            ],
+          }),
+        ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+    const result = await fetchProviderArticles({
+      checkpoint: {
+        cursorJson: "cursor_1",
+      },
+      maxArticlesHint: 1,
+      providerKey: "newsdata",
+      stream: {
+        activeProvider: {
+          requestDefaultsJson: {
+            endpoint: "latest",
+            language: ["en"],
+          },
+        },
+        locale: "en",
+        maxPostsPerRun: 1,
+        settingsJson: {
+          providerFilters: {
+            q: "policy",
+          },
+        },
+      },
+    });
+
+    const requestedUrls = fetch.mock.calls.map((call) => new URL(`${call[0]}`));
+
+    expect(requestedUrls).toHaveLength(2);
+    expect(requestedUrls[0].searchParams.get("page")).toBe("cursor_1");
+    expect(requestedUrls[1].searchParams.get("page")).toBe("cursor_2");
+    expect(result).toMatchObject({
+      cursor: null,
+      diagnostics: {
+        pageCount: 2,
+        stopReason: "provider_exhausted",
+      },
+      fetchedCount: 2,
+    });
   });
 });

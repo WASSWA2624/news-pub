@@ -5,6 +5,8 @@
 const defaultOutboundFetchTimeoutMs = 10000;
 const defaultOutboundFetchRetryCount = 2;
 const defaultRetryDelayMs = 250;
+const defaultRetryJitterRatio = 0.2;
+const defaultMaxRetryDelayMs = 15000;
 
 function normalizePositiveInteger(value, fallbackValue) {
   const parsedValue = Number.parseInt(`${value || ""}`, 10);
@@ -57,6 +59,61 @@ function isRetryableFetchError(error) {
   );
 }
 
+function parseRetryAfterDelayMs(response) {
+  const retryAfterValue = response?.headers?.get?.("retry-after");
+
+  if (!retryAfterValue) {
+    return null;
+  }
+
+  const retryAfterSeconds = Number.parseInt(retryAfterValue, 10);
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+    return retryAfterSeconds * 1000;
+  }
+
+  const retryAt = new Date(retryAfterValue);
+
+  if (Number.isNaN(retryAt.getTime())) {
+    return null;
+  }
+
+  return Math.max(0, retryAt.getTime() - Date.now());
+}
+
+function applyRetryJitter(delayMs, jitterRatio) {
+  const normalizedDelayMs = Math.max(0, delayMs);
+  const normalizedJitterRatio = Math.max(0, Number(jitterRatio) || 0);
+
+  if (!normalizedDelayMs || !normalizedJitterRatio) {
+    return normalizedDelayMs;
+  }
+
+  const maxJitterMs = Math.round(normalizedDelayMs * normalizedJitterRatio);
+  const jitterMs = Math.round(Math.random() * maxJitterMs);
+
+  return normalizedDelayMs + jitterMs;
+}
+
+function resolveRetryDelayMs({
+  attempt,
+  maxRetryDelayMs,
+  response = null,
+  retryDelayMs,
+  retryJitterRatio,
+}) {
+  const retryAfterDelayMs = parseRetryAfterDelayMs(response);
+
+  if (Number.isFinite(retryAfterDelayMs) && retryAfterDelayMs >= 0) {
+    return Math.min(retryAfterDelayMs, maxRetryDelayMs);
+  }
+
+  return Math.min(
+    applyRetryJitter(retryDelayMs * 2 ** attempt, retryJitterRatio),
+    maxRetryDelayMs,
+  );
+}
+
 async function cancelResponseBody(response) {
   try {
     await response?.body?.cancel?.();
@@ -72,8 +129,16 @@ export async function fetchWithTimeoutAndRetry(
   input,
   init = {},
   {
+    maxRetryDelayMs = normalizePositiveInteger(
+      process.env.OUTBOUND_FETCH_MAX_RETRY_DELAY_MS,
+      defaultMaxRetryDelayMs,
+    ),
+    onRetry = null,
     retryDelayMs = defaultRetryDelayMs,
+    retryJitterRatio = defaultRetryJitterRatio,
     retries = normalizePositiveInteger(process.env.OUTBOUND_FETCH_RETRY_COUNT, defaultOutboundFetchRetryCount),
+    shouldRetryError = isRetryableFetchError,
+    shouldRetryResponse = isRetryableResponse,
     timeoutMs = normalizePositiveInteger(process.env.OUTBOUND_FETCH_TIMEOUT_MS, defaultOutboundFetchTimeoutMs),
   } = {},
 ) {
@@ -88,20 +153,56 @@ export async function fetchWithTimeoutAndRetry(
         signal: boundedSignal.signal,
       });
 
-      if (!isRetryableResponse(response) || attempt >= retries) {
+      if (!shouldRetryResponse(response) || attempt >= retries) {
         return response;
       }
 
       await cancelResponseBody(response);
+      const delayMs = resolveRetryDelayMs({
+        attempt,
+        maxRetryDelayMs,
+        response,
+        retryDelayMs,
+        retryJitterRatio,
+      });
+
+      await Promise.resolve(
+        onRetry?.({
+          attempt: attempt + 1,
+          delayMs,
+          kind: "response",
+          status: response.status,
+          url: `${input}`,
+        }),
+      );
+      await waitForRetry(delayMs);
     } catch (error) {
-      if (attempt >= retries || !isRetryableFetchError(error)) {
+      if (attempt >= retries || !shouldRetryError(error)) {
         throw error;
       }
+
+      const delayMs = resolveRetryDelayMs({
+        attempt,
+        maxRetryDelayMs,
+        retryDelayMs,
+        retryJitterRatio,
+      });
+
+      await Promise.resolve(
+        onRetry?.({
+          attempt: attempt + 1,
+          delayMs,
+          errorMessage: error instanceof Error ? error.message : `${error}`,
+          kind: "error",
+          status: null,
+          url: `${input}`,
+        }),
+      );
+      await waitForRetry(delayMs);
     } finally {
       boundedSignal.cleanup();
     }
 
-    await waitForRetry(retryDelayMs * 2 ** attempt);
     attempt += 1;
   }
 }
