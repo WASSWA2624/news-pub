@@ -14,6 +14,7 @@ const WORKER_PHASES = Object.freeze([
   "startup_recovery",
   "reconcile_stale_fetch_runs",
   "reconcile_stale_publish_attempts",
+  "recover_stranded_stream_executions",
   "recover_stranded_auto_publish_attempts",
   "enqueue_due_stream_fetch_runs",
   "retry_failed_publish_attempts",

@@ -88,7 +88,7 @@ function collectRuntimeCodeFiles(roots, { ignoreFilePattern = null } = {}) {
     files.push(currentPath);
   }
 
-  for (const runtimeRoot of runtimeSqlRoots) {
+  for (const runtimeRoot of roots) {
     visit(runtimeRoot);
   }
 
@@ -201,6 +201,10 @@ function extractStringLiterals(source) {
   }));
 }
 
+function maskStringLiterals(source) {
+  return source.replace(stringLiteralPattern, (literal) => " ".repeat(literal.length));
+}
+
 function looksLikeSqlLiteral(text) {
   return sqlKeywordPattern.test(text) || sqlStructuralPattern.test(text);
 }
@@ -298,25 +302,38 @@ function findLegacyQueryIdentifierMatches(source, metadata = readPrismaNamingMet
   const matches = [];
   const seenMatches = new Set();
   const legacyPatterns = buildLegacyQueryIdentifierPatterns(metadata);
+  const querySource = maskStringLiterals(source);
 
   for (const row of legacyPatterns) {
-    const pattern = new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(row.legacyName)}([^A-Za-z0-9_]|$)`);
+    const pattern = new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(row.legacyName)}([^A-Za-z0-9_]|$)`, "g");
+    let match;
 
-    if (!pattern.test(source)) {
-      continue;
+    while ((match = pattern.exec(querySource))) {
+      const matchIndex = match.index + match[1].length;
+
+      if (!looksLikePrismaQueryContext(querySource, matchIndex)) {
+        continue;
+      }
+
+      const key = `${row.scope}:${row.legacyName}:${row.canonicalName}`;
+
+      if (seenMatches.has(key)) {
+        continue;
+      }
+
+      seenMatches.add(key);
+      matches.push(row);
     }
-
-    const key = `${row.scope}:${row.legacyName}:${row.canonicalName}`;
-
-    if (seenMatches.has(key)) {
-      continue;
-    }
-
-    seenMatches.add(key);
-    matches.push(row);
   }
 
   return matches;
+}
+
+function looksLikePrismaQueryContext(source, matchIndex) {
+  const contextStart = Math.max(0, matchIndex - 1000);
+  const precedingContext = source.slice(contextStart, matchIndex);
+
+  return /\b(?:db|prisma)\.[A-Za-z0-9_]+\.(?:aggregate|count|create|createMany|delete|deleteMany|findFirst|findMany|findUnique|groupBy|update|updateMany|upsert)\s*\([\s\S]*$/m.test(precedingContext);
 }
 
 function verifyRawSqlIdentifiers(violations, metadata = readPrismaNamingMetadata()) {
@@ -395,6 +412,7 @@ module.exports = {
   findLegacySqlIdentifierMatches,
   isSnakeCaseIdentifier,
   looksLikeSqlLiteral,
+  looksLikePrismaQueryContext,
   runVerification,
   verifyMigrationSql,
   verifyRawSqlIdentifiers,

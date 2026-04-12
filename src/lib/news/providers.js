@@ -585,7 +585,7 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
       providerCategories: requestedCategory ? [requestedCategory] : [],
       providerCountries: requestedCountry ? [requestedCountry] : [],
       providerRegions: [],
-      published_at: article.published_at || null,
+      published_at: article.publishedAt || null,
       metadata_provenance,
       raw_payload_json: annotateRawPayload(article, metadata_provenance),
       source_name: article.source?.name || "Unknown Source",
@@ -596,6 +596,29 @@ function normalizeNewsApiArticle(article, { requestValues = {}, stream } = {}) {
     },
     "newsapi",
   );
+}
+
+function normalizeNewsApiSortBy(value) {
+  const sortBy = normalizeScalar(value);
+
+  if (!sortBy) {
+    return "";
+  }
+
+  // Isolate legacy saved UI defaults from the earlier incorrect enum; outbound
+  // requests always use NewsAPI's documented casing.
+  if (sortBy === "published_at") {
+    return "publishedAt";
+  }
+
+  if (["relevancy", "popularity", "publishedAt"].includes(sortBy)) {
+    return sortBy;
+  }
+
+  throw new NewsPubError('NewsAPI "Everything" sortBy must be one of relevancy, popularity, or publishedAt.', {
+    status: "provider_request_invalid",
+    statusCode: 400,
+  });
 }
 
 function buildFallbackProviderArticles(stream, provider_key, now = new Date()) {
@@ -815,7 +838,7 @@ function buildNewsApiRequest({
     appendScalarParam(url, "excludeDomains", excludeDomains);
     appendScalarParam(url, "from", requestValues.fromDate);
     appendScalarParam(url, "to", requestValues.toDate);
-    appendScalarParam(url, "sortBy", requestValues.sortBy);
+    appendScalarParam(url, "sortBy", normalizeNewsApiSortBy(requestValues.sortBy));
   } else {
     if (normalizeScalar(requestValues.sources) && (normalizeScalar(requestValues.country) || normalizeScalar(requestValues.category))) {
       throw new NewsPubError(

@@ -921,6 +921,77 @@ describe("stream selection and scheduling helpers", () => {
     });
   });
 
+  it("queues orphaned in-progress stream state when no fetch run remains", async () => {
+    const { runScheduledStreams } = await import("./workflows");
+    const now = new Date("2026-04-05T12:34:56.000Z");
+    const lastStartedAt = new Date("2026-04-05T12:00:00.000Z");
+    const prisma = {
+      articleMatch: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      fetchRun: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn().mockResolvedValue({
+          id: "fetch_run_recovered_1",
+          queue_key: "recovered:stream_1:2026-04-05T12:00:00.000Z",
+          status: "PENDING",
+        }),
+      },
+      publishAttempt: {
+        findMany: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
+      },
+      publishingStream: {
+        findMany: vi
+          .fn()
+          .mockResolvedValueOnce([
+            {
+              active_provider_id: "provider_1",
+              checkpoints: [],
+              id: "stream_1",
+              last_run_completed_at: new Date("2026-04-05T11:00:00.000Z"),
+              last_run_started_at: lastStartedAt,
+              schedule_interval_minutes: 0,
+              status: "ACTIVE",
+            },
+          ])
+          .mockResolvedValueOnce([]),
+      },
+    };
+
+    const summary = await runScheduledStreams(
+      {
+        now,
+      },
+      prisma,
+    );
+
+    expect(prisma.fetchRun.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          provider_config_id: "provider_1",
+          queue_key: "recovered:stream_1:2026-04-05T12:00:00.000Z",
+          status: "PENDING",
+          stream_id: "stream_1",
+          trigger_type: "recovery",
+        }),
+      }),
+    );
+    expect(prisma.fetchRun.upsert.mock.calls[0][0].create.execution_details_json).toMatchObject({
+      checkpointStrategy: {
+        writeCheckpointOnSuccess: false,
+      },
+    });
+    expect(summary).toMatchObject({
+      dueStreamCount: 0,
+      processedPublishAttempts: 0,
+      recoveredStreamExecutionCount: 1,
+    });
+  });
+
   it("claims publish attempts idempotently without mutating fetch scheduler state", async () => {
     const { claimPublishAttemptById } = await import("./workflows");
     const now = new Date("2026-04-05T12:34:56.000Z");

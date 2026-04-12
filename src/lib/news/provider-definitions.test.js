@@ -4,7 +4,9 @@ import {
   getProviderEndpointShape,
   getProviderFormDefinition,
   getProviderRequestValidationIssues,
+  getProviderSourceCatalogSupport,
   getProviderTimeBoundarySupport,
+  sanitizeProviderFieldValues,
 } from "./provider-definitions";
 
 describe("provider definition option metadata", () => {
@@ -94,6 +96,48 @@ describe("provider definition option metadata", () => {
     });
   });
 
+  it('uses the official NewsAPI "publishedAt" sort value and normalizes old saved defaults', () => {
+    const definition = getProviderFormDefinition("newsapi", "provider", {
+      endpoint: "everything",
+    });
+    const sortField = definition.sections
+      .flatMap((section) => section.fields)
+      .find((field) => field.key === "sortBy");
+
+    expect(sortField?.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: "Published At",
+          value: "publishedAt",
+        }),
+      ]),
+    );
+    expect(sanitizeProviderFieldValues("newsapi", {
+      sortBy: "published_at",
+    })).toMatchObject({
+      sortBy: "publishedAt",
+    });
+  });
+
+  it("labels NewsAPI Everything source suggestions as the Top Headlines source subset", () => {
+    expect(getProviderSourceCatalogSupport("newsapi", {
+      endpoint: "top-headlines",
+    })).toMatchObject({
+      available: true,
+      endpoint: "top-headlines",
+      scope: "top_headlines",
+    });
+
+    expect(getProviderSourceCatalogSupport("newsapi", {
+      endpoint: "everything",
+    })).toMatchObject({
+      available: true,
+      endpoint: "everything",
+      scope: "top_headlines_subset",
+      summary: expect.stringContaining("Top Headlines source subset"),
+    });
+  });
+
   it('flags NewsAPI "Everything" queries longer than 500 characters', () => {
     const issues = getProviderRequestValidationIssues("newsapi", {
       providerDefaults: {
@@ -107,6 +151,24 @@ describe("provider definition option metadata", () => {
         code: "provider_newsapi_everything_query_too_long",
       },
     ]);
+  });
+
+  it('flags invalid NewsAPI "Everything" sort values before execution', () => {
+    const issues = getProviderRequestValidationIssues("newsapi", {
+      providerDefaults: {
+        endpoint: "everything",
+        q: "policy",
+        sortBy: "published_at_desc",
+      },
+    });
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "provider_newsapi_sort_by_invalid",
+        }),
+      ]),
+    );
   });
 
   it("flags NewsData archive defaults without a complete date range", () => {

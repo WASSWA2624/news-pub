@@ -2594,6 +2594,82 @@ async function reconcileStalePublishAttempts(db, { now = new Date() } = {}) {
   return staleAttempts;
 }
 
+async function recoverStrandedStreamExecutions(db, { now = new Date() } = {}) {
+  if (
+    typeof db.publishingStream?.findMany !== "function"
+    || typeof db.fetchRun?.findFirst !== "function"
+    || typeof db.fetchRun?.upsert !== "function"
+  ) {
+    return [];
+  }
+
+  const streams = await db.publishingStream.findMany({
+    include: {
+      checkpoints: true,
+    },
+    where: {
+      last_run_started_at: {
+        not: null,
+      },
+      status: "ACTIVE",
+    },
+  });
+  const recoveredRuns = [];
+
+  for (const stream of streams) {
+    if (!isStreamExecutionInProgress(stream)) {
+      continue;
+    }
+
+    const existingQueuedRun = await db.fetchRun.findFirst({
+      where: {
+        status: {
+          in: ["PENDING", "RUNNING"],
+        },
+        stream_id: stream.id,
+      },
+    });
+
+    if (existingQueuedRun) {
+      continue;
+    }
+
+    const checkpoint =
+      stream.checkpoints?.find((entry) => entry.provider_config_id === stream.active_provider_id) || null;
+    const writeCheckpointOnSuccess = (stream.schedule_interval_minutes || 0) > 0;
+    const fetchWindow = resolveFetchWindowForExecution({
+      checkpoint,
+      now,
+      writeCheckpointOnSuccess,
+    });
+    const queue_key = `recovered:${stream.id}:${serializeDate(stream.last_run_started_at)}`;
+    const queuedRun = await db.fetchRun.upsert({
+      where: {
+        queue_key,
+      },
+      update: {
+        available_at: now,
+        status: "PENDING",
+      },
+      create: {
+        available_at: now,
+        execution_details_json: buildInitialFetchRunExecutionDetails(fetchWindow),
+        provider_config_id: stream.active_provider_id,
+        queue_key,
+        status: "PENDING",
+        stream_id: stream.id,
+        trigger_type: "recovery",
+        window_end: fetchWindow.end,
+        window_start: fetchWindow.start,
+      },
+    });
+
+    recoveredRuns.push(queuedRun);
+  }
+
+  return recoveredRuns;
+}
+
 async function recoverStrandedAutoPublishAttempts(db, { now = new Date() } = {}) {
   if (typeof db.articleMatch?.findMany !== "function") {
     return [];
@@ -3445,6 +3521,7 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
   const db = await resolvePrismaClient(prisma);
   const recoveredFetchRuns = await reconcileStaleFetchRuns(db, { now });
   const recoveredPublishAttempts = await reconcileStalePublishAttempts(db, { now });
+  const recoveredStreamExecutions = await recoverStrandedStreamExecutions(db, { now });
   const recoveredArticleMatches = await recoverStrandedAutoPublishAttempts(db, { now });
   const queuedStreamRuns = await enqueueDueStreamFetchRuns(db, { now });
   const failedAttempts = typeof db.publishAttempt?.findMany === "function"
@@ -3535,6 +3612,7 @@ export async function runScheduledStreams({ now = new Date() } = {}, prisma) {
     recoveredArticleMatchCount: recoveredArticleMatches.length,
     recoveredFetchRunCount: recoveredFetchRuns.length,
     recoveredPublishAttemptCount: recoveredPublishAttempts.length,
+    recoveredStreamExecutionCount: recoveredStreamExecutions.length,
     retriedPublishAttempts: dueRetryAttempts.length,
     results,
   };

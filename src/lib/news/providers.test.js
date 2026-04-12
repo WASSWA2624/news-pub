@@ -21,7 +21,7 @@ function createNewsApiArticles(count, page, { source_name = "Example Wire" } = {
     author: `Reporter ${page}-${index + 1}`,
     content: `Story content ${page}-${index + 1}`,
     description: `Story description ${page}-${index + 1}`,
-    published_at: `2026-04-${`${Math.min(page, 9)}`.padStart(2, "0")}T${`${index % 24}`.padStart(2, "0")}:00:00Z`,
+    publishedAt: `2026-04-${`${Math.min(page, 9)}`.padStart(2, "0")}T${`${index % 24}`.padStart(2, "0")}:00:00Z`,
     source: {
       name: source_name,
     },
@@ -514,7 +514,7 @@ describe("news providers", () => {
               author: "Reporter",
               content: "A climate policy feature",
               description: "Climate policy feature",
-              published_at: "2026-04-05T00:00:00Z",
+              publishedAt: "2026-04-05T00:00:00Z",
               source: {
                 name: "Example Wire",
               },
@@ -541,7 +541,7 @@ describe("news providers", () => {
             endpoint: "everything",
             language: "en",
             searchIn: ["title"],
-            sortBy: "published_at",
+            sortBy: "publishedAt",
           },
         },
         language_allowlist_json: ["fr"],
@@ -593,6 +593,7 @@ describe("news providers", () => {
       providerCategories: [],
       providerCountries: [],
       provider_key: "newsapi",
+      published_at: "2026-04-05T00:00:00Z",
       raw_payload_json: {
         _newspub_normalization: {
           metadata_provenance: {
@@ -611,7 +612,7 @@ describe("news providers", () => {
   it("paginates NewsAPI Top Headlines with documented sources support", async () => {
     const firstPageArticles = Array.from({ length: 25 }, (_, index) => ({
       description: `First page headline ${index + 1}`,
-      published_at: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
+      publishedAt: `2026-04-05T${`${index}`.padStart(2, "0")}:00:00Z`,
       source: {
         name: "BBC News",
       },
@@ -633,7 +634,7 @@ describe("news providers", () => {
             articles: [
               {
                 description: "Second page headline",
-                published_at: "2026-04-05T01:00:00Z",
+                publishedAt: "2026-04-05T01:00:00Z",
                 source: {
                   name: "BBC News",
                 },
@@ -732,6 +733,45 @@ describe("news providers", () => {
     expect(requestedUrl.pathname).toBe("/v2/everything");
     expect(requestedUrl.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
     expect(requestedUrl.searchParams.get("to")).toBe("2026-04-02T06:00:00.000Z");
+  });
+
+  it('sends the official NewsAPI "publishedAt" sortBy value', async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createJsonResponse({
+          articles: [],
+          totalResults: 0,
+        }),
+      ),
+    );
+
+    const { fetchProviderArticles } = await import("./providers");
+
+    await fetchProviderArticles({
+      provider_key: "newsapi",
+      stream: {
+        activeProvider: {
+          request_defaults_json: {
+            endpoint: "everything",
+            language: "en",
+            sortBy: "publishedAt",
+          },
+        },
+        locale: "en",
+        max_posts_per_run: 1,
+        settings_json: {
+          providerFilters: {
+            q: "markets",
+          },
+        },
+      },
+    });
+
+    const requestedUrl = getRequestedUrl();
+
+    expect(requestedUrl.pathname).toBe("/v2/everything");
+    expect(requestedUrl.searchParams.get("sortBy")).toBe("publishedAt");
   });
 
   it("translates normalized fetch windows into relative timeframe requests for NewsData Latest", async () => {

@@ -294,10 +294,11 @@ export function getProviderSourceCatalogSupport(provider_key, values = {}) {
       minimumQueryLength: 0,
       mode: "prefetch",
       provider_key: normalizedProviderKey,
+      scope: endpoint === "top-headlines" ? "top_headlines" : "top_headlines_subset",
       summary:
         endpoint === "top-headlines"
-          ? "NewsAPI exposes a documented source catalog that can be filtered by country, category, and language."
-          : "NewsAPI source ids come from the documented Sources catalog and can be reused when configuring Everything requests.",
+          ? "NewsAPI exposes a documented Top Headlines source catalog that can be filtered by country, category, and language."
+          : "This picker is backed by NewsAPI's documented Top Headlines source subset. Use it as a source-id aid for Everything, not as the complete Everything source universe.",
     };
   }
 
@@ -889,9 +890,10 @@ const NEWSAPI_SORT_OPTIONS = buildSingleSelectOptions([
   {
     description: "Newest articles first.",
     label: "Published At",
-    value: "published_at",
+    value: "publishedAt",
   },
 ]);
+const NEWSAPI_SORT_VALUES = new Set(NEWSAPI_SORT_OPTIONS.map((option) => option.value));
 
 const NEWSDATA_ENDPOINT_OPTIONS = buildSingleSelectOptions([
   {
@@ -1693,6 +1695,7 @@ export function getProviderFormDefinition(provider_key, scope, values = {}) {
  */
 export function sanitizeProviderFieldValues(provider_key, values = {}, { preserveEmpty = false } = {}) {
   const definition = getProviderDefinition(provider_key);
+  const normalizedProviderKey = normalizeKey(provider_key);
 
   if (!definition) {
     return {};
@@ -1715,7 +1718,10 @@ export function sanitizeProviderFieldValues(provider_key, values = {}, { preserv
       continue;
     }
 
-    const cleaned = normalizeText(values[field.key]);
+    const cleaned =
+      normalizedProviderKey === "newsapi" && field.key === "sortBy" && normalizeText(values[field.key]) === "published_at"
+        ? "publishedAt"
+        : normalizeText(values[field.key]);
 
     if (cleaned || preserveEmpty) {
       result[field.key] = cleaned;
@@ -1937,6 +1943,17 @@ export function getProviderRequestValidationIssues(provider_key, options = {}) {
     }
 
     if (endpoint === "everything") {
+      const sortBy = readSingleValue(requestValues, "sortBy");
+
+      if (sortBy && !NEWSAPI_SORT_VALUES.has(sortBy)) {
+        issues.push(
+          createValidationIssue(
+            "provider_newsapi_sort_by_invalid",
+            'NewsAPI "Everything" sortBy must be one of relevancy, popularity, or publishedAt.',
+          ),
+        );
+      }
+
       if (query.length > 500) {
         issues.push(
           createValidationIssue(

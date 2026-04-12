@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import path from "node:path";
 
 import verifyDbSnakeCaseModule from "./verify-db-snake-case";
 
 const {
+  collectRuntimeQueryFiles,
   findLegacyQueryIdentifierMatches,
   findLegacySqlIdentifierMatches,
   runVerification,
@@ -107,6 +109,27 @@ describe("verify-db-snake-case", () => {
     `);
 
     expect(matches).toEqual([]);
+  });
+
+  it("ignores provider payload fields that only match external API contracts", () => {
+    const matches = findLegacyQueryIdentifierMatches(`
+      const article = {
+        publishedAt: "2026-04-05T00:00:00Z",
+        urlToImage: "https://example.com/image.jpg",
+      };
+
+      return article.publishedAt;
+    `);
+
+    expect(matches).toEqual([]);
+  });
+
+  it("scans Prisma-side runtime files when checking DB-facing query identifiers", () => {
+    expect(
+      collectRuntimeQueryFiles().some((filePath) =>
+        filePath.endsWith(path.join("prisma", "defaults.js")),
+      ),
+    ).toBe(true);
   });
 
   it("passes against the current repository schema, migrations, and runtime SQL", () => {
